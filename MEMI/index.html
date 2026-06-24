@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="memi-api" content="/api">
+<title>MEMI - Login Admin</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+</head>
+<body class="login-body">
+  <div class="login-wrapper">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-logo">M</div>
+        <h1>MEMI <span>Admin</span></h1>
+        <p class="subtitle">Pannello di amministrazione e-commerce</p>
+      </div>
+      <form id="loginForm" autocomplete="off">
+        <label>
+          Email
+          <input type="email" id="email" placeholder="admin@memi.it" value="admin@memi.it" required>
+        </label>
+        <label>
+          Password
+          <input type="password" id="password" placeholder="••••••••" value="demo1234" required>
+        </label>
+        <div class="row-between">
+          <label class="checkbox-inline">
+            <input type="checkbox" checked> Ricordami
+          </label>
+          <a href="#" class="link-soft">Password dimenticata?</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">
+          <span class="btn-label">Accedi</span>
+        </button>
+        <div class="login-msg" id="loginMsg"></div>
+      </form>
+      <div class="login-footer">
+        <small>Demo preview &middot; nessun dato reale verrà inviato</small>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ── Admin API login ──────────────────────────────────────────
+  var API_BASE = (document.querySelector('meta[name="memi-api"]') || {}).content || '/api';
+
+  function adminLogin(email, password) {
+    return $.ajax({
+      url:         API_BASE + '/admin/auth/login',
+      method:      'POST',
+      contentType: 'application/json',
+      data:        JSON.stringify({ email: email, password: password }),
+      dataType:    'json',
+    });
+  }
+
+  $(function(){
+    // If already logged in, skip to dashboard
+    var existingToken = localStorage.getItem('memi_admin_token');
+    if (existingToken) {
+      // Quick verify — if token is good, go directly to dashboard
+      $.ajax({ url: API_BASE + '/admin/auth/me', headers: { Authorization: 'Bearer ' + existingToken } })
+        .done(function() { window.location.href = 'dashboard.html'; })
+        .fail(function() { localStorage.removeItem('memi_admin_token'); });
+    }
+
+    // Show "sessione scaduta" message if redirected after expiry
+    if (new URLSearchParams(window.location.search).get('session') === 'expired') {
+      $('#loginMsg').addClass('error').text('Sessione scaduta. Accedi di nuovo.');
+    }
+
+    $('#loginForm').on('submit', function(e){
+      e.preventDefault();
+      var $btn = $('button[type=submit]', this);
+      var $msg = $('#loginMsg');
+      var email = $('#email').val().trim();
+      var pass  = $('#password').val();
+
+      $btn.prop('disabled', true).find('.btn-label').text('Accesso in corso...');
+      $msg.removeClass('error success').text('');
+
+      adminLogin(email, pass)
+        .done(function(data) {
+          try { localStorage.setItem('memi_admin_token', data.token); } catch(_) {}
+          $msg.addClass('success').text('Accesso effettuato. Reindirizzamento...');
+          setTimeout(function() { window.location.href = 'dashboard.html'; }, 500);
+        })
+        .fail(function(xhr) {
+          var msg = (xhr.responseJSON && xhr.responseJSON.error) || 'Credenziali non valide.';
+          $msg.addClass('error').text(msg);
+          $btn.prop('disabled', false).find('.btn-label').text('Accedi');
+        });
+    });
+  });
+  </script>
+</body>
+</html>

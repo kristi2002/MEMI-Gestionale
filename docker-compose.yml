@@ -1,0 +1,119 @@
+# =============================================================
+# MEMI Abbigliamento — Docker Compose
+# =============================================================
+# Services:
+#   mysql       — MySQL 8 database (persistent volume)
+#   backend     — Node.js/Express REST API (port 3000)
+#   ecommerce   — E-commerce static site (nginx, port 8080)
+#   admin       — Admin gestionale static site (nginx, port 8081)
+#
+# For Coolify:
+#   Deploy each service as a separate Coolify resource pointing
+#   to the same docker-compose.yml, or use this file with
+#   Coolify's "Docker Compose" deployment mode.
+#   See DEPLOYMENT.md for step-by-step instructions.
+# =============================================================
+
+version: "3.9"
+
+services:
+
+  # ── MySQL 8 ─────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme_root}
+      MYSQL_DATABASE:      ${DB_NAME:-memi_db}
+      MYSQL_USER:          ${DB_USER:-memi_user}
+      MYSQL_PASSWORD:      ${DB_PASSWORD:-changeme_user}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Auto-run schema on first start
+      - ./MEMI-Backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      - "3306:3306"   # Remove this line in production (only backend needs MySQL)
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-changeme_root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - memi_net
+
+  # ── Backend API ──────────────────────────────────────────────
+  backend:
+    build:
+      context: ./MEMI-Backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV:              production
+      PORT:                  3000
+      DB_HOST:               mysql
+      DB_PORT:               3306
+      DB_NAME:               ${DB_NAME:-memi_db}
+      DB_USER:               ${DB_USER:-memi_user}
+      DB_PASSWORD:           ${DB_PASSWORD:-changeme_user}
+      JWT_SECRET:            ${JWT_SECRET:-replace_me_64_char_secret}
+      JWT_ADMIN_SECRET:      ${JWT_ADMIN_SECRET:-replace_me_admin_secret}
+      JWT_EXPIRES_IN:        7d
+      JWT_ADMIN_EXPIRES_IN:  8h
+      ALLOWED_ORIGINS:       ${ALLOWED_ORIGINS:-https://memi.it,https://admin.memi.it}
+    ports:
+      - "3000:3000"
+    networks:
+      - memi_net
+    labels:
+      # Coolify / Traefik labels — adjust host rules to your domain
+      - "traefik.enable=true"
+      - "traefik.http.routers.memi-api.rule=Host(`api.memi.it`)"
+      - "traefik.http.routers.memi-api.entrypoints=websecure"
+      - "traefik.http.routers.memi-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.memi-api.loadbalancer.server.port=3000"
+
+  # ── E-commerce (Nginx static) ────────────────────────────────
+  ecommerce:
+    build:
+      context: ./Memi Abbigliamento
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    networks:
+      - memi_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.memi-shop.rule=Host(`memi.it`) || Host(`www.memi.it`)"
+      - "traefik.http.routers.memi-shop.entrypoints=websecure"
+      - "traefik.http.routers.memi-shop.tls.certresolver=letsencrypt"
+      - "traefik.http.services.memi-shop.loadbalancer.server.port=80"
+
+  # ── Admin Gestionale (Nginx static) ─────────────────────────
+  admin:
+    build:
+      context: ./MEMI
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    networks:
+      - memi_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.memi-admin.rule=Host(`admin.memi.it`)"
+      - "traefik.http.routers.memi-admin.entrypoints=websecure"
+      - "traefik.http.routers.memi-admin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.memi-admin.loadbalancer.server.port=80"
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  memi_net:
+    driver: bridge
