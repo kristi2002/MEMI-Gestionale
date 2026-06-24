@@ -63,7 +63,7 @@ services:
       JWT_ADMIN_SECRET:      ${JWT_ADMIN_SECRET:-replace_me_admin_secret}
       JWT_EXPIRES_IN:        7d
       JWT_ADMIN_EXPIRES_IN:  8h
-      ALLOWED_ORIGINS:       ${ALLOWED_ORIGINS:-https://memi.it,https://admin.memi.it}
+      ALLOWED_ORIGINS:       ${ALLOWED_ORIGINS:-https://memi.testdemo.it,https://admin.memi.testdemo.it}
     ports:
       - "3000:3000"
     networks:
@@ -71,7 +71,7 @@ services:
     labels:
       # Coolify / Traefik labels — adjust host rules to your domain
       - "traefik.enable=true"
-      - "traefik.http.routers.memi-api.rule=Host(`api.memi.it`)"
+      - "traefik.http.routers.memi-api.rule=Host(`api.memi.testdemo.it`)"
       - "traefik.http.routers.memi-api.entrypoints=websecure"
       - "traefik.http.routers.memi-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.memi-api.loadbalancer.server.port=3000"
@@ -88,7 +88,7 @@ services:
       - memi_net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.memi-shop.rule=Host(`memi.it`) || Host(`www.memi.it`)"
+      - "traefik.http.routers.memi-shop.rule=Host(`memi.testdemo.it`) || Host(`www.memi.testdemo.it`)"
       - "traefik.http.routers.memi-shop.entrypoints=websecure"
       - "traefik.http.routers.memi-shop.tls.certresolver=letsencrypt"
       - "traefik.http.services.memi-shop.loadbalancer.server.port=80"
@@ -105,7 +105,7 @@ services:
       - memi_net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.memi-admin.rule=Host(`admin.memi.it`)"
+      - "traefik.http.routers.memi-admin.rule=Host(`admin.memi.testdemo.it`)"
       - "traefik.http.routers.memi-admin.entrypoints=websecure"
       - "traefik.http.routers.memi-admin.tls.certresolver=letsencrypt"
       - "traefik.http.services.memi-admin.loadbalancer.server.port=80"
