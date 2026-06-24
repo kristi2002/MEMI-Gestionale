@@ -195,7 +195,7 @@
       animation: marqueeScroll 30s linear infinite;
       width: max-content;
     }
-    .marquee-strip:hover .marquee-track { animation-play-state: paused; }
+    /* marquee never pauses on hover */
     .marquee-item {
       font-size: var(--text-xs);
       letter-spacing: var(--tracking-wider);
@@ -907,6 +907,9 @@
   function highlightItem(idx){
     document.querySelectorAll('.look-item').forEach(function(el,i){el.classList.toggle('highlighted',i===idx);});
     var el=document.getElementById('item'+idx);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});
+    // Navigate to product page if item has a slug
+    var item=LOOKS[currentLook]&&LOOKS[currentLook].items[idx];
+    if(item&&item.slug){window.location.href='/products/'+item.slug+'/';}
   }
 
   function addToCartFromLook(name,price){

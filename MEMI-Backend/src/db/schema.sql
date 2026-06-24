@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS admin_users (
 -- Default admin: admin@memi.it / memi2026admin
 -- (bcrypt hash of "memi2026admin", cost 10)
 INSERT INTO admin_users (email, password_hash, nome, role) VALUES
-('admin@memi.it', '$2b$10$X.SuGGHZ0jf8qMBkLIFW8.wVvvHI1Qzjr7X9k7KeQnS7jGDFvXC3C', 'Admin MEMI', 'admin')
+('admin@memi.it', '$2a$10$9PikdhSZkBbcPLs/qMcSL.8iUl3fjuQXrDYELFpE4pvsDApWZeBI6', 'Admin MEMI', 'admin')
 ON DUPLICATE KEY UPDATE email=email;
 
 -- -------------------------------------------------------------
@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS discount_usage (
   order_id        INT NOT NULL,
   customer_email  VARCHAR(255),
   used_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (code_id) REFERENCES discount_codes(id),
+  FOREIGN KEY (code_id) REFERENCES discount_codes(id) ON DELETE CASCADE,
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

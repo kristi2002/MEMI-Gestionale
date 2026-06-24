@@ -330,7 +330,7 @@
       animation: marqueeScroll 28s linear infinite;
       width: max-content;
     }
-    .marquee-strip:hover .marquee-track { animation-play-state: paused; }
+    /* marquee never pauses on hover */
     .marquee-item {
       font-size: var(--text-xs);
       letter-spacing: var(--tracking-wider);
@@ -534,7 +534,7 @@
       transform: translateY(100%);
       transition: transform var(--dur-med) var(--ease-out);
     }
-    .product-card:hover .product-quick-add { transform: translateY(0); }
+    /* quick-add hover effect removed */
     .size-chips { display: flex; gap: var(--space-1); flex-wrap: wrap; }
     .size-chip {
       width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;

@@ -22,7 +22,7 @@ const { requireAdmin } = require('../middleware/auth');
 /* ── GET /api/products ── */
 router.get('/', async (req, res) => {
   try {
-    const { categoria, colore, saldi, novita, q, collection, limit = 100, offset = 0 } = req.query;
+    const { categoria, colore, saldi, novita, q, collection, status, limit = 100, offset = 0 } = req.query;
 
     let sql    = 'SELECT p.*, GROUP_CONCAT(ps.taglia ORDER BY ps.taglia SEPARATOR ",") AS taglie_str FROM products p LEFT JOIN product_sizes ps ON ps.product_id = p.id WHERE 1=1';
     const params = [];
@@ -34,7 +34,10 @@ router.get('/', async (req, res) => {
     if (q)  { sql += ' AND (p.name LIKE ? OR p.categoria LIKE ?)'; params.push(`%${q}%`, `%${q}%`); }
     if (collection) { sql += ' AND JSON_CONTAINS(p.collections, ?)'; params.push(JSON.stringify(collection)); }
 
-    sql += ' AND p.status = "attivo"';
+    // status=all → no filter (admin view); specific value → filter by it; default → "attivo" only
+    if (status === 'all') { /* no filter */ }
+    else if (status && status !== 'attivo') { sql += ' AND p.status = ?'; params.push(status); }
+    else { sql += ' AND p.status = "attivo"'; }
     sql += ' GROUP BY p.id';
     sql += ' ORDER BY p.popularity ASC';
     sql += ' LIMIT ? OFFSET ?';

@@ -184,22 +184,22 @@ router.get('/my/:id', requireCustomer, async (req, res) => {
 router.get('/admin/list', requireAdmin, async (req, res) => {
   try {
     const { stato, pagamento, q, limit = 50, offset = 0 } = req.query;
-    let sql = 'SELECT * FROM orders WHERE 1=1';
-    const params = [];
+    let where = 'WHERE 1=1';
+    const filterParams = [];
 
-    if (stato)     { sql += ' AND order_status = ?';   params.push(stato); }
-    if (pagamento) { sql += ' AND payment_status = ?'; params.push(pagamento); }
+    if (stato)     { where += ' AND order_status = ?';   filterParams.push(stato); }
+    if (pagamento) { where += ' AND payment_status = ?'; filterParams.push(pagamento); }
     if (q) {
-      sql += ' AND (customer_nome LIKE ? OR customer_cognome LIKE ? OR customer_email LIKE ? OR order_number LIKE ?)';
+      where += ' AND (customer_nome LIKE ? OR customer_cognome LIKE ? OR customer_email LIKE ? OR order_number LIKE ?)';
       const like = `%${q}%`;
-      params.push(like, like, like, like);
+      filterParams.push(like, like, like, like);
     }
 
-    sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
-
-    const [orders] = await pool.execute(sql, params);
-    const [[{ total }]] = await pool.execute('SELECT COUNT(*) as total FROM orders');
+    const [orders] = await pool.execute(
+      `SELECT * FROM orders ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      [...filterParams, parseInt(limit), parseInt(offset)]
+    );
+    const [[{ total }]] = await pool.execute(`SELECT COUNT(*) as total FROM orders ${where}`, filterParams);
     return res.json({ orders, total });
   } catch (err) {
     console.error('admin orders error', err);

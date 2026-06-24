@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campagne — Memi Abbigliamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg-base);color:var(--espresso);font-family:var(--font-sans);
+         line-height:var(--leading-normal);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+    img{display:block;width:100%;object-fit:cover;}
+    a{color:inherit;text-decoration:none;}
+    button{cursor:pointer;border:none;background:none;font-family:inherit;}
+
+    /* ── Announcement ── */
+    .announcement-bar{background:var(--blush-light);color:var(--brown-mid);text-align:center;
+      padding:var(--space-2) var(--space-4);font-size:var(--text-xs);
+      letter-spacing:var(--tracking-wider);text-transform:uppercase;font-weight:500;
+      border-bottom:1px solid var(--blush);}
+
+    /* ── Header stubs (app.js injects real header) ── */
+    .site-header{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.92);
+      backdrop-filter:blur(12px);border-bottom:1px solid var(--beige);}
+    .header-inner{max-width:1280px;margin:0 auto;padding:0 var(--space-4);height:64px;
+      display:flex;align-items:center;gap:var(--space-4);}
+    .logo{flex:1;text-align:center;font-family:var(--font-serif);font-size:var(--text-xl);
+      font-weight:400;letter-spacing:var(--tracking-wide);text-transform:uppercase;}
+    .logo span{color:var(--blush-dark);}
+    .icon-btn{position:relative;width:40px;height:40px;display:flex;align-items:center;
+      justify-content:center;border-radius:var(--radius-full);transition:background var(--dur-fast);}
+    .icon-btn:hover{background:var(--bg-soft);}
+    .icon-btn svg{width:20px;height:20px;stroke:var(--espresso);fill:none;stroke-width:1.6;}
+    .cart-badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;
+      background:var(--blush-dark);color:var(--white);border-radius:var(--radius-full);
+      font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+    .header-actions{display:flex;align-items:center;gap:var(--space-3);flex-shrink:0;}
+    .burger{display:flex;flex-direction:column;gap:5px;width:24px;padding:var(--space-1);flex-shrink:0;}
+    .burger span{display:block;height:1.5px;background:var(--espresso);border-radius:2px;}
+    .desktop-nav{display:none;}
+    @media(min-width:900px){
+      .burger{display:none;}
+      .logo{flex:unset;font-size:var(--text-2xl);}
+      .desktop-nav{display:flex;align-items:center;gap:var(--space-8);font-size:var(--text-sm);
+        letter-spacing:var(--tracking-wide);text-transform:uppercase;font-weight:500;
+        flex:1;justify-content:center;}
+      .desktop-nav a{color:var(--brown-mid);transition:color var(--dur-fast);padding-bottom:2px;position:relative;}
+      .desktop-nav a.active{color:var(--espresso);}
+      .desktop-nav a:hover{color:var(--espresso);}
+    }
+
+    /* ── Page Hero ── */
+    .page-hero {
+      padding: clamp(4rem, 8vw, 7rem) var(--space-6) clamp(3rem, 6vw, 5rem);
+      max-width: 1280px;
+      margin: 0 auto;
+      border-bottom: 1px solid var(--beige);
+    }
+    .page-hero-eyebrow {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--brown-light);
+      font-weight: 500;
+      margin-bottom: var(--space-3);
+    }
+    .page-hero-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+    }
+    .page-hero-title em { font-style: italic; }
+    .page-hero-sub {
+      margin-top: var(--space-5);
+      font-size: var(--text-base);
+      color: var(--brown-mid);
+      max-width: 540px;
+      line-height: var(--leading-normal);
+    }
+
+    /* ── Campaigns section ── */
+    .campaigns-section {
+      padding: clamp(4rem, 8vw, 7rem) var(--space-6);
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* Hero campaign (full-width) */
+    .campaign-hero {
+      position: relative;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      aspect-ratio: 16/7;
+      margin-bottom: var(--space-5);
+      cursor: pointer;
+    }
+    @media (max-width: 640px) { .campaign-hero { aspect-ratio: 4/3; } }
+    .campaign-hero img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center 35%;
+      transition: transform 700ms ease-out;
+    }
+    .campaign-hero:hover img { transform: scale(1.03); }
+    .campaign-hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, rgba(10,4,4,.65) 0%, rgba(10,4,4,.15) 60%, transparent 100%);
+    }
+    .campaign-hero-body {
+      position: absolute;
+      z-index: 2;
+      left: clamp(1.5rem, 5vw, 4rem);
+      bottom: clamp(1.5rem, 5vw, 3rem);
+    }
+    .campaign-season {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.5);
+      margin-bottom: var(--space-2);
+    }
+    .campaign-name {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4vw, 4rem);
+      font-weight: 300;
+      color: var(--white);
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: var(--space-5);
+    }
+    .campaign-name em { font-style: italic; }
+    .campaign-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: 11px;
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+      font-weight: 600;
+      color: var(--white);
+      border-bottom: 1px solid rgba(255,255,255,.4);
+      padding-bottom: 2px;
+      transition: border-color var(--dur-fast);
+    }
+    .campaign-cta:hover { border-color: var(--white); }
+
+    /* Campaign grid (smaller cards) */
+    .campaign-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-5);
+    }
+    @media (min-width: 768px) { .campaign-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .campaign-card {
+      position: relative;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      aspect-ratio: 3/4;
+      cursor: pointer;
+    }
+    .campaign-card img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 600ms ease-out;
+    }
+    .campaign-card:hover img { transform: scale(1.06); }
+    .campaign-card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(59,43,43,.6) 0%, rgba(59,43,43,.05) 55%, transparent 100%);
+      transition: background var(--dur-med);
+    }
+    .campaign-card:hover .campaign-card-overlay {
+      background: linear-gradient(to top, rgba(59,43,43,.72) 0%, rgba(59,43,43,.15) 55%, transparent 100%);
+    }
+    .campaign-card-body {
+      position: absolute;
+      z-index: 2;
+      bottom: 0; left: 0; right: 0;
+      padding: var(--space-5);
+    }
+    .campaign-card-season {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.55);
+      margin-bottom: 4px;
+    }
+    .campaign-card-name {
+      font-family: var(--font-serif);
+      font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+      font-weight: 300;
+      color: var(--white);
+      line-height: 1.2;
+      margin-bottom: var(--space-3);
+    }
+    .campaign-card-name em { font-style: italic; }
+    .campaign-card-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+      color: var(--white);
+      background: rgba(255,255,255,.15);
+      backdrop-filter: blur(6px);
+      border-radius: var(--radius-full);
+      padding: 5px 12px;
+      border: 1px solid rgba(255,255,255,.25);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity var(--dur-med), transform var(--dur-med);
+    }
+    .campaign-card:hover .campaign-card-cta { opacity: 1; transform: translateY(0); }
+
+    /* ── CTA ── */
+    .about-cta-section {
+      background: var(--blush-light);
+      border-top: 1px solid var(--blush);
+      padding: clamp(4rem, 8vw, 6rem) var(--space-6);
+      text-align: center;
+    }
+    .about-cta-eyebrow {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--brown-light);
+      margin-bottom: var(--space-4);
+    }
+    .about-cta-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-6);
+    }
+    .about-cta-title em { font-style: italic; }
+    .btn-about-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-4) var(--space-8);
+      background: var(--espresso);
+      color: var(--white);
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      font-weight: 600;
+      border-radius: var(--radius-full);
+      transition: background var(--dur-fast), transform var(--dur-fast);
+    }
+    .btn-about-cta:hover { background: #2a1e1e; transform: translateY(-1px); }
+  </style>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+  <div class="announcement-bar">Spedizione gratuita da €50 &nbsp;·&nbsp; Resi gratuiti entro 30 giorni</div>
+
+  <!-- Header injected by app.js -->
+  <div data-include="site-header"></div>
+
+  <!-- PAGE HERO -->
+  <div class="page-hero">
+    <p class="page-hero-eyebrow">Memi Abbigliamento</p>
+    <h1 class="page-hero-title">Le nostre <em>campagne</em></h1>
+    <p class="page-hero-sub">Storie di stile raccontate per immagini. Ogni stagione, una nuova narrazione visiva che celebra la femminilità.</p>
+  </div>
+
+  <!-- CAMPAIGNS -->
+  <section class="campaigns-section">
+
+    <!-- Hero campaign -->
+    <div class="campaign-hero">
+      <img
+        src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1920&q=85"
+        alt="Campagna Spring Summer 2026"
+        loading="lazy"
+      />
+      <div class="campaign-hero-overlay"></div>
+      <div class="campaign-hero-body">
+        <p class="campaign-season">Primavera Estate 2026</p>
+        <h2 class="campaign-name">Spring Summer<br><em>2026</em></h2>
+        <a href="/shop" class="campaign-cta">Scopri la collezione →</a>
+      </div>
+    </div>
+
+    <!-- Campaign grid -->
+    <div class="campaign-grid">
+
+      <div class="campaign-card">
+        <img
+          src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80"
+          alt="Fall Winter 2025"
+          loading="lazy"
+        />
+        <div class="campaign-card-overlay"></div>
+        <div class="campaign-card-body">
+          <p class="campaign-card-season">Autunno Inverno 2025</p>
+          <p class="campaign-card-name">Fall Winter<br><em>2025</em></p>
+          <span class="campaign-card-cta">Esplora →</span>
+        </div>
+      </div>
+
+      <div class="campaign-card">
+        <img
+          src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80"
+          alt="Estate 2025 - Dance Collection"
+          loading="lazy"
+        />
+        <div class="campaign-card-overlay"></div>
+        <div class="campaign-card-body">
+          <p class="campaign-card-season">Estate 2025</p>
+          <p class="campaign-card-name">Dance<br><em>Collection</em></p>
+          <span class="campaign-card-cta">Esplora →</span>
+        </div>
+      </div>
+
+      <div class="campaign-card">
+        <img
+          src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80"
+          alt="Campagna Primavera 2025"
+          loading="lazy"
+        />
+        <div class="campaign-card-overlay"></div>
+        <div class="campaign-card-body">
+          <p class="campaign-card-season">Primavera 2025</p>
+          <p class="campaign-card-name">Spring<br><em>2025</em></p>
+          <span class="campaign-card-cta">Esplora →</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="about-cta-section">
+    <p class="about-cta-eyebrow">Pronta a scoprire?</p>
+    <h2 class="about-cta-title">Entra nella <em>collezione</em></h2>
+    <a href="/shop" class="btn-about-cta">Scopri la collezione →</a>
+  </section>
+
+  <!-- Footer injected by app.js -->
+  <div data-include="site-footer"></div>
+
+  <script src="api-client.js"></script>
+  <script src="app.js?v=3"></script>
+</body>
+</html>

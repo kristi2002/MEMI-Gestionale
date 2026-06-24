@@ -33,7 +33,11 @@ router.get('/zones', async (req, res) => {
 /* ── GET /api/shipping/couriers ── */
 router.get('/couriers', async (req, res) => {
   try {
-    const [rows] = await pool.execute('SELECT * FROM couriers ORDER BY code');
+    // Public: only active couriers. Admin passes ?all=1 to see all.
+    const sql = req.query.all === '1'
+      ? 'SELECT * FROM couriers ORDER BY code'
+      : 'SELECT * FROM couriers WHERE attivo = 1 ORDER BY code';
+    const [rows] = await pool.execute(sql);
     return res.json(rows);
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });

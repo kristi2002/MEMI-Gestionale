@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>I Nostri Valori — Memi Abbigliamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg-base);color:var(--espresso);font-family:var(--font-sans);
+         line-height:var(--leading-normal);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+    img{display:block;width:100%;object-fit:cover;}
+    a{color:inherit;text-decoration:none;}
+    button{cursor:pointer;border:none;background:none;font-family:inherit;}
+
+    /* ── Announcement ── */
+    .announcement-bar{background:var(--blush-light);color:var(--brown-mid);text-align:center;
+      padding:var(--space-2) var(--space-4);font-size:var(--text-xs);
+      letter-spacing:var(--tracking-wider);text-transform:uppercase;font-weight:500;
+      border-bottom:1px solid var(--blush);}
+
+    /* ── Header stubs (app.js injects real header) ── */
+    .site-header{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.92);
+      backdrop-filter:blur(12px);border-bottom:1px solid var(--beige);}
+    .header-inner{max-width:1280px;margin:0 auto;padding:0 var(--space-4);height:64px;
+      display:flex;align-items:center;gap:var(--space-4);}
+    .logo{flex:1;text-align:center;font-family:var(--font-serif);font-size:var(--text-xl);
+      font-weight:400;letter-spacing:var(--tracking-wide);text-transform:uppercase;}
+    .logo span{color:var(--blush-dark);}
+    .icon-btn{position:relative;width:40px;height:40px;display:flex;align-items:center;
+      justify-content:center;border-radius:var(--radius-full);transition:background var(--dur-fast);}
+    .icon-btn:hover{background:var(--bg-soft);}
+    .icon-btn svg{width:20px;height:20px;stroke:var(--espresso);fill:none;stroke-width:1.6;}
+    .cart-badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;
+      background:var(--blush-dark);color:var(--white);border-radius:var(--radius-full);
+      font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 3px;}
+    .header-actions{display:flex;align-items:center;gap:var(--space-3);flex-shrink:0;}
+    .burger{display:flex;flex-direction:column;gap:5px;width:24px;padding:var(--space-1);flex-shrink:0;}
+    .burger span{display:block;height:1.5px;background:var(--espresso);border-radius:2px;}
+    .desktop-nav{display:none;}
+    @media(min-width:900px){
+      .burger{display:none;}
+      .logo{flex:unset;font-size:var(--text-2xl);}
+      .desktop-nav{display:flex;align-items:center;gap:var(--space-8);font-size:var(--text-sm);
+        letter-spacing:var(--tracking-wide);text-transform:uppercase;font-weight:500;
+        flex:1;justify-content:center;}
+      .desktop-nav a{color:var(--brown-mid);transition:color var(--dur-fast);padding-bottom:2px;position:relative;}
+      .desktop-nav a.active{color:var(--espresso);}
+      .desktop-nav a:hover{color:var(--espresso);}
+    }
+
+    /* ── Page Hero ── */
+    .page-hero {
+      padding: clamp(4rem, 8vw, 7rem) var(--space-6) clamp(3rem, 6vw, 5rem);
+      max-width: 1280px;
+      margin: 0 auto;
+      border-bottom: 1px solid var(--beige);
+    }
+    .page-hero-eyebrow {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--brown-light);
+      font-weight: 500;
+      margin-bottom: var(--space-3);
+    }
+    .page-hero-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+    }
+    .page-hero-title em { font-style: italic; }
+    .page-hero-sub {
+      margin-top: var(--space-5);
+      font-size: var(--text-base);
+      color: var(--brown-mid);
+      max-width: 540px;
+      line-height: var(--leading-normal);
+    }
+
+    /* ── Values Section ── */
+    .values-section {
+      background: var(--lavender, #C5BEE2);
+      padding: clamp(5rem, 10vw, 9rem) var(--space-6);
+    }
+    .values-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    .values-eyebrow {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--espresso);
+      opacity: .55;
+      font-weight: 500;
+      margin-bottom: var(--space-5);
+    }
+    .values-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      color: var(--espresso);
+      line-height: 1.1;
+      margin-bottom: clamp(3rem, 6vw, 5rem);
+    }
+    .values-title em { font-style: italic; color: var(--white); }
+    .values-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--space-8);
+      border-top: 1px solid rgba(59,43,43,.12);
+      padding-top: var(--space-8);
+    }
+    @media (min-width: 640px) { .values-grid { grid-template-columns: 1fr 1fr; } }
+    @media (min-width: 900px) { .values-grid { grid-template-columns: repeat(4, 1fr); } }
+    .value-icon {
+      font-size: 1.5rem;
+      color: var(--white);
+      line-height: 1;
+      margin-bottom: var(--space-4);
+    }
+    .value-name {
+      font-family: var(--font-serif);
+      font-size: var(--text-xl);
+      font-weight: 300;
+      font-style: italic;
+      color: var(--espresso);
+      margin-bottom: var(--space-3);
+    }
+    .value-desc {
+      font-size: var(--text-sm);
+      color: var(--brown-mid);
+      line-height: 1.9;
+    }
+
+    /* ── Manifesto block ── */
+    .manifesto-section {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: clamp(4rem, 8vw, 7rem) var(--space-6);
+      display: grid;
+      gap: var(--space-10);
+    }
+    @media (min-width: 768px) { .manifesto-section { grid-template-columns: 1fr 1fr; align-items: center; } }
+    .manifesto-text {}
+    .manifesto-eyebrow {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--brown-light);
+      margin-bottom: var(--space-4);
+    }
+    .manifesto-title {
+      font-family: var(--font-serif);
+      font-size: clamp(1.75rem, 3vw, 2.75rem);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: var(--space-5);
+    }
+    .manifesto-title em { font-style: italic; }
+    .manifesto-body {
+      font-size: var(--text-sm);
+      color: var(--brown-mid);
+      line-height: 1.9;
+    }
+    .manifesto-img {
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      aspect-ratio: 4/5;
+    }
+    .manifesto-img img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* ── CTA ── */
+    .about-cta-section {
+      background: var(--blush-light);
+      border-top: 1px solid var(--blush);
+      padding: clamp(4rem, 8vw, 6rem) var(--space-6);
+      text-align: center;
+    }
+    .about-cta-eyebrow {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--brown-light);
+      margin-bottom: var(--space-4);
+    }
+    .about-cta-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      margin-bottom: var(--space-6);
+    }
+    .about-cta-title em { font-style: italic; }
+    .btn-about-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-4) var(--space-8);
+      background: var(--espresso);
+      color: var(--white);
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      font-weight: 600;
+      border-radius: var(--radius-full);
+      transition: background var(--dur-fast), transform var(--dur-fast);
+    }
+    .btn-about-cta:hover { background: #2a1e1e; transform: translateY(-1px); }
+  </style>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+
+  <div class="announcement-bar">Spedizione gratuita da €50 &nbsp;·&nbsp; Resi gratuiti entro 30 giorni</div>
+
+  <!-- Header injected by app.js -->
+  <div data-include="site-header"></div>
+
+  <!-- PAGE HERO -->
+  <div class="page-hero">
+    <p class="page-hero-eyebrow">Memi Abbigliamento</p>
+    <h1 class="page-hero-title">I nostri <em>valori</em></h1>
+    <p class="page-hero-sub">Ciò che ci guida ogni giorno, nella selezione dei capi, nel rapporto con le nostre clienti e nella visione del bello.</p>
+  </div>
+
+  <!-- VALUES -->
+  <section class="values-section">
+    <div class="values-inner">
+      <p class="values-eyebrow">I nostri valori</p>
+      <h2 class="values-title">Cosa ci <em>guida</em></h2>
+      <div class="values-grid">
+        <div class="value-item">
+          <div class="value-icon">✦</div>
+          <h3 class="value-name">Qualità</h3>
+          <p class="value-desc">Ogni capo è selezionato con cura per garantire materiali di prima scelta e lavorazioni artigianali. Non scendiamo a compromessi quando si tratta di ciò che indossi.</p>
+        </div>
+        <div class="value-item">
+          <div class="value-icon">◈</div>
+          <h3 class="value-name">Stile</h3>
+          <p class="value-desc">Un gusto raffinato che si evolve stagione dopo stagione, sempre fedele a un'estetica senza tempo. La moda cambia; l'eleganza resta.</p>
+        </div>
+        <div class="value-item">
+          <div class="value-icon">♡</div>
+          <h3 class="value-name">Cura</h3>
+          <p class="value-desc">Ti accompagniamo dall'ispirazione all'acquisto, con un servizio clienti presente e attento. Perché ogni cliente merita attenzione vera.</p>
+        </div>
+        <div class="value-item">
+          <div class="value-icon">⊕</div>
+          <h3 class="value-name">Comunità</h3>
+          <p class="value-desc">Una community di donne che si riconoscono in un modo di vestire autentico e consapevole. Insieme, costruiamo qualcosa di più grande della moda.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MANIFESTO -->
+  <section class="manifesto-section">
+    <div class="manifesto-text">
+      <p class="manifesto-eyebrow">Il nostro manifesto</p>
+      <h2 class="manifesto-title">Vestirsi è un atto<br>di <em>autodefinizione</em></h2>
+      <p class="manifesto-body">Crediamo che la moda non sia vanità — sia linguaggio. Ogni mattina, scegliere cosa indossare è un momento di libertà. Memi esiste per amplificare quella libertà, offrendo capi che non si limitano a seguire le tendenze, ma che diventano parte autentica di chi li indossa.<br><br>Dalla fondazione nel 2018, abbiamo costruito un rapporto diretto e onesto con le nostre clienti. Niente greenwashing, niente promesse vuote: solo capi belli, durevoli, e selezionati con cura.</p>
+    </div>
+    <div class="manifesto-img">
+      <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=800&q=85" alt="Memi - I Nostri Valori" loading="lazy" />
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="about-cta-section">
+    <p class="about-cta-eyebrow">Pronta a scoprire?</p>
+    <h2 class="about-cta-title">Entra nella <em>collezione</em></h2>
+    <a href="/shop" class="btn-about-cta">Scopri la collezione →</a>
+  </section>
+
+  <!-- Footer injected by app.js -->
+  <div data-include="site-footer"></div>
+
+  <script src="api-client.js"></script>
+  <script src="app.js?v=3"></script>
+</body>
+</html>

@@ -104,7 +104,7 @@ router.get('/top-products', requireAdmin, async (req, res) => {
 router.get('/recent-orders', requireAdmin, async (req, res) => {
   try {
     const [rows] = await pool.execute(`
-      SELECT order_number, customer_nome, customer_cognome, total,
+      SELECT id, order_number, customer_nome, customer_cognome, total,
              payment_status, order_status, created_at,
              tracking_number, courier_code
       FROM orders

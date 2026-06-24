@@ -1614,11 +1614,13 @@ $(function(){
   });
 
   // ── Initial data load from API, then render dashboard ──
+  // NOTE: calls _origRenderView (not renderView) to avoid the infinite loop
+  // where overridden renderView('dashboard') would re-trigger loadDashboardData.
   function loadDashboardData() {
     const api = window.AdminAPI;
-    if (!api) { renderView('dashboard'); return; }
+    if (!api) { (typeof _origRenderView === 'function' ? _origRenderView : renderView)('dashboard'); return; }
 
-    // Parallel requests: KPIs, recent orders, top products
+    // Parallel requests: KPIs, recent orders
     $.when(
       api.dashboard.kpis(),
       api.dashboard.recentOrders()
@@ -1633,6 +1635,8 @@ $(function(){
       DATA.orders = recent.map(function(o) {
         return {
           id:         o.order_number,
+          _db_id:     o.id,
+          _raw_status: o.order_status,
           cliente:    (o.customer_nome + ' ' + o.customer_cognome).trim(),
           data:       new Date(o.created_at).toLocaleDateString('it-IT'),
           totale:     '€ ' + parseFloat(o.total).toFixed(2).replace('.', ','),
@@ -1643,10 +1647,10 @@ $(function(){
         };
       });
 
-      renderView('dashboard');
+      _origRenderView('dashboard');
     }).fail(function() {
       // Token may have expired — admin-api.js handles redirect on 401
-      renderView('dashboard');
+      _origRenderView('dashboard');
     });
   }
 

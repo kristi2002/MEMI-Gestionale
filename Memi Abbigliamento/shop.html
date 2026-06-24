@@ -117,7 +117,6 @@
     /* ═══ MARQUEE ════════════════════════════════════════════════ */
     .marquee-strip{background:var(--lavender);overflow:hidden;padding:var(--space-3) 0;border-top:1px solid rgba(255,255,255,.3);border-bottom:1px solid rgba(255,255,255,.3);}
     .marquee-track{display:flex;gap:0;white-space:nowrap;animation:marqueeScroll 30s linear infinite;width:max-content;}
-    .marquee-strip:hover .marquee-track{animation-play-state:paused;}
     .marquee-item{font-size:var(--text-xs);letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--espresso);font-weight:500;padding:0 var(--space-6);}
     .marquee-item.accent{color:rgba(59,43,43,.4);padding:0 var(--space-4);}
     @keyframes marqueeScroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
@@ -210,12 +209,13 @@
     .btn-filter-toggle svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;}
     .filter-count-badge{min-width:18px;height:18px;background:var(--lavender);color:var(--espresso);border-radius:var(--radius-full);font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;}
 
-    .view-toggle{display:none;align-items:center;gap:var(--space-2);font-size:var(--text-sm);color:var(--brown-light);}
+    .view-toggle{display:none;align-items:center;gap:var(--space-1);font-size:var(--text-sm);color:var(--brown-light);}
     @media(min-width:640px){.view-toggle{display:flex;}}
-    .view-toggle-label{color:var(--brown-light);}
-    .view-toggle-btn{font-size:var(--text-sm);color:var(--brown-light);padding:2px 3px;transition:color var(--dur-fast);}
-    .view-toggle-btn:hover{color:var(--espresso);}
-    .view-toggle-btn.active{color:var(--espresso);font-weight:600;text-decoration:underline;text-underline-offset:3px;}
+    .view-toggle-label{color:var(--brown-light);margin-right:var(--space-1);}
+    .view-toggle-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);color:var(--brown-light);transition:color var(--dur-fast),background var(--dur-fast);}
+    .view-toggle-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.5;}
+    .view-toggle-btn:hover{color:var(--espresso);background:var(--bg-soft);}
+    .view-toggle-btn.active{color:var(--espresso);background:var(--beige);}
 
     .active-filters{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-5);}
     .active-filters:empty{display:none;}
@@ -251,8 +251,7 @@
     .product-wishlist{position:absolute;top:var(--space-3);right:var(--space-3);width:28px;height:28px;background:none;backdrop-filter:none;border-radius:0;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(-4px);transition:opacity var(--dur-fast),transform var(--dur-fast);box-shadow:none;}
     .product-wishlist svg{width:17px;height:17px;stroke:var(--espresso);fill:none;stroke-width:1.4;}
     .product-card.in-view:hover .product-wishlist{opacity:1;transform:translateY(0);}
-    .product-quick-add{position:absolute;bottom:0;left:0;right:0;padding:var(--space-3) var(--space-3) var(--space-4);background:linear-gradient(to top,rgba(255,255,255,.97) 40%,transparent 100%);backdrop-filter:none;transform:translateY(100%);transition:transform var(--dur-med) var(--ease-out);}
-    .product-card.in-view:hover .product-quick-add{transform:translateY(0);}
+    .product-quick-add{display:none;}
     .size-chips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
     .size-chip{min-width:28px;height:26px;padding:0 6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;letter-spacing:.04em;border:1px solid var(--espresso);border-radius:0;color:var(--espresso);background:var(--bg-base);transition:background var(--dur-fast),color var(--dur-fast);}
     .size-chip:hover{background:var(--espresso);color:var(--white);}
@@ -296,10 +295,17 @@
     @media(max-width:767px){.editorial-block__media img{object-position:center 30%;}}
     .editorial-block:hover .editorial-block__media img{transform:scale(1.04);}
 
-    .btn-load-more{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-10);border:1.5px solid var(--beige-dark);border-radius:var(--radius-full);font-size:var(--text-sm);font-weight:500;letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--brown-mid);background:var(--white);transition:border-color var(--dur-fast),color var(--dur-fast),transform var(--dur-fast),box-shadow var(--dur-fast);}
-    .btn-load-more:hover{border-color:var(--lavender);color:var(--espresso);transform:translateY(-1px);box-shadow:var(--shadow-sm);}
-    .btn-load-more.is-loading .load-more-label::after{content:'…';}
-    .load-more-note{font-size:var(--text-sm);color:var(--brown-light);margin-top:var(--space-4);}
+    /* ── Pagination ── */
+    .shop-pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:var(--space-12);padding-bottom:var(--space-8);}
+    .pg-btn{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:var(--text-sm);font-weight:500;color:var(--brown-mid);background:transparent;border:1.5px solid transparent;transition:all var(--dur-fast);cursor:pointer;}
+    .pg-btn:hover{border-color:var(--beige-dark);color:var(--espresso);}
+    .pg-btn.active{border-color:var(--espresso);background:var(--espresso);color:var(--white);}
+    .pg-btn:disabled{opacity:.3;cursor:default;}
+    .pg-ellipsis{width:38px;text-align:center;color:var(--brown-light);font-size:var(--text-sm);line-height:38px;}
+    .pg-arrow{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--beige-dark);border-radius:50%;color:var(--brown-mid);transition:all var(--dur-fast);cursor:pointer;}
+    .pg-arrow:hover:not(:disabled){border-color:var(--espresso);color:var(--espresso);}
+    .pg-arrow:disabled{opacity:.3;cursor:default;}
+    .pg-arrow svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
   </style>
   <link rel="stylesheet" href="app.css" />
 </head>
@@ -375,10 +381,16 @@
       <p class="results-count"><strong id="resultCount">12</strong> articoli</p>
       <div class="topbar-right">
         <div class="view-toggle" aria-label="Numero di colonne">
-          <span class="view-toggle-label">Vista:</span>
-          <button class="view-toggle-btn" data-cols="2">2</button>
-          <button class="view-toggle-btn" data-cols="3">3</button>
-          <button class="view-toggle-btn active" data-cols="4">4</button>
+          <span class="view-toggle-label">Vista</span>
+          <button class="view-toggle-btn" data-cols="2" aria-label="2 colonne">
+            <svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="14" rx="1"/><rect x="9" y="1" width="6" height="14" rx="1"/></svg>
+          </button>
+          <button class="view-toggle-btn" data-cols="3" aria-label="3 colonne">
+            <svg viewBox="0 0 16 16"><rect x="1" y="1" width="3.5" height="14" rx="1"/><rect x="6.25" y="1" width="3.5" height="14" rx="1"/><rect x="11.5" y="1" width="3.5" height="14" rx="1"/></svg>
+          </button>
+          <button class="view-toggle-btn active" data-cols="4" aria-label="4 colonne">
+            <svg viewBox="0 0 16 16"><rect x="1" y="1" width="2.5" height="14" rx=".5"/><rect x="4.5" y="1" width="2.5" height="14" rx=".5"/><rect x="9" y="1" width="2.5" height="14" rx=".5"/><rect x="12.5" y="1" width="2.5" height="14" rx=".5"/></svg>
+          </button>
         </div>
         <button class="btn-filter-toggle" id="openFilterBtn" aria-expanded="false" aria-controls="filterPanel">
           Ordina &amp; Filtra
@@ -443,9 +455,15 @@
 
     </div>
 
-    <div class="load-more-wrap" id="loadMoreWrap" style="text-align:center;margin-top:var(--space-12);">
-       <button class="btn-load-more" id="loadMoreBtn" onclick="loadMore()" style="display:none;">Mostra altri prodotti</button>
-    </div>
+    <nav class="shop-pagination" id="shopPagination" aria-label="Pagine prodotti" style="display:none;">
+      <button class="pg-arrow" id="pgPrev" aria-label="Pagina precedente" onclick="goPage(currentPage-1)" disabled>
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div id="pgNumbers" style="display:flex;align-items:center;gap:6px;"></div>
+      <button class="pg-arrow" id="pgNext" aria-label="Pagina successiva" onclick="goPage(currentPage+1)">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </nav>
 
   </main>
 </div><!-- /shop-layout -->
@@ -604,6 +622,9 @@
       var hasF=af.categoria||af.saldi||af.collez||af.taglie.length||af.colori.length;
       eb.style.display=hasF?'none':'';
     }
+    // Hide pagination when filters are active
+    var pg=document.getElementById('shopPagination');
+    if(pg) pg.style.display='none';
     renderChips(); updateBadge(); syncURL();
     closeFilterDrawer();
   }
@@ -687,26 +708,54 @@
     var el=document.getElementById('filterResultCount'); if(el) el.textContent=countVisible();
   };
 
-  // ── Load More ─────────────────────────────────────────────────────────────
-  var PAGE=12, shown=0, allCards=[];
-  function initLoadMore() {
+  // ── Pagination ────────────────────────────────────────────────────────────
+  var PAGE_SIZE=12, currentPage=1, allCards=[];
+
+  function initPagination() {
     allCards = Array.from(document.querySelectorAll('#productGrid > a.product-card-link, #productGrid > .editorial-block'));
-    shown = 0;
-    allCards.forEach(function(el,i){ el.style.display = i<PAGE ? '' : 'none'; if(i<PAGE) shown++; });
-    var btn=document.getElementById('loadMoreBtn');
-    if (btn) btn.style.display = allCards.length>PAGE ? '' : 'none';
-    ['resultCount','filterResultCount'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=shown; });
+    currentPage = 1;
+    renderPage();
   }
-  window.loadMore = function() {
-    var btn=document.getElementById('loadMoreBtn');
-    if (btn) btn.classList.add('is-loading');
-    setTimeout(function(){
-      var next=Math.min(shown+PAGE, allCards.length);
-      for (var i=shown;i<next;i++) allCards[i].style.display='';
-      shown=next;
-      if (btn) { btn.classList.remove('is-loading'); if(shown>=allCards.length) btn.style.display='none'; }
-      ['resultCount','filterResultCount'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=shown; });
-    },400);
+
+  function renderPage() {
+    var totalPages = Math.max(1, Math.ceil(allCards.length / PAGE_SIZE));
+    var start = (currentPage - 1) * PAGE_SIZE;
+    var end = start + PAGE_SIZE;
+    allCards.forEach(function(el, i) { el.style.display = (i >= start && i < end) ? '' : 'none'; });
+
+    // Update result count
+    var shown = Math.min(end, allCards.length) - start;
+    ['resultCount','filterResultCount'].forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=allCards.length; });
+
+    // Build pagination UI
+    var pg = document.getElementById('shopPagination');
+    var nums = document.getElementById('pgNumbers');
+    var prev = document.getElementById('pgPrev');
+    var next = document.getElementById('pgNext');
+    if (!pg || !nums) return;
+
+    pg.style.display = totalPages > 1 ? 'flex' : 'none';
+    if (prev) prev.disabled = currentPage <= 1;
+    if (next) next.disabled = currentPage >= totalPages;
+
+    var html = '';
+    for (var p = 1; p <= totalPages; p++) {
+      if (totalPages > 7 && p > 2 && p < totalPages - 1 && Math.abs(p - currentPage) > 1) {
+        if (p === 3 || p === totalPages - 2) html += '<span class="pg-ellipsis">…</span>';
+        continue;
+      }
+      html += '<button class="pg-btn' + (p === currentPage ? ' active' : '') + '" onclick="goPage(' + p + ')">' + p + '</button>';
+    }
+    nums.innerHTML = html;
+  }
+
+  window.goPage = function(p) {
+    var totalPages = Math.max(1, Math.ceil(allCards.length / PAGE_SIZE));
+    if (p < 1 || p > totalPages) return;
+    currentPage = p;
+    renderPage();
+    var grid = document.getElementById('productGrid');
+    if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   // ── Wire everything on DOM ready ──────────────────────────────────────────
@@ -772,7 +821,7 @@
     if (af.categoria || af.saldi || af.collez || af.sort !== 'novita') {
       applyFilters();
     } else {
-      initLoadMore();
+      initPagination();
       renderChips();
       updateBadge();
     }

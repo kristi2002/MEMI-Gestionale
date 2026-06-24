@@ -80,8 +80,8 @@
      PRODUCTS
      ═══════════════════════════════════════════════════════ */
   var products = {
-    list:        function(params) { return get('/products' + (params ? '?' + $.param(params) : '') + '&status=all'); },
-    listAll:     function()       { return get('/products'); },
+    list:        function(params) { return get('/products?' + $.param(Object.assign({ status: 'all' }, params || {}))); },
+    listAll:     function()       { return get('/products?status=all'); },
     get:         function(id)     { return get('/products/' + encodeURIComponent(id)); },
     create:      function(data)   { return post('/products', data); },
     update:      function(id, data) { return put('/products/' + encodeURIComponent(id), data); },
@@ -129,7 +129,7 @@
     createZone:      function(data)   { return post('/shipping/zones', data); },
     updateZone:      function(id, d)  { return put('/shipping/zones/' + id, d); },
     deleteZone:      function(id)     { return del('/shipping/zones/' + id); },
-    couriers:        function()       { return get('/shipping/couriers'); },
+    couriers:        function()       { return get('/shipping/couriers?all=1'); },
     updateCourier:   function(code, d) { return put('/shipping/couriers/' + code, d); },
     shipments:       function()       { return get('/shipping/shipments'); },
     updateShipment:  function(id, d)  { return put('/shipping/shipments/' + id, d); },

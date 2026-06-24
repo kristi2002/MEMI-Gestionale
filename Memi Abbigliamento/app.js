@@ -35,8 +35,9 @@
     { collection: 'shop-all',  label: 'Abbigliamento' },
     { collection: 'accessori', label: 'Accessori' },
     { collection: 'saldi',     label: 'Saldi' },
-    { href: 'look',       label: 'Shop the Look' },
-    { href: 'about',      label: 'Chi Siamo' },
+    { href: 'look',      label: 'Shop the Look' },
+    { href: 'campagne',  label: 'Campagne' },
+    { href: 'about',     label: 'Chi Siamo' },
   ];
 
   function currentHrefKey() {
@@ -111,10 +112,11 @@
         '</div>' +
       '</nav>';
 
-    // RIGHT group — Look, Chi Siamo mega-trigger (sits right of the centered logo)
+    // RIGHT group — Look, Campagne, Chi Siamo mega-trigger (sits right of the centered logo)
     const desktopNavRight =
       '<nav class="desktop-nav desktop-nav-right" aria-label="Altri link">' +
         '<a href="/look"' + ac('look') + '>Look</a>' +
+        '<a href="/campagne"' + ac('campagne') + '>Campagne</a>' +
         '<div class="mega-trigger" data-mega="about">' +
           '<span class="mega-label' + aboutActive + '">' +
             'Chi Siamo' +
@@ -123,8 +125,8 @@
           '<div class="mega-panel mega-panel--sm" role="navigation" aria-label="Chi siamo">' +
             '<div class="mega-col">' +
               '<a href="/about" class="mega-link">La Nostra Storia</a>' +
-              '<a href="/about#campaigns" class="mega-link">Campagne</a>' +
-              '<a href="/about#values" class="mega-link">I Nostri Valori</a>' +
+              '<a href="/campagne" class="mega-link">Campagne</a>' +
+              '<a href="/valori" class="mega-link">I Nostri Valori</a>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -263,7 +265,120 @@
     { id: 'top-bustier-perla',     name: 'Top Bustier Perla',     color: 'Avorio madreperla', colorKey: 'ph-cream',    price: '€48,00',  href: '/product', tags: ['top','novita','accessori'] },
   ];
 
-  /* ── 4. INJECT MARKUP ──────────────────────────────────── */
+  /* ── 4. FOOTER INJECTION ───────────────────────────────── */
+
+  function injectFooter() {
+    // Build new footer HTML (dark, minimal, elegant)
+    const footerHtml = `
+<footer class="site-footer sf2" role="contentinfo">
+  <div class="sf2-inner">
+    <div class="sf2-brand">
+      <a href="/" class="sf2-logo">Memi<em>.</em></a>
+      <p class="sf2-tagline">Moda femminile curata, italiana.</p>
+      <div class="sf2-social">
+        <a href="https://instagram.com/memiabbigliamento" aria-label="Instagram" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+        </a>
+        <a href="#" aria-label="Pinterest">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.236 2.636 7.855 6.356 9.312-.088-.791-.167-2.005.035-2.868.181-.78 1.172-4.97 1.172-4.97s-.299-.598-.299-1.482c0-1.388.806-2.428 1.808-2.428.852 0 1.265.64 1.265 1.408 0 .858-.546 2.141-.828 3.33-.236.995.499 1.806 1.48 1.806 1.773 0 3.141-1.872 3.141-4.573 0-2.39-1.717-4.061-4.168-4.061-2.837 0-4.502 2.126-4.502 4.327 0 .856.329 1.772.74 2.273a.3.3 0 0 1 .069.285c-.075.314-.244.995-.277 1.134-.044.183-.145.222-.334.134-1.249-.581-2.03-2.407-2.03-3.874 0-3.154 2.292-6.052 6.608-6.052 3.469 0 6.165 2.473 6.165 5.776 0 3.447-2.173 6.22-5.19 6.22-1.013 0-1.966-.527-2.292-1.148l-.623 2.378c-.226.869-.835 1.958-1.244 2.621.937.29 1.931.446 2.962.446 5.522 0 10-4.477 10-10S17.522 2 12 2z" stroke="none" fill="currentColor" opacity=".7"/></svg>
+        </a>
+        <a href="#" aria-label="TikTok">
+          <svg viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07z" stroke="none" fill="currentColor" opacity=".7"/></svg>
+        </a>
+      </div>
+    </div>
+    <div class="sf2-nav">
+      <div class="sf2-col">
+        <h4>Negozio</h4>
+        <ul>
+          <li><a href="/shop?categoria=novita">Novità</a></li>
+          <li><a href="/shop?saldi=1">Saldi</a></li>
+          <li><a href="/shop">Tutti i Capi</a></li>
+          <li><a href="/shop?categoria=accessori">Accessori</a></li>
+          <li><a href="/look">Shop the Look</a></li>
+        </ul>
+      </div>
+      <div class="sf2-col">
+        <h4>Azienda</h4>
+        <ul>
+          <li><a href="/about">Chi Siamo</a></li>
+          <li><a href="/campagne">Campagne</a></li>
+          <li><a href="/valori">I Nostri Valori</a></li>
+        </ul>
+      </div>
+      <div class="sf2-col">
+        <h4>Supporto</h4>
+        <ul>
+          <li><a href="mailto:info@memiabbigliamento.it">Contattaci</a></li>
+          <li><a href="/returns">Spedizioni &amp; Resi</a></li>
+          <li><a href="/privacy">Privacy Policy</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="sf2-bottom">
+    <p>© 2025 Memi Abbigliamento · Tutti i diritti riservati</p>
+    <nav class="sf2-legal" aria-label="Link legali">
+      <a href="/privacy">Privacy</a>
+      <a href="#">Cookie</a>
+      <a href="#">Termini</a>
+    </nav>
+    <p class="sf2-made">Fatto con cura, in Italia ✦</p>
+  </div>
+</footer>`;
+
+    // Inject footer CSS once
+    if (!document.getElementById('sf2-styles')) {
+      const s = document.createElement('style');
+      s.id = 'sf2-styles';
+      s.textContent = `
+        footer.sf2{background:var(--espresso,#3B2B2B);color:rgba(255,255,255,.65);padding:3.5rem 0 0;margin-top:auto;}
+        .sf2-inner{max-width:1280px;margin:0 auto;padding:0 2rem 3.5rem;display:grid;grid-template-columns:1fr 2fr;gap:4rem;align-items:start;}
+        @media(max-width:800px){.sf2-inner{grid-template-columns:1fr;gap:2.5rem;}}
+        .sf2-logo{font-family:var(--font-serif,'Cormorant Garamond',serif);font-size:2rem;font-weight:300;color:#fff;letter-spacing:.06em;text-decoration:none;display:block;margin-bottom:.55rem;}
+        .sf2-logo em{color:var(--blush,#E4B8C0);font-style:normal;}
+        .sf2-tagline{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:1.75rem;}
+        .sf2-social{display:flex;gap:.6rem;}
+        .sf2-social a{width:36px;height:36px;border:1px solid rgba(255,255,255,.14);border-radius:50%;display:flex;align-items:center;justify-content:center;transition:border-color .2s,background .2s;}
+        .sf2-social a:hover{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.07);}
+        .sf2-social svg{width:13px;height:13px;stroke:rgba(255,255,255,.6);fill:none;stroke-width:1.7;}
+        .sf2-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;}
+        @media(max-width:480px){.sf2-nav{grid-template-columns:repeat(2,1fr);}}
+        .sf2-col h4{font-size:.65rem;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:1rem;font-weight:600;}
+        .sf2-col ul{list-style:none;padding:0;margin:0;}
+        .sf2-col li{margin-bottom:.5rem;}
+        .sf2-col a{font-size:.82rem;color:rgba(255,255,255,.6);text-decoration:none;transition:color .2s;}
+        .sf2-col a:hover{color:#fff;}
+        .sf2-bottom{max-width:1280px;margin:0 auto;padding:1.1rem 2rem;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;font-size:.7rem;color:rgba(255,255,255,.3);}
+        .sf2-legal{display:flex;gap:1.2rem;}
+        .sf2-legal a{color:rgba(255,255,255,.3);text-decoration:none;transition:color .2s;}
+        .sf2-legal a:hover{color:rgba(255,255,255,.65);}
+        .sf2-made{color:rgba(255,255,255,.2);letter-spacing:.04em;}
+      `;
+      document.head.appendChild(s);
+    }
+
+    // Replace [data-include="site-footer"] placeholders
+    document.querySelectorAll('[data-include="site-footer"]').forEach(function(el) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = footerHtml;
+      el.replaceWith(tmp.firstElementChild);
+    });
+
+    // Replace any existing inline footer.site-footer (not already sf2)
+    document.querySelectorAll('footer.site-footer:not(.sf2)').forEach(function(el) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = footerHtml;
+      el.replaceWith(tmp.firstElementChild);
+    });
+
+    // If no footer exists at all (pages without placeholder/inline), append to body
+    if (!document.querySelector('footer.site-footer')) {
+      document.body.insertAdjacentHTML('beforeend', footerHtml);
+    }
+  }
+
+  /* ── 5. INJECT MARKUP ──────────────────────────────────── */
 
   function injectMarkup() {
     // Guard: prevent double-injection (can happen on homepage due to
@@ -866,9 +981,12 @@
       }
     `;
     document.head.appendChild(ms);
+
+    // Inject footer (replaces inline <footer> or placeholder on all pages)
+    injectFooter();
   }
 
-  /* ── 5. RENDER CART ────────────────────────────────────── */
+  /* ── 6. RENDER CART ────────────────────────────────────── */
 
   function renderCartItems() {
     const body   = document.getElementById('cartDrawerBody');
