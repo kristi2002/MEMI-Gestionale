@@ -37,6 +37,10 @@ const dashboardRoutes  = require('./routes/dashboard');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ── Trust proxy (required behind Traefik / nginx / Coolify) ───
+// Without this, express-rate-limit throws on X-Forwarded-For headers.
+app.set('trust proxy', 1);
+
 // ── Security headers ───────────────────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
