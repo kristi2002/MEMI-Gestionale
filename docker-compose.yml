@@ -31,8 +31,6 @@ services:
       - mysql_data:/var/lib/mysql
       # Auto-run schema on first start
       - ./MEMI-Backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-    ports:
-      - "3306:3306"   # Remove this line in production (only backend needs MySQL)
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-changeme_root}"]
       interval: 10s
@@ -64,8 +62,6 @@ services:
       JWT_EXPIRES_IN:        7d
       JWT_ADMIN_EXPIRES_IN:  8h
       ALLOWED_ORIGINS:       ${ALLOWED_ORIGINS:-https://memi.testdemo.it,https://admin.memi.testdemo.it}
-    ports:
-      - "3000:3000"
     networks:
       - memi_net
     labels:
@@ -82,8 +78,6 @@ services:
       context: ./Memi Abbigliamento
       dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "8080:80"
     networks:
       - memi_net
     labels:
@@ -99,8 +93,6 @@ services:
       context: ./MEMI
       dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "8081:80"
     networks:
       - memi_net
     labels:
