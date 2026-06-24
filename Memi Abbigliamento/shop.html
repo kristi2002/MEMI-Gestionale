@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="tokens.css" />
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -775,61 +775,4 @@
       document.querySelectorAll('.size-chip-lg').forEach(function(b){ b.classList.remove('active'); });
       document.querySelectorAll('.filter-swatch').forEach(function(b){ b.classList.remove('active'); });
       var r=document.querySelector('[name="sortOption"][value="novita"]'); if(r) r.checked=true;
-      document.querySelectorAll('input[data-cat]').forEach(function(cb){ cb.checked=false; });
-      var pr=document.getElementById('priceRange'); if(pr){ pr.value=300; }
-      var pv=document.getElementById('priceVal'); if(pv) pv.textContent='€300';
-      applyFilters();
-    });
-
-    // Sort radios
-    document.querySelectorAll('[name="sortOption"]').forEach(function(r){
-      r.addEventListener('change', function(){
-        af.sort=this.value;
-        var el=document.getElementById('filterResultCount'); if(el) el.textContent=countVisible();
-      });
-    });
-
-    // Category checkboxes (single-select)
-    document.querySelectorAll('input[data-cat]').forEach(function(cb){
-      cb.addEventListener('change', function(){
-        document.querySelectorAll('input[data-cat]').forEach(function(o){ o.checked=false; });
-        if (this.checked) { this.checked=true; af.categoria=this.dataset.cat; }
-        else af.categoria=null;
-        var el=document.getElementById('filterResultCount'); if(el) el.textContent=countVisible();
-      });
-    });
-
-    // Price range live update
-    var pr=document.getElementById('priceRange');
-    if (pr) pr.addEventListener('input', function(){
-      var pv=document.getElementById('priceVal'); if(pv) pv.textContent='€'+this.value;
-      this.style.background='linear-gradient(to right,var(--lavender) 0%,var(--lavender) '+Math.round(this.value/3)+'%,var(--beige) '+Math.round(this.value/3)+'%)';
-      var el=document.getElementById('filterResultCount'); if(el) el.textContent=countVisible();
-    });
-
-    // View toggle
-    document.querySelectorAll('.view-toggle-btn').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        var grid=document.getElementById('productGrid'); if(!grid) return;
-        grid.className='product-grid view-'+this.dataset.cols+'col';
-        document.querySelectorAll('.view-toggle-btn').forEach(function(b){ b.classList.remove('active'); });
-        this.classList.add('active');
-      });
-    });
-
-    // Apply URL filters on load
-    if (af.categoria || af.saldi || af.collez || af.sort !== 'novita') {
-      applyFilters();
-    } else {
-      initPagination();
-      renderChips();
-      updateBadge();
-    }
-  });
-})();
-</script>
-
-  <script src="api-client.js"></script>
-  <script src="app.js?v=3"></script>
-</body>
-</html>
+      document.querySelectorAll('inpu

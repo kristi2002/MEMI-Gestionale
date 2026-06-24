@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <link rel="icon" href="data:,">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="tokens.css" />
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -339,7 +339,7 @@
       animation: marqueeScroll 32s linear infinite;
       width: max-content;
     }
-    .marquee-strip:hover .marquee-track { animation-play-state: paused; }
+    /* marquee-strip hover pause removed */
     .marquee-item {
       font-size: var(--text-xs);
       letter-spacing: var(--tracking-wider);
@@ -1062,3 +1062,4 @@
   <script src="app.js?v=3"></script>
 </body>
 </html>
+                              

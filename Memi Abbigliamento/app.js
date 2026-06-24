@@ -35,9 +35,9 @@
     { collection: 'shop-all',  label: 'Abbigliamento' },
     { collection: 'accessori', label: 'Accessori' },
     { collection: 'saldi',     label: 'Saldi' },
-    { href: 'look',      label: 'Shop the Look' },
-    { href: 'campagne',  label: 'Campagne' },
-    { href: 'about',     label: 'Chi Siamo' },
+    { href: 'look',        label: 'Shop the Look' },
+    { href: 'editoriali',  label: 'Editoriali' },
+    { href: 'about',       label: 'Chi Siamo' },
   ];
 
   function currentHrefKey() {
@@ -96,27 +96,27 @@
               '<p class="mega-col-title">Collezioni</p>' +
               '<a href="/shop?categoria=novita" class="mega-link mega-link--accent">✦ &nbsp;Nuovi Arrivi</a>' +
               '<a href="/shop?saldi=1" class="mega-link mega-link--sale">Saldi</a>' +
-              '<a href="/shop" class="mega-link">Estate 2025</a>' +
+              '<a href="/estate-2025" class="mega-link">Estate 2025</a>' +
               '<a href="/look" class="mega-link">Shop the Look</a>' +
-              '<a href="/shop" class="mega-link">Best Sellers</a>' +
+              '<a href="/best-seller" class="mega-link">Best Sellers</a>' +
             '</div>' +
             '<div class="mega-editorial">' +
               '<img src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=480&q=80" alt="Collezione Estate 2025" />' +
               '<div class="mega-editorial-body">' +
                 '<p class="mega-editorial-eyebrow">In evidenza</p>' +
                 '<p class="mega-editorial-title">Estate <em>2025</em></p>' +
-                '<a href="/shop" class="mega-editorial-cta">Scopri la collezione →</a>' +
+                '<a href="/estate-2025" class="mega-editorial-cta">Scopri la collezione →</a>' +
               '</div>' +
             '</div>' +
           '</div>' +
         '</div>' +
       '</nav>';
 
-    // RIGHT group — Look, Campagne, Chi Siamo mega-trigger (sits right of the centered logo)
+    // RIGHT group — Look, Editoriali, Chi Siamo mega-trigger (sits right of the centered logo)
     const desktopNavRight =
       '<nav class="desktop-nav desktop-nav-right" aria-label="Altri link">' +
         '<a href="/look"' + ac('look') + '>Look</a>' +
-        '<a href="/campagne"' + ac('campagne') + '>Campagne</a>' +
+        '<a href="/editoriali"' + ac('editoriali') + '>Editoriali</a>' +
         '<div class="mega-trigger" data-mega="about">' +
           '<span class="mega-label' + aboutActive + '">' +
             'Chi Siamo' +
@@ -125,7 +125,6 @@
           '<div class="mega-panel mega-panel--sm" role="navigation" aria-label="Chi siamo">' +
             '<div class="mega-col">' +
               '<a href="/about" class="mega-link">La Nostra Storia</a>' +
-              '<a href="/campagne" class="mega-link">Campagne</a>' +
               '<a href="/valori" class="mega-link">I Nostri Valori</a>' +
             '</div>' +
           '</div>' +
@@ -271,6 +270,14 @@
     // Build new footer HTML (dark, minimal, elegant)
     const footerHtml = `
 <footer class="site-footer sf2" role="contentinfo">
+  <div class="sf2-trust">
+    <div class="sf2-trust-inner">
+      <div class="sf2-trust-item"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span>Spedizione gratuita da €50</span></div>
+      <div class="sf2-trust-item"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>Reso gratuito entro 30 giorni</span></div>
+      <div class="sf2-trust-item"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Pagamenti sicuri</span></div>
+      <div class="sf2-trust-item"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span>Made in Italy</span></div>
+    </div>
+  </div>
   <div class="sf2-inner">
     <div class="sf2-brand">
       <a href="/" class="sf2-logo">Memi<em>.</em></a>
@@ -302,7 +309,7 @@
         <h4>Azienda</h4>
         <ul>
           <li><a href="/about">Chi Siamo</a></li>
-          <li><a href="/campagne">Campagne</a></li>
+          <li><a href="/editoriali">Editoriali</a></li>
           <li><a href="/valori">I Nostri Valori</a></li>
         </ul>
       </div>
@@ -332,7 +339,12 @@
       const s = document.createElement('style');
       s.id = 'sf2-styles';
       s.textContent = `
-        footer.sf2{background:var(--espresso,#3B2B2B);color:rgba(255,255,255,.65);padding:3.5rem 0 0;margin-top:auto;}
+        footer.sf2{background:var(--espresso,#3B2B2B);color:rgba(255,255,255,.65);padding:0;margin-top:auto;}
+        .sf2-trust{border-bottom:1px solid rgba(255,255,255,.08);padding:.9rem 2rem;}
+        .sf2-trust-inner{max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1rem 2.5rem;justify-content:center;}
+        .sf2-trust-item{display:flex;align-items:center;gap:.5rem;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.4);}
+        .sf2-trust-item svg{width:14px;height:14px;stroke:rgba(255,255,255,.35);fill:none;stroke-width:1.6;flex-shrink:0;}
+        .sf2-inner{max-width:1280px;margin:0 auto;padding:3rem 2rem 3.5rem;display:grid;grid-template-columns:1fr 2fr;gap:4rem;align-items:start;}
         .sf2-inner{max-width:1280px;margin:0 auto;padding:0 2rem 3.5rem;display:grid;grid-template-columns:1fr 2fr;gap:4rem;align-items:start;}
         @media(max-width:800px){.sf2-inner{grid-template-columns:1fr;gap:2.5rem;}}
         .sf2-logo{font-family:var(--font-serif,'Cormorant Garamond',serif);font-size:2rem;font-weight:300;color:#fff;letter-spacing:.06em;text-decoration:none;display:block;margin-bottom:.55rem;}

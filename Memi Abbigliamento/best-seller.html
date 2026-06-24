@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Best Sellers — Memi Abbigliamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shop.css" />
+  <style>
+    /* ── Page header ── */
+    .bs-header {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: clamp(3.5rem, 7vw, 6rem) var(--space-6) clamp(2rem, 4vw, 3rem);
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: var(--space-6);
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--beige);
+    }
+    .bs-header-text {}
+    .bs-eyebrow {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--brown-light);
+      font-weight: 500;
+      margin-bottom: var(--space-3);
+    }
+    .bs-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 300;
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+    }
+    .bs-title em { font-style: italic; }
+    .bs-subtitle {
+      margin-top: var(--space-3);
+      font-size: var(--text-sm);
+      color: var(--brown-mid);
+      max-width: 420px;
+    }
+    .bs-sort {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--text-xs);
+      color: var(--brown-light);
+    }
+    .bs-sort select {
+      border: 1.5px solid var(--beige-dark);
+      border-radius: var(--radius-sm);
+      padding: 6px 12px;
+      font-size: var(--text-xs);
+      font-family: var(--font-sans);
+      color: var(--espresso);
+      background: var(--white);
+      cursor: pointer;
+    }
+
+    /* ── Rank badges ── */
+    .rank-badge {
+      position: absolute;
+      top: var(--space-3);
+      left: var(--space-3);
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-full);
+      background: var(--espresso);
+      color: var(--white);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      z-index: 2;
+    }
+    .rank-badge.gold   { background: #C9A84C; }
+    .rank-badge.silver { background: #9A9A9A; }
+    .rank-badge.bronze { background: #B87333; }
+
+    /* ── Featured top-3 row ── */
+    .bs-featured {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: clamp(2rem, 4vw, 3.5rem) var(--space-6) 0;
+    }
+    .bs-featured-label {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--brown-light);
+      margin-bottom: var(--space-5);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .bs-featured-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--beige);
+    }
+    .bs-top3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-5);
+    }
+    @media (max-width: 640px) {
+      .bs-top3 { grid-template-columns: 1fr 1fr; }
+      .bs-top3 > *:last-child { display: none; }
+    }
+
+    /* ── Rest of grid ── */
+    .bs-rest {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: clamp(2rem, 4vw, 3.5rem) var(--space-6) clamp(3rem, 6vw, 5rem);
+    }
+    .bs-rest-label {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--brown-light);
+      margin-bottom: var(--space-5);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .bs-rest-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--beige);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="announcement-bar">Spedizione gratuita da €50 &nbsp;·&nbsp; Resi gratuiti entro 30 giorni</div>
+  <div data-include="site-header"></div>
+
+  <!-- HEADER -->
+  <div class="bs-header">
+    <div class="bs-header-text">
+      <p class="bs-eyebrow">I più amati</p>
+      <h1 class="bs-title">Best<br><em>Sellers</em></h1>
+      <p class="bs-subtitle">I capi che le nostre clienti continuano a scegliere. Eleganza senza tempo, qualità che si sente.</p>
+    </div>
+    <div class="bs-sort">
+      <span>Ordina per</span>
+      <select aria-label="Ordina per">
+        <option>Più venduti</option>
+        <option>Prezzo crescente</option>
+        <option>Prezzo decrescente</option>
+        <option>Novità</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- TOP 3 FEATURED -->
+  <div class="bs-featured">
+    <p class="bs-featured-label">Top 3 della stagione</p>
+    <div class="bs-top3">
+
+      <a class="product-card-link" href="products/vestito-lino-cannes/index.html">
+        <article class="product-card">
+          <div class="product-img-wrap">
+            <img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Vestito Lino Cannes" loading="lazy">
+            <img class="product-img-alt" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="alt" loading="lazy">
+            <div class="rank-badge gold">1</div>
+            <div class="product-badges"><span class="badge badge-new">New</span></div>
+          </div>
+          <div class="product-info">
+            <p class="product-name">Vestito Lino Cannes</p>
+            <p class="product-color">Rosa cipria</p>
+            <div class="product-pricing"><span class="price-current">€89,00</span></div>
+          </div>
+        </article>
+      </a>
+
+      <a class="product-card-link" href="products/gonna-plisse-nuvola/index.html">
+        <article class="product-card">
+          <div class="product-img-wrap">
+            <img class="product-img-main" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Gonna Plissé Nuvola" loading="lazy">
+            <img class="product-img-alt" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="alt" loading="lazy">
+            <div class="rank-badge silver">2</div>
+          </div>
+          <div class="product-info">
+            <p class="product-name">Gonna Plissé Nuvola</p>
+            <p class="product-color">Avorio naturale</p>
+            <div class="product-pricing"><span class="price-current">€79,00</span></div>
+          </div>
+        </article>
+      </a>
+
+      <a class="product-card-link" href="products/blazer-sartoriale-mia/index.html">
+        <article class="product-card">
+          <div class="product-img-wrap">
+            <img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Blazer Sartoriale Mia" loading="lazy">
+            <img class="product-img-alt" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="alt" loading="lazy">
+            <div class="rank-badge bronze">3</div>
+            <div class="product-badges"><span class="badge badge-sale">−30%</span></div>
+          </div>
+          <div class="product-info">
+            <p class="product-name">Blazer Sartoriale Mia</p>
+            <p class="product-color">Verde salvia</p>
+            <div class="product-pricing">
+              <span class="price-current">€105,00</span>
+              <span class="price-original">€150,00</span>
+              <span class="price-discount">−30%</span>
+            </div>
+          </div>
+        </article>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- REST OF BESTSELLERS -->
+  <div class="bs-rest">
+    <p class="bs-rest-label">Ancora molto amati</p>
+    <div class="product-grid cols-4">
+
+      <a class="product-card-link" href="products/top-seta-lucida-aria/index.html"><article class="product-card"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Top Seta Lucida Aria" loading="lazy"><div class="rank-badge">4</div></div><div class="product-info"><p class="product-name">Top Seta Lucida Aria</p><p class="product-color">Lavanda</p><div class="product-pricing"><span class="price-current">€65,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/camicia-cotone-brisa/index.html"><article class="product-card"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Camicia Cotone Brisa" loading="lazy"><div class="rank-badge">5</div></div><div class="product-info"><p class="product-name">Camicia Cotone Brisa</p><p class="product-color">Corallo pastello</p><div class="product-pricing"><span class="price-current">€55,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/borsa-tote-lino/index.html"><article class="product-card"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Borsa Tote Lino" loading="lazy"><div class="rank-badge">6</div></div><div class="product-info"><p class="product-name">Borsa Tote Lino</p><p class="product-color">Naturale grezzo</p><div class="product-pricing"><span class="price-current">€75,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/sandalo-listino-estate/index.html"><article class="product-card"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Sandalo Listino Estate" loading="lazy"><div class="rank-badge">7</div></div><div class="product-info"><p class="product-name">Sandalo Listino Estate</p><p class="product-color">Oro antico</p><div class="product-pricing"><span class="price-current">€120,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/gonna-wrap-salvia/index.html"><article class="product-card"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Gonna Wrap Salvia" loading="lazy"><div class="rank-badge">8</div></div><div class="product-info"><p class="product-name">Gonna Wrap Salvia</p><p class="product-color">Verde salvia</p><div class="product-pricing"><span class="price-current">€72,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/collana-perla-aurora/index.html"><article class="product-card"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Collana Perla Aurora" loading="lazy"><div class="rank-badge">9</div></div><div class="product-info"><p class="product-name">Collana Perla Aurora</p><p class="product-color">Bianco perlato</p><div class="product-pricing"><span class="price-current">€48,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/set-coordinato-viola/index.html"><article class="product-card"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Set Coordinato Viola" loading="lazy"><div class="rank-badge">10</div></div><div class="product-info"><p class="product-name">Set Coordinato Viola</p><p class="product-color">Viola glicine</p><div class="product-pricing"><span class="price-current">€145,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/top-bustier-perla/index.html"><article class="product-card"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Top Bustier Perla" loading="lazy"><div class="rank-badge">11</div></div><div class="product-info"><p class="product-name">Top Bustier Perla</p><p class="product-color">Bianco perla</p><div class="product-pricing"><span class="price-current">€58,00</span></div></div></article></a>
+
+    </div>
+  </div>
+
+  <div data-include="site-footer"></div>
+
+  <script src="api-client.js"></script>
+  <script src="app.js?v=3"></script>
+</body>
+</html>

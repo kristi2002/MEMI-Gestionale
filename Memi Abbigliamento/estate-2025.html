@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estate 2025 — Memi Abbigliamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shop.css" />
+  <style>
+    /* ── Collection hero ── */
+    .coll-hero {
+      position: relative;
+      height: clamp(420px, 60vh, 700px);
+      overflow: hidden;
+    }
+    .coll-hero-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center 30%;
+    }
+    .coll-hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(10,4,4,.15) 0%, rgba(10,4,4,.55) 100%);
+    }
+    .coll-hero-body {
+      position: absolute;
+      bottom: clamp(2rem, 5vw, 4rem);
+      left: clamp(1.5rem, 5vw, 4rem);
+      right: clamp(1.5rem, 5vw, 4rem);
+    }
+    .coll-hero-season {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.6);
+      margin-bottom: var(--space-2);
+    }
+    .coll-hero-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2.5rem, 6vw, 5rem);
+      font-weight: 300;
+      color: var(--white);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: var(--space-4);
+    }
+    .coll-hero-title em { font-style: italic; }
+    .coll-hero-sub {
+      font-size: var(--text-sm);
+      color: rgba(255,255,255,.75);
+      max-width: 480px;
+      line-height: 1.7;
+    }
+
+    /* ── Lookbook strip (3 editorial images) ── */
+    .lookbook-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 2px;
+      background: var(--beige);
+    }
+    .lookbook-cell {
+      aspect-ratio: 2/3;
+      overflow: hidden;
+      position: relative;
+    }
+    .lookbook-cell img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 700ms ease-out;
+    }
+    .lookbook-cell:hover img { transform: scale(1.04); }
+    .lookbook-caption {
+      position: absolute;
+      bottom: var(--space-4);
+      left: var(--space-4);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.7);
+    }
+    @media (max-width: 640px) { .lookbook-strip { grid-template-columns: 1fr 1fr; } .lookbook-cell:last-child { display: none; } }
+
+    /* ── Collection intro text ── */
+    .coll-intro {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: clamp(3rem, 6vw, 5rem) var(--space-6);
+      display: grid;
+      gap: var(--space-8);
+      align-items: center;
+    }
+    @media (min-width: 768px) { .coll-intro { grid-template-columns: 1fr 1fr; } }
+    .coll-intro-title {
+      font-family: var(--font-serif);
+      font-size: clamp(1.75rem, 3vw, 2.75rem);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: var(--space-4);
+    }
+    .coll-intro-title em { font-style: italic; }
+    .coll-intro-body {
+      font-size: var(--text-sm);
+      color: var(--brown-mid);
+      line-height: 1.9;
+    }
+
+    /* ── Filters bar (reuses shop.css styles) ── */
+    .coll-filters {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 var(--space-6) var(--space-4);
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      flex-wrap: wrap;
+    }
+    .coll-filter-chip {
+      padding: 6px 16px;
+      border: 1.5px solid var(--beige-dark);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wide);
+      text-transform: uppercase;
+      font-weight: 500;
+      color: var(--brown-mid);
+      cursor: pointer;
+      transition: all var(--dur-fast);
+      background: transparent;
+    }
+    .coll-filter-chip:hover, .coll-filter-chip.active {
+      background: var(--espresso);
+      border-color: var(--espresso);
+      color: var(--white);
+    }
+    .coll-count {
+      margin-left: auto;
+      font-size: var(--text-xs);
+      color: var(--brown-light);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="announcement-bar">Spedizione gratuita da €50 &nbsp;·&nbsp; Resi gratuiti entro 30 giorni</div>
+  <div data-include="site-header"></div>
+
+  <!-- HERO -->
+  <div class="coll-hero">
+    <img class="coll-hero-img"
+      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=1920&q=85"
+      alt="Estate 2025 — Memi Abbigliamento"
+    />
+    <div class="coll-hero-overlay"></div>
+    <div class="coll-hero-body">
+      <p class="coll-hero-season">Collezione 2025</p>
+      <h1 class="coll-hero-title">Estate<br><em>2025</em></h1>
+      <p class="coll-hero-sub">Tessuti leggeri, tagli sartoriali e colori che evocano il Mediterraneo. Una stagione di libertà e femminilità.</p>
+    </div>
+  </div>
+
+  <!-- LOOKBOOK STRIP -->
+  <div class="lookbook-strip">
+    <div class="lookbook-cell">
+      <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80" alt="Look 1" loading="lazy" />
+      <span class="lookbook-caption">Vestiti</span>
+    </div>
+    <div class="lookbook-cell">
+      <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80" alt="Look 2" loading="lazy" />
+      <span class="lookbook-caption">Top &amp; Bluse</span>
+    </div>
+    <div class="lookbook-cell">
+      <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80" alt="Look 3" loading="lazy" />
+      <span class="lookbook-caption">Accessori</span>
+    </div>
+  </div>
+
+  <!-- COLLECTION INTRO -->
+  <div class="coll-intro">
+    <div>
+      <h2 class="coll-intro-title">Nata sotto<br>il sole <em>italiano</em></h2>
+      <p class="coll-intro-body">La collezione Estate 2025 nasce dall'incontro tra la sartoria artigianale italiana e l'ispirazione dei paesaggi mediterranei. Ogni capo è pensato per accompagnarti dal giorno alla sera con eleganza naturale.</p>
+    </div>
+    <div>
+      <p class="coll-intro-body">Lino, seta e cotone leggero in una palette di colori che va dal bianco avorio al terracotta, passando per il blush e il verde salvia. Pezzi versatili, pensati per durare oltre la stagione.</p>
+    </div>
+  </div>
+
+  <!-- PRODUCT GRID -->
+  <div class="shop-container" style="max-width:1280px;margin:0 auto;padding:0 var(--space-6);">
+
+    <div class="coll-filters">
+      <button class="coll-filter-chip active" onclick="filterColl(this,'')">Tutti</button>
+      <button class="coll-filter-chip" onclick="filterColl(this,'vestiti')">Vestiti</button>
+      <button class="coll-filter-chip" onclick="filterColl(this,'top')">Top &amp; Bluse</button>
+      <button class="coll-filter-chip" onclick="filterColl(this,'gonne')">Gonne</button>
+      <button class="coll-filter-chip" onclick="filterColl(this,'accessori')">Accessori</button>
+      <span class="coll-count"><span id="collCount">16</span> pezzi</span>
+    </div>
+
+    <div class="product-grid cols-4" id="collGrid">
+
+      <a class="product-card-link" href="products/vestito-lino-cannes/index.html"><article class="product-card" data-cat="vestiti" data-prezzo="89"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Vestito Lino Cannes" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div></div><div class="product-info"><p class="product-name">Vestito Lino Cannes</p><p class="product-color">Rosa cipria</p><div class="product-pricing"><span class="price-current">€89,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/gonna-plisse-nuvola/index.html"><article class="product-card" data-cat="gonne" data-prezzo="79"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Gonna Plissé Nuvola" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div></div><div class="product-info"><p class="product-name">Gonna Plissé Nuvola</p><p class="product-color">Avorio naturale</p><div class="product-pricing"><span class="price-current">€79,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/top-seta-lucida-aria/index.html"><article class="product-card" data-cat="top" data-prezzo="65"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Top Seta Lucida Aria" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div></div><div class="product-info"><p class="product-name">Top Seta Lucida Aria</p><p class="product-color">Lavanda</p><div class="product-pricing"><span class="price-current">€65,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/camicia-cotone-brisa/index.html"><article class="product-card" data-cat="top" data-prezzo="55"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Camicia Cotone Brisa" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div></div><div class="product-info"><p class="product-name">Camicia Cotone Brisa</p><p class="product-color">Corallo pastello</p><div class="product-pricing"><span class="price-current">€55,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/vestito-midi-fiori/index.html"><article class="product-card" data-cat="vestiti" data-prezzo="95"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Vestito Midi Fiori" loading="lazy"></div><div class="product-info"><p class="product-name">Vestito Midi Fiori</p><p class="product-color">Floreale estate</p><div class="product-pricing"><span class="price-current">€95,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/giacca-kimono-fresca/index.html"><article class="product-card" data-cat="top" data-prezzo="115"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Giacca Kimono Fresca" loading="lazy"></div><div class="product-info"><p class="product-name">Giacca Kimono Fresca</p><p class="product-color">Sabbia dorata</p><div class="product-pricing"><span class="price-current">€115,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/gonna-wrap-salvia/index.html"><article class="product-card" data-cat="gonne" data-prezzo="72"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Gonna Wrap Salvia" loading="lazy"></div><div class="product-info"><p class="product-name">Gonna Wrap Salvia</p><p class="product-color">Verde salvia</p><div class="product-pricing"><span class="price-current">€72,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/top-bustier-perla/index.html"><article class="product-card" data-cat="top" data-prezzo="58"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Top Bustier Perla" loading="lazy"></div><div class="product-info"><p class="product-name">Top Bustier Perla</p><p class="product-color">Bianco perla</p><div class="product-pricing"><span class="price-current">€58,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/pantalone-culotte-zen/index.html"><article class="product-card" data-cat="gonne" data-prezzo="85"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Pantalone Culotte Zen" loading="lazy"></div><div class="product-info"><p class="product-name">Pantalone Culotte Zen</p><p class="product-color">Sabbia naturale</p><div class="product-pricing"><span class="price-current">€85,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/sandalo-listino-estate/index.html"><article class="product-card" data-cat="accessori" data-prezzo="120"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Sandalo Listino Estate" loading="lazy"></div><div class="product-info"><p class="product-name">Sandalo Listino Estate</p><p class="product-color">Oro antico</p><div class="product-pricing"><span class="price-current">€120,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/borsa-tote-lino/index.html"><article class="product-card" data-cat="accessori" data-prezzo="75"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Borsa Tote Lino" loading="lazy"></div><div class="product-info"><p class="product-name">Borsa Tote Lino</p><p class="product-color">Naturale grezzo</p><div class="product-pricing"><span class="price-current">€75,00</span></div></div></article></a>
+
+      <a class="product-card-link" href="products/set-bijoux-estate/index.html"><article class="product-card" data-cat="accessori" data-prezzo="45"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Set Bijoux Estate" loading="lazy"></div><div class="product-info"><p class="product-name">Set Bijoux Estate</p><p class="product-color">Oro delicato</p><div class="product-pricing"><span class="price-current">€45,00</span></div></div></article></a>
+
+    </div>
+  </div>
+
+  <div data-include="site-footer"></div>
+
+  <script src="api-client.js"></script>
+  <script src="app.js?v=3"></script>
+  <script>
+    function filterColl(btn, cat) {
+      document.querySelectorAll('.coll-filter-chip').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      var cards = document.querySelectorAll('#collGrid .product-card-link');
+      var n = 0;
+      cards.forEach(function(card) {
+        var c = card.querySelector('.product-card');
+        var show = !cat || (c && c.dataset.cat === cat);
+        card.style.display = show ? '' : 'none';
+        if (show) n++;
+      });
+      document.getElementById('collCount').textContent = n;
+    }
+  </script>
+</body>
+</html>
