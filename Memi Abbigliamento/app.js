@@ -1831,4 +1831,225 @@
     var observer = new IntersectionObserver(function(entries) {
       // Collect newly-intersecting cards in DOM order
       var entering = [];
-      entr
+      entries.forEach(function(e) {
+        if (e.isIntersecting && !e.target.classList.contains('in-view')) {
+          entering.push(e.target);
+        }
+      });
+      // Sort by DOM position so stagger reads left→right, top→bottom
+      entering.sort(function(a, b) {
+        var ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+        if (Math.abs(ra.top - rb.top) > 40) return ra.top - rb.top;
+        return ra.left - rb.left;
+      });
+      entering.forEach(function(card, idx) {
+        card.style.setProperty('--i', idx);
+        card.classList.add('in-view');
+        observer.unobserve(card);
+      });
+    }, { threshold: 0.12 });
+
+    cards.forEach(function(card) { observer.observe(card); });
+  }
+
+  /* ── 15c. MAGNETIC HOVER ────────────────────────────────
+     Subtle 2–4° tilt + scale on .btn-primary and .product-card.
+     Capped and eased so it feels premium, not gimmicky.    */
+
+  function wireMagneticHover() {
+    // Only on non-touch devices
+    if (window.matchMedia('(hover: none)').matches) return;
+
+    // Product cards — very subtle, they already have a lift/shadow hover
+    document.querySelectorAll('.product-card').forEach(function(card) {
+      card.addEventListener('mousemove', function(e) {
+        if (!card.classList.contains('in-view')) return;
+        var r = card.getBoundingClientRect();
+        var x = ((e.clientX - r.left) / r.width  - 0.5) * 2; // -1..1
+        var y = ((e.clientY - r.top)  / r.height - 0.5) * 2;
+        card.style.transform = 'translateY(-3px) rotateX(' + (-y * 2.5) + 'deg) rotateY(' + (x * 2.5) + 'deg)';
+        card.style.transition = 'transform 120ms ease-out, box-shadow var(--dur-med) var(--ease-out)';
+      });
+      card.addEventListener('mouseleave', function() {
+        card.style.transform = '';
+        card.style.transition = '';
+      });
+    });
+
+    // Primary CTAs — slightly stronger tilt
+    document.querySelectorAll('.btn-primary').forEach(function(btn) {
+      btn.addEventListener('mousemove', function(e) {
+        var r = btn.getBoundingClientRect();
+        var x = ((e.clientX - r.left) / r.width  - 0.5) * 2;
+        var y = ((e.clientY - r.top)  / r.height - 0.5) * 2;
+        btn.style.transform = 'translateY(-1px) rotateX(' + (-y * 4) + 'deg) rotateY(' + (x * 4) + 'deg) scale(1.02)';
+        btn.style.transition = 'transform 100ms ease-out';
+      });
+      btn.addEventListener('mouseleave', function() {
+        btn.style.transform = '';
+        btn.style.transition = '';
+      });
+    });
+  }
+
+  /* ── 15d. FLY-TO-CART ───────────────────────────────────
+     Clone the source element and animate it to the cart icon. */
+
+  function flyToCart(sourceEl) {
+    var cartIcon = document.querySelector('.icon-btn[aria-label*="arrello"] .cart-badge');
+    var cartBtn  = cartIcon ? cartIcon.closest('.icon-btn') : null;
+    if (!sourceEl || !cartBtn) return;
+    var start = sourceEl.getBoundingClientRect();
+    var end   = cartBtn.getBoundingClientRect();
+    var clone = sourceEl.cloneNode(true);
+    clone.className = 'fly-thumb';
+    Object.assign(clone.style, {
+      left:   start.left   + 'px',
+      top:    start.top    + 'px',
+      width:  start.width  + 'px',
+      height: start.height + 'px',
+    });
+    document.body.appendChild(clone);
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() {
+        clone.style.transform = 'translate(' + (end.left - start.left) + 'px, ' + (end.top - start.top) + 'px) scale(0.12)';
+        clone.style.opacity   = '0';
+      });
+    });
+    clone.addEventListener('transitionend', function() { clone.remove(); }, { once: true });
+    // Fallback remove
+    setTimeout(function() { clone.remove(); }, 800);
+  }
+
+
+  /* ── 16. WIRE REVEAL ──────────────────────────────────── */
+
+  function wireReveal() {
+    var els = document.querySelectorAll('.reveal:not(.visible)');
+    if (!els.length) return;
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          obs.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    els.forEach(function(el) { obs.observe(el); });
+  }
+
+  /* ── 16b. NEWSLETTER SIGNUP ──────────────────────────────── */
+
+  function wireNewsletterForms() {
+    var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    document.querySelectorAll('.newsletter-form, .footer-newsletter-form').forEach(function(form) {
+      if (form.dataset.newsletterBound) return;
+      form.dataset.newsletterBound = '1';
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var input = form.querySelector('input[type="email"]');
+        var btn   = form.querySelector('button[type="submit"]');
+        var email = input ? input.value.trim() : '';
+        if (!email || !EMAIL_RE.test(email)) {
+          if (input) {
+            input.style.borderColor = '#C4A8B0';
+            input.focus();
+            input.addEventListener('input', function reset() {
+              input.style.borderColor = '';
+              input.removeEventListener('input', reset);
+            });
+          }
+          return;
+        }
+        if (btn && !btn.dataset.busy) {
+          btn.dataset.busy = '1';
+          var orig = btn.innerHTML;
+          btn.innerHTML = '✓ Iscritto!';
+          btn.disabled = true;
+          setTimeout(function() {
+            btn.innerHTML = orig;
+            btn.disabled = false;
+            delete btn.dataset.busy;
+          }, 2600);
+        }
+        if (input) input.value = '';
+      });
+    });
+  }
+
+  /* ── 17. INIT ──────────────────────────────────────────── */
+
+  function init() {
+    injectMarkup();
+    // Restore persisted badge counts from localStorage immediately after
+    // the header is injected — fixes the "badge resets on page change" bug.
+    updateCartBadges();
+    updateWishlistBadge();
+    wireButtons();
+    wireScrollStagger();
+    wireReveal();
+    wireMagneticHover();
+    wireAuth();
+    wireNewsletterForms();
+  }
+
+
+  /* == 18. GLOBAL EXPORTS == */
+
+  window.addToCart           = addToCart;
+  window.flyToCart           = flyToCart;
+  window.openCart            = openCart;
+  window.closeCart           = closeCart;
+  window.openWishlist        = openWishlist;
+  window.closeWishlist       = closeWishlist;
+  window.openSearch          = openSearch;
+  window.closeSearch         = closeSearch;
+  window.appChangeQty        = changeQty;
+  window.appRemove           = removeFromCart;
+  window.wireProductCards    = wireProductCards;
+  window.rewireScrollStagger = function() { wireScrollStagger(); };
+
+  window.appRemoveWishlist = function(id) {
+    var entry  = wishlist.find(function(i) { return i.id === id; });
+    var baseId = entry ? (entry.productId || id) : id;
+    wishlist = wishlist.filter(function(i) { return i.id !== id; });
+    saveWishlist();
+    updateWishlistBadge();
+    renderWishlistItems();
+    if (!wishlist.some(function(i) { return (i.productId || i.id) === baseId; })) {
+      document.querySelectorAll('.product-wishlist[data-id="' + baseId + '"]').forEach(function(btn) {
+        btn.classList.remove('is-wishlisted');
+        btn.setAttribute('aria-label', 'Aggiungi alla wishlist');
+      });
+    }
+  };
+
+  window.appMoveToCart = function(id) {
+    var entry = wishlist.find(function(i) { return i.id === id; });
+    if (!entry) return;
+    var prod  = CATALOG.find(function(p) {
+      return p.id === (entry.productId || entry.id) || entry.id.startsWith(p.id);
+    });
+    var price = prod ? parseFloat((prod.price || '0').replace('\u20ac','').replace(',','.')) || 0 : 0;
+    addToCart({
+      id:      entry.id + '-cart',
+      name:    entry.name,
+      variant: (entry.color || '') + (entry.taglia ? ' · ' + entry.taglia : ''),
+      price:   price,
+      color:   entry.colorKey || 'ph-blush'
+    });
+    window.appRemoveWishlist(id);
+    closeWishlist();
+    openCart();
+  };
+
+  /* == 19. BOOT == */
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+  
