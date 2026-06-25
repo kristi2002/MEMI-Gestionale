@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Il Mio Account — Memi Abbigliamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="tokens.css?v=2" />
+  <link rel="stylesheet" href="shop.css?v=2" />
+  <link rel="stylesheet" href="app.css" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg-base);color:var(--espresso);font-family:var(--font-sans);
+         line-height:var(--leading-normal);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+    a{color:inherit;text-decoration:none;}
+    button{cursor:pointer;border:none;background:none;font-family:inherit;}
+
+    .announcement-bar{background:var(--blush-light);color:var(--brown-mid);text-align:center;
+      padding:var(--space-2) var(--space-4);font-size:var(--text-xs);
+      letter-spacing:var(--tracking-wider);text-transform:uppercase;font-weight:500;
+      border-bottom:1px solid var(--blush);}
+
+    /* ── Page layout ── */
+    .account-page{max-width:900px;margin:0 auto;padding:3rem 1.5rem 6rem;}
+
+    .account-breadcrumb{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+      color:var(--brown-light);margin-bottom:2.5rem;display:flex;align-items:center;gap:.5rem;}
+    .account-breadcrumb a{color:var(--brown-light);transition:color .2s;}
+    .account-breadcrumb a:hover{color:var(--espresso);}
+    .account-breadcrumb svg{width:14px;height:14px;stroke:var(--brown-light);fill:none;stroke-width:2;}
+
+    .account-header{margin-bottom:2.5rem;}
+    .account-header h1{font-family:var(--font-serif);font-size:clamp(1.8rem,4vw,2.6rem);
+      font-weight:300;color:var(--espresso);line-height:1.2;margin-bottom:.3rem;}
+    .account-header h1 em{font-style:italic;color:var(--brown-mid);}
+    .account-header p{font-size:.82rem;color:var(--brown-light);}
+
+    /* ── Profile card ── */
+    .account-card{background:#fff;border:1px solid var(--beige);border-radius:2px;
+      padding:1.75rem 2rem;margin-bottom:2rem;display:flex;align-items:center;gap:1.75rem;}
+    .account-avatar{width:64px;height:64px;border-radius:50%;background:var(--lavender-light);
+      display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .account-avatar svg{width:28px;height:28px;stroke:var(--espresso);fill:none;stroke-width:1.5;}
+    .account-card-info{flex:1;}
+    .account-card-name{font-family:var(--font-serif);font-size:1.25rem;font-weight:400;
+      color:var(--espresso);margin-bottom:.2rem;}
+    .account-card-email{font-size:.8rem;color:var(--brown-light);}
+    .account-card-meta{font-size:.75rem;color:var(--brown-light);margin-top:.4rem;}
+    .btn-logout{padding:.55rem 1.25rem;border:1px solid var(--beige);border-radius:2px;
+      font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid);
+      background:#fff;transition:border-color .2s,color .2s;cursor:pointer;}
+    .btn-logout:hover{border-color:var(--espresso);color:var(--espresso);}
+
+    /* ── Tabs ── */
+    .account-tabs{display:flex;gap:0;border-bottom:1px solid var(--beige);margin-bottom:2rem;}
+    .account-tab{padding:.65rem 1.4rem;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;
+      color:var(--brown-light);border:none;border-bottom:2px solid transparent;background:none;
+      cursor:pointer;transition:color .2s,border-color .2s;font-family:var(--font-sans);
+      margin-bottom:-1px;}
+    .account-tab.active{color:var(--espresso);border-bottom-color:var(--espresso);}
+    .account-tab:hover:not(.active){color:var(--espresso);}
+
+    .account-panel{display:none;}
+    .account-panel.active{display:block;}
+
+    /* ── Orders ── */
+    .orders-list{display:flex;flex-direction:column;gap:1rem;}
+    .order-row{background:#fff;border:1px solid var(--beige);border-radius:2px;padding:1.25rem 1.5rem;
+      display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:1rem;}
+    @media(max-width:600px){.order-row{grid-template-columns:1fr 1fr;grid-template-rows:auto auto;}}
+    .order-number{font-family:var(--font-serif);font-size:1rem;font-weight:400;}
+    .order-date{font-size:.75rem;color:var(--brown-light);margin-top:.2rem;}
+    .order-items-summary{font-size:.8rem;color:var(--brown-mid);}
+    .order-total{font-size:.9rem;font-weight:500;color:var(--espresso);}
+    .order-status{display:inline-flex;align-items:center;gap:.35rem;font-size:.7rem;
+      letter-spacing:.06em;text-transform:uppercase;padding:.3rem .7rem;border-radius:2px;}
+    .order-status.in_attesa      {background:#fef9ec;color:#9a7c2e;}
+    .order-status.in_preparazione{background:#f0f4ff;color:#3a5bd9;}
+    .order-status.spedito        {background:#ecf8f0;color:#2d7a4f;}
+    .order-status.consegnato     {background:#f0fdf4;color:#166534;}
+    .order-status.annullato      {background:#fff5f5;color:#9b2c2c;}
+
+    .orders-empty{text-align:center;padding:4rem 2rem;}
+    .orders-empty-icon{width:48px;height:48px;stroke:var(--brown-light);fill:none;stroke-width:1.2;
+      margin:0 auto 1rem;}
+    .orders-empty h3{font-family:var(--font-serif);font-size:1.3rem;font-weight:300;
+      color:var(--espresso);margin-bottom:.5rem;}
+    .orders-empty p{font-size:.83rem;color:var(--brown-light);margin-bottom:1.5rem;}
+    .btn-shop{display:inline-block;padding:.7rem 1.8rem;background:var(--espresso);
+      color:#fff;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;
+      border-radius:2px;transition:background .2s;}
+    .btn-shop:hover{background:var(--brown-mid);}
+
+    /* ── Profile form ── */
+    .profile-form{display:grid;grid-template-columns:1fr 1fr;gap:1rem 1.5rem;
+      background:#fff;border:1px solid var(--beige);border-radius:2px;padding:2rem;}
+    @media(max-width:600px){.profile-form{grid-template-columns:1fr;}}
+    .profile-form .field-full{grid-column:1/-1;}
+    .field-label{display:block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+      color:var(--brown-light);margin-bottom:.4rem;}
+    .field-input{width:100%;padding:.65rem .85rem;border:1px solid var(--beige);border-radius:2px;
+      font-family:var(--font-sans);font-size:.85rem;color:var(--espresso);background:#fff;
+      transition:border-color .2s;outline:none;}
+    .field-input:focus{border-color:var(--brown-mid);}
+    .profile-form-footer{grid-column:1/-1;display:flex;align-items:center;gap:1rem;
+      padding-top:.5rem;}
+    .btn-save{padding:.65rem 1.6rem;background:var(--espresso);color:#fff;border:none;
+      border-radius:2px;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;
+      cursor:pointer;transition:background .2s;}
+    .btn-save:hover{background:var(--brown-mid);}
+    .profile-msg{font-size:.8rem;color:var(--brown-mid);}
+    .profile-msg.ok{color:#2d7a4f;}
+    .profile-msg.err{color:#9b2c2c;}
+
+    /* ── Loading / skeleton ── */
+    .acc-skeleton{display:flex;flex-direction:column;gap:.75rem;}
+    .skel{background:var(--beige);border-radius:2px;animation:skel-pulse 1.4s ease infinite;}
+    .skel-line{height:14px;width:60%;}
+    .skel-line.wide{width:90%;}
+    .skel-block{height:80px;}
+    @keyframes skel-pulse{0%,100%{opacity:.6;}50%{opacity:1;}}
+
+    /* ── Redirect notice ── */
+    .acc-redirect{text-align:center;padding:6rem 2rem;}
+    .acc-redirect p{font-size:.9rem;color:var(--brown-mid);margin-bottom:1rem;}
+    .acc-redirect a{color:var(--espresso);text-decoration:underline;text-underline-offset:3px;}
+  </style>
+</head>
+<body>
+
+<div class="announcement-bar">✦ &nbsp;Spedizione gratuita su ordini superiori a €50 &nbsp;✦&nbsp; Reso gratuito entro 30 giorni &nbsp;✦</div>
+<div data-include="site-header"></div>
+
+<main class="account-page" id="accountMain">
+  <!-- Populated by JS below -->
+  <div class="acc-skeleton">
+    <div class="skel skel-line"></div>
+    <div class="skel skel-block"></div>
+    <div class="skel skel-block"></div>
+  </div>
+</main>
+
+<script src="api-client.js"></script>
+<script src="app.js?v=6"></script>
+<script>
+(function () {
+  'use strict';
+
+  var TOKEN_KEY   = 'memi_token';
+  var SESSION_KEY = 'memi_session';
+  var main        = document.getElementById('accountMain');
+
+  /* ── Redirect if not logged in ─────────────────────── */
+  var token = localStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    main.innerHTML = '<div class="acc-redirect">' +
+      '<p>Devi essere registrata per accedere al tuo account.</p>' +
+      '<a href="/" onclick="window.openAuthDrawer&&window.openAuthDrawer(\'login\');return false;">Accedi al tuo account ›</a>' +
+      '</div>';
+    return;
+  }
+
+  /* ── Render skeleton removed, build UI ─────────────── */
+  function statusLabel(code) {
+    var map = {
+      in_attesa:'In attesa', in_preparazione:'In preparazione',
+      spedito:'Spedita', consegnato:'Consegnato', annullato:'Annullato'
+    };
+    return map[code] || code;
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('it-IT', { day:'2-digit', month:'long', year:'numeric' });
+  }
+
+  function fmtPrice(n) {
+    return '€' + parseFloat(n).toFixed(2).replace('.', ',');
+  }
+
+  function renderOrder(o) {
+    var items = (o.items || []).map(function(i){ return i.product_name; }).join(', ') || '—';
+    return '<div class="order-row">' +
+      '<div>' +
+        '<div class="order-number">#' + o.order_number + '</div>' +
+        '<div class="order-date">' + fmtDate(o.created_at) + '</div>' +
+      '</div>' +
+      '<div class="order-items-summary">' + items + '</div>' +
+      '<div class="order-total">' + fmtPrice(o.total) + '</div>' +
+      '<span class="order-status ' + o.order_status + '">' + statusLabel(o.order_status) + '</span>' +
+    '</div>';
+  }
+
+  function renderOrdersPanel(orders) {
+    if (!orders || !orders.length) {
+      return '<div class="orders-empty">' +
+        '<svg class="orders-empty-icon" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' +
+        '<h3>Nessun ordine ancora</h3>' +
+        '<p>I tuoi ordini appariranno qui.</p>' +
+        '<a href="shop.html" class="btn-shop">Inizia lo shopping</a>' +
+      '</div>';
+    }
+    return '<div class="orders-list">' + orders.map(renderOrder).join('') + '</div>';
+  }
+
+  function renderPage(user, orders) {
+    var initials = (user.nome || user.name || 'U').charAt(0).toUpperCase();
+
+    main.innerHTML =
+      '<nav class="account-breadcrumb">' +
+        '<a href="index.html">Home</a>' +
+        '<svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>' +
+        '<span>Il mio account</span>' +
+      '</nav>' +
+
+      '<div class="account-header">' +
+        '<h1>Il mio <em>Account</em></h1>' +
+        '<p>Gestisci il tuo profilo e consulta i tuoi ordini.</p>' +
+      '</div>' +
+
+      '<div class="account-card">' +
+        '<div class="account-avatar">' +
+          '<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
+        '</div>' +
+        '<div class="account-card-info">' +
+          '<div class="account-card-name">' + (user.nome || user.name || '') + '</div>' +
+          '<div class="account-card-email">' + user.email + '</div>' +
+        '</div>' +
+        '<button class="btn-logout" id="logoutBtn">Esci</button>' +
+      '</div>' +
+
+      '<div class="account-tabs">' +
+        '<button class="account-tab active" data-panel="orders">I miei ordini</button>' +
+        '<button class="account-tab" data-panel="profile">Profilo</button>' +
+      '</div>' +
+
+      '<div class="account-panel active" id="panel-orders">' +
+        renderOrdersPanel(orders) +
+      '</div>' +
+
+      '<div class="account-panel" id="panel-profile">' +
+        '<form class="profile-form" id="profileForm">' +
+          '<div><label class="field-label">Nome</label>' +
+            '<input class="field-input" type="text" id="pfNome" value="' + (user.nome || '') + '" /></div>' +
+          '<div><label class="field-label">Cognome</label>' +
+            '<input class="field-input" type="text" id="pfCognome" value="' + (user.cognome || '') + '" /></div>' +
+          '<div class="field-full"><label class="field-label">Email</label>' +
+            '<input class="field-input" type="email" id="pfEmail" value="' + (user.email || '') + '" /></div>' +
+          '<div><label class="field-label">Telefono</label>' +
+            '<input class="field-input" type="tel" id="pfTelefono" value="' + (user.telefono || '') + '" /></div>' +
+          '<div><label class="field-label">Città</label>' +
+            '<input class="field-input" type="text" id="pfCitta" value="' + (user.citta || '') + '" /></div>' +
+          '<div class="field-full"><label class="field-label">Indirizzo</label>' +
+            '<input class="field-input" type="text" id="pfIndirizzo" value="' + (user.indirizzo || '') + '" /></div>' +
+          '<div class="profile-form-footer">' +
+            '<button type="submit" class="btn-save">Salva modifiche</button>' +
+            '<span class="profile-msg" id="profileMsg"></span>' +
+          '</div>' +
+        '</form>' +
+      '</div>';
+
+    /* ── Tab switching ── */
+    document.querySelectorAll('.account-tab').forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.account-tab').forEach(function(t){ t.classList.remove('active'); });
+        document.querySelectorAll('.account-panel').forEach(function(p){ p.classList.remove('active'); });
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+      });
+    });
+
+    /* ── Logout ── */
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(SESSION_KEY);
+      if (window.MemiAPI) window.MemiAPI.auth.logout();
+      window.location.href = 'index.html';
+    });
+
+    /* ── Profile form ── */
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      var msg = document.getElementById('profileMsg');
+      msg.textContent = 'Salvataggio…';
+      msg.className = 'profile-msg';
+
+      var data = {
+        nome:       document.getElementById('pfNome').value.trim(),
+        cognome:    document.getElementById('pfCognome').value.trim(),
+        email:      document.getElementById('pfEmail').value.trim(),
+        telefono:   document.getElementById('pfTelefono').value.trim(),
+        citta:      document.getElementById('pfCitta').value.trim(),
+        indirizzo:  document.getElementById('pfIndirizzo').value.trim(),
+      };
+
+      if (!window.MemiAPI) { msg.textContent = 'API non disponibile.'; msg.className = 'profile-msg err'; return; }
+
+      window.MemiAPI.auth.updateMe(data).then(function() {
+        msg.textContent = 'Profilo aggiornato ✓';
+        msg.className = 'profile-msg ok';
+        /* Update session cache */
+        try {
+          var sess = JSON.parse(localStorage.getItem(SESSION_KEY)) || {};
+          sess.name = data.nome;
+          sess.email = data.email;
+          localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
+        } catch(_) {}
+        setTimeout(function(){ msg.textContent = ''; }, 3000);
+      }).catch(function(err) {
+        msg.textContent = (err && err.error) || 'Errore nel salvataggio.';
+        msg.className = 'profile-msg err';
+      });
+    });
+  }
+
+  /* ── Fetch profile + orders ─────────────────────────── */
+  var profilePromise = window.MemiAPI
+    ? window.MemiAPI.auth.me()
+    : Promise.reject({ error: 'API non disponibile' });
+
+  var ordersPromise = window.MemiAPI
+    ? window.MemiAPI.orders.myOrders()
+    : Promise.resolve([]);
+
+  Promise.all([profilePromise, ordersPromise]).then(function(results) {
+    var user   = results[0].user || results[0];
+    var orders = results[1].orders || results[1] || [];
+    renderPage(user, orders);
+  }).catch(function(err) {
+    /* Token expired or invalid */
+    if (err && (err.error === 'Token non valido' || err.error === 'Token scaduto')) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(SESSION_KEY);
+      main.innerHTML = '<div class="acc-redirect">' +
+        '<p>La tua sessione è scaduta. Effettua di nuovo l\'accesso.</p>' +
+        '<a href="/" onclick="window.openAuthDrawer&&window.openAuthDrawer(\'login\');return false;">Accedi ›</a>' +
+      '</div>';
+    } else {
+      main.innerHTML = '<div class="acc-redirect">' +
+        '<p>Impossibile caricare il profilo. Riprova più tardi.</p>' +
+        '<a href="index.html">Torna alla Home</a>' +
+      '</div>';
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>

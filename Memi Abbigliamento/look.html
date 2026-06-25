@@ -961,32 +961,4 @@
         window.addToCart({id:id,name:item.name,price:priceNum,variant:item.color||'',color:'ph-blush',silent:true,noIncrement:true});
         added++;
       });
-      if(typeof window.showToast==='function'){
-        window.showToast(added>0?added+' prodotti aggiunti al carrello':'Prodotti già nel carrello');
-      }
-    }
-    var orig=btn.innerHTML;
-    btn.textContent='✓ Tutto aggiunto!';btn.style.background='var(--sage)';
-    setTimeout(function(){btn.innerHTML=orig;btn.style.background='';btn.disabled=false;},2000);
-  }
-
-  (function initLookFromQuery(){
-    var params=new URLSearchParams(window.location.search);
-    var requested=parseInt(params.get('look'),10);
-    if(requested && requested>=1 && requested<=LOOKS.length){
-      var idx=requested-1;
-      document.querySelectorAll('.look-tab').forEach(function(t,i){t.classList.toggle('active',i===idx);});
-      currentLook=idx;
-      renderLook(idx);
-    } else {
-      // Render hotspots for the default Look #1 (pre-rendered in HTML)
-      renderHotspots(0);
-    }
-  })();
-  </script>
-
-  <div data-include="site-footer"></div>
-  <script src="api-client.js"></script>
-  <script src="app.js?v=6"></script>
-</body>
-</html>
+      if(typeof window

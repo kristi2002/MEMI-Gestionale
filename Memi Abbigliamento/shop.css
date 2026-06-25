@@ -285,3 +285,4 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;background:var(--whit
 .mega-label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; user-select: none; }
 .mega-arrow { width: 10px; height: 6px; flex-shrink: 0; }
 .nav-right-group { display: flex; align-items: center; }
+                          
