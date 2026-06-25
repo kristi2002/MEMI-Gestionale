@@ -153,7 +153,7 @@
   </div>
 </main>
 
-<script src="api-client.js"></script>
+<script src="api-client.js?v=2"></script>
 <script src="app.js?v=9"></script>
 <script>
 (function () {
@@ -313,17 +313,32 @@
         '<div class="account-card-info">' +
           '<div class="account-card-name">' + (user.nome || user.name || '') + '</div>' +
           '<div class="account-card-email">' + user.email + '</div>' +
+          '<div class="account-card-points" style="font-size:.82rem;margin-top:.25rem;color:var(--blush-dark,#b4607a)">★ ' + (user.points || 0) + ' punti fedeltà</div>' +
         '</div>' +
         '<button class="btn-logout" id="logoutBtn">Esci</button>' +
       '</div>' +
 
       '<div class="account-tabs">' +
         '<button class="account-tab active" data-panel="orders">I miei ordini</button>' +
+        '<button class="account-tab" data-panel="loyalty">Punti fedeltà</button>' +
         '<button class="account-tab" data-panel="profile">Profilo</button>' +
       '</div>' +
 
       '<div class="account-panel active" id="panel-orders">' +
         renderOrdersPanel(orders) +
+      '</div>' +
+
+      '<div class="account-panel" id="panel-loyalty">' +
+        '<div style="max-width:520px">' +
+          '<p style="font-size:1.05rem;margin-bottom:.4rem">Hai <strong id="loyaltyBalance">' + (user.points || 0) + '</strong> punti</p>' +
+          '<p id="loyaltyHint" style="font-size:.85rem;color:var(--brown-mid,#6b5050);margin-bottom:1rem"></p>' +
+          '<div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">' +
+            '<input class="field-input" type="number" id="redeemPoints" min="0" placeholder="Punti da riscattare" style="max-width:200px" />' +
+            '<button type="button" class="btn-primary-outline" id="redeemBtn" style="cursor:pointer">Riscatta in buono sconto</button>' +
+          '</div>' +
+          '<p id="redeemMsg" style="font-size:.85rem;margin-top:.6rem"></p>' +
+          '<div id="loyaltyLedger" style="margin-top:1.25rem"></div>' +
+        '</div>' +
       '</div>' +
 
       '<div class="account-panel" id="panel-profile">' +
@@ -387,80 +402,44 @@
       });
     }
 
-    // Profile update
-    var profileForm = document.getElementById('profileForm');
-    if (profileForm) {
-      profileForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        var msgEl = document.getElementById('profileMsg');
-        var btn   = profileForm.querySelector('[type=submit]');
-        btn.disabled = true;
-        window.MemiAPI.auth.updateMe({
-          nome:      document.getElementById('pfNome').value.trim(),
-          cognome:   document.getElementById('pfCognome').value.trim(),
-          email:     document.getElementById('pfEmail').value.trim(),
-          telefono:  document.getElementById('pfTel').value.trim(),
-          indirizzo: document.getElementById('pfAddr').value.trim(),
-          citta:     document.getElementById('pfCitta').value.trim(),
-          cap:       document.getElementById('pfCap').value.trim(),
-          paese:     document.getElementById('pfPaese').value.trim(),
-        }).then(function() {
-          msgEl.style.color = '#3a7a4a';
-          msgEl.textContent = 'Modifiche salvate.';
-          setTimeout(function() { msgEl.textContent = ''; }, 3000);
+    // Loyalty panel — balance, hint, ledger, redeem
+    (function() {
+      var hintEl   = document.getElementById('loyaltyHint');
+      var balEl    = document.getElementById('loyaltyBalance');
+      var ledgerEl = document.getElementById('loyaltyLedger');
+      window.MemiAPI.auth.loyalty().then(function(d) {
+        var cfg = d.config || {};
+        if (hintEl && cfg.pointValueEur) {
+          hintEl.textContent = 'Ogni punto vale € ' + Number(cfg.pointValueEur).toFixed(2) +
+            '. Minimo ' + (cfg.minRedeem || 0) + ' punti per riscattare un buono sconto.';
+        }
+        if (balEl) balEl.textContent = d.points;
+        if (ledgerEl && d.transactions && d.transactions.length) {
+          ledgerEl.innerHTML = '<h3 style="font-size:.9rem;margin-bottom:.5rem">Movimenti recenti</h3>' +
+            d.transactions.slice(0, 10).map(function(t) {
+              return '<div style="display:flex;justify-content:space-between;font-size:.82rem;padding:.35rem 0;border-bottom:1px solid #eee">' +
+                '<span>' + (t.reason || '—') + '</span>' +
+                '<span style="color:' + (t.delta >= 0 ? '#3a7a55' : '#b44') + '">' + (t.delta >= 0 ? '+' : '') + t.delta + '</span></div>';
+            }).join('');
+        }
+      }).catch(function() {});
+      var rbtn = document.getElementById('redeemBtn');
+      if (rbtn) rbtn.addEventListener('click', function() {
+        var pts = parseInt(document.getElementById('redeemPoints').value, 10) || 0;
+        var msg = document.getElementById('redeemMsg');
+        if (!pts) { msg.textContent = 'Inserisci i punti da riscattare.'; return; }
+        rbtn.disabled = true; msg.textContent = 'Riscatto in corso…';
+        window.MemiAPI.auth.redeemPoints(pts).then(function(r) {
+          msg.innerHTML = 'Fatto! Codice <strong>' + r.code + '</strong> da € ' + Number(r.value).toFixed(2) +
+            ' — usalo al checkout.';
+          if (balEl) balEl.textContent = Math.max(0, (parseInt(balEl.textContent, 10) || 0) - pts);
+          rbtn.disabled = false;
         }).catch(function(err) {
-          msgEl.style.color = '#c0453a';
-          msgEl.textContent = (err && err.error) || 'Errore. Riprova.';
-        }).finally(function() { btn.disabled = false; });
+          msg.textContent = (err && err.error) || 'Errore nel riscatto.';
+          rbtn.disabled = false;
+        });
       });
-    }
+    })();
 
-    // Password change
-    var passForm = document.getElementById('passwordForm');
-    if (passForm) {
-      passForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        var newPass  = document.getElementById('pfPassNew').value;
-        var confPass = document.getElementById('pfPassConf').value;
-        var msgEl    = document.getElementById('passMsg');
-        var btn      = passForm.querySelector('[type=submit]');
-        if (!newPass) return;
-        if (newPass.length < 8) { msgEl.style.color='#c0453a'; msgEl.textContent='Minimo 8 caratteri.'; return; }
-        if (newPass !== confPass) { msgEl.style.color='#c0453a'; msgEl.textContent='Le password non coincidono.'; return; }
-        btn.disabled = true;
-        window.MemiAPI.auth.updateMe({ password: newPass })
-          .then(function() {
-            msgEl.style.color = '#3a7a4a';
-            msgEl.textContent = 'Password aggiornata.';
-            passForm.reset();
-            setTimeout(function() { msgEl.textContent = ''; }, 3000);
-          })
-          .catch(function(err) {
-            msgEl.style.color = '#c0453a';
-            msgEl.textContent = (err && err.error) || 'Errore. Riprova.';
-          })
-          .finally(function() { btn.disabled = false; });
-      });
-    }
-  }
-
-  // ── Init ────────────────────────────────────────────────
-  if (!window.MemiAPI || !window.MemiAPI.auth.isLoggedIn()) {
-    window.location.href = 'index.html?login=required';
-    return;
-  }
-
-  var userPromise   = window.MemiAPI.auth.me();
-  var ordersPromise = window.MemiAPI.orders.myOrders().catch(function() { return []; });
-
-  Promise.all([userPromise, ordersPromise])
-    .then(function(results) {
-      var user   = results[0].user || results[0];
-      var orders = Array.isArray(results[1]) ? results[1] : (results[1].orders || []);
-      loadedOrders = orders;
-      renderPage(user, orders);
-    })
-    .catch(function() {
-      // Token expired
-      window.MemiAPI.auth.logout();
-      wind
+    // Profile update
+    var profileFor

@@ -13,77 +13,18 @@ const DATA = {
     visitors:{ value: "—",            delta: "", up:false },
     aov:     { value: "—",            delta: "", up:true }
   },
-  products: [
-    { id:"P-001", nome:"T-Shirt Oversize Cotone", cat:"T-Shirt", prezzo:"€ 29,90", stock:124, status:"Attivo", img:"👕"},
-    { id:"P-002", nome:"Felpa Hoodie Pastel Pink",cat:"Felpe",   prezzo:"€ 59,00", stock:42,  status:"Attivo", img:"🧥"},
-    { id:"P-003", nome:"Jeans Slim Fit Blu",      cat:"Pantaloni",prezzo:"€ 79,00", stock:18,  status:"Attivo", img:"👖"},
-    { id:"P-004", nome:"Giacca Vento Verde",      cat:"Giacche", prezzo:"€ 109,00",stock:7,   status:"Esaurito",img:"🧥"},
-    { id:"P-005", nome:"Cappello Bucket",         cat:"Accessori",prezzo:"€ 19,90", stock:65,  status:"Attivo", img:"🧢"},
-    { id:"P-006", nome:"Sneaker Low Bianche",     cat:"Scarpe",  prezzo:"€ 89,00", stock:31,  status:"Attivo", img:"👟"},
-    { id:"P-007", nome:"Camicia Lino Estate",     cat:"Camicie", prezzo:"€ 49,50", stock:0,   status:"Esaurito",img:"👔"},
-    { id:"P-008", nome:"Borsa Tote Naturale",     cat:"Accessori",prezzo:"€ 35,00", stock:88,  status:"Attivo", img:"👜"},
-    { id:"P-009", nome:"Vestito Midi Floreale",   cat:"Vestiti", prezzo:"€ 69,00", stock:23,  status:"Attivo", img:"👗"},
-    { id:"P-010", nome:"Sciarpa Lana Rosa",       cat:"Accessori",prezzo:"€ 24,90", stock:54,  status:"Bozza",  img:"🧣"},
-    { id:"P-011", nome:"Cardigan Maglia Verde",   cat:"Maglieria",prezzo:"€ 65,00", stock:14,  status:"Attivo", img:"🧶"},
-    { id:"P-012", nome:"Pantaloncini Sport",      cat:"Sport",   prezzo:"€ 32,00", stock:46,  status:"Attivo", img:"🩳"}
-  ],
-  orders: [
-    { id:"#10254", cliente:"Sofia Bianchi",   data:"15/05/2026",totale:"€ 129,80",pagamento:"Pagato",   stato:"In preparazione",corriere:"SDA",  tracking:"SDA9981200001"},
-    { id:"#10253", cliente:"Marco Rossi",     data:"15/05/2026",totale:"€ 59,00", pagamento:"Pagato",   stato:"Spedito",        corriere:"BRT",  tracking:"BRT0029987"},
-    { id:"#10252", cliente:"Giulia Verdi",    data:"14/05/2026",totale:"€ 213,40",pagamento:"In attesa",stato:"In attesa",      corriere:"-",    tracking:"-"},
-    { id:"#10251", cliente:"Luca Neri",       data:"14/05/2026",totale:"€ 39,90", pagamento:"Pagato",   stato:"Consegnato",     corriere:"GLS",  tracking:"GLS887701"},
-    { id:"#10250", cliente:"Anna Greco",      data:"14/05/2026",totale:"€ 88,00", pagamento:"Pagato",   stato:"Spedito",        corriere:"SDA",  tracking:"SDA9981200002"},
-    { id:"#10249", cliente:"Paolo Conti",     data:"13/05/2026",totale:"€ 174,50",pagamento:"Pagato",   stato:"Consegnato",     corriere:"DHL",  tracking:"DHL44912"},
-    { id:"#10248", cliente:"Chiara Esposito", data:"13/05/2026",totale:"€ 19,90", pagamento:"Rimborsato",stato:"Annullato",     corriere:"-",    tracking:"-"},
-    { id:"#10247", cliente:"Davide Romano",   data:"12/05/2026",totale:"€ 245,00",pagamento:"Pagato",   stato:"Spedito",        corriere:"Poste",tracking:"PT7781902"},
-    { id:"#10246", cliente:"Sara Marini",     data:"12/05/2026",totale:"€ 49,50", pagamento:"Pagato",   stato:"In preparazione",corriere:"SDA",  tracking:"-"}
-  ],
-  customers:[
-    {id:"C-001",nome:"Sofia Bianchi",   email:"sofia.b@mail.it",  ordini:8, speso:"€ 612,00",ultimo:"15/05/2026",vip:true},
-    {id:"C-002",nome:"Marco Rossi",     email:"m.rossi@mail.it",  ordini:3, speso:"€ 178,00",ultimo:"15/05/2026",vip:false},
-    {id:"C-003",nome:"Giulia Verdi",    email:"g.verdi@mail.it",  ordini:14,speso:"€ 1.245,00",ultimo:"14/05/2026",vip:true},
-    {id:"C-004",nome:"Luca Neri",       email:"luca@mail.it",     ordini:1, speso:"€ 39,90", ultimo:"14/05/2026",vip:false},
-    {id:"C-005",nome:"Anna Greco",      email:"anna.g@mail.it",   ordini:6, speso:"€ 489,00",ultimo:"14/05/2026",vip:false},
-    {id:"C-006",nome:"Paolo Conti",     email:"p.conti@mail.it",  ordini:2, speso:"€ 198,00",ultimo:"13/05/2026",vip:false},
-    {id:"C-007",nome:"Chiara Esposito", email:"chiara@mail.it",   ordini:11,speso:"€ 932,00",ultimo:"13/05/2026",vip:true}
-  ],
-  couriers:[
-    {code:"sda",  nome:"SDA Express Courier",   slug:"SDA",   sped:128, consegnati:115, ritardi:3, attivo:true,  rate:"€ 5,90"},
-    {code:"brt",  nome:"BRT - Bartolini",        slug:"BRT",   sped:94,  consegnati:88,  ritardi:5, attivo:true,  rate:"€ 6,50"},
-    {code:"gls",  nome:"GLS Italy",              slug:"GLS",   sped:72,  consegnati:69,  ritardi:1, attivo:true,  rate:"€ 6,20"},
-    {code:"poste",nome:"Poste Italiane Crono",  slug:"PI",    sped:45,  consegnati:40,  ritardi:4, attivo:false, rate:"€ 4,90"},
-    {code:"dhl",  nome:"DHL Express",            slug:"DHL",  sped:34,  consegnati:33,  ritardi:0, attivo:true,  rate:"€ 12,90"}
-  ],
-  shipments:[
-    {id:"SDA9981200001",ordine:"#10254",cliente:"Sofia Bianchi",   corriere:"sda",  destinazione:"Milano (MI)",   stato:"In transito",eta:"16/05/2026"},
-    {id:"BRT0029987",  ordine:"#10253",cliente:"Marco Rossi",     corriere:"brt",  destinazione:"Roma (RM)",     stato:"In consegna",eta:"15/05/2026"},
-    {id:"SDA9981200002",ordine:"#10250",cliente:"Anna Greco",      corriere:"sda",  destinazione:"Torino (TO)",   stato:"Preso in carico",eta:"17/05/2026"},
-    {id:"GLS887701",   ordine:"#10251",cliente:"Luca Neri",       corriere:"gls",  destinazione:"Bologna (BO)",  stato:"Consegnato", eta:"14/05/2026"},
-    {id:"PT7781902",   ordine:"#10247",cliente:"Davide Romano",   corriere:"poste",destinazione:"Napoli (NA)",   stato:"In transito",eta:"17/05/2026"},
-    {id:"DHL44912",    ordine:"#10249",cliente:"Paolo Conti",     corriere:"dhl",  destinazione:"Firenze (FI)",  stato:"Consegnato", eta:"13/05/2026"}
-  ],
-  zones:[
-    {nome:"Italia - Standard",   paesi:"Italia",                  metodo:"Standard 3-5gg", prezzo:"€ 5,90", grat:"€ 79,00"},
-    {nome:"Italia - Express",    paesi:"Italia",                  metodo:"Express 24h",    prezzo:"€ 12,90",grat:"-"},
-    {nome:"Italia - Isole",      paesi:"Sicilia, Sardegna",       metodo:"Standard 5-7gg", prezzo:"€ 9,90", grat:"€ 99,00"},
-    {nome:"UE - Zona 1",         paesi:"FR, DE, ES, AT",          metodo:"Standard 4-6gg", prezzo:"€ 14,90",grat:"€ 149,00"},
-    {nome:"UE - Zona 2",         paesi:"NL, BE, PT, GR",          metodo:"Standard 5-7gg", prezzo:"€ 17,90",grat:"€ 179,00"},
-    {nome:"Mondo",               paesi:"Resto del mondo",         metodo:"DHL Express",    prezzo:"€ 29,90",grat:"-"}
-  ],
-  pickupPoints:[
-    {nome:"Edicola Centro",         indirizzo:"Via Roma 12, Milano",          corriere:"SDA",  orari:"Lun-Sab 7:00-19:30"},
-    {nome:"Tabacchi San Lorenzo",   indirizzo:"Piazza Garibaldi 4, Roma",     corriere:"BRT",  orari:"Lun-Ven 6:30-20:00"},
-    {nome:"PuntoPoste Crono",       indirizzo:"Corso Italia 88, Torino",      corriere:"Poste",orari:"Lun-Sab 8:00-19:00"},
-    {nome:"Locker DHL Stazione",    indirizzo:"Stazione Centrale, Bologna",   corriere:"DHL",  orari:"24/7"},
-    {nome:"Cartoleria Mazzini",     indirizzo:"Via Mazzini 7, Firenze",       corriere:"GLS",  orari:"Lun-Ven 9:00-13:00 / 16:00-19:30"}
-  ],
-  discounts:[
-    {code:"SUMMER25",tipo:"Percentuale 25%",utilizzi:"148/500",scad:"30/06/2026",stato:"Attivo"},
-    {code:"WELCOME10",tipo:"€ 10 sul primo ordine",utilizzi:"492/-",scad:"-",stato:"Attivo"},
-    {code:"FREESHIP",tipo:"Spedizione gratuita",utilizzi:"233/1000",scad:"31/12/2026",stato:"Attivo"},
-    {code:"BLACK40",tipo:"Percentuale 40%",utilizzi:"0/2000",scad:"30/11/2026",stato:"Pianificato"}
-  ],
-  apps:[],
+  // All collections start empty and are filled from the API. No mock/seed
+  // rows: if an endpoint is unavailable the UI shows an honest empty state
+  // instead of fabricated data.
+  products:    [],
+  orders:      [],
+  customers:   [],
+  couriers:    [],
+  shipments:   [],
+  zones:       [],
+  pickupPoints:[],
+  discounts:   [],
+  apps:        [],
   newsletter: null,
   chartData:  null,
   invoices:   null,
@@ -97,7 +38,8 @@ const DATA = {
   giftSummary: null,
   campaigns:   null,
   pages:       null,
-  blog:        null
+  blog:        null,
+  loyalty:     null
 };
 
 const COURIER_LOGOS = {
@@ -133,14 +75,11 @@ function chartSVG(){
   var data = DATA.chartData;
   var W = 600, H = 220, PX = 24, PY = 18;
   if (!data || data.length < 2) {
-    // Placeholder while loading or no data
+    // Honest empty/loading state — flat baseline + label, no fabricated curve.
+    var msg = (DATA.chartData === null) ? 'Caricamento…' : 'Nessun dato di vendita nel periodo';
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-      <defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stop-color="#7fc29b" stop-opacity=".3"/>
-        <stop offset="100%" stop-color="#7fc29b" stop-opacity="0"/>
-      </linearGradient></defs>
-      <path d="M0,180 C60,140 120,160 180,120 C240,90 300,130 360,80 C420,50 480,90 540,60 L600,70 L600,220 L0,220 Z" fill="url(#g1)"/>
-      <path d="M0,180 C60,140 120,160 180,120 C240,90 300,130 360,80 C420,50 480,90 540,60 L600,70" fill="none" stroke="#7fc29b" stroke-width="2.5"/>
+      <line x1="${PX}" x2="${W-PX}" y1="${H-PY}" y2="${H-PY}" stroke="var(--line)" stroke-width="1.5"/>
+      <text x="${W/2}" y="${H/2}" text-anchor="middle" fill="var(--muted)" font-size="13" font-family="inherit">${msg}</text>
     </svg>`;
   }
   var revenues = data.map(function(d){ return parseFloat(d.revenue)||0; });
@@ -201,7 +140,6 @@ VIEWS.dashboard = function(){
   return `
     ${pageHead("Buongiorno, Admin 👋","Ecco cosa è successo oggi nel tuo store.",`
       <button class="btn btn-soft btn-sm js-export-orders">📤 Esporta</button>
-      <button class="btn btn-primary btn-sm js-new-order">+ Nuovo ordine</button>
     `)}
     <div class="grid grid-4">
       <div class="card kpi green"><div class="icon-wrap">💰</div>
@@ -298,6 +236,7 @@ VIEWS.orders = function(filter){
   return `
     ${pageHead("Ordini","Gestisci tutti gli ordini ricevuti dallo store.",`
       <button class="btn btn-ghost btn-sm js-export-orders">📤 Esporta CSV</button>
+      <button class="btn btn-primary btn-sm js-new-order">+ Nuovo ordine</button>
     `)}
     <div class="table-card">
       <div class="table-head">
@@ -664,6 +603,59 @@ VIEWS.reviews = function(){
   `;
 };
 
+/* ---------- FEDELTÀ & PUNTI ---------- */
+function loyaltyField(label,key,value,type){
+  type=type||'number';
+  if(type==='select'){
+    return `<div class="kv" style="grid-template-columns:200px 1fr;gap:8px;align-items:center"><div style="font-size:13px;color:var(--muted)">${label}</div><div><select class="loyalty-input" data-key="${key}" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px"><option value="1"${String(value)==='1'?' selected':''}>Sì</option><option value="0"${String(value)==='0'?' selected':''}>No</option></select></div></div>`;
+  }
+  return `<div class="kv" style="grid-template-columns:200px 1fr;gap:8px;align-items:center"><div style="font-size:13px;color:var(--muted)">${label}</div><div><input type="number" step="0.01" min="0" class="loyalty-input" data-key="${key}" value="${value}" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px"/></div></div>`;
+}
+VIEWS.loyalty = function(){
+  const d = DATA.loyalty;
+  if (!d) return `${pageHead("Fedeltà & Punti","Programma punti clienti.","")}<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Caricamento…</p></div>`;
+  const cfg = d.config || {};
+  const custs = d.customers || [];
+  const sum = d.summary || {};
+  const eur = v => '€ ' + (Number(v)||0).toFixed(2);
+  const ptsPerEuro = Number(cfg.pointsPerEuro)||0;
+  const ptVal = Number(cfg.pointValueEur)||0;
+  return `
+    ${pageHead("Fedeltà & Punti","I clienti accumulano punti (registrazione + acquisti) e li riscattano in sconti.",`<button class="btn btn-primary btn-sm js-save-loyalty">💾 Salva configurazione</button>`)}
+    <div class="grid grid-3" style="margin-bottom:16px">
+      <div class="card kpi green"><span class="label">Punti in circolazione</span><span class="value">${sum.total_points||0}</span></div>
+      <div class="card kpi pink"><span class="label">Membri</span><span class="value">${sum.members||0}</span></div>
+      <div class="card kpi soft"><span class="label">Valore residuo</span><span class="value">${eur((sum.total_points||0)*ptVal)}</span></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-bottom:12px">Configurazione programma</h3>
+      <div class="grid grid-2" style="gap:10px">
+        ${loyaltyField('Programma attivo','loyalty_enabled', cfg.enabled?'1':'0','select')}
+        ${loyaltyField('Bonus registrazione (punti)','loyalty_signup_bonus', cfg.signupBonus)}
+        ${loyaltyField('Punti per € speso','loyalty_points_per_euro', cfg.pointsPerEuro)}
+        ${loyaltyField('Valore di 1 punto (€)','loyalty_point_value_eur', cfg.pointValueEur)}
+        ${loyaltyField('Minimo punti per riscatto','loyalty_min_redeem', cfg.minRedeem)}
+      </div>
+      <p style="color:var(--muted);font-size:12px;margin-top:8px">Esempio: un acquisto di € 100 genera <strong>${Math.floor(100*ptsPerEuro)} punti</strong> = ${eur(Math.floor(100*ptsPerEuro)*ptVal)} di sconto riscattabile.</p>
+    </div>
+    <div class="table-card"><div class="table-wrap"><table class="data">
+      <thead><tr><th>Cliente</th><th>Email</th><th>Punti</th><th>Ordini</th><th>Speso</th><th></th></tr></thead>
+      <tbody>
+        ${custs.length ? custs.map(c=>`
+          <tr>
+            <td><strong>${((c.nome||'')+' '+(c.cognome||'')).trim()||'—'}</strong></td>
+            <td>${c.email}</td>
+            <td><strong>${c.points||0}</strong></td>
+            <td>${c.total_orders||0}</td>
+            <td>${eur(c.total_spent)}</td>
+            <td class="row-actions"><button class="btn btn-soft btn-sm js-adjust-points" data-id="${c.id}" data-nome="${((c.nome||'')+' '+(c.cognome||'')).replace(/"/g,'&quot;')}" data-points="${c.points||0}">± Punti</button></td>
+          </tr>
+        `).join('') : `<tr><td colspan="6" class="empty">Nessun cliente registrato</td></tr>`}
+      </tbody>
+    </table></div></div>
+  `;
+};
+
 /* ---------- MARKETING ---------- */
 VIEWS.marketing = function(){
   const camps = DATA.campaigns || [];
@@ -978,7 +970,7 @@ VIEWS.shipments = function(){
         <thead><tr><th>Tracking</th><th>Ordine</th><th>Cliente</th><th>Corriere</th><th>Destinazione</th><th>Stato</th><th>ETA</th><th></th></tr></thead>
         <tbody>
           ${DATA.shipments.map(s=>{
-            const courier = DATA.couriers.find(c=>c.code===s.corriere);
+            const courier = DATA.couriers.find(c=>c.code===s.corriere) || { slug:(s.corriere||'?').toUpperCase(), nome:(s.corriere||'—') };
             return `<tr data-courier="${s.corriere}" data-status="${s.stato}">
               <td><strong>${s.id}</strong></td>
               <td>${s.ordine}</td>
@@ -1658,10 +1650,28 @@ $(function(){
     }
 
     if(view){
-      setActiveNav(view);
-      renderView(view);
+      // Drive everything through the URL hash so each view has a shareable,
+      // bookmarkable URL and the browser back/forward buttons work.
+      if(('#'+view) === window.location.hash){ handleRoute(); }   // same view → just refresh
+      else { window.location.hash = view; }                       // triggers hashchange → handleRoute
     }
   });
+
+  // ── Hash-based routing ──────────────────────────────────────
+  // The admin is a single-page app: one dashboard.html whose #viewContainer is
+  // swapped by JS. We reflect the current view in location.hash (e.g.
+  // dashboard.html#orders) so the URL changes, refresh keeps you on the page,
+  // and back/forward navigate between views.
+  function currentHashView(){
+    var h = (window.location.hash || '').replace(/^#/, '').trim();
+    return (h && VIEWS[h]) ? h : 'dashboard';
+  }
+  function handleRoute(){
+    var view = currentHashView();
+    setActiveNav(view);
+    renderView(view);
+  }
+  $(window).on('hashchange', handleRoute);
 
   // Modal
   $('#modalClose, #modalBackdrop').on('click', function(e){
@@ -1764,7 +1774,8 @@ $(function(){
   $(document).on('click','.js-track-detail', function(){
     const id = $(this).data('id');
     const s = DATA.shipments.find(x=>x.id===id);
-    const c = DATA.couriers.find(c=>c.code===s.corriere);
+    if(!s) return;
+    const c = DATA.couriers.find(c=>c.code===s.corriere) || { nome:(s.corriere||'—') };
     openModal(`Spedizione ${s.id}`, `
       <div class="kv">
         <div class="k">Ordine</div><div class="v">${s.ordine}</div>
@@ -1775,7 +1786,7 @@ $(function(){
         <div class="k">ETA</div><div class="v">${s.eta}</div>
       </div>
       <div style="margin-top:14px">
-        <button class="btn btn-soft btn-sm">📍 Apri tracking completo</button>
+        <button class="btn btn-soft btn-sm" onclick="closeModal();window.location.hash='tracking';setTimeout(function(){var i=document.getElementById('trackInput');if(i){i.value='${s.id}';if(typeof runTracking==='function')runTracking();}},120)">📍 Apri tracking completo</button>
       </div>
     `);
   });
@@ -2211,7 +2222,8 @@ $(function(){
           <div class="k">Stato</div><div class="v">
             <select name="stato" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">
               <option value="attivo">Attivo</option>
-              <option value="bozza">Bozza / Pianificato</option>
+              <option value="pianificato">Pianificato</option>
+              <option value="disattivo">Disattivo</option>
             </select>
           </div>
         </div>
@@ -2577,12 +2589,8 @@ $(function(){
      INVOICES CRUD
      ═════════════════════════════════════════════ */
   $(document).on('click','.js-new-invoice', function(){
-    if (!DATA.orders || !DATA.orders.length){ toast('Carica prima la lista ordini','info'); return; }
-    var orderOpts = DATA.orders.map(function(o){
-      return '<option value="'+(o._db_id||'')+'">'+o.id+' - '+o.cliente+' - '+o.totale+'</option>';
-    }).join('');
-    openModal('Nuova fattura', '<form id="newInvoiceForm"><div class="kv" style="grid-template-columns:140px 1fr;gap:10px">'+
-      '<div class="k">Ordine *</div><div class="v"><select name="order_id" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"><option value="">- Seleziona ordine -</option>'+orderOpts+'</select></div>'+
+    openModal('Nuova fattura', '<form id="newInvoiceForm"><div class="kv" style="grid-template-columns:140px 1fr;gap:10px;align-items:center">'+
+      '<div class="k">Ordine *</div><div class="v">'+orderPickerHtml()+'</div>'+
       '<div class="k">Scadenza</div><div class="v"><input type="date" name="due_date" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
       '<div class="k">Aliquota IVA %</div><div class="v"><input type="number" name="tax_rate" value="22" min="0" max="100" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
       '<div class="k">C.F. cliente</div><div class="v"><input type="text" name="customer_cf" placeholder="(opzionale)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
@@ -2590,10 +2598,12 @@ $(function(){
       '</div><div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'+
       '<button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>'+
       '<button type="submit" class="btn btn-primary btn-sm">Emetti fattura</button></div></form>');
+    wireOrderPicker();
     $('#newInvoiceForm').on('submit',function(e){
       e.preventDefault();
       if(!window.AdminAPI) return;
       var fd=Object.fromEntries(new FormData(this));
+      if(!fd.order_id){ toast('Seleziona un ordine','info'); return; }
       var $btn=$(this).find('[type=submit]');
       $btn.prop('disabled',true).text('Emissione...');
       AdminAPI.invoices.create({
@@ -2919,27 +2929,119 @@ $(function(){
   }
   function apiReady(){ if(!window.AdminAPI){ toast('API non disponibile','error'); return false; } return true; }
 
-  /* ── Dashboard: new manual order ── */
+  /* ── Reusable CATALOG PRODUCT PICKER ──────────────────────────
+     Type to search /api/products, click a result to add it as a line.
+     The admin never types product names/prices by hand — only real
+     catalogue products can be attached. Returns {getItems, count}.    */
+  function productPickerHtml(){
+    return '<div class="prod-picker">'+
+      '<input type="text" id="pickerSearch" autocomplete="off" placeholder="Cerca un prodotto del catalogo…" style="'+inputCss+'"/>'+
+      '<div id="pickerResults" style="display:none;max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:6px;margin-top:4px"></div>'+
+      '<div id="pickerSelected" style="margin-top:8px;display:flex;flex-direction:column;gap:6px"></div>'+
+    '</div>';
+  }
+  function wireProductPicker(){
+    var selected = [];
+    var $search=$('#pickerSearch'), $results=$('#pickerResults'), $sel=$('#pickerSelected'), t;
+    function renderSelected(){
+      if(!selected.length){ $sel.html('<p style="color:var(--muted);font-size:12px">Nessun prodotto selezionato.</p>'); return; }
+      $sel.html(selected.map(function(s,i){
+        return '<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:6px 8px">'+
+          '<span style="flex:1;font-size:13px">'+s.name+'</span>'+
+          '<span style="color:var(--muted);font-size:12px">€ '+Number(s.price).toFixed(2)+'</span>'+
+          '<input type="number" min="1" value="'+s.qty+'" class="pk-qty" data-i="'+i+'" style="width:56px;padding:4px 6px;border:1px solid var(--line);border-radius:6px"/>'+
+          '<button type="button" class="pk-rm" data-i="'+i+'" title="Rimuovi" style="color:var(--danger)">✕</button>'+
+        '</div>';
+      }).join(''));
+    }
+    renderSelected();
+    $search.on('input', function(){
+      var q=$(this).val().trim(); clearTimeout(t);
+      if(!q){ $results.hide().empty(); return; }
+      t=setTimeout(function(){
+        AdminAPI.products.list({ q:q, status:'all' }).done(function(list){
+          if(!Array.isArray(list)) list=(list&&list.products)||[];
+          if(!list.length){ $results.html('<div style="padding:8px;color:var(--muted);font-size:12px">Nessun prodotto in catalogo per “'+q+'”</div>').show(); return; }
+          $results.html(list.slice(0,8).map(function(p){
+            return '<div class="pk-res" data-id="'+p.id+'" data-name="'+(p.name||'').replace(/"/g,'&quot;')+'" data-price="'+(Number(p.price)||0)+'" style="padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--line-2);font-size:13px;display:flex;justify-content:space-between"><span>'+p.name+'</span><span style="color:var(--muted)">€ '+(Number(p.price)||0).toFixed(2)+'</span></div>';
+          }).join('')).show();
+        }).fail(function(){ $results.html('<div style="padding:8px;color:var(--muted);font-size:12px">Errore ricerca</div>').show(); });
+      }, 250);
+    });
+    $results.on('click','.pk-res', function(){
+      var id=$(this).data('id');
+      if(!selected.some(function(s){ return String(s.id)===String(id); })){
+        selected.push({ id:id, name:$(this).data('name'), price:$(this).data('price'), qty:1 });
+        renderSelected();
+      }
+      $search.val('').focus(); $results.hide().empty();
+    });
+    $sel.on('input','.pk-qty', function(){ var i=$(this).data('i'); selected[i].qty=Math.max(1,parseInt($(this).val())||1); });
+    $sel.on('click','.pk-rm', function(){ var i=$(this).data('i'); selected.splice(i,1); renderSelected(); });
+    return { getItems:function(){ return selected.map(function(s){ return { product_id:s.id, qty:s.qty }; }); }, count:function(){ return selected.length; } };
+  }
+
+  /* ── Reusable ORDER PICKER (single select, live search) ──────
+     Search existing orders by number/customer and pick one. Used by the
+     invoice and shipment modals so the admin never types an order id.   */
+  function orderPickerHtml(){
+    return '<div class="order-picker">'+
+      '<input type="text" id="orderPickSearch" autocomplete="off" placeholder="Cerca ordine per numero o cliente…" style="'+inputCss+'"/>'+
+      '<div id="orderPickResults" style="display:none;max-height:190px;overflow:auto;border:1px solid var(--line);border-radius:6px;margin-top:4px"></div>'+
+      '<div id="orderPickSelected" style="margin-top:6px"></div>'+
+      '<input type="hidden" id="orderPickId" name="order_id"/>'+
+    '</div>';
+  }
+  function wireOrderPicker(onPick){
+    var $search=$('#orderPickSearch'), $results=$('#orderPickResults'), $sel=$('#orderPickSelected'), $hid=$('#orderPickId'), t;
+    $search.on('input', function(){
+      var q=$(this).val().trim(); clearTimeout(t);
+      if(!q){ $results.hide().empty(); return; }
+      t=setTimeout(function(){
+        AdminAPI.orders.list({ q:q, limit:20 }).done(function(data){
+          var list=(data&&data.orders)?data.orders:(Array.isArray(data)?data:[]);
+          if(!list.length){ $results.html('<div style="padding:8px;color:var(--muted);font-size:12px">Nessun ordine per “'+q+'”</div>').show(); return; }
+          $results.html(list.slice(0,10).map(function(o){
+            var nome=((o.customer_nome||'')+' '+(o.customer_cognome||'')).trim()||'—';
+            var label=(o.order_number||('#'+o.id))+' · '+nome+' · € '+(Number(o.total)||0).toFixed(2);
+            return '<div class="op-res" data-id="'+o.id+'" data-label="'+label.replace(/"/g,'&quot;')+'" style="padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--line-2);font-size:13px">'+label+'</div>';
+          }).join('')).show();
+        }).fail(function(){ $results.html('<div style="padding:8px;color:var(--muted);font-size:12px">Errore ricerca</div>').show(); });
+      }, 250);
+    });
+    $results.on('click','.op-res', function(){
+      var id=$(this).data('id'), label=$(this).data('label');
+      $hid.val(id);
+      $sel.html('<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:6px 8px"><span style="flex:1;font-size:13px">'+label+'</span><button type="button" class="op-clear" title="Cambia" style="color:var(--danger)">✕</button></div>');
+      $search.val('').hide(); $results.hide().empty();
+      if(typeof onPick==='function') onPick(id);
+    });
+    $sel.on('click','.op-clear', function(){ $hid.val(''); $sel.empty(); $search.show().val('').focus(); });
+  }
+
+  /* ── New manual order (catalog-driven) ── */
   $(document).on('click','.js-new-order', function(){
     openModal('Nuovo ordine manuale',
-      modalForm('newOrderForm',
+      '<form id="newOrderForm"><div class="kv" style="grid-template-columns:130px 1fr;gap:10px;align-items:center">'+
         fieldRow('Nome cliente *','<input name="nome" required placeholder="Mario" style="'+inputCss+'"/>')+
         fieldRow('Cognome','<input name="cognome" placeholder="Rossi" style="'+inputCss+'"/>')+
         fieldRow('Email *','<input type="email" name="email" required placeholder="cliente@mail.it" style="'+inputCss+'"/>')+
-        fieldRow('Articolo *','<input name="product_name" required placeholder="es. T-Shirt Cotone" style="'+inputCss+'"/>')+
-        fieldRow('Prezzo (EUR) *','<input type="number" step="0.01" min="0" name="price" required placeholder="29.90" style="'+inputCss+'"/>')+
-        fieldRow('Quantità','<input type="number" min="1" name="qty" value="1" style="'+inputCss+'"/>')+
         fieldRow('Spedizione (EUR)','<input type="number" step="0.01" min="0" name="shipping_cost" value="0" style="'+inputCss+'"/>')+
-        fieldRow('Pagamento','<select name="payment_status" style="'+inputCss+'"><option value="in_attesa">In attesa</option><option value="pagato">Pagato</option></select>'),
-        'Crea ordine'));
+        fieldRow('Pagamento','<select name="payment_status" style="'+inputCss+'"><option value="in_attesa">In attesa</option><option value="pagato">Pagato</option></select>')+
+      '</div>'+
+      '<div style="margin-top:14px"><div style="font-size:13px;font-weight:600;margin-bottom:6px">Prodotti dal catalogo *</div>'+productPickerHtml()+'</div>'+
+      '<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button><button type="submit" class="btn btn-primary btn-sm">Crea ordine</button></div></form>');
+    var picker = wireProductPicker();
     $('#newOrderForm').on('submit', function(e){
       e.preventDefault(); if(!apiReady()) return;
+      var items = picker.getItems();
+      if(!items.length){ toast('Seleziona almeno un prodotto dal catalogo','info'); return; }
       var fd = Object.fromEntries(new FormData(this));
       var $btn=$(this).find('[type=submit]'); $btn.prop('disabled',true).text('Creazione...');
       AdminAPI.orders.create({
         nome:fd.nome, cognome:fd.cognome||'', email:fd.email,
         shipping_cost:fd.shipping_cost||0, payment_status:fd.payment_status||'in_attesa',
-        items:[{ product_name:fd.product_name, price:fd.price, qty:fd.qty||1 }]
+        items: items
       }).done(function(r){ toast('Ordine '+(r.order_number||'')+' creato','success'); closeModal(); renderView('orders'); })
         .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore creazione ordine','error'); $btn.prop('disabled',false).text('Crea ordine'); });
     });
@@ -3170,17 +3272,18 @@ $(function(){
     var couriers = (DATA.couriers&&DATA.couriers.length)?DATA.couriers:[{code:'sda',nome:'SDA'},{code:'brt',nome:'BRT'},{code:'gls',nome:'GLS'},{code:'dhl',nome:'DHL'}];
     var courierOpts = couriers.map(function(c){ return '<option value="'+c.code+'">'+c.nome+'</option>'; }).join('');
     openModal('Nuova spedizione',
-      modalForm('newShipForm',
-        fieldRow('N° Ordine / ID *','<input name="order_id" required placeholder="es. #10254 o 12" style="'+inputCss+'"/>')+
+      '<form id="newShipForm"><div class="kv" style="grid-template-columns:140px 1fr;gap:10px;align-items:center">'+
+        fieldRow('Ordine *', orderPickerHtml())+
         fieldRow('Corriere *','<select name="courier_code" required style="'+inputCss+'">'+courierOpts+'</select>')+
         fieldRow('Tracking *','<input name="tracking_number" required placeholder="SDA1234567890" style="'+inputCss+'"/>')+
         fieldRow('Destinazione','<input name="destinazione" placeholder="Milano (MI)" style="'+inputCss+'"/>')+
-        fieldRow('ETA','<input type="date" name="eta" style="'+inputCss+'"/>'),
-        'Crea spedizione'));
+        fieldRow('ETA','<input type="date" name="eta" style="'+inputCss+'"/>')+
+      '</div><div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button><button type="submit" class="btn btn-primary btn-sm">Crea spedizione</button></div></form>');
+    wireOrderPicker();
     $('#newShipForm').on('submit', function(e){
       e.preventDefault(); if(!apiReady()) return;
       var fd=Object.fromEntries(new FormData(this));
-      fd.order_id = String(fd.order_id).replace('#','').trim();
+      if(!fd.order_id){ toast('Seleziona un ordine','info'); return; }
       AdminAPI.shipping.createShipment(fd).done(function(){ toast('Spedizione creata','success'); closeModal(); renderView('shipments'); })
         .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
     });
@@ -3322,6 +3425,33 @@ $(function(){
     } else if(rep==='invoices'){
       AdminAPI.invoices.list({limit:200}).done(function(d){ var l=(d&&d.invoices)||(Array.isArray(d)?d:[]); var rows=[['N°','Ordine','Cliente','Totale','Stato','Data']]; l.forEach(function(i){ rows.push([i.invoice_number,i.order_number||i.order_id,(i.customer_nome||'')+' '+(i.customer_cognome||''),i.total,i.stato,new Date(i.created_at).toLocaleDateString('it-IT')]); }); go(rows,'fatture'); }).fail(function(){ toast('Errore report','error'); });
     }
+  });
+
+  /* ── Loyalty: save config + adjust points ── */
+  $(document).on('click','.js-save-loyalty', function(){
+    if(!apiReady()) return;
+    var data={}; $('.loyalty-input').each(function(){ data[$(this).data('key')] = $(this).val(); });
+    var $btn=$(this); $btn.prop('disabled',true).text('Salvataggio...');
+    AdminAPI.loyalty.updateConfig(data)
+      .done(function(){ toast('Configurazione fedeltà salvata','success'); renderView('loyalty'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); $btn.prop('disabled',false).text('💾 Salva configurazione'); });
+  });
+  $(document).on('click','.js-adjust-points', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id'), nome=$(this).data('nome'), cur=$(this).data('points');
+    openModal('Rettifica punti — '+nome,
+      modalForm('adjPointsForm',
+        fieldRow('Saldo attuale','<input value="'+cur+'" disabled style="'+inputCss+'"/>')+
+        fieldRow('Variazione (+/-) *','<input type="number" name="delta" required placeholder="es. 50 oppure -20" style="'+inputCss+'"/>')+
+        fieldRow('Motivo','<input name="reason" placeholder="es. omaggio compleanno" style="'+inputCss+'"/>'),
+        'Applica'));
+    $('#adjPointsForm').on('submit', function(e){
+      e.preventDefault();
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.loyalty.adjust(id,{ delta:parseInt(fd.delta,10), reason:fd.reason })
+        .done(function(r){ toast('Saldo aggiornato: '+r.points+' punti','success'); closeModal(); renderView('loyalty'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
   });
 
   /* ── Chat quick actions ── */
@@ -3714,6 +3844,14 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { DATA.settings = DATA.settings || {}; _origRenderView(name); });
 
+    } else if (name === 'loyalty') {
+      $.when(api.loyalty.config(), api.loyalty.customers({ limit: 200 })).done(function(cfgRes, custRes) {
+        var cfg  = cfgRes[0]  || {};
+        var cust = custRes[0] || {};
+        DATA.loyalty = { config: cfg, customers: cust.customers || [], summary: cust.summary || {} };
+        _origRenderView(name);
+      }).fail(function() { DATA.loyalty = DATA.loyalty || { config:{}, customers:[], summary:{} }; _origRenderView(name); });
+
     } else if (name === 'pickup') {
       api.shipping.pickup().done(function(list) {
         if (Array.isArray(list) && list.length) {
@@ -3738,7 +3876,7 @@ $(function(){
   // an expired token before the first data request fires.
   if (window.AdminAPI && AdminAPI.auth.isLoggedIn()) {
     AdminAPI.auth.me()
-      .done(function() { updateSidebarBadges(); loadDashboardData(); })
+      .done(function() { updateSidebarBadges(); handleRoute(); })
       .fail(function() {
         // redirect is already handled inside admin-api.js request()
         // but belt-and-suspenders: ensure we land on login

@@ -4,6 +4,47 @@ Status key: ✅ Fixed | ⚠️ Known limitation | ❌ Missing | 🔄 Workaround 
 
 ---
 
+## Sprint Giugno 2026 — Phase 5 (data integrity, routing, loyalty)
+
+### Critical 500s fixed
+| # | Issue | Fix |
+|---|-------|-----|
+| 67 | `GET /api/products` 500 — `JSON.parse()` called on `collections`/`images` which mysql2 returns already-parsed | `parseJSON()` helper tolerates object or string (products.js) |
+| 68 | Product create 500 — `colore/color_label/alt_color/description` arrive `undefined` → mysql2 "Bind must not be undefined" | default them to `null` in destructuring |
+| 69 | "Crea ordine" 500 — `order_items.product_id` is `NOT NULL` but manual order sent no product_id | order is now catalog-driven (see #71); product_id always set + validated |
+| 70 | Discount create 500 — form sent `stato:'bozza'` not in ENUM `('attivo','disattivo','pianificato')` | fixed option value + server-side ENUM validation (400 not 500) |
+
+### Architecture / UX
+| # | Item | Detail |
+|---|------|--------|
+| 71 | Manual order is catalog-driven | Reusable **product picker**: type-to-search `/api/products`, select real products as chips; backend resolves name/price from DB and rejects unknown products. No more free-text product/price. |
+| 72 | URLs didn't change between admin views (all `dashboard.html`) | **Hash routing**: each view has a URL (`dashboard.html#orders`), back/forward + refresh work. SPA keeps one shell by design. |
+| 73 | "Nuovo ordine" was on Home | Moved to the **Ordini** page. |
+| 74 | Dashboard "Andamento vendite" drew a fabricated curve when empty | Honest empty/loading state (flat baseline + label). |
+| 75 | Admin seed/mock arrays (products/orders/customers/couriers/…) | Emptied — views show real API data or honest empty states. |
+| 76 | Missing indexes | Added `order_items(product_id)` and `products(categoria,status)` (inline in schema + idempotent `ensureColumn`/`ensureIndex` migration). |
+
+### Loyalty / fidelity points (new)
+| # | Item | Detail |
+|---|------|--------|
+| 77 | Points program | `customers.points` + `loyalty_transactions` ledger; config in `store_settings` (`loyalty_*`). |
+| 78 | Earning | Signup bonus on registration; `floor(total × points_per_euro)` on every purchase (storefront + admin orders). |
+| 79 | Redemption | Customer redeems points → issues a single-use `PUNTI-XXXX` fixed discount code usable at checkout. |
+| 80 | Admin UI | "Fedeltà & Punti" view: config, members ranked by points, manual +/- adjustment. |
+| 81 | Storefront | Account page shows balance, ledger, and redeem. |
+
+**Defaults (configurable):** signup 100 pts · 1 pt per €1 · 1 pt = €0.05 (100 pts = €5) · min redeem 100.
+
+### Phase 5 follow-ups (worth-it improvements)
+| # | Item | Detail |
+|---|------|--------|
+| 82 | Order picker generalized | New-invoice and new-shipment modals now use a **live order search-picker** (search by number/customer) instead of free-text / a pre-loaded select. |
+| 83 | Invoice VAT math fixed | IVA is now **extracted** from the (IVA-inclusive) order total: `imponibile = totale/(1+rate)`, `iva = totale − imponibile`, so `imponibile + IVA = totale` (was adding 22% on top of the total). |
+| 84 | One-click points at checkout | Logged-in customers see their balance and can redeem points in one click; it issues the discount code and auto-applies it. Only useful points are spent (capped to the order). |
+| 85 | Polish | Added `statusLabel` entries (pianificato/disattivo); wired the "Apri tracking completo" button. |
+
+---
+
 ## Sprint Giugno 2026 — Phase 4 (admin completion, deploy hardening, storefront polish)
 
 ### Admin panel

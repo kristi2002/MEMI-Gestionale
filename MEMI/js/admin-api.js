@@ -172,6 +172,13 @@
     update: function(id, d)  { return put('/admin/cms/blog/' + id, d); },
     delete: function(id)     { return del('/admin/cms/blog/' + id); },
   };
+  var loyalty = {
+    config:       function()        { return get('/admin/loyalty/config'); },
+    updateConfig: function(d)       { return put('/admin/loyalty/config', d); },
+    customers:    function(params)  { return get('/admin/loyalty/customers' + (params ? '?' + $.param(params) : '')); },
+    customer:     function(id)      { return get('/admin/loyalty/customers/' + id); },
+    adjust:       function(id, d)   { return post('/admin/loyalty/customers/' + id + '/adjust', d); },
+  };
 
   /* ═══════════════════════════════════════════════════════
      NEWSLETTER
@@ -232,7 +239,7 @@
 
 
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {
@@ -250,6 +257,8 @@
       in_consegna:     'In consegna',
       problema:        'Problema',
       attivo:          'Attivo',
+      disattivo:       'Disattivo',
+      pianificato:     'Pianificato',
       attiva:          'Attiva',
       utilizzata:      'Utilizzata',
       disattivata:     'Disattivata',

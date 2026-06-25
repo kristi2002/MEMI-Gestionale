@@ -88,7 +88,14 @@ router.post('/', requireAdmin, async (req, res) => {
     const nextN = (last_n || 0) + 1;
     const invoice_number = `F-${year}-${String(nextN).padStart(4, '0')}`;
 
-    const tax_amount = parseFloat(order.total) * (parseFloat(tax_rate) / 100);
+    // Prices are IVA-inclusive (store setting "Inclusa nel prezzo: Sì"), so the
+    // invoice total equals the order total and we EXTRACT the VAT from it:
+    //   imponibile = totale / (1 + rate/100);  iva = totale - imponibile
+    // This keeps the invoice internally consistent: imponibile + IVA = totale.
+    const grossTotal = parseFloat(order.total) || 0;
+    const rate       = parseFloat(tax_rate) || 0;
+    const imponibile = +(grossTotal / (1 + rate / 100)).toFixed(2);
+    const tax_amount = +(grossTotal - imponibile).toFixed(2);
     const indirizzo  = `${order.shipping_address}, ${order.shipping_citta} ${order.shipping_cap}, ${order.shipping_paese}`;
 
     const [result] = await pool.execute(
@@ -98,7 +105,7 @@ router.post('/', requireAdmin, async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'emessa', ?, ?)`,
       [invoice_number, order_id, order.customer_nome, order.customer_cognome, order.customer_email,
        customer_cf || null, customer_piva || null, indirizzo,
-       order.subtotal, tax_rate, tax_amount, order.total,
+       imponibile, rate, tax_amount, grossTotal,
        note || null, due_date || null]
     );
 

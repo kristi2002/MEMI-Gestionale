@@ -19,6 +19,7 @@ const router = require('express').Router();
 const { pool }                           = require('../db');
 const { requireCustomer, requireAdmin, optionalCustomer } = require('../middleware/auth');
 const { sendOrderConfirmation, sendShippingConfirmation } = require('../email');
+const { awardPurchasePoints } = require('../loyalty');
 
 /* ── helpers ── */
 async function nextOrderNumber(conn) {
@@ -149,6 +150,9 @@ router.post('/', optionalCustomer, async (req, res) => {
       );
     }
 
+    // 6. Award loyalty points for the purchase (best-effort, never blocks the order)
+    try { await awardPurchasePoints(conn, email, total); } catch (_) {}
+
     await conn.commit();
 
     // Send confirmation email (non-blocking — never fails the order response)
@@ -246,12 +250,39 @@ router.post('/admin', requireAdmin, async (req, res) => {
 
   if (!nome || !email) return res.status(400).json({ error: 'Nome ed email obbligatori' });
   if (!Array.isArray(items) || items.length === 0)
-    return res.status(400).json({ error: 'Aggiungi almeno un articolo' });
+    return res.status(400).json({ error: 'Aggiungi almeno un prodotto dal catalogo' });
 
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    const subtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (parseInt(i.qty) || 1), 0);
+
+    // Resolve every line item against the REAL catalog. The admin only chooses
+    // product_id + qty (+ optional taglia); name and price are taken from the DB,
+    // so they can't be faked and must reference an existing product.
+    const resolved = [];
+    for (const it of items) {
+      if (!it || !it.product_id) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Ogni articolo deve essere un prodotto del catalogo' });
+      }
+      const [[prod]] = await conn.execute(
+        'SELECT id, name, price FROM products WHERE id = ?', [it.product_id]
+      );
+      if (!prod) {
+        await conn.rollback();
+        return res.status(400).json({ error: `Prodotto non trovato in catalogo: ${it.product_id}` });
+      }
+      resolved.push({
+        product_id:   prod.id,
+        product_name: prod.name,
+        price:        Number(prod.price) || 0,
+        qty:          parseInt(it.qty) || 1,
+        taglia:       it.taglia || null,
+        colore:       it.colore || null,
+      });
+    }
+
+    const subtotal = resolved.reduce((s, i) => s + i.price * i.qty, 0);
     const ship     = Number(shipping_cost) || 0;
     const total    = Math.max(0, subtotal + ship);
     const orderNumber = await nextOrderNumber(conn);
@@ -266,14 +297,25 @@ router.post('/admin', requireAdmin, async (req, res) => {
        indirizzo, citta, cap, paese, subtotal, ship, total, payment_method, payment_status]
     );
     const orderId = result.insertId;
-    for (const item of items) {
+
+    for (const item of resolved) {
       await conn.execute(
         `INSERT INTO order_items (order_id, product_id, product_name, taglia, colore, price, qty)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [orderId, item.product_id || null, item.product_name || 'Articolo',
-         item.taglia || null, item.colore || null, Number(item.price) || 0, parseInt(item.qty) || 1]
+        [orderId, item.product_id, item.product_name, item.taglia, item.colore, item.price, item.qty]
       );
+      // Decrement stock when a size is specified (allow it to floor at 0)
+      if (item.taglia) {
+        await conn.execute(
+          'UPDATE product_sizes SET stock = GREATEST(0, stock - ?) WHERE product_id = ? AND taglia = ?',
+          [item.qty, item.product_id, item.taglia]
+        );
+      }
     }
+
+    // Award loyalty points for the purchase (if the email matches a customer)
+    try { await awardPurchasePoints(conn, email, total); } catch (_) {}
+
     await conn.commit();
     return res.status(201).json({ ok: true, id: orderId, order_number: orderNumber, total });
   } catch (err) {

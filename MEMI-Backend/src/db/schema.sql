@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS customers (
   wishlist      JSON,
   total_orders  INT DEFAULT 0,
   total_spent   DECIMAL(10,2) DEFAULT 0.00,
+  points        INT NOT NULL DEFAULT 0,
   created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_login    TIMESTAMP NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -67,7 +68,8 @@ CREATE TABLE IF NOT EXISTS products (
   images         JSON,
   status         ENUM('attivo','bozza','esaurito') DEFAULT 'attivo',
   created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_products_cat_status (categoria, status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
@@ -128,6 +130,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   colore       VARCHAR(100),
   price        DECIMAL(10,2) NOT NULL,
   qty          INT NOT NULL DEFAULT 1,
+  KEY idx_oi_product (product_id),
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

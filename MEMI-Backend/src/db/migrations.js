@@ -78,6 +78,19 @@ const STATEMENTS = [
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Loyalty / fidelity points ledger ────────────────────────
+  `CREATE TABLE IF NOT EXISTS loyalty_transactions (
+     id            INT AUTO_INCREMENT PRIMARY KEY,
+     customer_id   INT NOT NULL,
+     delta         INT NOT NULL,
+     reason        VARCHAR(80) NULL,
+     order_id      INT NULL,
+     balance_after INT NULL,
+     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_loyalty_customer (customer_id),
+     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');
@@ -121,6 +134,32 @@ async function ensureSchema() {
   }
 }
 
+// Add a column only if it doesn't already exist (MySQL 8 has no ADD COLUMN IF NOT EXISTS).
+async function ensureColumn(pool, table, column, definition) {
+  const [[{ cnt }]] = await pool.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?`,
+    [table, column]
+  );
+  if (!cnt) {
+    await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN ${definition}`);
+    console.log(`   + column ${table}.${column}`);
+  }
+}
+
+// Add an index only if it doesn't already exist (no CREATE INDEX IF NOT EXISTS in MySQL 8).
+async function ensureIndex(pool, table, indexName, columnsSql) {
+  const [[{ cnt }]] = await pool.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.statistics
+     WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?`,
+    [table, indexName]
+  );
+  if (!cnt) {
+    await pool.query(`CREATE INDEX \`${indexName}\` ON \`${table}\` (${columnsSql})`);
+    console.log(`   + index ${table}.${indexName}`);
+  }
+}
+
 async function runMigrations(pool) {
   // 1. Heal any missing core tables from schema.sql
   try {
@@ -132,7 +171,15 @@ async function runMigrations(pool) {
   for (const sql of STATEMENTS) {
     await pool.query(sql);
   }
-  console.log(`✅  Migrations applied (${STATEMENTS.length} feature tables ensured)`);
+  // 3. Add columns / indexes to pre-existing tables (idempotent guards)
+  try {
+    await ensureColumn(pool, 'customers', 'points', 'points INT NOT NULL DEFAULT 0');
+    await ensureIndex(pool, 'order_items', 'idx_oi_product', 'product_id');
+    await ensureIndex(pool, 'products', 'idx_products_cat_status', 'categoria, status');
+  } catch (err) {
+    console.error('⚠️  column/index migration warning:', err.message);
+  }
+  console.log(`✅  Migrations applied (${STATEMENTS.length} feature tables + columns/indexes ensured)`);
 }
 
-module.exports = { runMigrations, ensureSchema, STATEMENTS };
+module.exports = { runMigrations, ensureSchema, ensureColumn, ensureIndex, STATEMENTS };

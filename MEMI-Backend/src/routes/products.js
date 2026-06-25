@@ -19,6 +19,14 @@ const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 
+/* mysql2 returns JSON columns already parsed (object/array). Older rows or
+   non-JSON storage may return a string. This handles both safely. */
+function parseJSON(v, fallback) {
+  if (v == null) return fallback;
+  if (typeof v === 'object') return v;
+  try { return JSON.parse(v); } catch (_) { return fallback; }
+}
+
 /* ── GET /api/products ── */
 router.get('/', async (req, res) => {
   try {
@@ -49,8 +57,8 @@ router.get('/', async (req, res) => {
     // Parse JSON fields and split taglie
     const products = rows.map(r => ({
       ...r,
-      collections: r.collections ? JSON.parse(r.collections) : [],
-      images:      r.images      ? JSON.parse(r.images)      : [],
+      collections: parseJSON(r.collections, []),
+      images:      parseJSON(r.images, []),
       taglie:      r.taglie_str  ? r.taglie_str.split(',')   : [],
       is_new:      !!r.is_new,
     }));
@@ -78,8 +86,8 @@ router.get('/:id', async (req, res) => {
 
     return res.json({
       ...product,
-      collections: product.collections ? JSON.parse(product.collections) : [],
-      images:      product.images      ? JSON.parse(product.images)      : [],
+      collections: parseJSON(product.collections, []),
+      images:      parseJSON(product.images, []),
       is_new:      !!product.is_new,
       taglie:      sizes,
     });
@@ -109,9 +117,9 @@ router.get('/:id/stock', async (req, res) => {
 /* ── POST /api/products ── */
 router.post('/', requireAdmin, async (req, res) => {
   const {
-    id, name, categoria, colore, color_label, price, original_price,
-    discount_pct = 0, is_new = false, icon = 'dress', alt_color,
-    popularity = 0, collections = [], description, images = [], status = 'attivo',
+    id, name, categoria, colore = null, color_label = null, price, original_price = null,
+    discount_pct = 0, is_new = false, icon = 'dress', alt_color = null,
+    popularity = 0, collections = [], description = null, images = [], status = 'attivo',
     taglie = [],  // array of {taglia, stock}
   } = req.body;
 
@@ -125,12 +133,13 @@ router.post('/', requireAdmin, async (req, res) => {
       `INSERT INTO products (id, name, categoria, colore, color_label, price, original_price,
         discount_pct, is_new, icon, alt_color, popularity, collections, description, images, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, name, categoria, colore, color_label, price, original_price || null,
+      [id, name, categoria, colore, color_label, price, original_price,
        discount_pct, is_new, icon, alt_color, popularity,
        JSON.stringify(collections), description, JSON.stringify(images), status]
     );
 
     for (const { taglia, stock } of taglie) {
+      if (taglia == null) continue;
       await conn.execute(
         'INSERT INTO product_sizes (product_id, taglia, stock) VALUES (?, ?, ?)',
         [id, taglia, stock || 0]
@@ -191,10 +200,11 @@ router.put('/:id', requireAdmin, async (req, res) => {
     // Upsert sizes if provided
     if (taglie && Array.isArray(taglie)) {
       for (const { taglia, stock } of taglie) {
+        if (taglia == null) continue;
         await conn.execute(
           `INSERT INTO product_sizes (product_id, taglia, stock) VALUES (?, ?, ?)
            ON DUPLICATE KEY UPDATE stock = ?`,
-          [req.params.id, taglia, stock, stock]
+          [req.params.id, taglia, stock || 0, stock || 0]
         );
       }
     }

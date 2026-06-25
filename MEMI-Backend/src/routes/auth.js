@@ -16,6 +16,7 @@ const jwt     = require('jsonwebtoken');
 const { pool }           = require('../db');
 const { requireCustomer } = require('../middleware/auth');
 const { sendWelcomeEmail, sendPasswordReset } = require('../email');
+const loyalty = require('../loyalty');
 
 /* ── helpers ── */
 function signToken(payload) {
@@ -43,6 +44,9 @@ router.post('/register', async (req, res) => {
       'SELECT id, email, nome FROM customers WHERE email = ?',
       [email.toLowerCase().trim()]
     );
+
+    // Award the signup loyalty bonus (best-effort — never blocks registration)
+    try { await loyalty.awardRegistrationPoints(pool, user.id); } catch (_) {}
 
     const token = signToken({ id: user.id, email: user.email, nome: user.nome });
     // Send welcome email (non-blocking)
@@ -88,7 +92,7 @@ router.get('/me', requireCustomer, async (req, res) => {
   try {
     const [[user]] = await pool.execute(
       `SELECT id, email, nome, cognome, telefono, indirizzo, citta, cap, paese,
-              total_orders, total_spent, created_at
+              total_orders, total_spent, COALESCE(points,0) AS points, created_at
        FROM customers WHERE id = ?`,
       [req.customer.id]
     );
@@ -97,6 +101,61 @@ router.get('/me', requireCustomer, async (req, res) => {
   } catch (err) {
     console.error('me error', err);
     return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── GET /api/auth/loyalty ── points balance + recent ledger ── */
+router.get('/loyalty', requireCustomer, async (req, res) => {
+  try {
+    const [[row]] = await pool.execute(
+      'SELECT COALESCE(points,0) AS points FROM customers WHERE id = ?', [req.customer.id]
+    );
+    const [tx] = await pool.execute(
+      'SELECT delta, reason, order_id, balance_after, created_at FROM loyalty_transactions WHERE customer_id = ? ORDER BY created_at DESC LIMIT 50',
+      [req.customer.id]
+    );
+    const cfg = await loyalty.getConfig(pool);
+    return res.json({ points: row ? row.points : 0, transactions: tx, config: cfg });
+  } catch (err) {
+    console.error('loyalty me error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── POST /api/auth/loyalty/redeem ── convert points to a single-use discount code ── */
+router.post('/loyalty/redeem', requireCustomer, async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const result = await loyalty.redeemPoints(conn, req.customer.id, req.body.points);
+    if (!result.ok) { await conn.rollback(); return res.status(400).json({ error: result.error }); }
+
+    // Issue a unique single-use fixed discount code for the redeemed value
+    let code;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      code = 'PUNTI-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+      try {
+        await conn.execute(
+          `INSERT INTO discount_codes (code, tipo, valore, max_utilizzi, stato, min_order)
+           VALUES (?, 'fisso', ?, 1, 'attivo', 0)`,
+          [code, result.value]
+        );
+        break;
+      } catch (e) {
+        if (e.code === 'ER_DUP_ENTRY') { code = null; continue; }
+        throw e;
+      }
+    }
+    if (!code) { await conn.rollback(); return res.status(500).json({ error: 'Impossibile generare il codice' }); }
+
+    await conn.commit();
+    return res.json({ ok: true, code, value: result.value, points: result.points });
+  } catch (err) {
+    await conn.rollback();
+    console.error('loyalty redeem error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  } finally {
+    conn.release();
   }
 });
 

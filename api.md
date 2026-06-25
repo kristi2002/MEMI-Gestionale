@@ -282,4 +282,32 @@ On startup the backend runs `db/migrations.js → runMigrations()`, which (1) re
 `CREATE TABLE` statements from `schema.sql` (structural only, seed `INSERT`s skipped) to heal any
 missing tables, and (2) ensures the Phase-4 feature tables (`gift_cards`, `campaigns`,
 `cms_pages`, `blog_posts`, `pickup_points`). This makes already-deployed databases self-heal
-without a manual `npm run db:init`.
+without a manual `npm run db:init`. It also adds the `customers.points` column,
+the `loyalty_transactions` table, and indexes `order_items(product_id)` /
+`products(categoria,status)` via guarded `ensureColumn`/`ensureIndex`.
+
+---
+
+## Loyalty / Punti fedeltà — (Phase 5)
+
+**Admin** (`/api/admin/loyalty`, requires admin):
+
+| Method | Path | Body | Returns |
+|--------|------|------|---------|
+| GET | `/admin/loyalty/config` | — | `{enabled, signupBonus, pointsPerEuro, pointValueEur, minRedeem}` |
+| PUT | `/admin/loyalty/config` | any subset of `loyalty_*` keys | updated config |
+| GET | `/admin/loyalty/customers` | `?limit` | `{customers:[{id,nome,email,points,…}], summary:{total_points,members}}` |
+| GET | `/admin/loyalty/customers/:id` | — | customer + `transactions[]` ledger |
+| POST | `/admin/loyalty/customers/:id/adjust` | `{delta, reason?}` | `{ok, points}` |
+
+**Customer** (`/api/auth`, requires customer token):
+
+| Method | Path | Body | Returns |
+|--------|------|------|---------|
+| GET | `/auth/me` | — | now includes `points` |
+| GET | `/auth/loyalty` | — | `{points, transactions[], config}` |
+| POST | `/auth/loyalty/redeem` | `{points}` | `{ok, code, value, points}` — issues a single-use `PUNTI-XXXX` fixed discount code |
+
+Points are awarded automatically: a signup bonus on `POST /api/auth/register`, and
+`floor(total × points_per_euro)` on every order (`POST /api/orders` and
+`POST /api/orders/admin`). Config lives in `store_settings` under `loyalty_*` keys.

@@ -579,6 +579,13 @@
         <!-- Items (populated by JS) -->
         <div class="order-items" id="orderItems"></div>
 
+        <!-- Loyalty points (shown only for logged-in customers with redeemable points) -->
+        <div id="pointsRow" style="display:none;align-items:center;justify-content:space-between;gap:var(--space-2);padding:var(--space-4) 0;border-bottom:1px solid var(--beige);">
+          <span style="font-size:var(--text-sm)">★ <strong id="pointsBalance">0</strong> punti <span id="pointsValue" style="color:var(--brown-light)"></span></span>
+          <button type="button" id="usePointsBtn" style="padding:var(--space-3) var(--space-4);border:1.5px solid var(--beige-dark);border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:600;letter-spacing:var(--tracking-wide);color:var(--brown-mid);cursor:pointer;background:none">Usa i punti</button>
+        </div>
+        <p id="pointsFeedback" style="display:none;font-size:var(--text-xs);padding:0 0 var(--space-2);color:#3a7a55"></p>
+
         <!-- Promo code -->
         <div class="promo-row">
           <input type="text" id="promoInput" class="promo-input" placeholder="Codice sconto" />
@@ -1140,6 +1147,48 @@
       } catch(_) {}
     }
 
+    // ── Loyalty points → one-click redeem into a discount code ────────────────
+    function wireLoyaltyPoints() {
+      if (!window.MemiAPI || !window.MemiAPI.auth.isLoggedIn()) return;
+      var row = el('pointsRow'), balEl = el('pointsBalance'), valEl = el('pointsValue'),
+          btn = el('usePointsBtn'), fb = el('pointsFeedback');
+      if (!row || !btn) return;
+      window.MemiAPI.auth.loyalty().then(function(d) {
+        var pts   = d.points || 0;
+        var cfg   = d.config || {};
+        var ptVal = Number(cfg.pointValueEur) || 0;
+        var minR  = Number(cfg.minRedeem) || 0;
+        if (!cfg.enabled || ptVal <= 0 || pts <= 0 || pts < minR) return;
+        balEl.textContent = pts;
+        valEl.textContent = '(= € ' + (pts * ptVal).toFixed(2) + ')';
+        row.style.display = 'flex';
+        btn.addEventListener('click', function() {
+          // Only redeem what's useful for this order; respect the minimum.
+          var maxUseful = Math.ceil((subtotal || 0) / ptVal);
+          var toRedeem  = Math.min(pts, Math.max(minR, maxUseful));
+          if (toRedeem < minR) {
+            if (fb) { fb.style.color = 'var(--blush-dark)'; fb.textContent = 'Punti insufficienti per questo ordine.'; fb.style.display = 'block'; }
+            return;
+          }
+          btn.disabled = true; btn.textContent = '…';
+          window.MemiAPI.auth.redeemPoints(toRedeem).then(function(r) {
+            var input = el('promoInput');
+            if (input) input.value = r.code;
+            if (fb) {
+              fb.style.color = '#3a7a55';
+              fb.textContent = 'Riscattati ' + toRedeem + ' punti → buono ' + r.code + ' (€ ' + Number(r.value).toFixed(2) + ').';
+              fb.style.display = 'block';
+            }
+            row.style.display = 'none';
+            applyPromo();
+          }).catch(function(err) {
+            btn.disabled = false; btn.textContent = 'Usa i punti';
+            if (fb) { fb.style.color = 'var(--blush-dark)'; fb.textContent = (err && err.error) || 'Errore nel riscatto.'; fb.style.display = 'block'; }
+          });
+        });
+      }).catch(function() {});
+    }
+
     // ── Init ──────────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function() {
       loadCart();
@@ -1147,6 +1196,7 @@
       wireInputValidation();
       prefillFromAccount();
       applyUrlPayParam();
+      wireLoyaltyPoints();
       // Enter key in promo input
       var promoIn = el('promoInput');
       if (promoIn) promoIn.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyPromo(); });
@@ -1166,7 +1216,7 @@
       })();
     });
   </script>
-  <script src="api-client.js"></script>
+  <script src="api-client.js?v=2"></script>
   <script src="app.js?v=9"></script>
 </body>
 </html>

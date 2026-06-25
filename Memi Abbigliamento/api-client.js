@@ -109,6 +109,12 @@
     /** Update profile. */
     updateMe: function(data) { return put('/auth/me', data); },
 
+    /** Loyalty: points balance + ledger + config. */
+    loyalty: function() { return get('/auth/loyalty'); },
+
+    /** Loyalty: redeem points → returns a single-use discount code. */
+    redeemPoints: function(points) { return post('/auth/loyalty/redeem', { points: points }); },
+
     /** True if a token exists in localStorage (doesn't verify it). */
     isLoggedIn: function() { return !!getToken(); },
   };

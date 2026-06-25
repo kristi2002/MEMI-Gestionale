@@ -13,6 +13,9 @@ const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 
+const ALLOWED_TIPI  = ['percentuale', 'fisso', 'spedizione'];
+const ALLOWED_STATI = ['attivo', 'disattivo', 'pianificato'];
+
 /* ── GET /api/admin/discounts ── */
 router.get('/', requireAdmin, async (req, res) => {
   try {
@@ -31,6 +34,8 @@ router.post('/', requireAdmin, async (req, res) => {
   const { code, tipo, valore, max_utilizzi, scadenza, stato = 'attivo', min_order = 0 } = req.body;
   if (!code || !tipo || valore === undefined)
     return res.status(400).json({ error: 'code, tipo e valore obbligatori' });
+  if (!ALLOWED_TIPI.includes(tipo))   return res.status(400).json({ error: 'Tipo sconto non valido' });
+  if (!ALLOWED_STATI.includes(stato)) return res.status(400).json({ error: 'Stato sconto non valido' });
 
   try {
     const [result] = await pool.execute(

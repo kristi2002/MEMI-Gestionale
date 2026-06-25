@@ -47,6 +47,7 @@ const staffRoutes         = require('./routes/staff');
 const giftcardsRoutes     = require('./routes/giftcards');
 const campaignsRoutes     = require('./routes/campaigns');
 const cmsRoutes           = require('./routes/cms');
+const loyaltyRoutes       = require('./routes/loyalty');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -137,6 +138,7 @@ app.use('/api/admin/staff',       staffRoutes);
 app.use('/api/admin/giftcards',   giftcardsRoutes);
 app.use('/api/admin/campaigns',   campaignsRoutes);
 app.use('/api/admin/cms',         cmsRoutes);
+app.use('/api/admin/loyalty',     loyaltyRoutes);
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));
