@@ -4,8 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script>if(/[?&](categoria|saldi)=/.test(location.search))document.documentElement.classList.add('filtering');</script>
-  <style>html.filtering #productGrid{opacity:0;} html.filtering .shop-hero{opacity:0;}</style>
-  <title>Shop — Memi Abbigliamento</title>
+  <style>html.filtering #productGrid{opacity:0;} html.filtering .shop-hero{opacity:0;}
+  @keyframes skel-pulse{0%,100%{opacity:.5;}50%{opacity:.9;}}</style>
+  <title>Shop — Memi Abbigliamento | Moda Femminile</title>
+  <meta name="description" content="Esplora il catalogo Memi Abbigliamento: vestiti, blazer, top, gonne, pantaloni, accessori, borse e gioielli. Nuovi arrivi e saldi tutto l'anno." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Shop — Memi Abbigliamento" />
+  <meta property="og:description" content="Esplora il nostro catalogo completo: abbigliamento e accessori donna di qualità." />
+  <meta property="og:image" content="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1200&h=630&q=80" />
+  <meta property="og:url" content="https://memiabbigliamento.it/shop.html" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="canonical" href="https://memiabbigliamento.it/shop.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -400,59 +409,13 @@
     </div>
     <div class="active-filters" id="activeFilters"></div>
     <div class="product-grid view-4col" id="productGrid">
-
-      <a class="product-card-link" href="products/vestito-lino-cannes/index.html"><article class="product-card" data-categoria="vestiti" data-taglie="xs s m" data-colore="blush" data-prezzo="89"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">XS</button><button class="size-chip">S</button><button class="size-chip">M</button><button class="size-chip oos">L</button></div></div></div><div class="product-info"><p class="product-name">Vestito Lino Cannes</p><p class="product-color">Rosa cipria</p><div class="product-pricing"><span class="price-current">€89,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/blazer-sartoriale-mia/index.html"><article class="product-card" data-categoria="blazer" data-taglie="s m l" data-colore="salvia" data-prezzo="105"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-sale">−30%</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">S</button><button class="size-chip">M</button><button class="size-chip">L</button></div></div></div><div class="product-info"><p class="product-name">Blazer Sartoriale Mia</p><p class="product-color">Verde salvia</p><div class="product-pricing"><span class="price-current">€105,00</span><span class="price-original">€150,00</span><span class="price-discount">−30%</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/top-seta-lucida-aria/index.html"><article class="product-card" data-categoria="top" data-taglie="xs s" data-colore="lavanda" data-prezzo="65"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">XS</button><button class="size-chip">S</button><button class="size-chip oos">M</button></div></div></div><div class="product-info"><p class="product-name">Top Seta Lucida Aria</p><p class="product-color">Lavanda</p><div class="product-pricing"><span class="price-current">€65,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/gonna-plisse-nuvola/index.html"><article class="product-card" data-categoria="gonne" data-taglie="xs s m l xl" data-colore="avorio" data-prezzo="79"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">XS</button><button class="size-chip">S</button><button class="size-chip">M</button><button class="size-chip">L</button><button class="size-chip">XL</button></div></div></div><div class="product-info"><p class="product-name">Gonna Plissé Nuvola</p><p class="product-color">Avorio naturale</p><div class="product-pricing"><span class="price-current">€79,00</span></div></div></article></a>
-
-      <a class="editorial-block" id="editorialBanner" href="/shop?saldi=1" aria-label="Scopri i Saldi"><div class="editorial-block__media"><img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=82" alt="I Saldi — Selezione curata" loading="lazy" /></div></a>
-
-      <a class="product-card-link" href="products/camicia-cotone-brisa/index.html"><article class="product-card" data-categoria="top" data-taglie="s m l" data-colore="blush" data-prezzo="55"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">S</button><button class="size-chip">M</button><button class="size-chip">L</button></div></div></div><div class="product-info"><p class="product-name">Camicia Cotone Brisa</p><p class="product-color">Corallo pastello</p><div class="product-pricing"><span class="price-current">€55,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/giacca-kimono-fresca/index.html"><article class="product-card" data-categoria="blazer" data-taglie="s m l xl" data-colore="menta" data-prezzo="72" data-is-accessori="1"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-sale">−20%</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">S</button><button class="size-chip">M</button><button class="size-chip">L</button><button class="size-chip">XL</button></div></div></div><div class="product-info"><p class="product-name">Giacca Kimono Fresca</p><p class="product-color">Verde menta</p><div class="product-pricing"><span class="price-current">€72,00</span><span class="price-original">€90,00</span><span class="price-discount">−20%</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/set-coordinato-viola/index.html"><article class="product-card" data-categoria="set" data-taglie="xs s m" data-colore="lavanda" data-prezzo="130"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">XS</button><button class="size-chip">S</button><button class="size-chip">M</button></div></div></div><div class="product-info"><p class="product-name">Set Coordinato Viola</p><p class="product-color">Lilla morbido</p><div class="product-pricing"><span class="price-current">€130,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/pantalone-culotte-zen/index.html"><article class="product-card" data-categoria="pantaloni" data-taglie="38 40 42 44 46 48" data-colore="salvia" data-prezzo="88"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">38</button><button class="size-chip">40</button><button class="size-chip">42</button><button class="size-chip">44</button><button class="size-chip">46</button><button class="size-chip">48</button></div></div></div><div class="product-info"><p class="product-name">Pantalone Culotte Zen</p><p class="product-color">Verde muschio</p><div class="product-pricing"><span class="price-current">€88,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/vestito-midi-fiori/index.html"><article class="product-card" data-categoria="vestiti" data-taglie="xs s m l" data-colore="antico" data-prezzo="115"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">XS</button><button class="size-chip">S</button><button class="size-chip">M</button><button class="size-chip">L</button></div></div></div><div class="product-info"><p class="product-name">Vestito Midi Fiori</p><p class="product-color">Rosa antico</p><div class="product-pricing"><span class="price-current">€115,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/gonna-wrap-salvia/index.html"><article class="product-card" data-categoria="gonne" data-taglie="s m l xl" data-colore="salvia" data-prezzo="70"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">S</button><button class="size-chip">M</button><button class="size-chip">L</button><button class="size-chip">XL</button></div></div></div><div class="product-info"><p class="product-name">Gonna Wrap Salvia</p><p class="product-color">Verde salvia</p><div class="product-pricing"><span class="price-current">€70,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/maxi-cardigan-nuvola/index.html"><article class="product-card" data-categoria="blazer" data-taglie="xs s" data-colore="lavanda" data-prezzo="85" data-is-accessori="1"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-sale">−15%</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">XS</button><button class="size-chip">S</button></div></div></div><div class="product-info"><p class="product-name">Maxi Cardigan Nuvola</p><p class="product-color">Grigio cipria</p><div class="product-pricing"><span class="price-current">€85,00</span><span class="price-original">€100,00</span><span class="price-discount">−15%</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/top-bustier-perla/index.html"><article class="product-card" data-categoria="top" data-taglie="xs s m l" data-colore="avorio" data-prezzo="48" data-is-accessori="1"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">XS</button><button class="size-chip">S</button><button class="size-chip">M</button><button class="size-chip">L</button></div></div></div><div class="product-info"><p class="product-name">Top Bustier Perla</p><p class="product-color">Avorio madreperla</p><div class="product-pricing"><span class="price-current">€48,00</span></div></div></article></a>
-
-      <!-- ═══ ACCESSORI — Borse ═══ -->
-      <a class="product-card-link" href="products/borsa-tote-lino/index.html"><article class="product-card" data-categoria="borse" data-taglie="unica" data-colore="espresso" data-prezzo="145"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">Unica</button></div></div></div><div class="product-info"><p class="product-name">Borsa Tote Lino</p><p class="product-color">Espresso</p><div class="product-pricing"><span class="price-current">€145,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/borsa-tracolla-luna/index.html"><article class="product-card" data-categoria="borse" data-taglie="unica" data-colore="salvia" data-prezzo="120"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">Unica</button></div></div></div><div class="product-info"><p class="product-name">Borsa a Tracolla Luna</p><p class="product-color">Verde salvia</p><div class="product-pricing"><span class="price-current">€120,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/borsa-bucket-sabbia/index.html"><article class="product-card" data-categoria="borse" data-taglie="unica" data-colore="avorio" data-prezzo="165"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-sale">−20%</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">Unica</button></div></div></div><div class="product-info"><p class="product-name">Borsa Bucket Sabbia</p><p class="product-color">Avorio naturale</p><div class="product-pricing"><span class="price-current">€165,00</span><span class="price-original">€205,00</span><span class="price-discount">−20%</span></div></div></article></a>
-
-      <!-- ═══ ACCESSORI — Gioielli ═══ -->
-      <a class="product-card-link" href="products/collana-perla-aurora/index.html"><article class="product-card" data-categoria="gioielli" data-taglie="unica" data-colore="avorio" data-prezzo="42"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">Unica</button></div></div></div><div class="product-info"><p class="product-name">Collana Perla Aurora</p><p class="product-color">Avorio madreperla</p><div class="product-pricing"><span class="price-current">€42,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/anello-filo-dorato/index.html"><article class="product-card" data-categoria="gioielli" data-taglie="unica" data-colore="espresso" data-prezzo="35"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">Unica</button></div></div></div><div class="product-info"><p class="product-name">Anello Filo Dorato</p><p class="product-color">Espresso</p><div class="product-pricing"><span class="price-current">€35,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/orecchini-goccia-rosa/index.html"><article class="product-card" data-categoria="gioielli" data-taglie="unica" data-colore="blush" data-prezzo="38"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">Unica</button></div></div></div><div class="product-info"><p class="product-name">Orecchini Goccia Rosa</p><p class="product-color">Rosa cipria</p><div class="product-pricing"><span class="price-current">€38,00</span></div></div></article></a>
-
-      <!-- ═══ ACCESSORI — Scarpe ═══ -->
-      <a class="product-card-link" href="products/sandalo-listino-estate/index.html"><article class="product-card" data-categoria="scarpe" data-taglie="38 39 40 41" data-colore="avorio" data-prezzo="98"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">38</button><button class="size-chip">39</button><button class="size-chip">40</button><button class="size-chip">41</button></div></div></div><div class="product-info"><p class="product-name">Sandalo Listino Estate</p><p class="product-color">Avorio naturale</p><div class="product-pricing"><span class="price-current">€98,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/mocassino-pelle-soft/index.html"><article class="product-card" data-categoria="scarpe" data-taglie="37 38 39 40" data-colore="espresso" data-prezzo="135"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">37</button><button class="size-chip">38</button><button class="size-chip">39</button><button class="size-chip">40</button></div></div></div><div class="product-info"><p class="product-name">Mocassino Pelle Soft</p><p class="product-color">Espresso</p><div class="product-pricing"><span class="price-current">€135,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/sneaker-tela-salvia/index.html"><article class="product-card" data-categoria="scarpe" data-taglie="38 39 40 41 42" data-colore="salvia" data-prezzo="89"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-sale">−15%</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">38</button><button class="size-chip">39</button><button class="size-chip">40</button><button class="size-chip">41</button><button class="size-chip">42</button></div></div></div><div class="product-info"><p class="product-name">Sneaker Tela Salvia</p><p class="product-color">Verde salvia</p><div class="product-pricing"><span class="price-current">€89,00</span><span class="price-original">€105,00</span><span class="price-discount">−15%</span></div></div></article></a>
-
-      <!-- ═══ ACCESSORI — Cinture & Bijoux ═══ -->
-      <a class="product-card-link" href="products/cintura-pelle-sottile/index.html"><article class="product-card" data-categoria="cinture" data-taglie="unica" data-colore="espresso" data-prezzo="32"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">Unica</button></div></div></div><div class="product-info"><p class="product-name">Cintura Pelle Sottile</p><p class="product-color">Espresso</p><div class="product-pricing"><span class="price-current">€32,00</span></div></div></article></a>
-
-      <a class="product-card-link" href="products/set-bijoux-estate/index.html"><article class="product-card" data-categoria="cinture" data-taglie="unica" data-colore="blush" data-prezzo="28"><div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Product" loading="lazy"><img class="product-img-alt" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Product alt" loading="lazy"><div class="product-badges"><span class="badge badge-new">New</span></div><button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button><div class="product-quick-add"><div class="size-chips"><button class="size-chip">Unica</button></div></div></div><div class="product-info"><p class="product-name">Set Bijoux Estate</p><p class="product-color">Rosa cipria</p><div class="product-pricing"><span class="price-current">€28,00</span></div></div></article></a>
-
+      <!-- Products loaded dynamically by initShopCatalog() below -->
+      <div id="shopLoadingSkeletons" style="grid-column:1/-1;display:contents;">
+        <div style="background:var(--beige);border-radius:2px;aspect-ratio:3/4;animation:skel-pulse 1.4s ease infinite;"></div>
+        <div style="background:var(--beige);border-radius:2px;aspect-ratio:3/4;animation:skel-pulse 1.4s ease infinite;animation-delay:.1s;"></div>
+        <div style="background:var(--beige);border-radius:2px;aspect-ratio:3/4;animation:skel-pulse 1.4s ease infinite;animation-delay:.2s;"></div>
+        <div style="background:var(--beige);border-radius:2px;aspect-ratio:3/4;animation:skel-pulse 1.4s ease infinite;animation-delay:.3s;"></div>
+      </div>
     </div>
 
     <nav class="shop-pagination" id="shopPagination" aria-label="Pagine prodotti" style="display:none;">
@@ -482,7 +445,7 @@
     <!-- Newsletter -->
     <div class="footer-newsletter">
       <p class="footer-newsletter-label">Resta al passo con le<br><em>ultime novità</em></p>
-      <form class="footer-newsletter-form" onsubmit="return false">
+      <form class="footer-newsletter-form" onsubmit="window.submitNewsletter(this);return false;">
         <input class="footer-newsletter-input" type="email" placeholder="La tua email" aria-label="Email per newsletter">
         <button class="footer-newsletter-btn" type="submit">Iscriviti →</button>
       </form>
@@ -690,7 +653,8 @@
 
   // ── Global exports ─────────────────────────────────────────────────────────
   window.closeFilterDrawer = closeFilterDrawer;
-  window.applyFilters = applyFilters;
+  window.applyFilters      = applyFilters;
+  window.initPagination    = initPagination;
 
   window.clearFilter = function(type, val) {
     if (type==='saldi')      af.saldi=false;
@@ -846,5 +810,179 @@
 </script>
 <script src="api-client.js"></script>
 <script src="app.js?v=7"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   NEWSLETTER FORM HANDLER
+   ═══════════════════════════════════════════════════════════════ */
+window.submitNewsletter = function (form) {
+  var input = form.querySelector('input[type="email"]');
+  var btn   = form.querySelector('button[type="submit"]');
+  var email = input ? input.value.trim() : '';
+  if (!email) return;
+
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  fetch('/api/newsletter/subscribe', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email, fonte: 'footer-shop' }),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.ok) {
+        btn.textContent = 'Grazie! ✓';
+        if (input) input.value = '';
+        setTimeout(function () { btn.textContent = 'Iscriviti →'; btn.disabled = false; }, 4000);
+      } else {
+        btn.textContent = data.error || 'Errore';
+        btn.disabled = false;
+      }
+    })
+    .catch(function () {
+      btn.textContent = 'Riprova';
+      btn.disabled = false;
+    });
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   DYNAMIC PRODUCT CATALOG
+   Fetches products from /api/products, renders cards with the
+   same data-* attributes the filter engine reads.
+   Called from DOMContentLoaded (after filter IIFE wires up).
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  var ACCESSORI_CATS = ['borse','gioielli','scarpe','cinture'];
+  var WISHLIST_ICON  = '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+
+  function fmtPrice(n) {
+    return '€' + parseFloat(n).toFixed(2).replace('.', ',');
+  }
+
+  function buildCard(p) {
+    var slug      = p.id; // product id IS the slug
+    var href      = 'products/' + slug + '/index.html';
+    var taglie    = Array.isArray(p.taglie) ? p.taglie : [];
+    var taglieStr = taglie.map(function(t){ return t.toLowerCase(); }).join(' ') || 'unica';
+    var isAcc     = ACCESSORI_CATS.indexOf(p.categoria) !== -1;
+    var isOos     = p.status === 'esaurito';
+
+    // Badges
+    var badges = '';
+    if (isOos) {
+      badges += '<span class="badge" style="background:#9b2c2c;color:#fff;">Esaurito</span>';
+    } else {
+      if (p.is_new)        badges += '<span class="badge badge-new">New</span>';
+      if (p.discount_pct)  badges += '<span class="badge badge-sale">−' + p.discount_pct + '%</span>';
+    }
+
+    // Size chips in quick-add (no individual OOS state in list view)
+    var chips = '';
+    if (taglie.length) {
+      chips = taglie.map(function(t){
+        return '<button class="size-chip' + (isOos ? ' oos' : '') + '">' + t.toUpperCase() + '</button>';
+      }).join('');
+    } else {
+      chips = '<button class="size-chip' + (isOos ? ' oos' : '') + '">Unica</button>';
+    }
+
+    // Images — use first two from product.images[] if available, else placeholder
+    var imgs = Array.isArray(p.images) && p.images.length ? p.images : [];
+    var img1 = imgs[0] || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80';
+    var img2 = imgs[1] || imgs[0] || 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80';
+
+    // Pricing
+    var pricingHtml = '<span class="price-current">' + fmtPrice(p.price) + '</span>';
+    if (p.original_price && p.discount_pct) {
+      pricingHtml += '<span class="price-original">' + fmtPrice(p.original_price) + '</span>';
+      pricingHtml += '<span class="price-discount">−' + p.discount_pct + '%</span>';
+    }
+
+    var dataAcc = isAcc ? ' data-is-accessori="1"' : '';
+    return '<a class="product-card-link" href="' + href + '">' +
+      '<article class="product-card"' +
+        ' data-categoria="' + (p.categoria || '') + '"' +
+        ' data-taglie="' + taglieStr + '"' +
+        ' data-colore="' + (p.colore || '') + '"' +
+        ' data-prezzo="' + (p.price || 0) + '"' +
+        dataAcc + '>' +
+        '<div class="product-img-wrap">' +
+          '<img class="product-img-main" src="' + img1 + '" alt="' + p.name + '" loading="lazy">' +
+          '<img class="product-img-alt" src="' + img2 + '" alt="' + p.name + ' alt" loading="lazy">' +
+          (badges ? '<div class="product-badges">' + badges + '</div>' : '') +
+          '<button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();">' + WISHLIST_ICON + '</button>' +
+          '<div class="product-quick-add"><div class="size-chips">' + chips + '</div></div>' +
+        '</div>' +
+        '<div class="product-info">' +
+          '<p class="product-name">' + p.name + '</p>' +
+          '<p class="product-color">' + (p.color_label || '') + '</p>' +
+          '<div class="product-pricing">' + pricingHtml + '</div>' +
+        '</div>' +
+      '</article>' +
+    '</a>';
+  }
+
+  function buildEditorialBanner() {
+    return '<a class="editorial-block" id="editorialBanner" href="/shop?saldi=1" aria-label="Scopri i Saldi">' +
+      '<div class="editorial-block__media">' +
+        '<img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=82" alt="I Saldi — Selezione curata" loading="lazy" />' +
+      '</div>' +
+    '</a>';
+  }
+
+  function showError(grid) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--brown-light);font-size:.88rem;">' +
+      'Impossibile caricare i prodotti. <a href="" style="color:var(--espresso);text-decoration:underline;" onclick="location.reload();return false;">Riprova</a>' +
+    '</div>';
+  }
+
+  window.initShopCatalog = function () {
+    var grid = document.getElementById('productGrid');
+    if (!grid) return;
+
+    fetch('/api/products?limit=200')
+      .then(function (r) { return r.json(); })
+      .then(function (products) {
+        if (!Array.isArray(products) || !products.length) {
+          grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--brown-light);font-size:.88rem;">Nessun prodotto disponibile.</div>';
+          if (typeof applyFilters === 'function') applyFilters();
+          return;
+        }
+
+        var html = '';
+        var bannerInserted = false;
+        products.forEach(function (p, i) {
+          // Insert editorial banner after the 4th card (like the original)
+          if (!bannerInserted && i === 4) {
+            html += buildEditorialBanner();
+            bannerInserted = true;
+          }
+          html += buildCard(p);
+        });
+        if (!bannerInserted) html += buildEditorialBanner();
+
+        grid.innerHTML = html;
+
+        // Now that cards exist, run filter engine + pagination
+        if (typeof applyFilters   === 'function') applyFilters();
+        if (typeof initPagination === 'function') initPagination();
+      })
+      .catch(function () { showError(grid); });
+  };
+
+  // Hook into DOMContentLoaded (which is where the filter IIFE also wires up)
+  // We defer catalog load to AFTER DOMContentLoaded so applyFilters exists
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      // Small tick to ensure filter IIFE has finished its DOMContentLoaded handler
+      setTimeout(window.initShopCatalog, 0);
+    });
+  } else {
+    setTimeout(window.initShopCatalog, 0);
+  }
+})();
+</script>
 </body>
 </html>

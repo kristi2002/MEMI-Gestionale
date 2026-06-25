@@ -18,7 +18,7 @@
 const router = require('express').Router();
 const { pool }                           = require('../db');
 const { requireCustomer, requireAdmin, optionalCustomer } = require('../middleware/auth');
-const { sendOrderConfirmation }          = require('../email');
+const { sendOrderConfirmation, sendShippingConfirmation } = require('../email');
 
 /* ── helpers ── */
 async function nextOrderNumber(conn) {
@@ -292,6 +292,18 @@ router.put('/admin/:id/ship', requireAdmin, async (req, res) => {
     );
 
     await conn.commit();
+
+    // Fetch order for email (non-blocking)
+    pool.execute('SELECT order_number, customer_nome AS nome, customer_email AS email FROM orders WHERE id = ?', [req.params.id])
+      .then(([[o]]) => {
+        if (o) sendShippingConfirmation({
+          order_number: o.order_number,
+          nome: o.nome,
+          email: o.email,
+          courier_code, tracking_number, eta,
+        }).catch(() => {});
+      }).catch(() => {});
+
     return res.json({ ok: true });
   } catch (err) {
     await conn.rollback();

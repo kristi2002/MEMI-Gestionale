@@ -15,6 +15,7 @@ const bcrypt  = require('bcryptjs');
 const jwt     = require('jsonwebtoken');
 const { pool }           = require('../db');
 const { requireCustomer } = require('../middleware/auth');
+const { sendWelcomeEmail, sendPasswordReset } = require('../email');
 
 /* ── helpers ── */
 function signToken(payload) {
@@ -44,6 +45,8 @@ router.post('/register', async (req, res) => {
     );
 
     const token = signToken({ id: user.id, email: user.email, nome: user.nome });
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail({ nome: user.nome, email: user.email }).catch(() => {});
     return res.status(201).json({ token, user: { id: user.id, email: user.email, nome: user.nome } });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')
@@ -135,6 +138,70 @@ router.post('/logout', (req, res) => {
   // Stateless JWT — actual logout is done client-side by removing the token.
   // This endpoint exists for logging / future token blacklist implementation.
   return res.json({ ok: true });
+});
+
+/* ── POST /api/auth/forgot-password ── */
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'Email obbligatoria' });
+
+  try {
+    const [[user]] = await pool.execute(
+      'SELECT id, nome, email FROM customers WHERE email = ?',
+      [email.toLowerCase().trim()]
+    );
+
+    // Always respond with 200 — never confirm whether email exists (security)
+    if (!user) return res.json({ ok: true });
+
+    // Issue a short-lived reset JWT (1 hour)
+    const resetToken = jwt.sign(
+      { id: user.id, email: user.email, type: 'password_reset' },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    sendPasswordReset({ nome: user.nome, email: user.email }, resetToken).catch(() => {});
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('forgot-password error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── POST /api/auth/reset-password ── */
+router.post('/reset-password', async (req, res) => {
+  const { token, password } = req.body;
+  if (!token || !password)
+    return res.status(400).json({ error: 'Token e nuova password obbligatori' });
+  if (password.length < 6)
+    return res.status(400).json({ error: 'La password deve avere almeno 6 caratteri' });
+
+  try {
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (jwtErr) {
+      return res.status(400).json({ error: 'Link non valido o scaduto. Richiedi un nuovo link.' });
+    }
+
+    if (payload.type !== 'password_reset')
+      return res.status(400).json({ error: 'Token non valido' });
+
+    const hash = await bcrypt.hash(password, 10);
+    const [result] = await pool.execute(
+      'UPDATE customers SET password_hash = ? WHERE id = ?',
+      [hash, payload.id]
+    );
+
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: 'Account non trovato' });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('reset-password error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
 });
 
 module.exports = router;

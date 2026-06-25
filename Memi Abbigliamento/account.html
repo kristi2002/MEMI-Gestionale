@@ -84,6 +84,15 @@
     .order-status.consegnato     {background:#f0fdf4;color:#166534;}
     .order-status.annullato      {background:#fff5f5;color:#9b2c2c;}
 
+    /* ── Tracking ── */
+    .order-tracking{grid-column:1/-1;display:flex;align-items:center;gap:.6rem;
+      font-size:.75rem;color:var(--brown-mid);padding:.5rem 0 0;border-top:1px solid var(--beige);
+      margin-top:.25rem;}
+    .order-tracking svg{width:14px;height:14px;stroke:var(--brown-mid);fill:none;stroke-width:2;flex-shrink:0;}
+    .order-tracking strong{color:var(--espresso);}
+    .order-tracking span{font-family:'Courier New',monospace;font-size:.78rem;color:var(--espresso);
+      letter-spacing:.04em;}
+
     .orders-empty{text-align:center;padding:4rem 2rem;}
     .orders-empty-icon{width:48px;height:48px;stroke:var(--brown-light);fill:none;stroke-width:1.2;
       margin:0 auto 1rem;}
@@ -184,14 +193,23 @@
 
   function renderOrder(o) {
     var items = (o.items || []).map(function(i){ return i.product_name; }).join(', ') || '—';
-    return '<div class="order-row">' +
+    var trackingRow = '';
+    if ((o.order_status === 'spedito' || o.order_status === 'consegnato') && o.tracking_number) {
+      trackingRow = '<div class="order-tracking">' +
+        '<svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>' +
+        '<strong>' + (o.courier_code || 'Corriere') + ':</strong> ' +
+        '<span>' + o.tracking_number + '</span>' +
+      '</div>';
+    }
+    return '<div class="order-row" style="' + (trackingRow ? 'grid-template-rows:auto auto;' : '') + '">' +
       '<div>' +
-        '<div class="order-number">#' + o.order_number + '</div>' +
+        '<div class="order-number">' + o.order_number + '</div>' +
         '<div class="order-date">' + fmtDate(o.created_at) + '</div>' +
       '</div>' +
       '<div class="order-items-summary">' + items + '</div>' +
       '<div class="order-total">' + fmtPrice(o.total) + '</div>' +
       '<span class="order-status ' + o.order_status + '">' + statusLabel(o.order_status) + '</span>' +
+      trackingRow +
     '</div>';
   }
 

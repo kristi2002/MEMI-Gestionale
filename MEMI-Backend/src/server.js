@@ -33,7 +33,8 @@ const customersRoutes  = require('./routes/customers');
 const discountsRoutes  = require('./routes/discounts');
 const shippingRoutes   = require('./routes/shipping');
 const dashboardRoutes  = require('./routes/dashboard');
-const paymentsRoutes   = require('./routes/payments');
+const paymentsRoutes      = require('./routes/payments');
+const newsletterRoutes    = require('./routes/newsletter');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -101,6 +102,7 @@ app.use('/api/admin/discounts',   discountsRoutes);
 app.use('/api/shipping',          shippingRoutes);
 app.use('/api/admin/dashboard',   dashboardRoutes);
 app.use('/api/payments',          paymentsRoutes);
+app.use('/api/newsletter',        newsletterRoutes);
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));

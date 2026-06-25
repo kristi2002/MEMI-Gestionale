@@ -116,4 +116,154 @@ async function sendOrderConfirmation(order) {
   }
 }
 
-module.exports = { sendOrderConfirmation };
+/**
+ * Send shipping notification to customer when order is marked "spedito".
+ * @param {object} order
+ * @param {string} order.order_number
+ * @param {string} order.nome
+ * @param {string} order.email
+ * @param {string} order.courier_code   e.g. "SDA", "BRT", "DHL"
+ * @param {string} order.tracking_number
+ * @param {string} [order.eta]          estimated delivery date (optional)
+ */
+async function sendShippingConfirmation(order) {
+  const t = getTransporter();
+  if (!t) return;
+
+  const { order_number, nome, email, courier_code, tracking_number, eta } = order;
+  const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
+
+  const etaLine = eta
+    ? `<p style="color:#7a6060;font-size:14px;margin:0 0 12px;"><strong>Consegna prevista:</strong> ${eta}</p>`
+    : '';
+
+  const html = `
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Il tuo ordine è in viaggio!</title></head>
+<body style="margin:0;padding:0;background:#faf7f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#3B2B2B;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.06);">
+    <div style="background:#3B2B2B;padding:32px 40px;text-align:center;">
+      <h1 style="color:#fff;font-size:28px;font-weight:300;letter-spacing:.12em;margin:0;">Memi<span style="color:#c9897a;">.</span></h1>
+    </div>
+    <div style="padding:36px 40px;">
+      <p style="font-size:20px;font-weight:300;font-family:Georgia,serif;margin:0 0 8px;">Il tuo pacco è in viaggio!</p>
+      <p style="color:#7a6060;margin:0 0 24px;">Ciao ${nome}, il tuo ordine <strong>${order_number}</strong> è stato affidato al corriere.</p>
+      <div style="background:#ecf8f0;border-radius:8px;padding:20px 24px;margin-bottom:24px;">
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#2d7a4f;margin:0 0 6px;">Tracciamento spedizione</p>
+        <p style="font-size:18px;font-family:'Courier New',monospace;font-weight:600;margin:0 0 4px;color:#3B2B2B;">${tracking_number}</p>
+        <p style="font-size:12px;color:#888;margin:0;">Corriere: ${courier_code}</p>
+      </div>
+      ${etaLine}
+      <p style="color:#7a6060;font-size:14px;line-height:1.6;">Usa il codice di tracciamento sul sito del corriere per seguire il pacco in tempo reale.</p>
+    </div>
+    <div style="background:#faf7f4;padding:20px 40px;text-align:center;font-size:12px;color:#a89090;">
+      © 2026 Memi Abbigliamento · Milano, Italia
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `Ciao ${nome},\n\nIl tuo ordine ${order_number} è stato spedito!\n\nTracking: ${tracking_number}\nCorriere: ${courier_code}${eta ? '\nConsegna prevista: ' + eta : ''}\n\nCordiali saluti,\nMemi Abbigliamento`;
+
+  try {
+    await t.sendMail({ from, to: email, subject: `Il tuo ordine ${order_number} è in viaggio — Memi`, text, html });
+    console.log(`[email] Sent shipping confirmation ${order_number} → ${email}`);
+  } catch (err) {
+    console.error('[email] Failed to send shipping confirmation:', err.message);
+  }
+}
+
+/**
+ * Send welcome email after successful registration.
+ * @param {object} user
+ * @param {string} user.nome
+ * @param {string} user.email
+ */
+async function sendWelcomeEmail(user) {
+  const t = getTransporter();
+  if (!t) return;
+
+  const { nome, email } = user;
+  const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Benvenuta da Memi!</title></head>
+<body style="margin:0;padding:0;background:#faf7f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#3B2B2B;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.06);">
+    <div style="background:#3B2B2B;padding:32px 40px;text-align:center;">
+      <h1 style="color:#fff;font-size:28px;font-weight:300;letter-spacing:.12em;margin:0;">Memi<span style="color:#c9897a;">.</span></h1>
+    </div>
+    <div style="padding:36px 40px;">
+      <p style="font-size:22px;font-weight:300;font-family:Georgia,serif;margin:0 0 16px;">Benvenuta, ${nome}!</p>
+      <p style="color:#7a6060;font-size:15px;line-height:1.7;margin:0 0 20px;">Siamo felici di averti nel mondo Memi. Qui troverai capi selezionati con cura, pensati per ogni momento della giornata.</p>
+      <a href="https://memiabbigliamento.it/shop.html" style="display:inline-block;padding:14px 32px;background:#3B2B2B;color:#fff;text-decoration:none;font-size:13px;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-bottom:24px;">Scopri la nuova collezione</a>
+      <p style="color:#a89090;font-size:12px;line-height:1.6;">Il tuo account ti permette di tracciare gli ordini, salvare i preferiti e velocizzare il checkout.</p>
+    </div>
+    <div style="background:#faf7f4;padding:20px 40px;text-align:center;font-size:12px;color:#a89090;">
+      © 2026 Memi Abbigliamento · Milano, Italia
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `Benvenuta, ${nome}!\n\nGrazie per esserti registrata su Memi Abbigliamento.\nScopri la nostra collezione su https://memiabbigliamento.it/shop.html\n\nCordiali saluti,\nMemi Abbigliamento`;
+
+  try {
+    await t.sendMail({ from, to: email, subject: `Benvenuta da Memi, ${nome}!`, text, html });
+    console.log(`[email] Sent welcome email → ${email}`);
+  } catch (err) {
+    console.error('[email] Failed to send welcome email:', err.message);
+  }
+}
+
+/**
+ * Send password reset link.
+ * @param {object} user
+ * @param {string} user.nome
+ * @param {string} user.email
+ * @param {string} resetToken   short-lived JWT to embed in URL
+ */
+async function sendPasswordReset(user, resetToken) {
+  const t = getTransporter();
+  if (!t) return;
+
+  const { nome, email } = user;
+  const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
+  const resetUrl = `https://memiabbigliamento.it/reset-password.html?token=${resetToken}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Reimposta la password</title></head>
+<body style="margin:0;padding:0;background:#faf7f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#3B2B2B;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.06);">
+    <div style="background:#3B2B2B;padding:32px 40px;text-align:center;">
+      <h1 style="color:#fff;font-size:28px;font-weight:300;letter-spacing:.12em;margin:0;">Memi<span style="color:#c9897a;">.</span></h1>
+    </div>
+    <div style="padding:36px 40px;">
+      <p style="font-size:18px;font-weight:500;margin:0 0 8px;">Ciao ${nome},</p>
+      <p style="color:#7a6060;font-size:15px;line-height:1.7;margin:0 0 24px;">Hai richiesto di reimpostare la tua password. Clicca il pulsante qui sotto — il link è valido per <strong>1 ora</strong>.</p>
+      <a href="${resetUrl}" style="display:inline-block;padding:14px 32px;background:#3B2B2B;color:#fff;text-decoration:none;font-size:13px;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-bottom:24px;">Reimposta password</a>
+      <p style="color:#a89090;font-size:12px;line-height:1.6;">Se non hai richiesto questo, ignora questa email. La tua password rimane invariata.</p>
+    </div>
+    <div style="background:#faf7f4;padding:20px 40px;text-align:center;font-size:12px;color:#a89090;">
+      © 2026 Memi Abbigliamento · Milano, Italia
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `Ciao ${nome},\n\nHai richiesto di reimpostare la password per il tuo account Memi.\n\nClicca questo link (valido 1 ora):\n${resetUrl}\n\nSe non hai fatto questa richiesta, ignora questa email.\n\nCordiali saluti,\nMemi Abbigliamento`;
+
+  try {
+    await t.sendMail({ from, to: email, subject: 'Reimposta la tua password — Memi', text, html });
+    console.log(`[email] Sent password reset → ${email}`);
+  } catch (err) {
+    console.error('[email] Failed to send password reset:', err.message);
+  }
+}
+
+module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset };

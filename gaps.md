@@ -130,19 +130,28 @@ Vedi `GAPS-ANALYSIS.md` per un'analisi completa.
 
 ## TODOs for Future Sprints
 
-- [x] ~~Collegare admin panel a dati reali~~ — ✅ Done (Giugno 2026)
-- [x] ~~Stripe payment integration in checkout.html~~ — ✅ Done (Giugno 2026)
-- [x] ~~Order confirmation email (nodemailer)~~ — ✅ Done (Giugno 2026)
-- [x] ~~Inventory deduction on order creation~~ — ✅ Done (Giugno 2026)
-- [ ] Dynamic product loading in shop.html from API (remove hardcoded HTML)
-- [ ] Customer-facing order tracking page
+### ✅ Completati — Sprint 2 (Giugno 2026)
+- [x] ~~Collegare admin panel a dati reali~~ — ✅ Done
+- [x] ~~Stripe payment integration in checkout.html~~ — ✅ Done
+- [x] ~~Order confirmation email (nodemailer)~~ — ✅ Done
+- [x] ~~Inventory deduction on order creation~~ — ✅ Done
+- [x] ~~Dynamic product loading in shop.html from API~~ — ✅ Done (`initShopCatalog()`)
+- [x] ~~Email di spedizione con tracking~~ — ✅ Done (`sendShippingConfirmation()`)
+- [x] ~~Recupero password via email~~ — ✅ Done (`forgot-password` + `reset-password` routes + `reset-password.html`)
+- [x] ~~Email di benvenuto alla registrazione~~ — ✅ Done (`sendWelcomeEmail()`)
+- [x] ~~Newsletter signup integration~~ — ✅ Done (`POST /api/newsletter/subscribe` + `newsletter_subscribers` table)
+- [x] ~~Size guide modal on PDP pages~~ — ✅ Done (`size-guide.html` creata)
+- [x] ~~Mobile-optimised admin view~~ — ✅ Done (breakpoint 600px in `MEMI/css/style.css`)
+- [x] ~~SEO meta tags + og:image + structured data~~ — ✅ Done (index.html, shop.html, vestito-lino-cannes PDP)
+- [x] ~~`campagne.html` orfana~~ — ✅ Redirect a `editoriali.html`
+- [x] ~~Tracking spedizione in account.html~~ — ✅ Corriere + numero tracking visualizzati
+
+### ❌ Ancora mancanti — prossimo sprint
+- [ ] Customer-facing order tracking page senza login (`order-tracking.html`)
 - [ ] Real product photography upload + image management in admin
-- [ ] Newsletter signup integration
-- [ ] Size guide modal on PDP pages
-- [ ] Product reviews/ratings table + display
-- [ ] Mobile-optimised admin view (current admin is desktop-first)
-- [ ] Email di spedizione con tracking
-- [ ] Recupero password via email
-- [ ] Email di benvenuto alla registrazione
-- [ ] `campagne.html` — decide if this is the same as `editoriali.html` or remove it
-- [ ] `account.html` — wire to real JWT auth flow end-to-end (JWT works, UI polish needed)
+- [ ] Product reviews/ratings table + display + moderazione
+- [ ] Catalogo dinamico per le 15 `collections/*/index.html` (ancora statiche)
+- [ ] Newsletter nel footer iniettato da app.js (ora solo shop.html è cablato)
+- [ ] SEO JSON-LD Product per i rimanenti 22 PDP (template: vestito-lino-cannes)
+- [ ] Gestione resi self-service (`returns.html` esiste ma è vuota)
+- [ ] `product.html` (root) — rimane orfana

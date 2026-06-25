@@ -219,6 +219,17 @@ CREATE TABLE IF NOT EXISTS discount_usage (
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- -------------------------------------------------------------
+-- Newsletter subscribers
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  email         VARCHAR(255) NOT NULL UNIQUE,
+  fonte         VARCHAR(100) DEFAULT 'footer',  -- where they subscribed (footer, popup, etc.)
+  subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  unsubscribed  TINYINT(1) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- =============================================================
 -- Seed: Products (migrated from productsData.js)
 -- =============================================================

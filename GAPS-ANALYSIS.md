@@ -1,5 +1,5 @@
 # MEMI — Gap Analysis Completo
-*Aggiornato: Giugno 2026 (post sprint completo)*
+*Aggiornato: Giugno 2026 (post sprint 2 — email, catalogo dinamico, account tracking, newsletter, SEO, admin mobile)*
 
 ---
 
@@ -76,22 +76,17 @@ Tutti i route che il frontend richiede sono implementati:
 
 ---
 
-## 4. Catalogo prodotti — Statico e non sincronizzato
+## 4. Catalogo prodotti — ✅ Dinamico (shop.html)
 
-**Stato:** ⚠️ Problema architetturale
+**Stato:** ✅ Risolto per shop.html (Giugno 2026) — collections/ ancora statiche
 
-Il catalogo (`productsData.js`) è un array JavaScript hardcoded. I prodotti nelle pagine HTML (`shop.html`, `collections/`) sono anch'essi HTML statico.
+`shop.html` ora carica i prodotti dinamicamente tramite `GET /api/products`. La funzione `initShopCatalog()` (IIFE in fondo a shop.html) costruisce le card con i `data-*` attributes corretti che il motore di filtro legge. Il banner editoriale viene re-inserito dopo la 4ª card come nella versione statica. Il motore filter+pagination rimane invariato.
 
-**Problemi:**
-- Aggiungere un nuovo prodotto richiede modificare manualmente sia `productsData.js` che l'HTML della collection
-- I prodotti admin non corrispondono al catalogo reale
-- Nessuna gestione delle varianti (taglia/colore) a livello di database
-- L'inventario non si aggiorna quando viene effettuato un ordine
+**Ancora statico:**
+- Le 15 pagine `collections/{slug}/index.html` hanno ancora card HTML statiche
+- `productsData.js` ancora usato da `search.html`
 
-**Cosa serve:**
-- Un database prodotti (es. PostgreSQL o MongoDB)
-- Un endpoint `GET /api/products` che restituisce il catalogo
-- Il frontend deve caricare i prodotti dinamicamente invece di HTML statico
+**Aggiornamento automatico:** da oggi i prodotti creati dall'admin appaiono automaticamente in shop.html dopo il refresh.
 
 ---
 
@@ -109,45 +104,49 @@ Flusso completo quando un cliente fa un ordine:
 
 ---
 
-## 6. Email e notifiche — ✅ Parzialmente implementato
+## 6. Email e notifiche — ✅ Implementato completamente
 
-**Stato:** ✅ Email di conferma ordine implementata (Giugno 2026)
+**Stato:** ✅ Tutte le email implementate (Giugno 2026)
 
-- Email di conferma ordine → ✅ `sendOrderConfirmation()` in `src/email.js`, triggered da `orders.js`
-- Design email: HTML branded con colori Memi, riepilogo articoli, totale, indirizzo di consegna
-- Nodemailer + SMTP configurabile tramite env vars (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, ecc.)
-- Silent no-op se `SMTP_USER` non impostato — non causa crash in sviluppo
+| Funzione | Trigger | Stato |
+|---|---|---|
+| Conferma ordine | `POST /api/orders` (dopo acquisto) | ✅ |
+| Spedizione + tracking | `PUT /api/orders/admin/:id/ship` | ✅ |
+| Benvenuto alla registrazione | `POST /api/auth/register` | ✅ |
+| Reset password | `POST /api/auth/forgot-password` | ✅ |
 
-**Ancora mancanti:**
-- Email di spedizione con tracking → ❌
-- Recupero password → ❌
-- Email di benvenuto alla registrazione → ❌
-- Newsletter reale → ❌
+- Tutte le funzioni sono in `src/email.js` — esportate singolarmente
+- Silenziosamente non-operative se `SMTP_USER` non impostato
+- Flusso reset password: JWT a 1 ora → `reset-password.html` frontend → `POST /api/auth/reset-password`
+- Newsletter: `POST /api/newsletter/subscribe` salva in tabella `newsletter_subscribers`
 
 **Env vars richiesti:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
 
 ---
 
-## 7. Autenticazione cliente — Parziale
+## 7. Autenticazione cliente — ✅ Completo
 
-**Stato:** ⚠️ Frontend presente, backend mancante
+**Stato:** ✅ Implementato (Giugno 2026)
 
-Il frontend (`app.js`) ha una modal di login/registrazione con chiamate a `MemiAPI.auth.*`, ma:
-- Le route `/api/auth/register` e `/api/auth/login` non esistono nel backend
-- Nessuna gestione JWT/sessione lato server
-- La persistenza del profilo cliente non esiste
-- Il flusso "Recupera password" non è implementato
+- Register, login, me, updateMe — tutti funzionanti con JWT
+- Email di benvenuto inviata alla registrazione
+- Recupero password: `POST /api/auth/forgot-password` → JWT 1h → `reset-password.html` → `POST /api/auth/reset-password`
 
 ---
 
-## 8. Tracking ordini — Assente
+## 8. Tracking ordini — ✅ Parzialmente implementato
 
-**Stato:** ❌ Non implementato
+**Stato:** ✅ Tracking in account.html (Giugno 2026)
 
-Non esiste una pagina `order-tracking.html` o simile. Il cliente dopo l'acquisto non può:
-- Vedere lo stato del proprio ordine
-- Tracciare la spedizione
-- Richiedere un reso
+- `account.html` mostra i propri ordini con status badge
+- Quando `order_status = 'spedito'` e `tracking_number` esiste, appare il row tracking con corriere + numero
+- API `/api/orders/my` già restituisce `tracking_number` e `courier_code`
+- Email di spedizione inviata automaticamente quando admin clicca "Spedisci" nel pannello
+
+**Ancora mancanti:**
+- Pagina tracking pubblica (senza login) per guest orders
+- Timeline visiva dello stato (In attesa → In preparazione → Spedito → Consegnato)
+- Gestione resi self-service
 
 ---
 
@@ -174,13 +173,15 @@ L'admin non ha un sistema di upload immagini prodotto. Le immagini attuali sono 
 
 ## 11. Pagine orfane o incomplete
 
-| Pagina | Problema |
-|---|---|
-| `campagne.html` | Esiste ma non è linkata da nessun posto nel sito cliente |
-| `account.html` | Non esiste — il link "Account" nell'header non ha destinazione funzionante |
-| `order-tracking.html` | Non esiste |
-| `returns.html` | Non esiste — i resi sono menzionati nell'announcement bar ma non gestiti |
-| `size-guide.html` | Menzionata nelle schede prodotto, potrebbe non esistere |
+| Pagina | Problema | Stato |
+|---|---|---|
+| `campagne.html` | Orfa​na | ✅ Redirect a editoriali.html via meta-refresh |
+| `account.html` | Esisteva senza tracking | ✅ Ora mostra tracking spedizione |
+| `size-guide.html` | Non esisteva | ✅ Creata con tabelle IT/EU/FR/UK/US |
+| `reset-password.html` | Non esisteva | ✅ Creata (flusso reset password) |
+| `order-tracking.html` | Non esiste (guest tracking) | ❌ Ancora mancante |
+| `returns.html` | Non esiste | ❌ Ancora mancante |
+| `product.html` (root) | Orfa​no, query param ?id= | ❌ Ancora orfano |
 
 ---
 
@@ -205,35 +206,41 @@ Il file `productsData.js` è la "fonte di verità" per cart/wishlist/filtri. Se 
 
 ## 14. Problemi tecnici minori
 
-- **`app.js` versioning:** il parametro `?v=7` nelle script tag va aggiornato manualmente a ogni deploy — nessun hash automatico (aggiornato a v=7 in tutti e 56 i file HTML, Giugno 2026)
-- **Immagini:** tutte le immagini prodotto e editorial sono placeholder Unsplash, non foto reali Memi
-- **SEO:** le pagine non hanno meta description, og:image, o structured data per prodotti
-- **Performance:** nessun lazy loading per `productsData.js` (carica tutto il catalogo anche se l'utente è solo sulla home)
-- **Errori CORS:** quando il backend sarà attivo, le origini frontend/backend dovranno essere configurate
+- **`app.js` versioning:** `?v=7` in tutti e 56 i file HTML — aggiornare a v=8 se si modifica app.js
+- **Immagini:** tutte le immagini prodotto sono placeholder Unsplash; il campo `images` in DB è JSON — admin non ha ancora UI upload
+- **SEO:** ✅ index.html e shop.html hanno og:tags + JSON-LD; ✅ vestito-lino-cannes ha JSON-LD Product; gli altri 22 PDP mancano ancora — aggiungere con template uguale
+- **Performance:** shop.html ora carica da API (nessun JS hardcoded); `productsData.js` ancora usato solo da search.html
+- **Admin mobile:** ✅ `MEMI/css/style.css` ha breakpoint 600px (bottom nav) + 600–920px (collapsed sidebar)
+- **Newsletter:** ✅ `POST /api/newsletter/subscribe` + tabella DB; il form footer di shop.html è cablato; altri footer (iniettati da app.js) ancora non cablati
 
 ---
 
 ## Priorità suggerite
 
-### ✅ Critico — Risolto (Giugno 2026)
+### ✅ Sprint 1 — Risolto (Giugno 2026)
 1. ~~Pagamenti reali (Stripe)~~ → **✅ Stripe Elements + PaymentIntent**
 2. ~~Salvataggio ordini nel backend~~ → **✅ orders.js completo**
 3. ~~Email conferma ordine~~ → **✅ nodemailer in email.js**
-4. Autenticazione cliente funzionante → ✅ JWT implementato
+4. ~~Autenticazione cliente~~ → **✅ JWT implementato**
+5. ~~Admin dati reali~~ → **✅ _origRenderView pattern**
+6. ~~Inventario deducibile~~ → **✅ stock decrementato su acquisto**
 
-### ✅ Admin — Risolto (Giugno 2026)
-5. ~~Collegare admin a dati reali~~ → **✅ _origRenderView pattern**
-6. Upload immagini prodotto → ❌ ancora mancante
+### ✅ Sprint 2 — Risolto (Giugno 2026)
+7. ~~Catalogo dinamico shop.html~~ → **✅ API-driven con initShopCatalog()**
+8. ~~Email spedizione con tracking~~ → **✅ sendShippingConfirmation()**
+9. ~~Recupero password~~ → **✅ forgot/reset con JWT 1h + reset-password.html**
+10. ~~Email di benvenuto~~ → **✅ sendWelcomeEmail() su register**
+11. ~~Tracking ordini in account~~ → **✅ courier + tracking_number visualizzati**
+12. ~~Newsletter backend~~ → **✅ POST /api/newsletter/subscribe + tabella DB**
+13. ~~Guida taglie~~ → **✅ size-guide.html creata**
+14. ~~SEO meta tags~~ → **✅ og:tags + JSON-LD su index/shop/PDP**
+15. ~~Admin mobile~~ → **✅ breakpoint 600px bottom nav in style.css**
 
-### 🟠 Importante (esperienza cliente) — prossimo sprint
-7. Pagina "I miei ordini" visibile (account.html esiste, JWT funziona)
-8. Tracking spedizione cliente-facing
-9. Gestione resi
-10. Alert "esaurito" in UI (stock in DB esiste)
-
-### 🟢 Qualità e crescita
-11. Recensioni prodotto
-12. Newsletter reale
-13. SEO tecnico
-14. Guida taglie
-15. Email spedizione + recupero password
+### 🟠 Prossimo sprint — ancora mancanti
+- Catalogo dinamico per le 15 collections/ (ancora statiche)
+- Upload immagini nel pannello admin (campo `images` JSON va impostato manualmente)
+- Tracking pubblico guest (senza login) — `order-tracking.html`
+- Gestione resi self-service
+- Recensioni prodotto (UI + backend + moderazione)
+- SEO per i rimanenti 22 PDP (copiare template da vestito-lino-cannes)
+- Newsletter nell'header/footer iniettato da app.js (ora solo shop.html è cablato)
