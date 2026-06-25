@@ -31,9 +31,9 @@ Complete inventory of every file and what it does.
 | `src/server.js` | Express app entry point, all route mounts |
 | `src/db/index.js` | mysql2 connection pool, testConnection() |
 | `src/db/init.js` | One-shot schema runner: `node src/db/init.js` |
-| `src/db/schema.sql` | 11 tables + seed data (23 products, 4 discount codes, 5 couriers, 6 shipping zones) |
+| `src/db/schema.sql` | 12 tables + seed data (23 products, 4 discount codes, 5 couriers, 6 shipping zones) |
 | `src/middleware/auth.js` | requireCustomer, requireAdmin, optionalCustomer |
-| `src/routes/auth.js` | POST /register, POST /login, GET /me, PUT /me, POST /logout |
+| `src/routes/auth.js` | POST /register, POST /login, GET /me, PUT /me, POST /logout, POST /forgot-password, POST /reset-password |
 | `src/routes/admin-auth.js` | POST /login, GET /me (admin) |
 | `src/routes/products.js` | Full CRUD + stock management |
 | `src/routes/orders.js` | Place order (with Stripe verification + inventory deduction), my orders, admin order management |
@@ -42,7 +42,8 @@ Complete inventory of every file and what it does.
 | `src/routes/shipping.js` | Zones, couriers, shipments |
 | `src/routes/dashboard.js` | KPIs, revenue chart, top products, recent orders |
 | `src/routes/payments.js` | POST /api/payments/create-intent — creates Stripe PaymentIntent, returns client_secret |
-| `src/email.js` | sendOrderConfirmation(order) — nodemailer branded HTML email, silent no-op if SMTP_USER unset |
+| `src/routes/newsletter.js` | POST /api/newsletter/subscribe (public upsert), GET /api/newsletter (admin list) |
+| `src/email.js` | sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset — nodemailer, silent no-op if SMTP_USER unset |
 
 ---
 
@@ -81,9 +82,11 @@ Complete inventory of every file and what it does.
 | `about.html` | Chi siamo / About brand |
 | `valori.html` | Brand values |
 | `privacy.html` | Privacy policy |
-| `returns.html` | Return policy |
+| `returns.html` | Return policy (placeholder — content not yet implemented) |
+| `reset-password.html` | Password reset form — reads `?token=` from URL, submits to POST /api/auth/reset-password |
+| `size-guide.html` | Size guide with IT/EU/FR/UK/US conversion tables |
 | `404.html` | Error page |
-| `campagne.html` | Alias / legacy (renamed to editoriali) |
+| `campagne.html` | Alias / legacy — meta-refresh redirect to editoriali.html |
 
 ### Editorial subcategory pages — `editoriali/{slug}/index.html`
 3 individual editorial pages, dark-background magazine style. Each has back nav, photo spreads, pull quote, shop CTA, and prev/next pagination.
@@ -118,4 +121,4 @@ Current slugs:
 | `dashboard.html` | Admin SPA shell: sidebar nav, #appContent mount |
 | `js/admin-api.js` | window.AdminAPI $.ajax wrapper |
 | `js/app.js` | SPA: all views, tables, modals, event wiring |
-| `css/` | Admin-specific styles |
+| `css/style.css` | Admin panel styles — sidebar, tables, cards; responsive breakpoints at 600px (bottom nav) and 600–920px (collapsed sidebar) |

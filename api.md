@@ -30,8 +30,12 @@ Admin token → `localStorage.memi_admin_token`
 | GET | `/auth/me` | Customer | — | `{user:{id,nome,cognome,email,telefono,indirizzo,citta,cap,total_orders,total_spent}}` |
 | PUT | `/auth/me` | Customer | `{nome?,cognome?,email?,telefono?,indirizzo?,citta?,cap?,paese?}` | `{message, user}` |
 | POST | `/auth/logout` | None | — | `{message:"ok"}` |
+| POST | `/auth/forgot-password` | None | `{email}` | `{message}` (always 200 — silent no-op if email not found) |
+| POST | `/auth/reset-password` | None | `{token, password}` | `{message}` |
 
 Rate-limited: login + register → 20 req / 15 min.
+
+Password reset flow: `POST /auth/forgot-password` generates a JWT (1 h expiry) and emails a reset link to `reset-password.html?token=<jwt>`. `POST /auth/reset-password` verifies the token and updates the password hash.
 
 ---
 
@@ -50,8 +54,8 @@ Default admin credentials: `admin@memi.it` / `memi2026admin`
 
 | Method | Path | Auth | Query / Body | Returns |
 |--------|------|------|------|---------|
-| GET | `/products` | None | `?categoria=vestiti&colore=blush&saldi=1&novita=1&q=lino&collection=estate-2025&status=all` | `{products:[...]}` |
-| GET | `/products/:id` | None | — | `{product:{...}, sizes:[{taglia,stock}]}` |
+| GET | `/products` | None | `?categoria=vestiti&colore=blush&saldi=1&novita=1&q=lino&collection=estate-2025&status=all` | `[...products]` (array) |
+| GET | `/products/:id` | None | — | `{...productFields, taglie:[{taglia,stock}], images:[], collections:[]}` (flat object) |
 | GET | `/products/:id/stock` | None | — | `{sizes:[{taglia,stock}]}` |
 | POST | `/products` | Admin | product object | `{product}` |
 | PUT | `/products/:id` | Admin | partial product fields | `{product}` |
@@ -92,7 +96,7 @@ Default admin credentials: `admin@memi.it` / `memi2026admin`
 
 | Method | Path | Auth | Body | Returns |
 |--------|------|------|------|---------|
-| GET | `/admin/discounts` | Admin | — | `{discounts:[...]}` |
+| GET | `/admin/discounts` | Admin | — | `[...discounts]` (array) |
 | POST | `/admin/discounts` | Admin | `{code, tipo, valore, max_utilizzi?, scadenza?, min_order?}` | `{discount}` |
 | PUT | `/admin/discounts/:id` | Admin | partial fields | `{discount}` |
 | DELETE | `/admin/discounts/:id` | Admin | — | `{message}` |
@@ -115,13 +119,13 @@ Used by `checkout.html`: call this first, then `stripe.confirmCardPayment(client
 
 | Method | Path | Auth | Returns |
 |--------|------|------|---------|
-| GET | `/shipping/zones` | None | `{zones:[...]}` |
-| GET | `/shipping/couriers` | None | `{couriers:[...]}` (active only unless `?all=1`) |
+| GET | `/shipping/zones` | None | `[...zones]` (array) |
+| GET | `/shipping/couriers` | None | `[...couriers]` array — active only unless `?all=1` |
 | POST | `/shipping/zones` | Admin | `{zone}` |
 | PUT | `/shipping/zones/:id` | Admin | `{zone}` |
 | DELETE | `/shipping/zones/:id` | Admin | `{message}` |
 | PUT | `/shipping/couriers/:code` | Admin | `{rate?, attivo?}` | `{courier}` |
-| GET | `/shipping/shipments` | Admin | `{shipments:[...]}` |
+| GET | `/shipping/shipments` | Admin | `[...shipments]` (array) |
 | PUT | `/shipping/shipments/:id` | Admin | `{stato?, eta?}` | `{shipment}` |
 
 ---
@@ -130,10 +134,21 @@ Used by `checkout.html`: call this first, then `stripe.confirmCardPayment(client
 
 | Method | Path | Auth | Returns |
 |--------|------|------|---------|
-| GET | `/admin/dashboard/kpis` | Admin | `{revenue_today, orders_today, revenue_month, orders_month, customers_total, pending_orders}` |
-| GET | `/admin/dashboard/chart` | Admin | `{chart:[{date,revenue,orders}]}` — last 30 days |
-| GET | `/admin/dashboard/top-products` | Admin | `{products:[{id,name,total_orders,revenue}]}` |
-| GET | `/admin/dashboard/recent-orders` | Admin | `{orders:[...]}` — last 10 |
+| GET | `/admin/dashboard/kpis` | Admin | `{revenue:{value,delta,up}, orders:{value,delta,up}, visitors:{value,delta,up}, aov:{value,delta,up}}` — values pre-formatted for display |
+| GET | `/admin/dashboard/chart` | Admin | `[{day,revenue,orders}]` array — last 30 days |
+| GET | `/admin/dashboard/top-products` | Admin | `[{product_id,product_name,units_sold,revenue}]` array — top 10 last 30 days |
+| GET | `/admin/dashboard/recent-orders` | Admin | `[...orders]` array — last 10 |
+
+---
+
+## Newsletter — `/api/newsletter`
+
+| Method | Path | Auth | Body / Query | Returns |
+|--------|------|------|------|---------|
+| POST | `/newsletter/subscribe` | None | `{email, fonte?}` (`fonte` defaults to `"footer"`) | `{ok:true, message}` |
+| GET | `/newsletter` | Admin | `?limit=500&offset=0` | `{subscribers:[{id,email,fonte,subscribed_at,unsubscribed}], total}` |
+
+Re-subscribing an unsubscribed email reactivates it (upsert). Invalid email format → 400.
 
 ---
 

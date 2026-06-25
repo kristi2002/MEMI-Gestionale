@@ -106,7 +106,26 @@ form input:focus{border-color:var(--green-strong);background:#fff}
   display:flex;flex-direction:column;
   position:sticky;top:0;height:100vh;
 }
-.sidebar-brand .collapse-btn{margin-left:auto;font-size:14px;color:var(--muted)}
+.sidebar-brand .collapse-btn{margin-left:auto;font-size:14px;color:var(--muted);transition:transform .15s}
+/* Collapsed sidebar (desktop toggle) */
+.sidebar.collapsed{width:64px;flex:0 0 64px}
+.sidebar.collapsed .sidebar-brand strong,
+.sidebar.collapsed .sidebar-brand small,
+.sidebar.collapsed .store-switch strong,
+.sidebar.collapsed .store-switch small,
+.sidebar.collapsed .store-switch .chev,
+.sidebar.collapsed .nav-item .lbl,
+.sidebar.collapsed .nav-item .badge,
+.sidebar.collapsed .nav-item .chev,
+.sidebar.collapsed .nav-divider,
+.sidebar.collapsed .nav-children,
+.sidebar.collapsed .sidebar-footer-text{display:none!important}
+.sidebar.collapsed .sidebar-brand{justify-content:center;padding:0 10px}
+.sidebar.collapsed .sidebar-brand .collapse-btn{margin:0}
+.sidebar.collapsed .store-switch{justify-content:center;padding:8px}
+.sidebar.collapsed .nav-item{justify-content:center;padding:10px 0}
+.sidebar.collapsed .nav-item .ic{margin:0}
+.sidebar.collapsed .logout-btn{justify-content:center}
 .store-switch{
   display:flex;align-items:center;gap:10px;
   margin:10px 12px;padding:8px 10px;

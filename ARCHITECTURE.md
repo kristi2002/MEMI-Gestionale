@@ -78,7 +78,7 @@ MEMI Gestionale/
 │       ├── middleware/
 │       │   └── auth.js             # requireCustomer, requireAdmin, optionalCustomer
 │       └── routes/
-│           ├── auth.js             # /api/auth/*
+│           ├── auth.js             # /api/auth/* (register, login, me, forgot-password, reset-password)
 │           ├── admin-auth.js       # /api/admin/auth/*
 │           ├── products.js         # /api/products/*
 │           ├── orders.js           # /api/orders/* (Stripe verify + inventory deduct + email)
@@ -86,8 +86,9 @@ MEMI Gestionale/
 │           ├── discounts.js        # /api/admin/discounts/*
 │           ├── shipping.js         # /api/shipping/*
 │           ├── dashboard.js        # /api/admin/dashboard/*
-│           └── payments.js         # /api/payments/* (Stripe PaymentIntent)
-│       └── email.js                # sendOrderConfirmation() — nodemailer
+│           ├── payments.js         # /api/payments/* (Stripe PaymentIntent)
+│           └── newsletter.js       # /api/newsletter/* (subscribe + admin list)
+│       └── email.js                # sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset — nodemailer
 │
 ├── Memi Abbigliamento/             # E-commerce static site
 │   ├── Dockerfile
@@ -111,6 +112,8 @@ MEMI Gestionale/
 │   ├── editoriali.html             # Editorial hub (magazine layout, season filter)
 │   ├── about.html / valori.html    # Brand pages
 │   ├── privacy.html / returns.html # Legal pages
+│   ├── reset-password.html         # Password reset form (reads ?token= from URL)
+│   ├── size-guide.html             # Size conversion table (IT/EU/FR/UK/US)
 │   ├── 404.html
 │   ├── editoriali/                 # Individual editorial pages
 │   │   ├── primavera-estate-2026/index.html
@@ -126,9 +129,11 @@ MEMI Gestionale/
     ├── nginx.conf
     ├── index.html                  # Login page
     ├── dashboard.html              # Admin SPA
-    └── js/
-        ├── admin-api.js            # AdminAPI wrapper ($.ajax)
-        └── app.js                  # Views: dashboard, orders, products, customers, discounts, shipping
+    ├── js/
+    │   ├── admin-api.js            # AdminAPI wrapper ($.ajax)
+    │   └── app.js                  # Views: dashboard, orders, products, customers, discounts, shipping
+    └── css/
+        └── style.css               # Admin styles; responsive at 600px (bottom nav) + 600–920px (collapsed sidebar)
 ```
 
 ---
@@ -150,6 +155,7 @@ Tables in `memi_db` (MySQL 8, utf8mb4):
 | `shipping_zones` | Zone pricing rules (Italia, UE, Mondo) |
 | `discount_codes` | Promo codes (%, fixed, free shipping) |
 | `discount_usage` | Code usage log per order |
+| `newsletter_subscribers` | Newsletter subscriptions (email, fonte, subscribed_at, unsubscribed) |
 
 ---
 
@@ -158,10 +164,11 @@ Tables in `memi_db` (MySQL 8, utf8mb4):
 ### Customer
 1. User submits login/register via auth drawer in app.js
 2. `authLogin()` / `authRegister()` → `MemiAPI.auth.login()` / `.register()`
-3. On success: JWT → `localStorage.memi_token`; display info → `localStorage.memi_session`
+3. On success: JWT → `localStorage.memi_token`; display info → `localStorage.memi_session`; welcome email sent on register
 4. `updateAuthUI()` switches nav button to account icon
 5. `account.html` uses `memi_token` to call `/api/auth/me` and `/api/orders/my`
 6. Logout: clears both keys, resets UI
+7. Password reset: `POST /api/auth/forgot-password` → reset JWT (1 h) emailed to customer → `reset-password.html?token=` → `POST /api/auth/reset-password`
 
 ### Admin
 1. `index.html` checks `memi_admin_token` on load — if valid, redirects to `dashboard.html`

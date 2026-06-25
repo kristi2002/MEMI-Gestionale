@@ -165,7 +165,21 @@ jQuery-based admin SPA. Renders views into `#appContent`.
 
 ---
 
-## Backend: `src/routes/payments.js` (nuovo — Giugno 2026)
+## Backend: `src/routes/auth.js`
+
+Customer authentication routes. All under `/api/auth`.
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /register` | Creates customer, hashes password (bcryptjs), signs JWT, sends welcome email |
+| `POST /login` | Verifies password, updates `last_login`, returns JWT |
+| `GET /me` | Returns full profile (`requireCustomer`) |
+| `PUT /me` | Updates profile fields (`requireCustomer`) |
+| `POST /logout` | Client-side only — clears nothing on server, returns `{message:"ok"}` |
+| `POST /forgot-password` | Generates reset JWT (1 h), calls `sendPasswordReset()` — always returns 200 to avoid email enumeration |
+| `POST /reset-password` | Verifies reset JWT, updates `password_hash`, invalidates token by checking `iat` against `password_changed_at` |
+
+## Backend: `src/routes/payments.js`
 
 Handles Stripe PaymentIntent creation.
 
@@ -173,18 +187,29 @@ Handles Stripe PaymentIntent creation.
 - Returns 503 if `STRIPE_SECRET_KEY` env var is not set
 - Used by `checkout.html` before placing an order
 
-## Backend: `src/email.js` (nuovo — Giugno 2026)
+## Backend: `src/routes/newsletter.js`
 
-Nodemailer-based transactional email module.
+Handles newsletter subscriptions.
 
-- `sendOrderConfirmation(order)` — sends branded HTML email with order summary, items table, totale, indirizzo di consegna
-- **Silent no-op** if `SMTP_USER` env var is not set — never throws, safe in dev/staging without SMTP configured
-- SMTP configured via env vars: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE` (bool), `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
-- Called from `orders.js` after successful order creation
+- `POST /api/newsletter/subscribe` — public; accepts `{email, fonte?}`; upserts into `newsletter_subscribers` (re-subscribes if previously unsubscribed); returns `{ok:true, message}`
+- `GET /api/newsletter` — admin-only; returns paginated list of subscribers with `unsubscribed` flag and `total` active count
+
+## Backend: `src/email.js`
+
+Nodemailer-based transactional email module. Exports four functions, all **silent no-ops** if `SMTP_USER` env var is not set.
+
+| Function | Trigger | Description |
+|----------|---------|-------------|
+| `sendOrderConfirmation(order)` | `POST /api/orders` | Branded HTML email — order summary, items table, total, shipping address |
+| `sendShippingConfirmation(order)` | `PUT /api/orders/admin/:id/ship` | Notifies customer their order has shipped; includes courier name + tracking number |
+| `sendWelcomeEmail(user)` | `POST /api/auth/register` | Welcome email sent after successful registration |
+| `sendPasswordReset(user, resetToken)` | `POST /api/auth/forgot-password` | Reset link to `reset-password.html?token=<jwt>` (1 h expiry) |
+
+SMTP configured via: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`.
 
 ## Backend: `src/server.js`
 
-Express entry point. Registers: helmet, cors, rate-limit, body-parser, all route modules (including `/api/payments` → paymentsRoutes), 404 handler, global error handler. Calls `testConnection()` before listening.
+Express entry point. Registers: helmet, cors, rate-limit, body-parser, all route modules (including `/api/payments` → paymentsRoutes, `/api/newsletter` → newsletterRoutes), 404 handler, global error handler. Calls `testConnection()` before listening.
 
 ## Backend: `src/db/index.js`
 

@@ -135,8 +135,16 @@
     updateShipment:  function(id, d)  { return put('/shipping/shipments/' + id, d); },
   };
 
+  /* ═══════════════════════════════════════════════════════
+     NEWSLETTER
+     ═══════════════════════════════════════════════════════ */
+  var newsletter = {
+    list:      function(params) { return get('/newsletter' + (params ? '?' + $.param(params) : '')); },
+    subscribe: function(email, fonte) { return post('/newsletter/subscribe', { email: email, fonte: fonte || 'admin' }); },
+  };
+
   /* ── Expose ─────────────────────────────────────────────── */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter };
 
   /* ── Status-to-display helpers ──────────────────────────── */
   root.AdminAPI.statusLabel = function(code) {

@@ -91,7 +91,8 @@ const DATA = {
     {nome:"Fattura24",cat:"Fatturazione",stato:"Attiva"},
     {nome:"SDA Tracking API",cat:"Spedizioni",stato:"Attiva"},
     {nome:"Loox UGC",cat:"Recensioni",stato:"Disattiva"}
-  ]
+  ],
+  newsletter: null
 };
 
 const COURIER_LOGOS = {
@@ -547,11 +548,54 @@ VIEWS.marketing = function(){
 };
 VIEWS.automations = ()=> VIEWS.marketing();
 VIEWS.newsletter = function(){
+  const nl = DATA.newsletter;
+  const total       = nl ? nl.total       : '—';
+  const unsubscribed= nl ? nl.unsubscribed : '—';
+  const recent      = (nl && nl.recent)   ? nl.recent : [];
   return `
-    ${pageHead("Newsletter","Crea e invia campagne email.",`<button class="btn btn-primary btn-sm">+ Nuova email</button>`)}
-    <div class="card"><h3>Iscritti</h3><p>12.340 contatti attivi · 412 disiscritti negli ultimi 30 giorni</p>
-      <div class="chart-placeholder" style="margin-top:14px;height:160px">${chartSVG()}</div>
-    </div>`;
+    ${pageHead("Newsletter","Iscritti e contatti email.",`<button class="btn btn-primary btn-sm js-nl-export" title="Esporta CSV">⬇ Esporta</button>`)}
+    <div class="grid grid-3">
+      <div class="card kpi green">
+        <div class="icon-wrap">📧</div>
+        <span class="label">Iscritti attivi</span>
+        <span class="value">${total}</span>
+        <span class="delta up">in database</span>
+      </div>
+      <div class="card kpi pink">
+        <div class="icon-wrap">🚫</div>
+        <span class="label">Disiscritti</span>
+        <span class="value">${unsubscribed}</span>
+        <span class="delta">totali</span>
+      </div>
+      <div class="card kpi soft">
+        <div class="icon-wrap">📈</div>
+        <span class="label">Tasso iscrizione</span>
+        <span class="value">${nl && nl.total > 0 ? Math.round(nl.total / (nl.total + nl.unsubscribed) * 100) + '%' : '—'}</span>
+        <span class="delta">attivi sul totale</span>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3>Lista iscritti</h3>
+        <input type="text" id="nlSearch" placeholder="Cerca email..." style="padding:6px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px;width:220px">
+      </div>
+      <div class="table-wrap"><table class="data" id="nlTable">
+        <thead><tr><th>Email</th><th>Fonte</th><th>Data iscrizione</th><th>Stato</th></tr></thead>
+        <tbody>
+          ${recent.length ? recent.slice(0,100).map(s=>`
+            <tr>
+              <td>${s.email}</td>
+              <td><span style="font-size:11px;padding:2px 6px;border-radius:4px;background:var(--bg);border:1px solid var(--line)">${s.fonte || 'footer'}</span></td>
+              <td style="color:var(--muted)">${new Date(s.subscribed_at).toLocaleDateString('it-IT')}</td>
+              <td>${s.unsubscribed ? statusPill('Discritto') : statusPill('Attivo')}</td>
+            </tr>
+          `).join('') : `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">
+            ${nl === null ? 'Caricamento...' : 'Nessun iscritto trovato'}
+          </td></tr>`}
+        </tbody>
+      </table></div>
+    </div>
+  `;
 };
 VIEWS.popups = function(){
   return `${pageHead("Pop-up","Banner promozionali sul negozio.","")}
@@ -1467,31 +1511,72 @@ $(function(){
     const id = $(this).closest('tr').data('id');
     const o  = DATA.orders.find(x=>x.id===id);
     if (!o) return;
-
-    // Extract numeric DB id from the cached order_number string if available, else use order_number
     const dbId = o._db_id || null;
 
-    openModal(`Ordine ${o.id}`, `
-      <div class="kv">
-        <div class="k">Cliente</div><div class="v">${o.cliente}</div>
-        <div class="k">Data</div><div class="v">${o.data}</div>
-        <div class="k">Totale</div><div class="v"><strong>${o.totale}</strong></div>
-        <div class="k">Pagamento</div><div class="v">${statusPill(o.pagamento)}</div>
-        <div class="k">Stato</div><div class="v">
-          <select id="modalOrderStatus" style="border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px">
-            ${['in_attesa','in_preparazione','spedito','consegnato','annullato'].map(s=>
-              `<option value="${s}" ${o._raw_status===s?'selected':''}>${AdminAPI ? AdminAPI.statusLabel(s) : s}</option>`
-            ).join('')}
-          </select>
+    function buildOrderBody(items) {
+      var itemsSection = '';
+      if (items && items.length) {
+        itemsSection = `
+          <div style="margin:14px 0;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--line)">
+            <strong style="font-size:13px;display:block;margin-bottom:8px">Prodotti ordinati</strong>
+            <table style="width:100%;font-size:12px;border-collapse:collapse">
+              <thead><tr style="color:var(--muted);border-bottom:1px solid var(--line)">
+                <th style="padding:4px 0;text-align:left">Prodotto</th>
+                <th style="padding:4px 0;text-align:center">Taglia</th>
+                <th style="padding:4px 0;text-align:center">Qty</th>
+                <th style="padding:4px 0;text-align:right">Prezzo</th>
+              </tr></thead>
+              <tbody>
+                ${items.map(i=>`<tr style="border-bottom:1px solid var(--line)">
+                  <td style="padding:6px 0">${i.product_name}</td>
+                  <td style="padding:6px 0;text-align:center;color:var(--muted)">${i.taglia||'—'}</td>
+                  <td style="padding:6px 0;text-align:center">${i.qty}</td>
+                  <td style="padding:6px 0;text-align:right">€ ${parseFloat(i.price||0).toFixed(2).replace('.',',')}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>`;
+      }
+      return `
+        <div class="kv">
+          <div class="k">Cliente</div><div class="v">${o.cliente}</div>
+          <div class="k">Data</div><div class="v">${o.data}</div>
+          <div class="k">Totale</div><div class="v"><strong>${o.totale}</strong></div>
+          <div class="k">Pagamento</div><div class="v">${statusPill(o.pagamento)}</div>
+          <div class="k">Stato</div><div class="v">
+            <select id="modalOrderStatus" style="border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:13px">
+              ${['in_attesa','in_preparazione','spedito','consegnato','annullato'].map(s=>
+                `<option value="${s}" ${o._raw_status===s?'selected':''}>${AdminAPI ? AdminAPI.statusLabel(s) : s}</option>`
+              ).join('')}
+            </select>
+          </div>
+          <div class="k">Corriere</div><div class="v">${o.corriere} ${o.tracking!=='-'?`· <code>${o.tracking}</code>`:''}</div>
         </div>
-        <div class="k">Corriere</div><div class="v">${o.corriere} ${o.tracking!=='-'?`· <code>${o.tracking}</code>`:''}</div>
-      </div>
-      <div style="margin-top:18px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-        <button class="btn btn-ghost btn-sm">🖨 Stampa</button>
-        ${dbId ? `<button class="btn btn-soft btn-sm js-open-ship-modal" data-id="${dbId}" data-order="${o.id}">🚚 Spedisci</button>` : ''}
-        ${dbId ? `<button class="btn btn-primary btn-sm js-save-order-status" data-id="${dbId}">💾 Salva stato</button>` : ''}
-      </div>
-    `);
+        ${itemsSection}
+        <div style="margin-top:18px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm js-print-order">🖨 Stampa</button>
+          ${dbId ? `<button class="btn btn-soft btn-sm js-open-ship-modal" data-id="${dbId}" data-order="${o.id}">🚚 Spedisci</button>` : ''}
+          ${dbId ? `<button class="btn btn-primary btn-sm js-save-order-status" data-id="${dbId}">💾 Salva stato</button>` : ''}
+        </div>
+      `;
+    }
+
+    // Show modal immediately with loading placeholder for items
+    openModal(`Ordine ${o.id}`, buildOrderBody(null));
+
+    // Load line items from API
+    if (dbId && window.AdminAPI) {
+      AdminAPI.orders.get(dbId).done(function(res){
+        $('#modalBody').html(buildOrderBody(res.items || []));
+      }).fail(function(){
+        // Modal already showing, just leave without items
+      });
+    }
+  });
+
+  // Print order
+  $(document).on('click','.js-print-order', function(){
+    window.print();
   });
 
   // Save order status via API
@@ -1630,6 +1715,31 @@ $(function(){
     $('.rowSel').prop('checked', this.checked);
   });
 
+  // Search newsletter iscritti
+  $(document).on('keyup','#nlSearch', function(){
+    const q = $(this).val().toLowerCase();
+    $('#nlTable tbody tr').each(function(){
+      $(this).toggle($(this).text().toLowerCase().includes(q));
+    });
+  });
+
+  // Export newsletter CSV
+  $(document).on('click','.js-nl-export', function(){
+    if (!DATA.newsletter || !DATA.newsletter.recent || !DATA.newsletter.recent.length) {
+      toast('Nessun dato da esportare', 'info'); return;
+    }
+    const rows = [['Email','Fonte','Data iscrizione','Stato']];
+    DATA.newsletter.recent.forEach(function(s){
+      rows.push([s.email, s.fonte||'footer', new Date(s.subscribed_at).toLocaleDateString('it-IT'), s.unsubscribed?'Discritto':'Attivo']);
+    });
+    const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+    a.download = 'newsletter_iscritti_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+    toast('CSV esportato', 'success');
+  });
+
   // Search spedizioni
   $(document).on('keyup','#shipSearch', function(){
     const q = $(this).val().toLowerCase();
@@ -1654,6 +1764,29 @@ $(function(){
   // Sidebar mobile menu
   $(document).on('click','#mobileMenu', function(){
     $('.sidebar').toggleClass('mobile-open');
+  });
+
+  // Sidebar collapse (desktop)
+  $(document).on('click','.collapse-btn', function(){
+    const $sidebar = $('.sidebar');
+    $sidebar.toggleClass('collapsed');
+    const isCollapsed = $sidebar.hasClass('collapsed');
+    $(this).text(isCollapsed ? '›' : '‹');
+    try { localStorage.setItem('memi_sidebar_collapsed', isCollapsed ? '1' : '0'); } catch(_){}
+  });
+  // Restore collapse state on load
+  try {
+    if (localStorage.getItem('memi_sidebar_collapsed') === '1') {
+      $('.sidebar').addClass('collapsed');
+      $('.collapse-btn').text('›');
+    }
+  } catch(_){}
+
+  // Logout — clear token before redirecting
+  $(document).on('click','.logout-btn', function(e){
+    e.preventDefault();
+    if (window.AdminAPI) AdminAPI.auth.logout();
+    window.location.href = 'index.html';
   });
 
   /* ===== CHAT EVENTS ===== */
@@ -2009,27 +2142,75 @@ $(function(){
 
     $.when(
       api.dashboard.kpis(),
-      api.dashboard.recentOrders()
-    ).done(function(kpiRes, ordersRes) {
-      var kpi    = kpiRes[0]    || {};
-      var recent = ordersRes[0] || [];
+      api.dashboard.recentOrders(),
+      api.dashboard.topProducts(),
+      api.shipping.shipments()
+    ).done(function(kpiRes, ordersRes, topRes, shipRes) {
+      var kpi      = kpiRes[0]   || {};
+      var recent   = ordersRes[0]|| [];
+      var topProds = topRes[0]   || [];
+      var shipList = shipRes[0]  || [];
 
-      if (kpi.revenue) DATA.kpi = kpi;
+      // KPIs — backend returns {revenue:{value,delta,up}, orders:{...}, visitors:{...}, aov:{...}}
+      if (kpi.revenue) {
+        DATA.kpi = kpi;
+        // Update sidebar orders badge with real pending orders count
+        var pendingCount = parseInt((kpi.orders && kpi.orders.value) || 0);
+        if (pendingCount > 0) $('.sidebar .badge-pink').first().text(pendingCount);
+      }
 
-      DATA.orders = recent.map(function(o) {
-        return {
-          id:          o.order_number,
-          _db_id:      o.id,
-          _raw_status: o.order_status,
-          cliente:     (o.customer_nome + ' ' + o.customer_cognome).trim(),
-          data:        new Date(o.created_at).toLocaleDateString('it-IT'),
-          totale:      'EUR ' + parseFloat(o.total).toFixed(2).replace('.', ','),
-          pagamento:   AdminAPI.statusLabel(o.payment_status),
-          stato:       AdminAPI.statusLabel(o.order_status),
-          corriere:    (o.courier_code || '-').toUpperCase(),
-          tracking:    o.tracking_number || '-',
-        };
-      });
+      // Recent orders
+      if (Array.isArray(recent) && recent.length) {
+        DATA.orders = recent.map(function(o) {
+          return {
+            id:          o.order_number,
+            _db_id:      o.id,
+            _raw_status: o.order_status,
+            cliente:     ((o.customer_nome||'') + ' ' + (o.customer_cognome||'')).trim(),
+            data:        new Date(o.created_at).toLocaleDateString('it-IT'),
+            totale:      'EUR ' + parseFloat(o.total).toFixed(2).replace('.', ','),
+            pagamento:   AdminAPI.statusLabel(o.payment_status),
+            stato:       AdminAPI.statusLabel(o.order_status),
+            corriere:    (o.courier_code || '-').toUpperCase(),
+            tracking:    o.tracking_number || '-',
+          };
+        });
+      }
+
+      // Top products (from dashboard endpoint — lightweight name+
+      // Top products (from dashboard endpoint — lightweight name+revenue data)
+      if (Array.isArray(topProds) && topProds.length) {
+        DATA.products = topProds.map(function(p) {
+          var cat = (p.categoria || '').toLowerCase();
+          var _iconMap2 = { vestiti:'👗', gonne:'👗', blazer:'🥻', top:'👕', pantaloni:'👖', borse:'👜', scarpe:'👟', gioielli:'💍', accessori:'✨', set:'✨', cinture:'🪡' };
+          return {
+            id:     p.product_id || p.id || '',
+            nome:   p.product_name || p.name || '—',
+            cat:    p.categoria   || '',
+            prezzo: p.revenue     ? '€ ' + parseFloat(p.revenue).toFixed(2).replace('.', ',') : '—',
+            stock:  p.units_sold  || 0,
+            status: 'Attivo',
+            img:    _iconMap2[cat] || '👗',
+          };
+        });
+      }
+
+      // Active shipments
+      if (Array.isArray(shipList) && shipList.length) {
+        DATA.shipments = shipList.map(function(s) {
+          return {
+            _db_id:       s.id,
+            id:           s.tracking_number || ('SHP' + s.id),
+            ordine:       s.order_number || ('#' + s.order_id),
+            _order_db_id: s.order_id,
+            cliente:      ((s.customer_nome||'') + ' ' + (s.customer_cognome||'')).trim() || '-',
+            corriere:     (s.courier_code || '').toLowerCase(),
+            destinazione: s.destinazione || '-',
+            stato:        AdminAPI.statusLabel(s.stato),
+            eta:          s.eta ? new Date(s.eta).toLocaleDateString('it-IT') : '-',
+          };
+        });
+      }
 
       _origRenderView('dashboard');
     }).fail(function() {
@@ -2054,7 +2235,7 @@ $(function(){
             id:           o.order_number,
             _db_id:       o.id,
             _raw_status:  o.order_status,
-            cliente:      (o.customer_nome + ' ' + o.customer_cognome).trim(),
+            cliente:      ((o.customer_nome||'') + ' ' + (o.customer_cognome||'')).trim(),
             data:         new Date(o.created_at).toLocaleDateString('it-IT'),
             totale:       'EUR ' + parseFloat(o.total).toFixed(2).replace('.', ','),
             pagamento:    AdminAPI.statusLabel(o.payment_status),
@@ -2074,7 +2255,14 @@ $(function(){
           if (p.taglie && Array.isArray(p.taglie)) {
             p.taglie.forEach(function(t) { totalStock += (parseInt(t.stock) || 0); });
           }
-          var icon = p.icon === 'bag' ? '' : p.icon === 'shoe' ? '' : p.icon === 'ring' ? '' : '';
+          var _iconMap = {
+            dress:'👗', bag:'👜', shoe:'👟', ring:'💍', earring:'👂', necklace:'💎',
+            top:'👕', blazer:'🥻', cardigan:'🧶', jacket:'🧥', scarf:'🧣',
+            pants:'👖', shorts:'🩳', skirt:'👗', sandal:'👡', sneaker:'👟',
+            vestiti:'👗', gonne:'👗', pantaloni:'👖', borse:'👜', scarpe:'👟',
+            gioielli:'💍', accessori:'✨', set:'✨', cinture:'🪡'
+          };
+          var icon = _iconMap[p.icon] || _iconMap[p.categoria] || '👗';
           return {
             id:     p.id,
             nome:   p.name,
@@ -2082,7 +2270,7 @@ $(function(){
             prezzo: 'EUR ' + parseFloat(p.price).toFixed(2).replace('.', ','),
             stock:  totalStock,
             status: AdminAPI.statusLabel(p.status || 'attivo'),
-            img:    icon || p.icon || '',
+            img:    icon,
           };
         });
         _origRenderView(name);
@@ -2165,6 +2353,18 @@ $(function(){
         } else {
           _origRenderView(name);
         }
+      }).fail(function() { _origRenderView(name); });
+
+    } else if (name === 'newsletter') {
+      api.newsletter.list({ limit: 500 }).done(function(data) {
+        var subs = (data && data.subscribers) ? data.subscribers : (Array.isArray(data) ? data : []);
+        var activeCount = (data && typeof data.total === 'number') ? data.total : subs.filter(function(s){ return !s.unsubscribed; }).length;
+        DATA.newsletter = {
+          total:        activeCount,
+          unsubscribed: subs.filter(function(s){ return !!s.unsubscribed; }).length,
+          recent:       subs
+        };
+        _origRenderView(name);
       }).fail(function() { _origRenderView(name); });
 
     } else if (name === 'dashboard') {

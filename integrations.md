@@ -16,6 +16,9 @@ The e-commerce site (`Memi Abbigliamento/`) is a **static HTML/CSS/JS** site. Pr
 | Account profile | `GET /api/auth/me` | account.html |
 | Update profile | `PUT /api/auth/me` | account.html |
 | My orders | `GET /api/orders/my` | account.html |
+| Password reset request | `POST /api/auth/forgot-password` | reset-password.html (step 1) |
+| Password reset submit | `POST /api/auth/reset-password` | reset-password.html (step 2) |
+| Newsletter subscribe | `POST /api/newsletter/subscribe` | shop.html footer form (+ any page with newsletter form) |
 | Validate discount | `POST /api/orders/validate-discount` | checkout.html |
 | **Create PaymentIntent** | `POST /api/payments/create-intent` | checkout.html (Stripe flow, step 1) |
 | Place order | `POST /api/orders` | checkout.html (after Stripe confirms, step 2) |
@@ -102,6 +105,7 @@ dashboard.html loads
 | `shipping.couriers()` | `GET /api/shipping/couriers?all=1` |
 | `shipping.shipments()` | `GET /api/shipping/shipments` |
 | `shipping.updateShipment()` | `PUT /api/shipping/shipments/:id` |
+| `newsletter.list()` | `GET /api/newsletter` |
 
 ### API base URL resolution
 
@@ -122,8 +126,9 @@ In development (running files locally without Docker), set the meta content to `
 
 `src/email.js` uses `nodemailer`:
 - Creates transport from `SMTP_*` env vars on first call
-- `sendOrderConfirmation(order)` builds branded HTML email and sends async
-- Errors are logged but never thrown — safe to call in any context
+- Four exported functions: `sendOrderConfirmation`, `sendShippingConfirmation`, `sendWelcomeEmail`, `sendPasswordReset`
+- All are silent no-ops if `SMTP_USER` is not set — never throw, safe in dev/staging
+- Errors are logged but never re-thrown — safe to call in any context
 
 ## Backend ↔ Database
 
