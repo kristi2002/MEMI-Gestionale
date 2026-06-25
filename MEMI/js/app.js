@@ -83,16 +83,7 @@ const DATA = {
     {code:"FREESHIP",tipo:"Spedizione gratuita",utilizzi:"233/1000",scad:"31/12/2026",stato:"Attivo"},
     {code:"BLACK40",tipo:"Percentuale 40%",utilizzi:"0/2000",scad:"30/11/2026",stato:"Pianificato"}
   ],
-  apps:[
-    {nome:"Klaviyo Email",cat:"Marketing",stato:"Attiva"},
-    {nome:"Stripe Payments",cat:"Pagamenti",stato:"Attiva"},
-    {nome:"Trustpilot Reviews",cat:"Recensioni",stato:"Attiva"},
-    {nome:"Google Analytics 4",cat:"Analytics",stato:"Attiva"},
-    {nome:"Meta Pixel",cat:"Marketing",stato:"Attiva"},
-    {nome:"Fattura24",cat:"Fatturazione",stato:"Attiva"},
-    {nome:"SDA Tracking API",cat:"Spedizioni",stato:"Attiva"},
-    {nome:"Loox UGC",cat:"Recensioni",stato:"Disattiva"}
-  ],
+  apps:[],
   newsletter: null,
   chartData:  null,
   invoices:   null,
@@ -539,14 +530,7 @@ VIEWS.categories = function(){
 VIEWS.transfers = function(){
   return `
     ${pageHead("Trasferimenti","Movimenti di magazzino tra depositi.","")}
-    <div class="table-card"><div class="table-wrap"><table class="data">
-      <thead><tr><th>ID</th><th>Origine</th><th>Destinazione</th><th>Articoli</th><th>Stato</th><th>Data</th></tr></thead>
-      <tbody>
-        <tr><td>T-220</td><td>Deposito MI</td><td>Deposito RM</td><td>48</td><td>${statusPill('In transito')}</td><td>14/05/2026</td></tr>
-        <tr><td>T-219</td><td>Fornitore</td><td>Deposito MI</td><td>320</td><td>${statusPill('Consegnato')}</td><td>12/05/2026</td></tr>
-        <tr><td>T-218</td><td>Deposito RM</td><td>Deposito MI</td><td>12</td><td>${statusPill('In attesa')}</td><td>10/05/2026</td></tr>
-      </tbody>
-    </table></div></div>
+    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun trasferimento registrato.</p></div>
   `;
 };
 
@@ -595,8 +579,8 @@ VIEWS.customers = function(){
     <div class="grid grid-4" style="margin-bottom:16px">
       <div class="card kpi green"><span class="label">Totale clienti</span><span class="value">${DATA.customers.length}</span></div>
       <div class="card kpi pink"><span class="label">VIP</span><span class="value">${DATA.customers.filter(c=>c.vip).length}</span></div>
-      <div class="card kpi soft"><span class="label">Nuovi (mese)</span><span class="value">42</span></div>
-      <div class="card kpi soft"><span class="label">Tasso ritorno</span><span class="value">38%</span></div>
+      <div class="card kpi soft"><span class="label">Con più di 1 ordine</span><span class="value">${DATA.customers.filter(c=>(parseInt(c.ordini)||0)>1).length}</span></div>
+      <div class="card kpi soft"><span class="label">Spesa media</span><span class="value">${(()=>{const n=DATA.customers.length;if(!n)return '—';const tot=DATA.customers.reduce((s,c)=>s+(parseFloat(String(c.speso||'').replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'))||0),0);return '€ '+(tot/n).toFixed(0);})()}</span></div>
     </div>
     <div class="table-card"><div class="table-wrap"><table class="data">
       <thead><tr><th>Cliente</th><th>Email</th><th>Ordini</th><th>Speso</th><th>Ultimo ordine</th><th>Tag</th><th></th></tr></thead>
@@ -620,22 +604,26 @@ VIEWS.customers = function(){
 VIEWS.segments = function(){
   return `
     ${pageHead("Segmenti","Raggruppa i clienti per comportamento.",`<button class="btn btn-primary btn-sm js-new-segment">+ Analizza segmento</button>`)}
-    <div class="grid grid-3">
-      ${[
-        ["VIP","Speso > €500","18 clienti"],
-        ["Nuovi","Primo ordine ultimi 30gg","42 clienti"],
-        ["Inattivi","Nessun ordine da 90gg","127 clienti"],
-        ["Carrelli abbandonati","Carrello creato non concluso","73 clienti"],
-        ["Lover Pastel","Ha comprato collezione Pastel","56 clienti"],
-        ["Sconto golosi","Ha usato uno sconto","204 clienti"]
-      ].map(s=>`
+    ${(()=>{
+      const custs = DATA.customers;
+      if(custs===null || custs===undefined){ return '<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Caricamento…</p></div>'; }
+      const num = s => parseFloat(String(s||'').replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'))||0;
+      const segs = [
+        ["VIP","Speso > €300", custs.filter(c=>c.vip||num(c.speso)>300).length],
+        ["Spendaccioni","Speso > €100", custs.filter(c=>num(c.speso)>100).length],
+        ["Clienti fedeli","Più di 1 ordine", custs.filter(c=>(parseInt(c.ordini)||0)>1).length],
+        ["Primo acquisto","Un solo ordine", custs.filter(c=>(parseInt(c.ordini)||0)===1).length],
+        ["Senza ordini","Registrati, 0 ordini", custs.filter(c=>(parseInt(c.ordini)||0)===0).length],
+        ["Totale clienti","Tutta la base", custs.length]
+      ];
+      return `<div class="grid grid-3">${segs.map(s=>`
         <div class="card">
           <h3>${s[0]}</h3>
           <p style="color:var(--muted);font-size:12px">${s[1]}</p>
-          <p style="margin-top:10px"><strong>${s[2]}</strong></p>
+          <p style="margin-top:10px"><strong>${s[2]} ${s[2]===1?'cliente':'clienti'}</strong></p>
         </div>
-      `).join('')}
-    </div>
+      `).join('')}</div>`;
+    })()}
   `;
 };
 
@@ -759,11 +747,7 @@ VIEWS.newsletter = function(){
 };
 VIEWS.popups = function(){
   return `${pageHead("Pop-up","Banner promozionali sul negozio.","")}
-    <div class="grid grid-3">
-      <div class="card"><h3>Welcome 10%</h3><p style="color:var(--muted);font-size:12px">Trigger: prima visita</p><p style="margin-top:8px"><strong>1.840</strong> conversioni</p></div>
-      <div class="card"><h3>Spedizione gratuita</h3><p style="color:var(--muted);font-size:12px">Trigger: scroll 50%</p><p style="margin-top:8px"><strong>522</strong> conversioni</p></div>
-      <div class="card"><h3>Exit intent</h3><p style="color:var(--muted);font-size:12px">Trigger: uscita pagina</p><p style="margin-top:8px"><strong>299</strong> conversioni</p></div>
-    </div>`;
+    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun pop-up configurato.</p></div>`;
 };
 
 VIEWS.discounts = function(){
@@ -826,12 +810,12 @@ VIEWS.reports = function(){
 VIEWS.liveview = function(){
   return `${pageHead("Live View","Cosa succede in questo momento sul tuo store.","")}
     <div class="grid grid-4">
-      <div class="card kpi green"><span class="label">Visitatori ora</span><span class="value">37</span></div>
-      <div class="card kpi pink"><span class="label">Carrelli attivi</span><span class="value">12</span></div>
-      <div class="card kpi soft"><span class="label">Checkout in corso</span><span class="value">3</span></div>
-      <div class="card kpi green"><span class="label">Vendite (1h)</span><span class="value">€ 482</span></div>
+      <div class="card kpi green"><span class="label">Visitatori ora</span><span class="value">—</span></div>
+      <div class="card kpi pink"><span class="label">Carrelli attivi</span><span class="value">—</span></div>
+      <div class="card kpi soft"><span class="label">Checkout in corso</span><span class="value">—</span></div>
+      <div class="card kpi green"><span class="label">Vendite (1h)</span><span class="value">—</span></div>
     </div>
-    <div class="card" style="margin-top:16px;height:300px;background:linear-gradient(180deg,#fff,#fafafa);display:flex;align-items:center;justify-content:center;color:var(--muted)">🌍 Mappa visitatori in tempo reale</div>`;
+    <div class="card" style="margin-top:16px;padding:40px;text-align:center;color:var(--muted)">Il monitoraggio in tempo reale richiede l'integrazione di un servizio di analytics (es. Google Analytics 4) configurato nelle Impostazioni.</div>`;
 };
 
 /* ---------- CONTENUTI ---------- */
@@ -916,10 +900,10 @@ VIEWS.couriers = function(){
     `)}
 
     <div class="grid grid-4" style="margin-bottom:16px">
-      <div class="card kpi green"><div class="icon-wrap">📦</div><span class="label">Spedizioni totali</span><span class="value">${DATA.couriers.reduce((a,c)=>a+c.sped,0)}</span></div>
-      <div class="card kpi pink"><div class="icon-wrap">⏱</div><span class="label">In transito</span><span class="value">42</span></div>
-      <div class="card kpi soft"><div class="icon-wrap">⚠</div><span class="label">Ritardi</span><span class="value">${DATA.couriers.reduce((a,c)=>a+c.ritardi,0)}</span></div>
-      <div class="card kpi green"><div class="icon-wrap">✓</div><span class="label">Consegnati (mese)</span><span class="value">${DATA.couriers.reduce((a,c)=>a+c.consegnati,0)}</span></div>
+      <div class="card kpi green"><div class="icon-wrap">📦</div><span class="label">Corrieri attivi</span><span class="value">${DATA.couriers.filter(c=>c.attivo).length}</span></div>
+      <div class="card kpi pink"><div class="icon-wrap">⏱</div><span class="label">Corrieri totali</span><span class="value">${DATA.couriers.length}</span></div>
+      <div class="card kpi soft"><div class="icon-wrap">⚠</div><span class="label">Spedizioni in corso</span><span class="value">${(DATA.shipments&&DATA.shipments.length)?DATA.shipments.length:'—'}</span></div>
+      <div class="card kpi green"><div class="icon-wrap">✓</div><span class="label">Tariffa media</span><span class="value">${(()=>{const r=DATA.couriers.map(c=>parseFloat(String(c.rate||'').replace(/[^0-9.,]/g,'').replace(',','.'))||0).filter(x=>x>0);return r.length?'€ '+(r.reduce((a,b)=>a+b,0)/r.length).toFixed(2):'—';})()}</span></div>
     </div>
 
     <div class="courier-list">
@@ -961,8 +945,7 @@ VIEWS.couriers = function(){
               <strong>${c.nome}</strong>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
-              <small style="color:var(--muted)">Ultimo ping: 2 min fa</small>
-              ${c.attivo?'<span class="status-pill ok">Connesso</span>':'<span class="status-pill neutral">Non attivo</span>'}
+              ${c.attivo?'<span class="status-pill ok">Attivo</span>':'<span class="status-pill neutral">Non attivo</span>'}
             </div>
           </li>
         `).join('')}
@@ -1054,20 +1037,16 @@ VIEWS["shipping-zones"] = function(){
 
     <div class="grid grid-2" style="margin-top:16px">
       <div class="card">
-        <h3>Regole automatiche</h3>
+        <h3>Soglie spedizione gratuita</h3>
         <ul class="list-clean">
-          <li>Spedizione gratuita sopra <strong>€ 79</strong> in Italia <span class="badge badge-green">attiva</span></li>
-          <li>Express gratuito per clienti VIP <span class="badge badge-green">attiva</span></li>
-          <li>Consegna in giornata a Milano centro <span class="badge badge-soft">disattiva</span></li>
+          ${(DATA.zones||[]).filter(z=>z.grat && z.grat!=='-' && z.grat!=='—').map(z=>`<li><span>${z.nome}</span> <span class="badge badge-green">${z.grat}</span></li>`).join('') || '<li><span style="color:var(--muted)">Nessuna soglia gratuita impostata sulle zone.</span></li>'}
         </ul>
       </div>
       <div class="card">
-        <h3>Pesi & Dimensioni</h3>
+        <h3>Zone configurate</h3>
         <div class="kv">
-          <div class="k">Peso default</div><div class="v">0,5 kg</div>
-          <div class="k">Dim. default</div><div class="v">25 × 20 × 8 cm</div>
-          <div class="k">Sovrapprezzo +1kg</div><div class="v">€ 1,20</div>
-          <div class="k">Imballo personalizzato</div><div class="v">€ 0,90</div>
+          <div class="k">Totale zone</div><div class="v">${(DATA.zones||[]).length}</div>
+          <div class="k">Corrieri attivi</div><div class="v">${(DATA.couriers||[]).filter(c=>c.attivo).length}</div>
         </div>
       </div>
     </div>
@@ -1171,8 +1150,8 @@ const AUTO_REPLIES = [
 VIEWS.chat = function(){
   return `
     ${pageHead("Chat clienti","Conversazioni in tempo reale con i tuoi clienti.",`
-      <button class="btn btn-soft btn-sm">📊 Statistiche</button>
-      <button class="btn btn-ghost btn-sm">⚙ Impostazioni chat</button>
+      <button class="btn btn-soft btn-sm" onclick="toast('Conversazioni: '+CHATS.length+' · Non lette: '+CHATS.reduce(function(s,c){return s+(c.unread||0);},0),'info')">📊 Statistiche</button>
+      <button class="btn btn-ghost btn-sm" onclick="renderView('settings');setActiveNav('settings')">⚙ Impostazioni chat</button>
     `)}
     <div class="chat-wrap">
       <!-- LISTA CONVERSAZIONI -->
@@ -1350,49 +1329,39 @@ function sendChatMessage(text){
 
 /* ---------- FINANZA ---------- */
 VIEWS.finance = function(){
+  const rev = (DATA.kpi && DATA.kpi.revenue && DATA.kpi.revenue.value) ? DATA.kpi.revenue.value : '—';
   return `${pageHead("Finanza","Panoramica economica del negozio.","")}
     <div class="grid grid-4">
-      <div class="card kpi green"><span class="label">Saldo disponibile</span><span class="value">€ 8.452</span></div>
-      <div class="card kpi pink"><span class="label">In attesa</span><span class="value">€ 1.230</span></div>
-      <div class="card kpi soft"><span class="label">Spese (mese)</span><span class="value">€ 2.140</span></div>
-      <div class="card kpi green"><span class="label">Margine medio</span><span class="value">42%</span></div>
+      <div class="card kpi green"><span class="label">Fatturato (oggi)</span><span class="value">${rev}</span></div>
+      <div class="card kpi pink"><span class="label">Saldo disponibile</span><span class="value">—</span></div>
+      <div class="card kpi soft"><span class="label">In attesa di payout</span><span class="value">—</span></div>
+      <div class="card kpi green"><span class="label">Margine medio</span><span class="value">—</span></div>
     </div>
-    <div class="card" style="margin-top:16px"><h3>Cash flow ultimi 30 giorni</h3><div class="chart-placeholder">${chartSVG()}</div></div>`;
+    <div class="card" style="margin-top:16px"><h3>Cash flow ultimi 30 giorni</h3><div class="chart-placeholder">${chartSVG()}</div></div>
+    <p style="color:var(--muted);font-size:12px;margin-top:10px">Saldo, payout e margini richiedono il collegamento di un gateway di pagamento (es. Stripe) nelle Impostazioni.</p>`;
 };
 VIEWS.payouts = function(){
   return `${pageHead("Pagamenti ricevuti","Bonifici dal gateway al tuo conto.","")}
-    <div class="table-card"><div class="table-wrap"><table class="data">
-      <thead><tr><th>Data</th><th>Importo</th><th>Metodo</th><th>Stato</th></tr></thead>
-      <tbody>
-        <tr><td>14/05/2026</td><td><strong>€ 4.382,00</strong></td><td>Stripe → IBAN</td><td>${statusPill('Pagato')}</td></tr>
-        <tr><td>07/05/2026</td><td><strong>€ 3.928,00</strong></td><td>Stripe → IBAN</td><td>${statusPill('Pagato')}</td></tr>
-        <tr><td>30/04/2026</td><td><strong>€ 5.120,00</strong></td><td>Stripe → IBAN</td><td>${statusPill('Pagato')}</td></tr>
-      </tbody>
-    </table></div></div>`;
+    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun payout registrato.<br><span style="font-size:12px">Collega un gateway di pagamento per visualizzare i bonifici ricevuti.</span></p></div>`;
 };
 VIEWS.bills = function(){
   return `${pageHead("Fatture & Spese","Spese del negozio (piano, app, dominio).","")}
-    <div class="table-card"><div class="table-wrap"><table class="data">
-      <thead><tr><th>Descrizione</th><th>Categoria</th><th>Data</th><th>Importo</th></tr></thead>
-      <tbody>
-        <tr><td>Piano Pro mensile</td><td>Abbonamento</td><td>01/05/2026</td><td>€ 79,00</td></tr>
-        <tr><td>App Klaviyo</td><td>Marketing</td><td>03/05/2026</td><td>€ 45,00</td></tr>
-        <tr><td>Dominio memi.it (rinnovo)</td><td>Dominio</td><td>10/05/2026</td><td>€ 12,00</td></tr>
-      </tbody>
-    </table></div></div>`;
+    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessuna spesa registrata.</p></div>`;
 };
 VIEWS.taxes = function(){
+  const s = DATA.settings || {};
+  const vat = s.store_vat_rate || '22';
   return `${pageHead("Tasse","Configurazione IVA e regimi fiscali.","")}
     <div class="grid grid-2">
       <div class="card"><h3>IVA Italia</h3><div class="kv">
-        <div class="k">Aliquota standard</div><div class="v">22%</div>
+        <div class="k">Aliquota standard</div><div class="v">${vat}%</div>
         <div class="k">Aliquota ridotta</div><div class="v">10%</div>
         <div class="k">Inclusa nel prezzo</div><div class="v">Sì</div>
-      </div></div>
+      </div><p style="color:var(--muted);font-size:12px;margin-top:10px">Configurabile nelle Impostazioni.</p></div>
       <div class="card"><h3>UE OSS</h3><div class="kv">
-        <div class="k">Stato</div><div class="v"><span class="badge badge-green">Attivo</span></div>
+        <div class="k">Stato</div><div class="v">—</div>
         <div class="k">Soglia annuale</div><div class="v">€ 10.000</div>
-        <div class="k">Venduto YTD</div><div class="v">€ 7.840</div>
+        <div class="k">Venduto YTD</div><div class="v">—</div>
       </div></div>
     </div>`;
 };
@@ -1407,30 +1376,29 @@ VIEWS["online-store"] = function(){
     <div class="grid grid-3">
       <div class="card"><h3>Tema attivo</h3><p style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:${color};display:inline-block"></span>${theme}</p><small style="color:var(--muted)">Colore primario ${color}</small></div>
       <div class="card"><h3>Dominio</h3><p>${domain}</p><small style="color:var(--muted)">SSL attivo</small></div>
-      <div class="card"><h3>Velocità</h3><p>Score: <strong>92/100</strong></p><small style="color:var(--muted)">Ultima analisi ieri</small></div>
+      <div class="card"><h3>Velocità</h3><p>Score: <strong>—</strong></p><small style="color:var(--muted)">Richiede analisi performance</small></div>
     </div>`;
 };
 VIEWS.pos = function(){
   return `${pageHead("Punto Vendita","Configura POS fisici collegati allo store.","")}
-    <div class="grid grid-2">
-      <div class="card"><h3>📍 MEMI Milano - Brera</h3><p style="color:var(--muted)">Via Brera 14, Milano</p><p style="margin-top:8px"><span class="badge badge-green">Online</span> · 3 staff connessi</p></div>
-      <div class="card"><h3>📍 MEMI Roma - Trastevere</h3><p style="color:var(--muted)">Vicolo del Cinque 8, Roma</p><p style="margin-top:8px"><span class="badge badge-green">Online</span> · 2 staff connessi</p></div>
-    </div>`;
+    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun punto vendita configurato.</p></div>`;
 };
 VIEWS.social = function(){
   return `${pageHead("Social & Marketplace","Vendi sui canali esterni.","")}
     <div class="grid grid-3">
-      ${[["Instagram Shopping","Connesso","green"],["Facebook Shop","Connesso","green"],["TikTok Shop","Da configurare","soft"],["Amazon","Disconnesso","soft"],["Zalando","Da configurare","soft"],["Google Shopping","Connesso","green"]].map(s=>`
-        <div class="card"><h3>${s[0]}</h3><span class="badge badge-${s[2]==='green'?'green':'soft'}">${s[1]}</span></div>
+      ${[["Instagram Shopping"],["Facebook Shop"],["TikTok Shop"],["Amazon"],["Zalando"],["Google Shopping"]].map(s=>`
+        <div class="card"><h3>${s[0]}</h3><span class="badge badge-soft">Non collegato</span></div>
       `).join('')}
     </div>`;
 };
 
 /* ---------- SISTEMA ---------- */
 VIEWS.apps = function(){
+  const apps = DATA.apps || [];
   return `${pageHead("App installate","Estendi le funzionalità del tuo store.",`<button class="btn btn-primary btn-sm js-app-store">+ App Store</button>`)}
+    ${apps.length===0 ? `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessuna app installata. Aggiungine una da “+ App Store”.</p></div>` : `
     <div class="grid grid-3">
-      ${DATA.apps.map(a=>`
+      ${apps.map(a=>`
         <div class="card">
           <div style="display:flex;align-items:center;gap:10px">
             <div style="width:42px;height:42px;border-radius:10px;background:var(--line-2);display:flex;align-items:center;justify-content:center;font-size:18px">🧩</div>
@@ -1442,17 +1410,11 @@ VIEWS.apps = function(){
           </div>
         </div>
       `).join('')}
-    </div>`;
+    </div>`}`;
 };
 VIEWS.integrations = function(){
   return `${pageHead("Integrazioni","Webhook e API esterne.","")}
-    <div class="card"><h3>Webhook attivi</h3>
-      <ul class="list-clean">
-        <li><span>order.created → https://hook.memi.it/orders</span> <span class="badge badge-green">attivo</span></li>
-        <li><span>order.fulfilled → https://erp.memi.it/api/ship</span> <span class="badge badge-green">attivo</span></li>
-        <li><span>customer.created → https://crm.memi.it/leads</span> <span class="badge badge-soft">disattivo</span></li>
-      </ul>
-    </div>`;
+    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun webhook configurato.</p></div>`;
 };
 VIEWS.staff = function(){
   const list = DATA.staff || [];
@@ -3550,8 +3512,8 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { _origRenderView(name); });
 
-    } else if (name === 'customers') {
-      api.customers.list({ limit: 100 }).done(function(data) {
+    } else if (name === 'customers' || name === 'segments') {
+      api.customers.list({ limit: 200 }).done(function(data) {
         var list = (data && data.customers) ? data.customers : [];
         DATA.customers = list.map(function(c) {
           return {
