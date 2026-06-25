@@ -385,7 +385,7 @@
       background: var(--blush);
     }
 
-    /* ── Confetti ──────────────────────────────────────── */
+    /* ── Petali ────────────────────────────────────────── */
     .confetti-canvas {
       position: fixed;
       inset: 0;
@@ -622,56 +622,86 @@
     sessionStorage.removeItem(CART_KEY);
     sessionStorage.removeItem('memi_last_order'); // regenerate next visit
 
-    // ── Confetti ──────────────────────────────────────────
-    (function confetti() {
+    // ── Petali di rosa ────────────────────────────────────
+    (function petals() {
       const canvas = document.getElementById('confettiCanvas');
       const ctx    = canvas.getContext('2d');
 
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      const COLORS = ['#C5BEE2','#CCE2CB','#F3D1D6','#EAE7F4','#E5F1E4','#FAE8EB','#FFFFFF','#A89BC4'];
-      const PIECES = 120;
+      // Brand-aligned petal colors
+      const COLORS = ['#F3C5CC','#EAA8B2','#F7D6DA','#F9E4E7','#E8B4BB','#F2CDD2','#FDEEF0'];
+      const COUNT  = 38;
 
-      const particles = Array.from({ length: PIECES }, () => ({
-        x:     Math.random() * canvas.width,
-        y:     Math.random() * -canvas.height,
-        w:     6 + Math.random() * 8,
-        h:     8 + Math.random() * 12,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        rot:   Math.random() * Math.PI * 2,
-        vx:    (Math.random() - 0.5) * 2,
-        vy:    2 + Math.random() * 3,
-        vr:    (Math.random() - 0.5) * 0.15,
-        alpha: 1,
-      }));
+      // Draw a simple petal shape centered at (0,0)
+      function drawPetal(ctx, w, h) {
+        ctx.beginPath();
+        ctx.moveTo(0, -h / 2);
+        ctx.bezierCurveTo( w / 2, -h / 4,  w / 2,  h / 4, 0,  h / 2);
+        ctx.bezierCurveTo(-w / 2,  h / 4, -w / 2, -h / 4, 0, -h / 2);
+        ctx.closePath();
+      }
 
-      let frame;
+      const particles = Array.from({ length: COUNT }, () => {
+        const size = 12 + Math.random() * 16;
+        return {
+          x:      Math.random() * canvas.width,
+          y:      -size - Math.random() * canvas.height * 0.6,
+          w:      size * 0.6,
+          h:      size,
+          color:  COLORS[Math.floor(Math.random() * COLORS.length)],
+          rot:    Math.random() * Math.PI * 2,
+          vx:     (Math.random() - 0.5) * 0.8,
+          vy:     0.8 + Math.random() * 1.4,
+          vr:     (Math.random() - 0.5) * 0.03,
+          sway:   Math.random() * Math.PI * 2,      // phase for horizontal sway
+          swayAmp: 0.4 + Math.random() * 0.6,
+          alpha:  0.85 + Math.random() * 0.15,
+        };
+      });
+
       function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         let alive = false;
+
         particles.forEach(p => {
-          p.x  += p.vx;
-          p.y  += p.vy;
+          p.sway += 0.018;
+          p.x   += p.vx + Math.sin(p.sway) * p.swayAmp;
+          p.y   += p.vy;
           p.rot += p.vr;
-          if (p.y > canvas.height * 0.7) p.alpha -= 0.015;
-          if (p.alpha > 0 && p.y < canvas.height + 20) {
+
+          // Gently fade out in the bottom third
+          if (p.y > canvas.height * 0.65) {
+            p.alpha -= 0.012;
+          }
+
+          if (p.alpha > 0 && p.y < canvas.height + 30) {
             alive = true;
             ctx.save();
             ctx.globalAlpha = Math.max(0, p.alpha);
             ctx.translate(p.x, p.y);
             ctx.rotate(p.rot);
+            drawPetal(ctx, p.w, p.h);
             ctx.fillStyle = p.color;
-            ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            ctx.fill();
+            // Subtle inner highlight
+            ctx.globalAlpha = Math.max(0, p.alpha * 0.35);
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.ellipse(0, -p.h * 0.12, p.w * 0.22, p.h * 0.18, 0, 0, Math.PI * 2);
+            ctx.fill();
             ctx.restore();
           }
         });
-        if (alive) frame = requestAnimationFrame(draw);
+
+        if (alive) requestAnimationFrame(draw);
         else canvas.style.display = 'none';
       }
 
-      // Start after a brief delay so the user sees the page first
-      setTimeout(() => requestAnimationFrame(draw), 400);
+      // Start after a brief delay so the checkmark animates first
+      setTimeout(() => requestAnimationFrame(draw), 500);
+
       window.addEventListener('resize', () => {
         canvas.width  = window.innerWidth;
         canvas.height = window.innerHeight;

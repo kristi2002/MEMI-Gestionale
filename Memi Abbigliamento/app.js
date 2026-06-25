@@ -1977,6 +1977,65 @@
     });
   }
 
+  /* ── 16b. ICON PULSE ON PAGE LOAD ──────────────────────── */
+  /* Compares current cart/wishlist count against the last count the
+     user saw (stored in sessionStorage). If the count grew, the icon
+     gets a short pulse ring so the user notices new items.
+     sessionStorage clears when the browser tab is closed, so the pulse
+     only fires during the same browsing session. */
+
+  var PULSE_CART_KEY  = 'memi_cart_seen';
+  var PULSE_WISH_KEY  = 'memi_wish_seen';
+
+  // Inject the pulse keyframe once into <head>
+  (function injectPulseStyle() {
+    if (document.getElementById('memi-pulse-style')) return;
+    var s = document.createElement('style');
+    s.id = 'memi-pulse-style';
+    s.textContent =
+      '@keyframes iconPulseRing{' +
+        '0%{box-shadow:0 0 0 0 rgba(201,137,122,.55)}' +
+        '60%{box-shadow:0 0 0 10px rgba(201,137,122,0)}' +
+        '100%{box-shadow:0 0 0 0 rgba(201,137,122,0)}' +
+      '}' +
+      '.icon-pulse{animation:iconPulseRing 700ms ease-out 3}';
+    document.head.appendChild(s);
+  })();
+
+  function pulseIconIfNew() {
+    // ── Cart ──
+    var cartNow  = cartCount();
+    var cartSeen = parseInt(sessionStorage.getItem(PULSE_CART_KEY) || '0', 10);
+    if (cartNow > cartSeen) {
+      // Delay slightly so header is fully injected first
+      setTimeout(function() {
+        document.querySelectorAll('.icon-btn[aria-label*="arrello"], .icon-btn[aria-label*="Cart"]').forEach(function(btn) {
+          btn.classList.remove('icon-pulse');
+          void btn.offsetWidth; // reflow
+          btn.classList.add('icon-pulse');
+          btn.addEventListener('animationend', function() { btn.classList.remove('icon-pulse'); }, { once: true });
+        });
+      }, 350);
+    }
+    sessionStorage.setItem(PULSE_CART_KEY, cartNow);
+
+    // ── Wishlist ──
+    var wishNow  = wishlist.length;
+    var wishSeen = parseInt(sessionStorage.getItem(PULSE_WISH_KEY) || '0', 10);
+    if (wishNow > wishSeen) {
+      setTimeout(function() {
+        var wlBtn = document.getElementById('wishlistHeaderBtn');
+        if (wlBtn) {
+          wlBtn.classList.remove('icon-pulse');
+          void wlBtn.offsetWidth;
+          wlBtn.classList.add('icon-pulse');
+          wlBtn.addEventListener('animationend', function() { wlBtn.classList.remove('icon-pulse'); }, { once: true });
+        }
+      }, 450);
+    }
+    sessionStorage.setItem(PULSE_WISH_KEY, wishNow);
+  }
+
   /* ── 17. INIT ──────────────────────────────────────────── */
 
   function init() {
@@ -1985,6 +2044,7 @@
     // the header is injected — fixes the "badge resets on page change" bug.
     updateCartBadges();
     updateWishlistBadge();
+    pulseIconIfNew();
     wireButtons();
     wireScrollStagger();
     wireReveal();

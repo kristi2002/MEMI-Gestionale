@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Primavera Estate 2026 — Editoriali Memi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../tokens.css?v=2" />
+  <link rel="stylesheet" href="../../app.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: #0e0b09; color: var(--espresso);
+      font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    img { display: block; width: 100%; object-fit: cover; }
+    a { color: inherit; text-decoration: none; }
+
+    /* header stubs */
+    .announcement-bar { background: var(--blush-light); color: var(--brown-mid);
+      text-align: center; padding: var(--space-2) var(--space-4);
+      font-size: var(--text-xs); letter-spacing: var(--tracking-wider);
+      text-transform: uppercase; font-weight: 500; border-bottom: 1px solid var(--blush); }
+    .site-header { position: sticky; top: 0; z-index: 200; }
+    .header-inner { max-width: 1280px; margin: 0 auto; padding: 0 var(--space-4);
+      height: 64px; display: flex; align-items: center; gap: var(--space-4); }
+    .logo { flex: 1; text-align: center; font-family: var(--font-serif);
+      font-size: var(--text-xl); font-weight: 400; letter-spacing: var(--tracking-wide); text-transform: uppercase; }
+    .icon-btn { position: relative; width: 40px; height: 40px; display: flex;
+      align-items: center; justify-content: center; border-radius: var(--radius-full);
+      transition: background var(--dur-fast); }
+    .icon-btn:hover { background: var(--bg-soft); }
+    .icon-btn svg { width: 20px; height: 20px; stroke: var(--espresso); fill: none; stroke-width: 1.6; }
+    .cart-badge { position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px;
+      background: var(--blush-dark); color: var(--white); border-radius: var(--radius-full);
+      font-size: 10px; font-weight: 600; display: flex; align-items: center;
+      justify-content: center; padding: 0 3px; }
+    .header-actions { display: flex; align-items: center; gap: var(--space-3); flex-shrink: 0; }
+    .burger { display: flex; flex-direction: column; gap: 5px; width: 24px;
+      padding: var(--space-1); flex-shrink: 0; cursor: pointer; border: none; background: none; }
+    .burger span { display: block; height: 1.5px; background: var(--espresso); border-radius: 2px; }
+    .desktop-nav { display: none; }
+    @media(min-width:900px){
+      .burger { display: none; }
+      .logo { flex: unset; font-size: var(--text-2xl); }
+      .desktop-nav { display: flex; align-items: center; gap: var(--space-8); font-size: var(--text-sm);
+        letter-spacing: var(--tracking-wide); text-transform: uppercase; font-weight: 500;
+        flex: 1; justify-content: center; }
+      .desktop-nav a { color: var(--brown-mid); transition: color var(--dur-fast); }
+      .desktop-nav a:hover { color: var(--espresso); }
+    }
+
+    /* ── Back nav ── */
+    .ed-back {
+      position: absolute;
+      top: calc(64px + 1.5rem);
+      left: clamp(1.5rem, 5vw, 4rem);
+      z-index: 10;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: rgba(255,255,255,.55);
+      transition: color 200ms;
+    }
+    .ed-back:hover { color: #fff; }
+    .ed-back svg { width: 14px; height: 14px; stroke: currentColor; fill: none; }
+
+    /* ── Hero ── */
+    .ed-hero {
+      position: relative;
+      height: 95svh;
+      min-height: 550px;
+      overflow: hidden;
+    }
+    .ed-hero img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+    .ed-hero-veil {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, rgba(14,11,9,.3) 0%, rgba(14,11,9,.05) 40%, rgba(14,11,9,.7) 85%, rgba(14,11,9,.95) 100%);
+    }
+    .ed-hero-body {
+      position: absolute; z-index: 2;
+      left: clamp(1.5rem, 6vw, 5rem);
+      bottom: clamp(2.5rem, 6vw, 5rem);
+    }
+    .ed-hero-issue { font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
+      color: rgba(255,255,255,.4); margin-bottom: var(--space-3); }
+    .ed-hero-title { font-family: var(--font-serif); font-size: clamp(3.5rem, 9vw, 8rem);
+      font-weight: 300; line-height: 0.92; letter-spacing: -0.03em; color: #fff; }
+    .ed-hero-title em { font-style: italic; color: rgba(243,209,214,.85); }
+
+    /* ── Intro text ── */
+    .ed-intro {
+      background: #0e0b09;
+      padding: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 5vw, 4rem);
+      max-width: 640px;
+    }
+    .ed-intro-label { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: rgba(255,255,255,.3); margin-bottom: var(--space-4); }
+    .ed-intro-text { font-family: var(--font-serif); font-size: clamp(1.35rem, 2.5vw, 1.8rem);
+      font-weight: 300; line-height: 1.45; color: rgba(255,255,255,.75); font-style: italic; }
+
+    /* ── Photo spreads ── */
+    .ed-spread { background: #0e0b09; padding: 0 clamp(1.5rem, 5vw, 4rem) clamp(2rem, 4vw, 3rem); }
+    .ed-spread + .ed-spread { padding-top: 6px; }
+
+    .spread-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .spread-3col { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+    .spread-1big2small { display: grid; grid-template-columns: 3fr 2fr; grid-template-rows: auto auto; gap: 6px; }
+    .spread-1big2small .main { grid-row: 1 / 3; }
+    @media (max-width: 640px) {
+      .spread-2col, .spread-3col, .spread-1big2small { grid-template-columns: 1fr; }
+      .spread-1big2small .main { grid-row: auto; }
+    }
+
+    .ed-photo { overflow: hidden; position: relative; }
+    .ed-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform 800ms ease-out; }
+    .ed-photo:hover img { transform: scale(1.03); }
+    .ar-portrait { aspect-ratio: 3/4; }
+    .ar-square   { aspect-ratio: 1/1; }
+    .ar-wide     { aspect-ratio: 4/3; }
+    .ar-tall     { aspect-ratio: 2/3; }
+
+    /* Caption below photo */
+    .ed-photo-cap {
+      padding: 10px 0 0;
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: var(--space-3);
+    }
+    .ed-photo-cap-name { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      font-weight: 500; color: rgba(255,255,255,.5); }
+    .ed-photo-cap-price { font-size: 11px; color: rgba(255,255,255,.3); }
+
+    /* Full-bleed */
+    .ed-fullbleed { width: 100%; overflow: hidden; }
+    .ed-fullbleed img { width: 100%; aspect-ratio: 21/8; object-fit: cover; object-position: center 30%; }
+    @media (max-width: 640px) { .ed-fullbleed img { aspect-ratio: 16/9; } }
+
+    /* Pull quote */
+    .ed-quote {
+      background: #0e0b09;
+      padding: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 5vw, 4rem);
+      text-align: center;
+    }
+    .ed-quote p {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 3.5vw, 3rem);
+      font-weight: 300;
+      font-style: italic;
+      color: rgba(255,255,255,.55);
+      line-height: 1.4;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .ed-quote cite {
+      display: block;
+      margin-top: var(--space-4);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-style: normal;
+      color: rgba(255,255,255,.2);
+    }
+
+    /* Shop CTA strip */
+    .ed-shop-strip {
+      background: #f7f2ee;
+      padding: clamp(4rem, 8vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-6);
+      flex-wrap: wrap;
+    }
+    .ed-shop-strip-left h2 { font-family: var(--font-serif);
+      font-size: clamp(1.75rem, 4vw, 3rem); font-weight: 300; letter-spacing: -0.02em;
+      color: var(--espresso); line-height: 1.1; }
+    .ed-shop-strip-left h2 em { font-style: italic; }
+    .ed-shop-strip-left p { font-size: var(--text-sm); color: var(--brown-mid);
+      margin-top: var(--space-2); }
+    .ed-shop-btn {
+      flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: var(--space-2);
+      padding: var(--space-4) var(--space-7);
+      background: var(--espresso); color: #fff;
+      font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 600;
+      border-radius: 9999px; transition: background 200ms, transform 150ms;
+    }
+    .ed-shop-btn:hover { background: #2a1e1e; transform: translateY(-1px); }
+
+    /* Pagination between editorials */
+    .ed-pagination {
+      background: #0e0b09;
+      border-top: 1px solid rgba(255,255,255,.08);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+    .ed-pag-item {
+      padding: clamp(2rem, 4vw, 3rem) clamp(1.5rem, 4vw, 3rem);
+      display: flex; flex-direction: column; gap: 6px;
+      transition: background 200ms;
+    }
+    .ed-pag-item:hover { background: rgba(255,255,255,.04); }
+    .ed-pag-item + .ed-pag-item { border-left: 1px solid rgba(255,255,255,.08); }
+    .ed-pag-label { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: rgba(255,255,255,.25); }
+    .ed-pag-title { font-family: var(--font-serif); font-size: clamp(1rem, 2.5vw, 1.5rem);
+      font-weight: 300; color: rgba(255,255,255,.65); font-style: italic; }
+    .ed-pag-item:last-child { text-align: right; }
+  </style>
+</head>
+<body>
+
+  <div class="announcement-bar">Spedizione gratuita da €50 &nbsp;·&nbsp; Resi gratuiti entro 30 giorni</div>
+  <div data-include="site-header"></div>
+
+  <a class="ed-back" href="../../editoriali.html">
+    <svg viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    Editoriali
+  </a>
+
+  <!-- HERO -->
+  <div class="ed-hero">
+    <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1920&q=88" alt="Primavera Estate 2026" loading="eager">
+    <div class="ed-hero-veil"></div>
+    <div class="ed-hero-body">
+      <p class="ed-hero-issue">N° 04 &nbsp;·&nbsp; Primavera Estate 2026</p>
+      <h1 class="ed-hero-title">Spring<br><em>Summer</em><br>2026</h1>
+    </div>
+  </div>
+
+  <!-- INTRO -->
+  <div class="ed-intro">
+    <p class="ed-intro-label">Nota del direttore creativo</p>
+    <p class="ed-intro-text">Questa stagione celebra la leggerezza. Tessuti che respirano, colori che evocano l'alba sul mare, silhouette che danzano con il vento. Un'ode alla femminilità senza sforzo.</p>
+  </div>
+
+  <!-- SPREAD 1 -->
+  <div class="ed-spread">
+    <div class="spread-1big2small">
+      <div class="ed-photo main ar-portrait">
+        <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=82" alt="Look 1" loading="lazy">
+      </div>
+      <div>
+        <div class="ed-photo ar-square" style="margin-bottom:6px;">
+          <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80" alt="Look 2" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span class="ed-photo-cap-name">Top Seta Lucida Aria</span>
+          <span class="ed-photo-cap-price">€65</span>
+        </div>
+      </div>
+      <div>
+        <div class="ed-photo ar-square">
+          <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80" alt="Look 3" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span class="ed-photo-cap-name">Set Coordinato</span>
+          <span class="ed-photo-cap-price">€130</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL BLEED -->
+  <div class="ed-fullbleed">
+    <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=85" alt="" loading="lazy">
+  </div>
+
+  <!-- PULL QUOTE -->
+  <div class="ed-quote">
+    <p>"La semplicità è la massima sofisticazione."</p>
+    <cite>— Memi Studio, Milano 2026</cite>
+  </div>
+
+  <!-- SPREAD 2 -->
+  <div class="ed-spread">
+    <div class="spread-3col">
+      <div>
+        <div class="ed-photo ar-portrait">
+          <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80" alt="Look 4" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span class="ed-photo-cap-name">Blazer Sartoriale Mia</span>
+          <span class="ed-photo-cap-price">€105</span>
+        </div>
+      </div>
+      <div>
+        <div class="ed-photo ar-portrait">
+          <img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=80" alt="Look 5" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span class="ed-photo-cap-name">Vestito Lino Cannes</span>
+          <span class="ed-photo-cap-price">€89</span>
+        </div>
+      </div>
+      <div>
+        <div class="ed-photo ar-portrait">
+          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&q=80" alt="Look 6" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span class="ed-photo-cap-name">Gonna Plissé Nuvola</span>
+          <span class="ed-photo-cap-price">€79</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPREAD 3 -->
+  <div class="ed-spread" style="padding-bottom: 0;">
+    <div class="spread-2col">
+      <div class="ed-photo ar-wide">
+        <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80" alt="Look 7" loading="lazy">
+      </div>
+      <div class="ed-photo ar-wide">
+        <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80" alt="Look 8" loading="lazy">
+      </div>
+    </div>
+  </div>
+
+  <!-- SHOP CTA -->
+  <div class="ed-shop-strip">
+    <div class="ed-shop-strip-left">
+      <h2>Acquista la<br><em>collezione</em></h2>
+      <p>Primavera Estate 2026 — disponibile ora</p>
+    </div>
+    <a href="../../collections/shop-all/index.html" class="ed-shop-btn">Scopri i pezzi →</a>
+  </div>
+
+  <!-- PAGINATION -->
+  <nav class="ed-pagination">
+    <a class="ed-pag-item" href="../autunno-inverno-2025/index.html">
+      <span class="ed-pag-label">← Precedente</span>
+      <span class="ed-pag-title">Fall Winter 2025</span>
+    </a>
+    <a class="ed-pag-item" href="../../editoriali.html">
+      <span class="ed-pag-label">Tutti gli editoriali →</span>
+      <span class="ed-pag-title">Archivio completo</span>
+    </a>
+  </nav>
+
+  <div data-include="site-footer"></div>
+  <script src="../../api-client.js"></script>
+  <script src="../../app.js?v=6"></script>
+</body>
+</html>

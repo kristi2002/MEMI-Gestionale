@@ -6,355 +6,611 @@
   <title>Editoriali — Memi Abbigliamento</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="tokens.css?v=2" />
+  <link rel="stylesheet" href="app.css" />
   <style>
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-    html{scroll-behavior:smooth;}
-    body{background:var(--bg-base);color:var(--espresso);font-family:var(--font-sans);
-         line-height:var(--leading-normal);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
-    img{display:block;width:100%;object-fit:cover;}
-    a{color:inherit;text-decoration:none;}
-    button{cursor:pointer;border:none;background:none;font-family:inherit;}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #0e0b09;
+      color: var(--espresso);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    img { display: block; width: 100%; object-fit: cover; }
+    a { color: inherit; text-decoration: none; }
 
-    /* ── Announcement ── */
-    .announcement-bar{background:var(--blush-light);color:var(--brown-mid);text-align:center;
-      padding:var(--space-2) var(--space-4);font-size:var(--text-xs);
-      letter-spacing:var(--tracking-wider);text-transform:uppercase;font-weight:500;
-      border-bottom:1px solid var(--blush);}
+    /* ── announcement ── */
+    .announcement-bar {
+      background: var(--blush-light); color: var(--brown-mid);
+      text-align: center; padding: var(--space-2) var(--space-4);
+      font-size: var(--text-xs); letter-spacing: var(--tracking-wider);
+      text-transform: uppercase; font-weight: 500;
+      border-bottom: 1px solid var(--blush);
+    }
 
-    /* ── Header stubs (app.js injects real header) ── */
-    .site-header{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.92);
-      backdrop-filter:blur(12px);border-bottom:1px solid var(--beige);}
-    .header-inner{max-width:1280px;margin:0 auto;padding:0 var(--space-4);height:64px;
-      display:flex;align-items:center;gap:var(--space-4);}
-    .logo{flex:1;text-align:center;font-family:var(--font-serif);font-size:var(--text-xl);
-      font-weight:400;letter-spacing:var(--tracking-wide);text-transform:uppercase;}
-    .logo span{color:var(--blush-dark);}
-    .icon-btn{position:relative;width:40px;height:40px;display:flex;align-items:center;
-      justify-content:center;border-radius:var(--radius-full);transition:background var(--dur-fast);}
-    .icon-btn:hover{background:var(--bg-soft);}
-    .icon-btn svg{width:20px;height:20px;stroke:var(--espresso);fill:none;stroke-width:1.6;}
-    .cart-badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;
-      background:var(--blush-dark);color:var(--white);border-radius:var(--radius-full);
-      font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 3px;}
-    .header-actions{display:flex;align-items:center;gap:var(--space-3);flex-shrink:0;}
-    .burger{display:flex;flex-direction:column;gap:5px;width:24px;padding:var(--space-1);flex-shrink:0;}
-    .burger span{display:block;height:1.5px;background:var(--espresso);border-radius:2px;}
-    .desktop-nav{display:none;}
+    /* ── header ── */
+    .site-header { position: sticky; top: 0; z-index: 200; }
+    .header-inner { max-width: 1280px; margin: 0 auto; padding: 0 var(--space-4);
+      height: 64px; display: flex; align-items: center; gap: var(--space-4); }
+    .logo { flex: 1; text-align: center; font-family: var(--font-serif);
+      font-size: var(--text-xl); font-weight: 400; letter-spacing: var(--tracking-wide);
+      text-transform: uppercase; }
+    .logo span { color: var(--blush-dark); }
+    .icon-btn { position: relative; width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-full); transition: background var(--dur-fast); }
+    .icon-btn:hover { background: var(--bg-soft); }
+    .icon-btn svg { width: 20px; height: 20px; stroke: var(--espresso); fill: none; stroke-width: 1.6; }
+    .cart-badge { position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px;
+      background: var(--blush-dark); color: var(--white); border-radius: var(--radius-full);
+      font-size: 10px; font-weight: 600; display: flex; align-items: center;
+      justify-content: center; padding: 0 3px; }
+    .header-actions { display: flex; align-items: center; gap: var(--space-3); flex-shrink: 0; }
+    .burger { display: flex; flex-direction: column; gap: 5px; width: 24px;
+      padding: var(--space-1); flex-shrink: 0; cursor: pointer; border: none; background: none; }
+    .burger span { display: block; height: 1.5px; background: var(--espresso); border-radius: 2px; }
+    .desktop-nav { display: none; }
     @media(min-width:900px){
-      .burger{display:none;}
-      .logo{flex:unset;font-size:var(--text-2xl);}
-      .desktop-nav{display:flex;align-items:center;gap:var(--space-8);font-size:var(--text-sm);
-        letter-spacing:var(--tracking-wide);text-transform:uppercase;font-weight:500;
-        flex:1;justify-content:center;}
-      .desktop-nav a{color:var(--brown-mid);transition:color var(--dur-fast);padding-bottom:2px;position:relative;}
-      .desktop-nav a.active{color:var(--espresso);}
-      .desktop-nav a:hover{color:var(--espresso);}
+      .burger { display: none; }
+      .logo { flex: unset; font-size: var(--text-2xl); }
+      .desktop-nav { display: flex; align-items: center; gap: var(--space-8);
+        font-size: var(--text-sm); letter-spacing: var(--tracking-wide);
+        text-transform: uppercase; font-weight: 500; flex: 1; justify-content: center; }
+      .desktop-nav a { color: var(--brown-mid); transition: color var(--dur-fast);
+        padding-bottom: 2px; position: relative; }
+      .desktop-nav a.active, .desktop-nav a:hover { color: var(--espresso); }
     }
 
-    /* ── Page Hero ── */
-    .page-hero {
-      padding: clamp(4rem, 8vw, 7rem) var(--space-6) clamp(3rem, 6vw, 5rem);
-      max-width: 1280px;
-      margin: 0 auto;
-      border-bottom: 1px solid var(--beige);
-    }
-    .page-hero-eyebrow {
-      font-size: var(--text-xs);
-      letter-spacing: var(--tracking-wider);
-      text-transform: uppercase;
-      color: var(--brown-light);
-      font-weight: 500;
-      margin-bottom: var(--space-3);
-    }
-    .page-hero-title {
-      font-family: var(--font-serif);
-      font-size: clamp(2.5rem, 5vw, 4.5rem);
-      font-weight: 300;
-      letter-spacing: -0.03em;
-      line-height: 1.08;
-    }
-    .page-hero-title em { font-style: italic; }
-    .page-hero-sub {
-      margin-top: var(--space-5);
-      font-size: var(--text-base);
-      color: var(--brown-mid);
-      max-width: 540px;
-      line-height: var(--leading-normal);
-    }
-
-    /* ── Campaigns section ── */
-    .campaigns-section {
-      padding: clamp(4rem, 8vw, 7rem) var(--space-6);
-      max-width: 1280px;
-      margin: 0 auto;
-    }
-
-    /* Hero campaign (full-width) */
-    .campaign-hero {
+    /* ══════════════════════════════════════════
+       CINEMATIC HERO
+    ══════════════════════════════════════════ */
+    .ed-hero {
       position: relative;
-      border-radius: var(--radius-xl);
+      height: 100svh;
+      min-height: 600px;
       overflow: hidden;
-      aspect-ratio: 16/7;
-      margin-bottom: var(--space-5);
       cursor: pointer;
     }
-    @media (max-width: 640px) { .campaign-hero { aspect-ratio: 4/3; } }
-    .campaign-hero img {
+    .ed-hero img {
       width: 100%; height: 100%;
       object-fit: cover;
-      object-position: center 35%;
-      transition: transform 700ms ease-out;
+      object-position: center 20%;
+      transform: scale(1.04);
+      transition: transform 8s ease-out;
     }
-    .campaign-hero:hover img { transform: scale(1.03); }
-    .campaign-hero-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to right, rgba(10,4,4,.65) 0%, rgba(10,4,4,.15) 60%, transparent 100%);
+    .ed-hero.loaded img { transform: scale(1); }
+    .ed-hero-veil {
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(14,11,9,.15) 0%,
+        rgba(14,11,9,.05) 35%,
+        rgba(14,11,9,.55) 75%,
+        rgba(14,11,9,.85) 100%
+      );
     }
-    .campaign-hero-body {
-      position: absolute;
-      z-index: 2;
-      left: clamp(1.5rem, 5vw, 4rem);
-      bottom: clamp(1.5rem, 5vw, 3rem);
+    .ed-hero-body {
+      position: absolute; z-index: 2;
+      left: clamp(1.5rem, 6vw, 5rem);
+      bottom: clamp(2.5rem, 6vw, 5rem);
+      right: clamp(1.5rem, 6vw, 5rem);
     }
-    .campaign-season {
-      font-size: 9px;
-      letter-spacing: 0.2em;
+    .ed-hero-issue {
+      font-size: 10px;
+      letter-spacing: 0.25em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.5);
-      margin-bottom: var(--space-2);
+      color: rgba(255,255,255,.45);
+      margin-bottom: var(--space-3);
     }
-    .campaign-name {
+    .ed-hero-title {
       font-family: var(--font-serif);
-      font-size: clamp(2rem, 4vw, 4rem);
+      font-size: clamp(3rem, 8vw, 7.5rem);
       font-weight: 300;
-      color: var(--white);
+      line-height: 0.95;
       letter-spacing: -0.03em;
-      line-height: 1.1;
-      margin-bottom: var(--space-5);
+      color: #fff;
+      margin-bottom: var(--space-6);
     }
-    .campaign-name em { font-style: italic; }
-    .campaign-cta {
+    .ed-hero-title em { font-style: italic; color: var(--blush-light); }
+    .ed-hero-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-6);
+      flex-wrap: wrap;
+    }
+    .ed-hero-cta {
       display: inline-flex;
       align-items: center;
       gap: var(--space-2);
       font-size: 11px;
-      letter-spacing: var(--tracking-wide);
-      text-transform: uppercase;
-      font-weight: 600;
-      color: var(--white);
-      border-bottom: 1px solid rgba(255,255,255,.4);
-      padding-bottom: 2px;
-      transition: border-color var(--dur-fast);
-    }
-    .campaign-cta:hover { border-color: var(--white); }
-
-    /* Campaign grid (smaller cards) */
-    .campaign-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-5);
-    }
-    @media (min-width: 768px) { .campaign-grid { grid-template-columns: repeat(3, 1fr); } }
-
-    .campaign-card {
-      position: relative;
-      border-radius: var(--radius-xl);
-      overflow: hidden;
-      aspect-ratio: 3/4;
-      cursor: pointer;
-    }
-    .campaign-card img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      transition: transform 600ms ease-out;
-    }
-    .campaign-card:hover img { transform: scale(1.06); }
-    .campaign-card-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to top, rgba(59,43,43,.6) 0%, rgba(59,43,43,.05) 55%, transparent 100%);
-      transition: background var(--dur-med);
-    }
-    .campaign-card:hover .campaign-card-overlay {
-      background: linear-gradient(to top, rgba(59,43,43,.72) 0%, rgba(59,43,43,.15) 55%, transparent 100%);
-    }
-    .campaign-card-body {
-      position: absolute;
-      z-index: 2;
-      bottom: 0; left: 0; right: 0;
-      padding: var(--space-5);
-    }
-    .campaign-card-season {
-      font-size: 9px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.55);
-      margin-bottom: 4px;
+      font-weight: 600;
+      color: #fff;
+      border-bottom: 1px solid rgba(255,255,255,.5);
+      padding-bottom: 3px;
+      transition: border-color 200ms, letter-spacing 200ms;
     }
-    .campaign-card-name {
-      font-family: var(--font-serif);
-      font-size: clamp(1.25rem, 2.5vw, 1.75rem);
-      font-weight: 300;
-      color: var(--white);
-      line-height: 1.2;
-      margin-bottom: var(--space-3);
+    .ed-hero-cta:hover { border-color: #fff; letter-spacing: 0.22em; }
+    .ed-hero-scroll {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: rgba(255,255,255,.35);
     }
-    .campaign-card-name em { font-style: italic; }
-    .campaign-card-cta {
+    .ed-hero-scroll svg { width: 14px; height: 14px; stroke: rgba(255,255,255,.35);
+      fill: none; animation: scrollBob 1.8s ease-in-out infinite; }
+    @keyframes scrollBob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(4px); }
+    }
+
+    /* ══════════════════════════════════════════
+       SEASON NAV (pill tabs)
+    ══════════════════════════════════════════ */
+    .season-nav {
+      background: #0e0b09;
+      padding: clamp(2rem, 4vw, 3rem) clamp(1.5rem, 5vw, 4rem) 0;
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .season-nav::-webkit-scrollbar { display: none; }
+    .season-pill {
+      flex-shrink: 0;
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: var(--tracking-wide);
+      padding: 7px 18px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: var(--white);
-      background: rgba(255,255,255,.15);
-      backdrop-filter: blur(6px);
-      border-radius: var(--radius-full);
-      padding: 5px 12px;
-      border: 1px solid rgba(255,255,255,.25);
-      opacity: 0;
-      transform: translateY(6px);
-      transition: opacity var(--dur-med), transform var(--dur-med);
+      border: 1px solid rgba(255,255,255,.18);
+      color: rgba(255,255,255,.5);
+      cursor: pointer;
+      transition: all 200ms;
+      background: transparent;
     }
-    .campaign-card:hover .campaign-card-cta { opacity: 1; transform: translateY(0); }
+    .season-pill:hover, .season-pill.active {
+      background: rgba(255,255,255,.1);
+      border-color: rgba(255,255,255,.5);
+      color: #fff;
+    }
+    .season-pill.active {
+      background: rgba(255,255,255,.14);
+      border-color: rgba(255,255,255,.6);
+      color: #fff;
+    }
 
-    /* ── CTA ── */
-    .about-cta-section {
-      background: var(--blush-light);
-      border-top: 1px solid var(--blush);
-      padding: clamp(4rem, 8vw, 6rem) var(--space-6);
+    /* ══════════════════════════════════════════
+       EDITORIAL SECTIONS
+    ══════════════════════════════════════════ */
+    .ed-sections {
+      background: #0e0b09;
+      padding: clamp(3rem, 6vw, 5rem) 0 clamp(5rem, 8vw, 8rem);
+    }
+
+    .ed-section {
+      padding: clamp(3rem, 6vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+      border-top: 1px solid rgba(255,255,255,.08);
+      transition: opacity 400ms;
+    }
+    .ed-section.hidden { display: none; }
+
+    /* Section header */
+    .ed-section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: var(--space-4);
+      margin-bottom: clamp(1.5rem, 4vw, 3rem);
+      flex-wrap: wrap;
+    }
+    .ed-section-meta { display: flex; flex-direction: column; gap: 8px; }
+    .ed-section-issue {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.3);
+    }
+    .ed-section-title {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 300;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .ed-section-title em { font-style: italic; color: rgba(243,209,214,.85); }
+    .ed-section-link {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-weight: 600;
+      color: rgba(255,255,255,.45);
+      border-bottom: 1px solid rgba(255,255,255,.18);
+      padding-bottom: 2px;
+      transition: color 200ms, border-color 200ms;
+    }
+    .ed-section-link:hover { color: #fff; border-color: rgba(255,255,255,.6); }
+
+    /* ── Layout A: 1 big + 2 small ── */
+    .ed-grid-a {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    @media (min-width: 640px) {
+      .ed-grid-a {
+        grid-template-columns: 3fr 2fr;
+        grid-template-rows: auto auto;
+        gap: 6px;
+      }
+      .ed-grid-a .ed-img-main { grid-row: 1 / 3; }
+    }
+
+    /* ── Layout B: 3 equal columns ── */
+    .ed-grid-b {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    @media (min-width: 768px) {
+      .ed-grid-b { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    /* ── Layout C: 1 wide + 1 tall side ── */
+    .ed-grid-c {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    @media (min-width: 640px) {
+      .ed-grid-c {
+        grid-template-columns: 2fr 1fr;
+        align-items: start;
+      }
+    }
+
+    /* ── Layout D: full width strip + 2 below ── */
+    .ed-grid-d { display: flex; flex-direction: column; gap: 6px; }
+    .ed-grid-d-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    @media (min-width: 640px) {
+      .ed-grid-d-row { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    /* Image wrapper */
+    .ed-img {
+      overflow: hidden;
+      position: relative;
+      cursor: pointer;
+    }
+    .ed-img img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 700ms ease-out;
+    }
+    .ed-img:hover img { transform: scale(1.04); }
+
+    /* Aspect ratios */
+    .ar-portrait  { aspect-ratio: 3/4; }
+    .ar-square    { aspect-ratio: 1/1; }
+    .ar-wide      { aspect-ratio: 16/9; }
+    .ar-ultra     { aspect-ratio: 21/9; }
+    .ar-tall      { aspect-ratio: 2/3; }
+
+    /* Caption overlay on hover */
+    .ed-img-caption {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 1rem 1.2rem;
+      background: linear-gradient(to top, rgba(14,11,9,.75) 0%, transparent 100%);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.65);
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 250ms, transform 250ms;
+    }
+    .ed-img:hover .ed-img-caption { opacity: 1; transform: translateY(0); }
+
+    /* ══════════════════════════════════════════
+       FULL-BLEED DIVIDER IMAGE
+    ══════════════════════════════════════════ */
+    .ed-divider {
+      width: 100%;
+      aspect-ratio: 21/7;
+      overflow: hidden;
+      position: relative;
+    }
+    @media (max-width: 640px) { .ed-divider { aspect-ratio: 16/9; } }
+    .ed-divider img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      object-position: center 30%;
+    }
+    .ed-divider-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(14,11,9,.35);
+    }
+    .ed-divider-text span {
+      font-family: var(--font-serif);
+      font-size: clamp(1.5rem, 4vw, 3.5rem);
+      font-weight: 300;
+      font-style: italic;
+      color: rgba(255,255,255,.8);
+      letter-spacing: 0.05em;
       text-align: center;
     }
-    .about-cta-eyebrow {
-      font-size: var(--text-xs);
-      letter-spacing: var(--tracking-wider);
+
+    /* ══════════════════════════════════════════
+       FOOTER CTA (cream on dark bg)
+    ══════════════════════════════════════════ */
+    .ed-footer-cta {
+      background: #f7f2ee;
+      padding: clamp(5rem, 10vw, 8rem) clamp(1.5rem, 5vw, 4rem);
+      text-align: center;
+    }
+    .ed-footer-eyebrow {
+      font-size: 10px;
+      letter-spacing: 0.25em;
       text-transform: uppercase;
       color: var(--brown-light);
       margin-bottom: var(--space-4);
     }
-    .about-cta-title {
+    .ed-footer-title {
       font-family: var(--font-serif);
-      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-size: clamp(2.5rem, 5vw, 4.5rem);
       font-weight: 300;
       letter-spacing: -0.02em;
-      margin-bottom: var(--space-6);
+      color: var(--espresso);
+      margin-bottom: var(--space-7);
+      line-height: 1.1;
     }
-    .about-cta-title em { font-style: italic; }
-    .btn-about-cta {
+    .ed-footer-title em { font-style: italic; }
+    .ed-footer-btn {
       display: inline-flex;
       align-items: center;
       gap: var(--space-2);
       padding: var(--space-4) var(--space-8);
       background: var(--espresso);
-      color: var(--white);
-      font-size: var(--text-xs);
-      letter-spacing: var(--tracking-wider);
+      color: #fff;
+      font-size: 11px;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       font-weight: 600;
-      border-radius: var(--radius-full);
-      transition: background var(--dur-fast), transform var(--dur-fast);
+      border-radius: 9999px;
+      transition: background 200ms, transform 150ms;
     }
-    .btn-about-cta:hover { background: #2a1e1e; transform: translateY(-1px); }
+    .ed-footer-btn:hover { background: #2a1e1e; transform: translateY(-1px); }
   </style>
-  <link rel="stylesheet" href="app.css" />
 </head>
 <body>
 
   <div class="announcement-bar">Spedizione gratuita da €50 &nbsp;·&nbsp; Resi gratuiti entro 30 giorni</div>
-
-  <!-- Header injected by app.js -->
   <div data-include="site-header"></div>
 
-  <!-- PAGE HERO -->
-  <div class="page-hero">
-    <p class="page-hero-eyebrow">Editoriali di moda</p>
-    <h1 class="page-hero-title">I nostri <em>editoriali</em></h1>
-    <p class="page-hero-sub">Scatti editoriali che raccontano ogni collezione. Un viaggio visivo attraverso le stagioni di Memi.</p>
+  <!-- ═══════════════════════════════════════════════
+       CINEMATIC HERO — Primavera Estate 2026
+  ═══════════════════════════════════════════════ -->
+  <a class="ed-hero" href="editoriali/primavera-estate-2026/index.html" id="edHero">
+    <img
+      src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1920&q=88"
+      alt="Primavera Estate 2026 — Memi Editoriale"
+      loading="eager"
+      onload="document.getElementById('edHero').classList.add('loaded')"
+    />
+    <div class="ed-hero-veil"></div>
+    <div class="ed-hero-body">
+      <p class="ed-hero-issue">N° 04 &nbsp;·&nbsp; Primavera Estate 2026</p>
+      <h1 class="ed-hero-title">Spring<br><em>Summer</em><br>2026</h1>
+      <div class="ed-hero-row">
+        <span class="ed-hero-cta">Sfoglia l'editoriale
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </span>
+        <span class="ed-hero-scroll">
+          Scorri
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        </span>
+      </div>
+    </div>
+  </a>
+
+  <!-- ═══════════════════════════════════════════════
+       SEASON NAVIGATION
+  ═══════════════════════════════════════════════ -->
+  <nav class="season-nav" aria-label="Stagioni editoriali">
+    <button class="season-pill active" data-filter="all">Tutti</button>
+    <button class="season-pill" data-filter="pe26">Primavera Estate 2026</button>
+    <button class="season-pill" data-filter="estate25">Estate 2025</button>
+    <button class="season-pill" data-filter="ai25">Autunno Inverno 2025</button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════
+       EDITORIAL SECTIONS
+  ═══════════════════════════════════════════════ -->
+  <div class="ed-sections">
+
+    <!-- ── 1. PRIMAVERA ESTATE 2026 ── -->
+    <section class="ed-section" data-season="pe26">
+      <div class="ed-section-head">
+        <div class="ed-section-meta">
+          <p class="ed-section-issue">N° 04 &nbsp;·&nbsp; Primavera Estate 2026</p>
+          <h2 class="ed-section-title">Spring<br><em>Summer 2026</em></h2>
+        </div>
+        <a href="editoriali/primavera-estate-2026/index.html" class="ed-section-link">
+          Sfoglia tutto →
+        </a>
+      </div>
+
+      <!-- Layout A: 1 big + 2 stacked -->
+      <div class="ed-grid-a" style="margin-bottom:6px;">
+        <div class="ed-img ed-img-main ar-portrait">
+          <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=82" alt="PE26 look 1" loading="lazy">
+          <span class="ed-img-caption">Vestito lino · Rosa cipria</span>
+        </div>
+        <div class="ed-img ar-square">
+          <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80" alt="PE26 look 2" loading="lazy">
+          <span class="ed-img-caption">Top seta · Lavanda</span>
+        </div>
+        <div class="ed-img ar-square">
+          <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80" alt="PE26 look 3" loading="lazy">
+          <span class="ed-img-caption">Set coordinato · Avorio</span>
+        </div>
+      </div>
+      <!-- Layout B: 3 equal -->
+      <div class="ed-grid-b">
+        <div class="ed-img ar-portrait">
+          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&q=80" alt="PE26 look 4" loading="lazy">
+          <span class="ed-img-caption">Gonna plissé · Avorio</span>
+        </div>
+        <div class="ed-img ar-portrait">
+          <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80" alt="PE26 look 5" loading="lazy">
+          <span class="ed-img-caption">Blazer sartoriale · Salvia</span>
+        </div>
+        <div class="ed-img ar-portrait">
+          <img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=80" alt="PE26 look 6" loading="lazy">
+          <span class="ed-img-caption">Camicia lino · Blush</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FULL-BLEED DIVIDER ── -->
+    <div class="ed-divider" data-season="estate25">
+      <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1920&q=85" alt="" loading="lazy">
+      <div class="ed-divider-text">
+        <span>"Ogni capo racconta<br>una stagione di grazia."</span>
+      </div>
+    </div>
+
+    <!-- ── 2. ESTATE 2025 — DANCE COLLECTION ── -->
+    <section class="ed-section" data-season="estate25">
+      <div class="ed-section-head">
+        <div class="ed-section-meta">
+          <p class="ed-section-issue">N° 03 &nbsp;·&nbsp; Estate 2025</p>
+          <h2 class="ed-section-title">Dance<br><em>Collection</em></h2>
+        </div>
+        <a href="editoriali/estate-2025/index.html" class="ed-section-link">
+          Sfoglia tutto →
+        </a>
+      </div>
+
+      <!-- Layout C: 1 wide + 1 tall -->
+      <div class="ed-grid-c" style="margin-bottom:6px;">
+        <div class="ed-img ar-wide">
+          <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1000&q=82" alt="Estate 25 look 1" loading="lazy">
+          <span class="ed-img-caption">Vestito midi · Rosa antico</span>
+        </div>
+        <div class="ed-img ar-portrait">
+          <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80" alt="Estate 25 look 2" loading="lazy">
+          <span class="ed-img-caption">Top bustier · Perla</span>
+        </div>
+      </div>
+      <!-- 3 smaller below -->
+      <div class="ed-grid-b">
+        <div class="ed-img ar-portrait">
+          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&q=80" alt="Estate 25 look 3" loading="lazy">
+          <span class="ed-img-caption">Gonna wrap · Salvia</span>
+        </div>
+        <div class="ed-img ar-portrait">
+          <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80" alt="Estate 25 look 4" loading="lazy">
+          <span class="ed-img-caption">Camicia brisa · Corallo</span>
+        </div>
+        <div class="ed-img ar-portrait">
+          <img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=80" alt="Estate 25 look 5" loading="lazy">
+          <span class="ed-img-caption">Sandalo listino · Avorio</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FULL-BLEED DIVIDER ── -->
+    <div class="ed-divider" data-season="ai25">
+      <img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=1920&q=85" alt="" loading="lazy">
+      <div class="ed-divider-text">
+        <span>"La luce d'autunno<br>incontra il calore dell'inverno."</span>
+      </div>
+    </div>
+
+    <!-- ── 3. AUTUNNO INVERNO 2025 ── -->
+    <section class="ed-section" data-season="ai25">
+      <div class="ed-section-head">
+        <div class="ed-section-meta">
+          <p class="ed-section-issue">N° 02 &nbsp;·&nbsp; Autunno Inverno 2025</p>
+          <h2 class="ed-section-title">Fall<br><em>Winter 2025</em></h2>
+        </div>
+        <a href="editoriali/autunno-inverno-2025/index.html" class="ed-section-link">
+          Sfoglia tutto →
+        </a>
+      </div>
+
+      <!-- Layout D: full strip + row of 3 -->
+      <div class="ed-grid-d">
+        <div class="ed-img ar-ultra" style="aspect-ratio:21/8;">
+          <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1920&q=85" alt="AI25 hero" loading="lazy" style="object-position:center 25%;">
+          <span class="ed-img-caption">Maxi cardigan · Grigio cipria</span>
+        </div>
+        <div class="ed-grid-d-row">
+          <div class="ed-img ar-portrait">
+            <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80" alt="AI25 look 2" loading="lazy">
+            <span class="ed-img-caption">Blazer kimono · Menta</span>
+          </div>
+          <div class="ed-img ar-portrait">
+            <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&q=80" alt="AI25 look 3" loading="lazy">
+            <span class="ed-img-caption">Pantalone culotte · Salvia</span>
+          </div>
+          <div class="ed-img ar-portrait">
+            <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80" alt="AI25 look 4" loading="lazy">
+            <span class="ed-img-caption">Set coordinato · Viola</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /ed-sections -->
+
+  <!-- FOOTER CTA -->
+  <div class="ed-footer-cta">
+    <p class="ed-footer-eyebrow">La collezione ti aspetta</p>
+    <h2 class="ed-footer-title">Vivi lo stile<br><em>Memi</em></h2>
+    <a href="collections/shop-all/index.html" class="ed-footer-btn">Scopri la collezione →</a>
   </div>
 
-  <!-- CAMPAIGNS -->
-  <section class="campaigns-section">
-
-    <!-- Hero campaign -->
-    <div class="campaign-hero">
-      <img
-        src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1920&q=85"
-        alt="Campagna Spring Summer 2026"
-        loading="lazy"
-      />
-      <div class="campaign-hero-overlay"></div>
-      <div class="campaign-hero-body">
-        <p class="campaign-season">Primavera Estate 2026</p>
-        <h2 class="campaign-name">Spring Summer<br><em>2026</em></h2>
-        <a href="/shop" class="campaign-cta">Scopri la collezione →</a>
-      </div>
-    </div>
-
-    <!-- Campaign grid -->
-    <div class="campaign-grid">
-
-      <div class="campaign-card">
-        <img
-          src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80"
-          alt="Fall Winter 2025"
-          loading="lazy"
-        />
-        <div class="campaign-card-overlay"></div>
-        <div class="campaign-card-body">
-          <p class="campaign-card-season">Autunno Inverno 2025</p>
-          <p class="campaign-card-name">Fall Winter<br><em>2025</em></p>
-          <span class="campaign-card-cta">Esplora →</span>
-        </div>
-      </div>
-
-      <div class="campaign-card">
-        <img
-          src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80"
-          alt="Estate 2025 - Dance Collection"
-          loading="lazy"
-        />
-        <div class="campaign-card-overlay"></div>
-        <div class="campaign-card-body">
-          <p class="campaign-card-season">Estate 2025</p>
-          <p class="campaign-card-name">Dance<br><em>Collection</em></p>
-          <span class="campaign-card-cta">Esplora →</span>
-        </div>
-      </div>
-
-      <div class="campaign-card">
-        <img
-          src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80"
-          alt="Campagna Primavera 2025"
-          loading="lazy"
-        />
-        <div class="campaign-card-overlay"></div>
-        <div class="campaign-card-body">
-          <p class="campaign-card-season">Primavera 2025</p>
-          <p class="campaign-card-name">Spring<br><em>2025</em></p>
-          <span class="campaign-card-cta">Esplora →</span>
-        </div>
-      </div>
-
-    </div>
-  </section>
-
-  <!-- CTA -->
-  <section class="about-cta-section">
-    <p class="about-cta-eyebrow">Pronta a scoprire?</p>
-    <h2 class="about-cta-title">Entra nella <em>collezione</em></h2>
-    <a href="/shop" class="btn-about-cta">Scopri la collezione →</a>
-  </section>
-
-  <!-- Footer injected by app.js -->
   <div data-include="site-footer"></div>
 
   <script src="api-client.js"></script>
   <script src="app.js?v=6"></script>
+  <script>
+    // Season pill filter
+    document.querySelectorAll('.season-pill').forEach(function(pill) {
+      pill.addEventListener('click', function() {
+        var filter = pill.dataset.filter;
+        document.querySelectorAll('.season-pill').forEach(function(p) { p.classList.remove('active'); });
+        pill.classList.add('active');
+
+        document.querySelectorAll('[data-season]').forEach(function(el) {
+          if (filter === 'all' || el.dataset.season === filter) {
+            el.classList.remove('hidden');
+          } else {
+            el.classList.add('hidden');
+          }
+        });
+      });
+    });
+  </script>
 </body>
 </html>

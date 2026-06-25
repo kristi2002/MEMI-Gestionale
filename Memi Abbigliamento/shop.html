@@ -369,7 +369,7 @@
     </div>
     <div class="filter-panel-foot">
       <button class="btn-clear-filters" id="btnClearAll">Cancella tutto</button>
-      <button class="btn-show-results" onclick="closeFilterDrawer()">Mostra <strong id="filterResultCount">12</strong> articoli</button>
+      <button class="btn-show-results" onclick="applyFilters()">Mostra <strong id="filterResultCount">12</strong> articoli</button>
     </div>
   </aside>
 </div>
@@ -781,6 +781,21 @@
       document.querySelectorAll('input[data-cat]').forEach(function(cb){ cb.checked = false; });
       applyFilters();
       initPagination();
+    });
+
+    // Category checkboxes — single-select (uncheck others when one is picked)
+    document.querySelectorAll('input[data-cat]').forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        if (cb.checked) {
+          document.querySelectorAll('input[data-cat]').forEach(function(other) {
+            if (other !== cb) other.checked = false;
+          });
+          af.categoria = cb.dataset.cat;
+        } else {
+          af.categoria = null;
+        }
+        applyFilters();
+      });
     });
 
     // Sort radios
