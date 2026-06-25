@@ -40,7 +40,10 @@ const paymentsRoutes      = require('./routes/payments');
 const newsletterRoutes    = require('./routes/newsletter');
 const invoicesRoutes      = require('./routes/invoices');
 const resiRoutes          = require('./routes/resi');
+const resiPublicRoutes    = require('./routes/resi-public');
 const reviewsRoutes       = require('./routes/reviews');
+const settingsRoutes      = require('./routes/settings');
+const staffRoutes         = require('./routes/staff');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -91,9 +94,11 @@ const authLimiter = rateLimit({
 });
 
 app.use('/api', apiLimiter);
-app.use('/api/auth/login',    authLimiter);
-app.use('/api/auth/register', authLimiter);
-app.use('/api/admin/auth/login', authLimiter);
+app.use('/api/auth/login',           authLimiter);
+app.use('/api/auth/register',        authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/reset-password',  authLimiter);
+app.use('/api/admin/auth/login',     authLimiter);
 
 // ── Health check ───────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
@@ -111,7 +116,10 @@ app.use('/api/payments',          paymentsRoutes);
 app.use('/api/newsletter',        newsletterRoutes);
 app.use('/api/admin/invoices',    invoicesRoutes);
 app.use('/api/admin/resi',        resiRoutes);
+app.use('/api/resi',              resiPublicRoutes);
 app.use('/api/reviews',           reviewsRoutes);
+app.use('/api/admin/settings',    settingsRoutes);
+app.use('/api/admin/staff',       staffRoutes);
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));
@@ -126,9 +134,25 @@ app.use((err, req, res, _next) => {
 (async () => {
   try {
     await testConnection();
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`🚀  MEMI API running on port ${PORT}`);
       console.log(`    NODE_ENV = ${process.env.NODE_ENV || 'development'}`);
+    });
+
+    // ── Graceful shutdown on SIGTERM (Coolify rolling deploys) ──
+    // Give in-flight requests up to 10s to complete before the process exits.
+    const { pool } = require('./db');
+    process.on('SIGTERM', () => {
+      console.log('SIGTERM received — closing HTTP server...');
+      server.close(() => {
+        console.log('HTTP server closed. Draining DB pool...');
+        pool.end().finally(() => {
+          console.log('DB pool drained. Exiting.');
+          process.exit(0);
+        });
+      });
+      // Force-exit after 10s if something hangs
+      setTimeout(() => process.exit(1), 10_000).unref();
     });
   } catch (err) {
     console.error('❌  Failed to start:', err.message);

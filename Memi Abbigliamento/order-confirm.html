@@ -441,7 +441,7 @@
       <div class="card">
         <p class="card-title">Riepilogo ordine</p>
         <div class="order-items" id="orderItemsList">
-          <!-- Populated by JS from sessionStorage cart -->
+          <!-- Populated by JS from localStorage cart -->
         </div>
         <hr class="order-divider" />
         <div class="order-totals">
@@ -511,7 +511,7 @@
     <!-- Email note -->
     <div class="email-note">
       <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-      <p>Una conferma d'ordine è stata inviata a <strong id="emailDisplay">krsiti.komini@gmail.com</strong>. Controlla la cartella spam se non la vedi entro qualche minuto.</p>
+      <p>Una conferma d'ordine è stata inviata a <strong id="emailDisplay"></strong>. Controlla la cartella spam se non la vedi entro qualche minuto.</p>
     </div>
 
     <!-- CTAs -->
@@ -541,12 +541,44 @@
       return 'MEM-' + n;
     }
     const ORDER_KEY = 'memi_last_order';
-    let orderNum = sessionStorage.getItem(ORDER_KEY);
+    let orderNum = null;
+    let orderTotal = null;
+    let orderEmail = null;
+    try {
+      const raw = sessionStorage.getItem(ORDER_KEY);
+      if (raw) {
+        // checkout.html stores JSON {order_number, total, email}; older fallback was a plain string
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.order_number) {
+          orderNum   = parsed.order_number;
+          orderTotal = parsed.total;
+          orderEmail = parsed.email || null;
+        } else {
+          orderNum = raw;
+        }
+      }
+    } catch (_) {
+      orderNum = sessionStorage.getItem(ORDER_KEY);
+    }
     if (!orderNum) {
       orderNum = genOrderNum();
       sessionStorage.setItem(ORDER_KEY, orderNum);
     }
     document.getElementById('orderNum').textContent = 'Ordine #' + orderNum;
+    // Populate customer email (falls back to auth session if available)
+    const emailEl = document.getElementById('emailDisplay');
+    if (emailEl) {
+      if (!orderEmail) {
+        try { const s = JSON.parse(localStorage.getItem('memi_session')); orderEmail = s && s.email; } catch(_) {}
+      }
+      emailEl.textContent = orderEmail || '';
+    }
+    // Populate real total if available (overrides the cart-recomputed value)
+    if (orderTotal != null) {
+      const fmtTotal = '\u20ac' + parseFloat(orderTotal).toFixed(2).replace('.', ',');
+      const tv = document.getElementById('totalVal');
+      if (tv) tv.textContent = fmtTotal;
+    }
 
     // ── Dates ─────────────────────────────────────────────
     const italianDays   = ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
@@ -583,7 +615,7 @@
     // ── Order items from cart ─────────────────────────────
     const CART_KEY = 'memi_cart';
     let cart = [];
-    try { cart = JSON.parse(sessionStorage.getItem(CART_KEY)) || []; } catch(e) {}
+    try { cart = JSON.parse(sessionStorage.getItem('memi_confirm_cart') || localStorage.getItem(CART_KEY)) || []; } catch(e) {}
 
     // If cart is empty, show demo items
     if (!cart.length) {
@@ -619,7 +651,8 @@
     document.getElementById('totalVal').textContent     = '€' + total.toFixed(2).replace('.',',');
 
     // Clear cart after order
-    sessionStorage.removeItem(CART_KEY);
+    localStorage.removeItem(CART_KEY);
+    sessionStorage.removeItem('memi_confirm_cart');
     sessionStorage.removeItem('memi_last_order'); // regenerate next visit
 
     // ── Petali di rosa ────────────────────────────────────
@@ -710,3 +743,4 @@
   </script>
 </body>
 </html>
+      

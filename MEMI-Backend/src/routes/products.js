@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
     else if (status && status !== 'attivo') { sql += ' AND p.status = ?'; params.push(status); }
     else { sql += ' AND p.status = "attivo"'; }
     sql += ' GROUP BY p.id';
-    sql += ' ORDER BY p.popularity ASC';
+    sql += ' ORDER BY p.popularity DESC';
     const safeLimit  = parseInt(limit)  || 100;
     const safeOffset = parseInt(offset) || 0;
     sql += ` LIMIT ${safeLimit} OFFSET ${safeOffset}`;

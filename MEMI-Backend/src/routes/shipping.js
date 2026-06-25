@@ -117,26 +117,37 @@ router.get('/shipments', requireAdmin, async (req, res) => {
 /* ── PUT /api/shipping/shipments/:id ── (admin) ── */
 router.put('/shipments/:id', requireAdmin, async (req, res) => {
   const { stato, eta } = req.body;
-  try {
-    const fields = [];
-    const vals   = [];
-    if (stato !== undefined) { fields.push('stato = ?'); vals.push(stato); }
-    if (eta   !== undefined) { fields.push('eta = ?');   vals.push(eta); }
-    if (!fields.length) return res.status(400).json({ error: 'Nessun campo' });
-    vals.push(req.params.id);
-    await pool.execute(`UPDATE shipments SET ${fields.join(', ')} WHERE id = ?`, vals);
+  const fields = [];
+  const vals   = [];
+  if (stato !== undefined) { fields.push('stato = ?'); vals.push(stato); }
+  if (eta   !== undefined) { fields.push('eta = ?');   vals.push(eta); }
+  if (!fields.length) return res.status(400).json({ error: 'Nessun campo' });
 
-    // Mirror status to order if delivered
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    vals.push(req.params.id);
+    const [result] = await conn.execute(`UPDATE shipments SET ${fields.join(', ')} WHERE id = ?`, vals);
+    if (result.affectedRows === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Spedizione non trovata' });
+    }
+
+    // Mirror status to order if delivered — inside the same transaction
     if (stato === 'consegnato') {
-      const [[shipment]] = await pool.execute('SELECT order_id FROM shipments WHERE id = ?', [req.params.id]);
-      if (shipment) await pool.execute(
+      const [[shipment]] = await conn.execute('SELECT order_id FROM shipments WHERE id = ?', [req.params.id]);
+      if (shipment) await conn.execute(
         "UPDATE orders SET order_status = 'consegnato' WHERE id = ?",
         [shipment.order_id]
       );
     }
+    await conn.commit();
     return res.json({ ok: true });
   } catch (err) {
+    await conn.rollback();
     return res.status(500).json({ error: 'Errore server' });
+  } finally {
+    conn.release();
   }
 });
 

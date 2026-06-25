@@ -14,8 +14,6 @@
 #   See DEPLOYMENT.md for step-by-step instructions.
 # =============================================================
 
-version: "3.9"
-
 services:
 
   # ── MySQL 8 ─────────────────────────────────────────────────
@@ -29,6 +27,8 @@ services:
       MYSQL_PASSWORD:      ${DB_PASSWORD:-changeme_user}
     volumes:
       - mysql_data:/var/lib/mysql
+      # Schema is auto-applied on first start (initdb.d runs only when data volume is empty)
+      - ./MEMI-Backend/src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-changeme_root}"]
       interval: 10s
@@ -66,6 +66,7 @@ services:
       JWT_EXPIRES_IN:        7d
       JWT_ADMIN_EXPIRES_IN:  8h
       ALLOWED_ORIGINS:       ${ALLOWED_ORIGINS:-https://memi.testdemo.it,https://admin.memi.testdemo.it}
+      FRONTEND_URL:          ${FRONTEND_URL:-https://memi.testdemo.it}
       # Stripe — set real keys in Coolify env vars
       STRIPE_SECRET_KEY:     ${STRIPE_SECRET_KEY:-}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
@@ -81,10 +82,13 @@ services:
     labels:
       # Coolify / Traefik labels — adjust host rules to your domain
       - "traefik.enable=true"
-      - "traefik.http.routers.memi-api.rule=Host(`api.memi.testdemo.it`)"
+      - "traefik.http.routers.memi-api.rule=Host(`${API_DOMAIN:-api.memi.testdemo.it}`)"
       - "traefik.http.routers.memi-api.entrypoints=websecure"
       - "traefik.http.routers.memi-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.memi-api.loadbalancer.server.port=3000"
+      # Shared HTTP→HTTPS redirect middleware (Traefik picks this up from any container)
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
 
   # ── E-commerce (Nginx static) ────────────────────────────────
   ecommerce:
@@ -99,10 +103,15 @@ services:
       - memi_net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.memi-shop.rule=Host(`memi.testdemo.it`) || Host(`www.memi.testdemo.it`)"
+      # HTTPS router
+      - "traefik.http.routers.memi-shop.rule=Host(`${SHOP_DOMAIN:-memi.testdemo.it}`) || Host(`www.${SHOP_DOMAIN:-memi.testdemo.it}`)"
       - "traefik.http.routers.memi-shop.entrypoints=websecure"
       - "traefik.http.routers.memi-shop.tls.certresolver=letsencrypt"
       - "traefik.http.services.memi-shop.loadbalancer.server.port=80"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.memi-shop-http.rule=Host(`${SHOP_DOMAIN:-memi.testdemo.it}`) || Host(`www.${SHOP_DOMAIN:-memi.testdemo.it}`)"
+      - "traefik.http.routers.memi-shop-http.entrypoints=web"
+      - "traefik.http.routers.memi-shop-http.middlewares=redirect-to-https"
 
   # ── Admin Gestionale (Nginx static) ─────────────────────────
   admin:
@@ -117,10 +126,16 @@ services:
       - memi_net
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.memi-admin.rule=Host(`admin.memi.testdemo.it`)"
+      # HTTPS router
+      - "traefik.http.routers.memi-admin.rule=Host(`${ADMIN_DOMAIN:-admin.memi.testdemo.it}`)"
       - "traefik.http.routers.memi-admin.entrypoints=websecure"
       - "traefik.http.routers.memi-admin.tls.certresolver=letsencrypt"
       - "traefik.http.services.memi-admin.loadbalancer.server.port=80"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.memi-admin-http.rule=Host(`${ADMIN_DOMAIN:-admin.memi.testdemo.it}`)"
+      - "traefik.http.routers.memi-admin-http.entrypoints=web"
+      - "traefik.http.routers.memi-admin-http.middlewares=redirect-to-https"
+
 
 volumes:
   mysql_data:

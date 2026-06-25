@@ -37,7 +37,11 @@ router.get('/', requireAdmin, async (req, res) => {
     sql += ` ORDER BY i.created_at DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
 
     const [invoices] = await pool.execute(sql, params);
-    const [[{ total }]] = await pool.execute('SELECT COUNT(*) as total FROM invoices');
+    // Count with same filters applied
+    const countSql = `SELECT COUNT(*) as total FROM invoices i LEFT JOIN orders o ON o.id = i.order_id WHERE 1=1` +
+      (stato ? ' AND i.stato = ?' : '') +
+      (q     ? ' AND (i.invoice_number LIKE ? OR i.customer_email LIKE ? OR i.customer_nome LIKE ? OR o.order_number LIKE ?)' : '');
+    const [[{ total }]] = await pool.execute(countSql, params);
     return res.json({ invoices, total });
   } catch (err) {
     console.error('invoices list error', err);

@@ -148,7 +148,7 @@
     const headerActions =
       '<div class="header-actions">' +
         '<button class="icon-btn" aria-label="Cerca"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>' +
-        '<button class="icon-btn" aria-label="Carrello"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cart-badge">2</span></button>' +
+        '<button class="icon-btn" aria-label="Carrello"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cart-badge" style="display:none">0</span></button>' +
       '</div>';
 
     const headerHtml =
@@ -599,6 +599,9 @@
                   <span class="auth-field-hint" id="authLoginPwdHint"></span>
                 </div>
                 <p class="auth-error" id="authLoginError"></p>
+                <p style="text-align:right;margin-bottom:.75rem;">
+                  <a href="forgot-password.html" class="auth-forgot-link" style="font-size:.75rem;color:var(--brown-light);text-decoration:underline;text-underline-offset:3px;">Password dimenticata?</a>
+                </p>
                 <button type="submit" class="btn-primary auth-submit" id="authLoginBtn">
                   <span class="auth-btn-label">Accedi</span>
                   <span class="auth-btn-spin" aria-hidden="true"></span>
@@ -619,7 +622,7 @@
                 <div class="auth-field" id="authRegPwdField">
                   <label for="authRegPwd">Password</label>
                   <div class="auth-pwd-wrap">
-                    <input type="password" id="authRegPwd" placeholder="Min. 6 caratteri" autocomplete="new-password" />
+                    <input type="password" id="authRegPwd" placeholder="Min. 8 caratteri" autocomplete="new-password" />
                     <button type="button" class="auth-eye-btn" aria-label="Mostra password" data-target="authRegPwd">
                       <svg class="eye-open" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       <svg class="eye-closed" viewBox="0 0 24 24" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -1738,7 +1741,7 @@
       validateEmailField(loginEmailEl, loginEmailHint, loginEmailFld);
     });
     if (loginPwdEl) loginPwdEl.addEventListener('input', function() {
-      validatePwdField(loginPwdEl, loginPwdHint, loginPwdFld, 6);
+      validatePwdField(loginPwdEl, loginPwdHint, loginPwdFld, 8);
     });
 
     /* Real-time validation — register */
@@ -1752,7 +1755,7 @@
       validateEmailField(regEmailEl, regEmailHint, regEmailFld);
     });
     if (regPwdEl) regPwdEl.addEventListener('input', function() {
-      validatePwdField(regPwdEl, regPwdHint, regPwdFld, 6);
+      validatePwdField(regPwdEl, regPwdHint, regPwdFld, 8);
     });
 
     /* Eye toggle */
@@ -1799,7 +1802,7 @@
       errEl.textContent = '';
 
       var emailOk = validateEmailField(regEmailEl, regEmailHint, regEmailFld);
-      var pwdOk   = validatePwdField(regPwdEl, regPwdHint, regPwdFld, 6);
+      var pwdOk   = validatePwdField(regPwdEl, regPwdHint, regPwdFld, 8);
       if (!name || !emailOk || !pwdOk) {
         if (!name) errEl.textContent = 'Inserisci il tuo nome.';
         return;
@@ -1975,18 +1978,36 @@
           }
           return;
         }
-        if (btn && !btn.dataset.busy) {
-          btn.dataset.busy = '1';
-          var orig = btn.innerHTML;
-          btn.innerHTML = '✓ Iscritto!';
-          btn.disabled = true;
-          setTimeout(function() {
-            btn.innerHTML = orig;
-            btn.disabled = false;
-            delete btn.dataset.busy;
-          }, 2600);
-        }
-        if (input) input.value = '';
+        if (btn && btn.dataset.busy) return;
+        if (btn) { btn.dataset.busy = '1'; btn.disabled = true; }
+        var orig = btn ? btn.innerHTML : '';
+        if (btn) btn.innerHTML = '…';
+
+        var apiBase = (window.MemiAPI && window.MemiAPI._base) || '/api';
+        fetch(apiBase + '/newsletter/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, fonte: 'storefront' }),
+        })
+          .then(function(r) { return r.json().catch(function(){ return {}; }); })
+          .then(function(data) {
+            if (btn) {
+              btn.innerHTML = data.error ? '✗ Errore' : '✓ Iscritto!';
+              setTimeout(function() {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+                delete btn.dataset.busy;
+              }, 2600);
+            }
+            if (!data.error && input) input.value = '';
+          })
+          .catch(function() {
+            if (btn) {
+              btn.innerHTML = orig;
+              btn.disabled = false;
+              delete btn.dataset.busy;
+            }
+          });
       });
     });
   }

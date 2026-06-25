@@ -73,7 +73,9 @@ router.put('/:id', requireAdmin, async (req, res) => {
 /* ── DELETE /api/admin/discounts/:id ── */
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
-    await pool.execute('DELETE FROM discount_codes WHERE id = ?', [req.params.id]);
+    const [result] = await pool.execute('DELETE FROM discount_codes WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0)
+      return res.status(404).json({ error: 'Codice sconto non trovato' });
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });

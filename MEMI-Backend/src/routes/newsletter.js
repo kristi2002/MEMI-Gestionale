@@ -37,8 +37,9 @@ router.get('/', requireAdmin, async (req, res) => {
     const safeLimit  = parseInt(limit)  || 500;
     const safeOffset = parseInt(offset) || 0;
     const [rows] = await pool.execute(
-      `SELECT id, email, fonte, subscribed_at, unsubscribed
+      `SELECT id, email, fonte, subscribed_at
        FROM newsletter_subscribers
+       WHERE unsubscribed = 0
        ORDER BY subscribed_at DESC
        LIMIT ${safeLimit} OFFSET ${safeOffset}`
     );

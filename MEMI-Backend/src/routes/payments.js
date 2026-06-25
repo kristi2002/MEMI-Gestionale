@@ -46,4 +46,12 @@ router.post('/create-intent', async (req, res) => {
   }
 });
 
+/* ── GET /api/payments/config ── */
+// Returns the Stripe publishable key so the frontend can initialise Stripe.js
+// The secret key never leaves the server.
+router.get('/config', (req, res) => {
+  const pk = process.env.STRIPE_PUBLISHABLE_KEY || null;
+  return res.json({ publishableKey: pk });
+});
+
 module.exports = router;

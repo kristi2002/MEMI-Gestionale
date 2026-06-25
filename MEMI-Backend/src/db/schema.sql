@@ -289,6 +289,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   titolo         VARCHAR(255),
   testo          TEXT,
   stato          ENUM('in_attesa','pubblicata','rifiutata') DEFAULT 'in_attesa',
+  risposta_admin TEXT NULL,
   created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
   FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
@@ -319,33 +320,110 @@ INSERT INTO products (id, name, categoria, colore, color_label, price, original_
 ('sandalo-listino-estate','Sandalo Listino Estate','scarpe',    'avorio',   'Avorio naturale',    98.00, NULL,   0, TRUE,  'shoe',  'ph-blush',    6,  '["shop-all","scarpe","accessori","novita","estate-2025"]', 'attivo'),
 ('mocassino-pelle-soft',  'Mocassino Pelle Soft',  'scarpe',    'espresso', 'Espresso',           135.00,NULL,   0, FALSE, 'shoe',  'ph-cream',    15, '["shop-all","scarpe","accessori"]', 'attivo'),
 ('sneaker-tela-salvia',   'Sneaker Tela Salvia',   'scarpe',    'salvia',   'Verde salvia',       89.00, 105.00, 15, FALSE, 'shoe',  'ph-sage',     2,  '["shop-all","scarpe","accessori","saldi"]', 'attivo'),
-('cintura-pelle-sottile', 'Cintura Pelle Sottile', 'cinture',   'espresso', 'Espresso',           32.00, NULL,   0, FALSE, 'belt',  'ph-cream',    21, '["shop-all","cinture","accessori"]', 'attivo'),
-('set-bijoux-estate',     'Set Bijoux Estate',     'cinture',   'blush',    'Rosa cipria',        28.00, NULL,   0, TRUE,  'belt',  'ph-blush',    23, '["shop-all","cinture","accessori","novita","estate-2025"]', 'attivo')
-ON DUPLICATE KEY UPDATE name=VALUES(name);
+('cintura-pelle-sottile', 'Cintura Pelle Sottile', 'cinture',  'espresso', 'Espresso',         32.00, NULL,   0, FALSE, 'belt',  'ph-cream',    21, '["shop-all","cinture","accessori"]', 'attivo'),
+('set-bijoux-estate',    'Set Bijoux Estate',    'cinture',  'blush',    'Rosa cipria',      28.00, NULL,   0, TRUE,  'belt',  'ph-blush',    23, '["shop-all","cinture","accessori","novita","estate-2025"]', 'attivo')
+ON DUPLICATE KEY UPDATE name=VALUES(name), price=VALUES(price), status=VALUES(status);
 
--- Seed product sizes / stock
+-- -------------------------------------------------------------
+-- Product sizes / stock per taglia
+-- -------------------------------------------------------------
 INSERT INTO product_sizes (product_id, taglia, stock) VALUES
-('vestito-lino-cannes',   'xs', 8), ('vestito-lino-cannes',   's',  12), ('vestito-lino-cannes',   'm',  10),
-('blazer-sartoriale-mia', 's',  5), ('blazer-sartoriale-mia', 'm',  9),  ('blazer-sartoriale-mia', 'l',  6),
-('top-seta-lucida-aria',  'xs', 7), ('top-seta-lucida-aria',  's',  11),
-('gonna-plisse-nuvola',   'xs', 6), ('gonna-plisse-nuvola',   's',  9),  ('gonna-plisse-nuvola',   'm',  14), ('gonna-plisse-nuvola',   'l',  10), ('gonna-plisse-nuvola',   'xl', 5),
-('camicia-cotone-brisa',  's',  8), ('camicia-cotone-brisa',  'm',  12), ('camicia-cotone-brisa',  'l',  7),
-('giacca-kimono-fresca',  's',  4), ('giacca-kimono-fresca',  'm',  8),  ('giacca-kimono-fresca',  'l',  10), ('giacca-kimono-fresca',  'xl', 3),
-('set-coordinato-viola',  'xs', 5), ('set-coordinato-viola',  's',  8),  ('set-coordinato-viola',  'm',  6),
-('pantalone-culotte-zen', 's',  7), ('pantalone-culotte-zen', 'm',  9),  ('pantalone-culotte-zen', 'l',  5),
-('vestito-midi-fiori',    'xs', 4), ('vestito-midi-fiori',    's',  7),  ('vestito-midi-fiori',    'm',  9),  ('vestito-midi-fiori',    'l',  4),
-('gonna-wrap-salvia',     's',  6), ('gonna-wrap-salvia',     'm',  8),  ('gonna-wrap-salvia',     'l',  9),  ('gonna-wrap-salvia',     'xl', 4),
-('maxi-cardigan-nuvola',  'xs', 3), ('maxi-cardigan-nuvola',  's',  5),
-('top-bustier-perla',     'xs', 8), ('top-bustier-perla',     's',  10), ('top-bustier-perla',     'm',  7),  ('top-bustier-perla',     'l',  4),
-('borsa-tote-lino',       'unica', 15),
-('borsa-tracolla-luna',   'unica', 12),
-('borsa-bucket-sabbia',   'unica', 8),
-('collana-perla-aurora',  'unica', 20),
-('anello-filo-dorato',    'unica', 18),
-('orecchini-goccia-rosa', 'unica', 22),
-('sandalo-listino-estate','38', 5), ('sandalo-listino-estate','39', 8), ('sandalo-listino-estate','40', 6), ('sandalo-listino-estate','41', 4),
-('mocassino-pelle-soft',  '37', 4), ('mocassino-pelle-soft',  '38', 6), ('mocassino-pelle-soft',  '39', 7), ('mocassino-pelle-soft',  '40', 5),
-('sneaker-tela-salvia',   '38', 6), ('sneaker-tela-salvia',   '39', 8), ('sneaker-tela-salvia',   '40', 9), ('sneaker-tela-salvia',   '41', 5), ('sneaker-tela-salvia', '42', 3),
-('cintura-pelle-sottile', 'unica', 25),
-('set-bijoux-estate',     'unica', 30)
+  ('vestito-lino-cannes', 'xs', 20),
+  ('vestito-lino-cannes', 's', 20),
+  ('vestito-lino-cannes', 'm', 20),
+  ('blazer-sartoriale-mia', 's', 20),
+  ('blazer-sartoriale-mia', 'm', 20),
+  ('blazer-sartoriale-mia', 'l', 20),
+  ('top-seta-lucida-aria', 'xs', 20),
+  ('top-seta-lucida-aria', 's', 20),
+  ('gonna-plisse-nuvola', 'xs', 20),
+  ('gonna-plisse-nuvola', 's', 20),
+  ('gonna-plisse-nuvola', 'm', 20),
+  ('gonna-plisse-nuvola', 'l', 20),
+  ('gonna-plisse-nuvola', 'xl', 20),
+  ('camicia-cotone-brisa', 's', 20),
+  ('camicia-cotone-brisa', 'm', 20),
+  ('camicia-cotone-brisa', 'l', 20),
+  ('giacca-kimono-fresca', 's', 20),
+  ('giacca-kimono-fresca', 'm', 20),
+  ('giacca-kimono-fresca', 'l', 20),
+  ('giacca-kimono-fresca', 'xl', 20),
+  ('set-coordinato-viola', 'xs', 20),
+  ('set-coordinato-viola', 's', 20),
+  ('set-coordinato-viola', 'm', 20),
+  ('pantalone-culotte-zen', '38', 20),
+  ('pantalone-culotte-zen', '40', 20),
+  ('pantalone-culotte-zen', '42', 20),
+  ('pantalone-culotte-zen', '44', 20),
+  ('pantalone-culotte-zen', '46', 20),
+  ('pantalone-culotte-zen', '48', 20),
+  ('vestito-midi-fiori', 'xs', 20),
+  ('vestito-midi-fiori', 's', 20),
+  ('vestito-midi-fiori', 'm', 20),
+  ('vestito-midi-fiori', 'l', 20),
+  ('gonna-wrap-salvia', 's', 20),
+  ('gonna-wrap-salvia', 'm', 20),
+  ('gonna-wrap-salvia', 'l', 20),
+  ('gonna-wrap-salvia', 'xl', 20),
+  ('maxi-cardigan-nuvola', 'xs', 20),
+  ('maxi-cardigan-nuvola', 's', 20),
+  ('top-bustier-perla', 'xs', 20),
+  ('top-bustier-perla', 's', 20),
+  ('top-bustier-perla', 'm', 20),
+  ('top-bustier-perla', 'l', 20),
+  ('borsa-tote-lino', 'unica', 20),
+  ('borsa-tracolla-luna', 'unica', 20),
+  ('borsa-bucket-sabbia', 'unica', 20),
+  ('collana-perla-aurora', 'unica', 20),
+  ('anello-filo-dorato', 'unica', 20),
+  ('orecchini-goccia-rosa', 'unica', 20),
+  ('sandalo-listino-estate', '38', 20),
+  ('sandalo-listino-estate', '39', 20),
+  ('sandalo-listino-estate', '40', 20),
+  ('sandalo-listino-estate', '41', 20),
+  ('mocassino-pelle-soft', '37', 20),
+  ('mocassino-pelle-soft', '38', 20),
+  ('mocassino-pelle-soft', '39', 20),
+  ('mocassino-pelle-soft', '40', 20),
+  ('sneaker-tela-salvia', '38', 20),
+  ('sneaker-tela-salvia', '39', 20),
+  ('sneaker-tela-salvia', '40', 20),
+  ('sneaker-tela-salvia', '41', 20),
+  ('sneaker-tela-salvia', '42', 20),
+  ('cintura-pelle-sottile', 'unica', 20),
+  ('set-bijoux-estate', 'unica', 20)
 ON DUPLICATE KEY UPDATE stock=VALUES(stock);
+
+-- -------------------------------------------------------------
+-- Indexes for high-frequency query columns
+-- -------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_orders_customer   ON orders(customer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_statuses   ON orders(order_status, payment_status);
+CREATE INDEX IF NOT EXISTS idx_orders_created    ON orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_resi_stato        ON resi(stato);
+CREATE INDEX IF NOT EXISTS idx_reviews_product   ON reviews(product_id, stato);
+CREATE INDEX IF NOT EXISTS idx_newsletter_email  ON newsletter_subscribers(email);
+
+-- -------------------------------------------------------------
+-- Store settings (key/value pairs)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS store_settings (
+  `key`      VARCHAR(100) NOT NULL PRIMARY KEY,
+  `value`    TEXT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT IGNORE INTO store_settings (`key`, `value`) VALUES
+  ('store_name',                'MEMI Abbigliamento'),
+  ('store_email',               'info@memi.it'),
+  ('store_phone',               ''),
+  ('store_address',             ''),
+  ('store_city',                ''),
+  ('store_country',             'Italia'),
+  ('store_vat_number',          ''),
+  ('order_notification_email',  ''),
+  ('shipping_default_cost',     '5.90'),
+  ('shipping_free_threshold',   '150.00'),
+  ('returns_policy_days',       '14'),
+  ('store_instagram',           ''),
+  ('store_facebook',            '');

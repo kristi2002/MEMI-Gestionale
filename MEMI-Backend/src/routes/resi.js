@@ -33,7 +33,17 @@ router.get('/', requireAdmin, async (req, res) => {
     sql += ` ORDER BY created_at DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
 
     const [resi]          = await pool.execute(sql, params);
-    const [[{ total }]]   = await pool.execute('SELECT COUNT(*) as total FROM resi');
+
+    // Count query mirrors the same filters so pagination totals are correct
+    let countSql    = 'SELECT COUNT(*) as total FROM resi WHERE 1=1';
+    const countParams = [];
+    if (stato) { countSql += ' AND stato = ?'; countParams.push(stato); }
+    if (q) {
+      countSql += ' AND (rma_number LIKE ? OR customer_email LIKE ? OR customer_nome LIKE ? OR order_number LIKE ?)';
+      const like2 = `%${q}%`;
+      countParams.push(like2, like2, like2, like2);
+    }
+    const [[{ total }]]   = await pool.execute(countSql, countParams);
     return res.json({ resi, total });
   } catch (err) {
     console.error('resi list error', err);

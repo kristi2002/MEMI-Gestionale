@@ -49,8 +49,10 @@ router.post('/', optionalCustomer, async (req, res) => {
   if (!items || !items.length)
     return res.status(400).json({ error: 'Il carrello è vuoto' });
 
-  // Verify Stripe PaymentIntent if provided and secret key is configured
-  if (payment_method === 'carta' && payment_intent_id && process.env.STRIPE_SECRET_KEY) {
+  // Verify Stripe PaymentIntent when Stripe is configured
+  if (payment_method === 'carta' && process.env.STRIPE_SECRET_KEY) {
+    if (!payment_intent_id)
+      return res.status(402).json({ error: 'Dati di pagamento mancanti. Riprova.' });
     try {
       const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
       const pi = await stripe.paymentIntents.retrieve(payment_intent_id);
@@ -278,7 +280,7 @@ router.put('/admin/:id/ship', requireAdmin, async (req, res) => {
 
     await conn.execute(
       `UPDATE orders SET courier_code = ?, tracking_number = ?,
-              order_status = 'spedito', payment_status = 'pagato'
+              order_status = 'spedito'
        WHERE id = ?`,
       [courier_code, tracking_number, req.params.id]
     );

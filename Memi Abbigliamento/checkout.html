@@ -688,6 +688,8 @@
       var discountAmt = 0;
       if (appliedCode && appliedCode.type === 'percent') {
         discountAmt = subtotal * (appliedCode.value / 100);
+      } else if (appliedCode && appliedCode.type === 'fixed') {
+        discountAmt = Math.min(appliedCode.value, subtotal);
       }
       var shipping = (appliedCode && appliedCode.type === 'shipping') ? 0 : shippingCost;
       var total    = Math.max(0, subtotal - discountAmt + shipping);
@@ -911,7 +913,14 @@
     }
 
     function fetchPaymentIntent() {
-      var amountCents = Math.round((subtotal + shippingCost) * 100);
+      var discountAmt = 0;
+      if (appliedCode && appliedCode.type === 'percent') {
+        discountAmt = subtotal * (appliedCode.value / 100);
+      } else if (appliedCode && appliedCode.type === 'fixed') {
+        discountAmt = Math.min(appliedCode.value, subtotal);
+      }
+      var effectiveShipping = (appliedCode && appliedCode.type === 'shipping') ? 0 : shippingCost;
+      var amountCents = Math.round(Math.max(0, subtotal - discountAmt + effectiveShipping) * 100);
       if (!amountCents) return;
       fetch('/api/payments/create-intent', {
         method: 'POST',
@@ -994,7 +1003,8 @@
         if (window.MemiAPI) {
           window.MemiAPI.orders.place(orderData)
             .then(function(data) {
-              try { sessionStorage.setItem('memi_last_order', JSON.stringify({ order_number: data.order_number, total: data.total })); } catch(_) {}
+              try { sessionStorage.setItem('memi_last_order', JSON.stringify({ order_number: data.order_number, total: data.total, email: orderData.email })); } catch(_) {}
+              try { sessionStorage.setItem('memi_confirm_cart', JSON.stringify(cartItems)); } catch(_) {}
               try { localStorage.removeItem('memi_cart'); sessionStorage.removeItem('memi_cart'); } catch(_) {}
               window.location.href = 'order-confirm.html';
             })
@@ -1039,8 +1049,13 @@
         // (fallback for dev/test without real Stripe keys)
         placeOrder(null);
       } else {
-        // PayPal / Klarna — place order directly (these go through external redirect flows)
-        placeOrder(null);
+        // PayPal / Klarna — not yet integrated; block submission to prevent unpaid orders
+        setLoading(false);
+        var errEl = el('paymentError');
+        if (errEl) {
+          errEl.textContent = 'Questo metodo di pagamento non è ancora disponibile. Seleziona Carta di credito per completare l'acquisto.';
+          errEl.style.display = 'flex';
+        }
       }
     }
 
@@ -1135,6 +1150,20 @@
       // Enter key in promo input
       var promoIn = el('promoInput');
       if (promoIn) promoIn.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyPromo(); });
+
+      // Prefetch Stripe publishable key so it is ready when the user reaches step 3.
+      // Uses the same API base detection as api-client.js.
+      (function fetchStripeConfig() {
+        var apiBase = (window.MemiAPI && window.MemiAPI._base) || '/api';
+        fetch(apiBase + '/payments/config')
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .then(function(data) {
+            if (data && data.publishableKey) {
+              window.MEMI_STRIPE_PK = data.publishableKey;
+            }
+          })
+          .catch(function() { /* no-op — Stripe will fail gracefully at mount time */ });
+      })();
     });
   </script>
   <script src="api-client.js"></script>

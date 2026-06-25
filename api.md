@@ -135,53 +135,10 @@ Used by `checkout.html`: call this first, then `stripe.confirmCardPayment(client
 ## Admin Dashboard — `/api/admin/dashboard`
 
 | Method | Path | Auth | Returns |
-|--------|------|------|---------|
-| GET | `/admin/dashboard/kpis` | Admin | `{revenue:{value,delta,up}, orders:{value,delta,up}, visitors:{value,delta,up}, aov:{value,delta,up}}` — values pre-formatted for display |
-| GET | `/admin/dashboard/chart` | Admin | `[{day,revenue,orders}]` array — last 30 days |
-| GET | `/admin/dashboard/top-products` | Admin | `[{product_id,product_name,units_sold,revenue}]` array — top 10 last 30 days |
-| GET | `/admin/dashboard/recent-orders` | Admin | `[...orders]` array — last 10 |
-
----
-
-## Invoices (Fatture) — `/api/admin/invoices`
-
-| Method | Path | Auth | Body / Query | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/invoices` | Admin | `?stato=emessa&limit=200&offset=0` | `{invoices:[...], total}` — each invoice includes `order_number` (joined) |
-| GET | `/admin/invoices/:id` | Admin | — | `{...invoiceFields, items:[{product_name,taglia,qty,price}]}` |
-| POST | `/admin/invoices` | Admin | `{order_id, tax_rate?, due_date?, customer_cf?, note?}` | `{invoice}` — auto-generates sequential number `F-YYYY-NNNN` |
-| PUT | `/admin/invoices/:id` | Admin | `{stato?, note?, due_date?}` | `{invoice}` |
-| DELETE | `/admin/invoices/:id` | Admin | — | `{ok:true, message}` |
-
-**Invoice `stato` values:** `bozza` → `emessa` → `inviata` → `pagata` → `annullata`
-
----
-
-## Returns (Resi) — `/api/admin/resi`
-
-| Method | Path | Auth | Body / Query | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/resi` | Admin | `?stato=aperto&limit=200&offset=0` | `{resi:[...], total}` |
-| GET | `/admin/resi/:id` | Admin | — | `{...resoFields, items:[...order_items]}` |
-| POST | `/admin/resi` | Admin | `{order_id, motivo, descrizione?}` | `{reso}` — auto-generates RMA number `R-XXXXXX` |
-| PUT | `/admin/resi/:id` | Admin | `{stato?, rimborso_amount?}` | `{reso}` — setting `stato=rimborsato` also updates order `payment_status` to `rimborsato` |
-| DELETE | `/admin/resi/:id` | Admin | — | `{ok:true, message}` |
-
-**Reso `stato` values:** `aperto` → `in_analisi` → `approvato` / `rifiutato` → `rimborsato`
-
----
-
-## Reviews (Recensioni) — `/api/reviews`
-
-| Method | Path | Auth | Body / Query | Returns |
-|--------|------|------|------|---------|
-| GET | `/reviews/admin` | Admin | `?stato=in_attesa&product_id=&q=&limit=50` | `{reviews:[...], total, pending}` |
-| GET | `/reviews/product/:product_id` | None | — | `[{id,customer_nome,rating,titolo,testo,created_at}]` — published only |
-| POST | `/reviews` | Optional | `{product_id, rating(1-5), titolo?, testo?, customer_nome?, customer_email?}` | `{ok:true, id, message}` — stato defaults to `in_attesa` |
-| PUT | `/reviews/admin/:id` | Admin | `{stato}` | `{review}` |
-| DELETE | `/reviews/admin/:id` | Admin | — | `{ok:true, message}` |
-
-**Review `stato` values:** `in_attesa` → `pubblicata` / `rifiutata`
+|--------|------|------|---------| GET | `/admin/dashboard/kpis` | Admin | `{revenue:{value,delta,up}, orders:{value,delta,up}, visitors:{value,delta,up}, aov:{value,delta,up}}` |
+| GET | `/admin/dashboard/chart` | Admin | `[{month, revenue, orders}]` — last 6 months |
+| GET | `/admin/dashboard/top-products` | Admin | `[{id, nome, venduti, revenue, immagine}]` — top 5 |
+| GET | `/admin/dashboard/recent-orders` | Admin | `[{id, order_number, customer_nome, total, order_status, created_at}]` — last 10 |
 
 ---
 
@@ -189,25 +146,74 @@ Used by `checkout.html`: call this first, then `stripe.confirmCardPayment(client
 
 | Method | Path | Auth | Body / Query | Returns |
 |--------|------|------|------|---------|
-| POST | `/newsletter/subscribe` | None | `{email, fonte?}` (`fonte` defaults to `"footer"`) | `{ok:true, message}` |
-| GET | `/newsletter` | Admin | `?limit=500&offset=0` | `{subscribers:[{id,email,fonte,subscribed_at,unsubscribed}], total}` |
-
-Re-subscribing an unsubscribed email reactivates it (upsert). Invalid email format → 400.
-
----
-
-## Error Format
-
-All errors return:
-```json
-{ "error": "Human-readable Italian message" }
-```
-
-HTTP codes used: 200 OK, 201 Created, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict, 500 Internal Server Error.
+| GET | `/newsletter` | Admin | `?page=1&limit=50&status=active` | `{subscribers:[...], total, pages}` |
+| POST | `/newsletter/subscribe` | None | `{email, fonte?}` | `{message}` — idempotent (re-activates if unsubscribed) |
+| POST | `/newsletter/unsubscribe` | None | `{email}` | `{message}` |
 
 ---
 
-## Rate Limiting
+## Invoices — `/api/admin/invoices`
 
-- All `/api/*` routes: 300 req / 15 min
-- `/api/auth/login`, `/api/auth/register`, `/api/admin/auth/login`: 20 req / 15 min
+| Method | Path | Auth | Body / Query | Returns |
+|--------|------|------|------|---------|
+| GET | `/admin/invoices` | Admin | `?page=1&limit=20&q=&stato=` | `{invoices:[...], total, pages}` |
+| GET | `/admin/invoices/:id` | Admin | — | `{invoice}` |
+| POST | `/admin/invoices` | Admin | `{order_id, numero_fattura, importo, data_emissione, stato?, note?}` | `{invoice}` |
+| PUT | `/admin/invoices/:id` | Admin | partial fields | `{invoice}` |
+| DELETE | `/admin/invoices/:id` | Admin | — | `{ok:true}` |
+
+---
+
+## Returns (Resi) — `/api/admin/resi` · `/api/resi`
+
+### Admin routes — `/api/admin/resi`
+
+| Method | Path | Auth | Body / Query | Returns |
+|--------|------|------|------|---------|
+| GET | `/admin/resi` | Admin | `?page=1&limit=20&q=&stato=` | `{resi:[...], total, pages}` |
+| GET | `/admin/resi/:id` | Admin | — | `{reso}` |
+| POST | `/admin/resi` | Admin | `{order_id, order_number, customer_nome, customer_email, motivo, descrizione?, rma_number?}` | `{reso}` |
+| PUT | `/admin/resi/:id` | Admin | `{stato?, note?}` | `{reso}` |
+| DELETE | `/admin/resi/:id` | Admin | — | `{ok:true}` |
+
+### Customer-facing — `/api/resi`
+
+| Method | Path | Auth | Body | Returns |
+|--------|------|------|------|---------|
+| POST | `/resi/request` | None (verified by order_number+email) | `{order_number, email, motivo, descrizione?}` | `{ok:true, rma_number, message}` |
+
+Validation: order must be `spedito` or `consegnato`; no existing open reso for the same order.
+
+---
+
+## Reviews — `/api/reviews`
+
+| Method | Path | Auth | Body / Query | Returns |
+|--------|------|------|------|---------|
+| GET | `/reviews/product/:productId` | None | — | `[...reviews]` — published only |
+| POST | `/reviews` | None | `{product_id, rating(1-5), titolo?, testo?, customer_nome?, customer_email?}` | `{review}` — status set to `in_attesa` |
+| GET | `/reviews/admin` | Admin | `?stato=&page=1&limit=20` | `{reviews:[...], total, pages}` |
+| PUT | `/reviews/admin/:id` | Admin | `{stato?, risposta_admin?}` | `{review}` |
+| DELETE | `/reviews/admin/:id` | Admin | — | `{ok:true}` |
+
+---
+
+## Staff — `/api/admin/staff`
+
+| Method | Path | Auth | Body | Returns |
+|--------|------|------|------|---------|
+| GET | `/admin/staff` | Admin | — | `{staff:[...], total}` — no password_hash |
+| POST | `/admin/staff` | Admin (role=admin only) | `{email, password, nome?, role?}` | `{user}` |
+| PUT | `/admin/staff/:id` | Admin (role=admin only) | `{nome?, email?, role?, password?}` | `{user}` |
+| DELETE | `/admin/staff/:id` | Admin (role=admin only) | — | `{ok:true}` — self-deletion blocked |
+
+---
+
+## Settings — `/api/admin/settings`
+
+| Method | Path | Auth | Body | Returns |
+|--------|------|------|------|---------|
+| GET | `/admin/settings` | Admin | — | `{store_name, store_email, store_phone, store_address, store_city, store_country, store_vat_number, order_notification_email, shipping_default_cost, shipping_free_threshold, returns_policy_days, store_instagram, store_facebook}` |
+| PUT | `/admin/settings` | Admin | `{key: value, ...}` (any subset of keys) | `{ok:true, updated: N}` |
+
+Keys are UPSERT'd via `ON DUPLICATE KEY UPDATE`. Any key not in the payload is left unchanged.

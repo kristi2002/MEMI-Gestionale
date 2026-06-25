@@ -29,8 +29,8 @@ router.post('/register', async (req, res) => {
   const { nome, email, password } = req.body;
   if (!nome || !email || !password)
     return res.status(400).json({ error: 'Nome, email e password obbligatori' });
-  if (password.length < 6)
-    return res.status(400).json({ error: 'La password deve avere almeno 6 caratteri' });
+  if (password.length < 8)
+    return res.status(400).json({ error: 'La password deve avere almeno 8 caratteri' });
 
   try {
     const hash = await bcrypt.hash(password, 10);
@@ -102,7 +102,7 @@ router.get('/me', requireCustomer, async (req, res) => {
 
 /* ── PUT /api/auth/me ── */
 router.put('/me', requireCustomer, async (req, res) => {
-  const { nome, cognome, telefono, indirizzo, citta, cap, paese } = req.body;
+  const { nome, cognome, telefono, indirizzo, citta, cap, paese, password, email } = req.body;
   try {
     // Build dynamic SET clause — only update fields that were actually sent
     const fields = [];
@@ -118,9 +118,24 @@ router.put('/me', requireCustomer, async (req, res) => {
     add('cap',       cap);
     add('paese',     paese);
 
+    // Email change — normalise and check uniqueness at DB level (ER_DUP_ENTRY → 409)
+    if (email !== undefined && email.trim() !== '') {
+      fields.push('email = ?');
+      vals.push(email.toLowerCase().trim());
+    }
+
+    // Password change — hash before storing
+    if (password !== undefined && password !== '') {
+      if (password.length < 8)
+        return res.status(400).json({ error: 'La password deve avere almeno 8 caratteri' });
+      const hash = await bcrypt.hash(password, 10);
+      fields.push('password_hash = ?');
+      vals.push(hash);
+    }
+
     if (!fields.length) return res.json({ ok: true }); // nothing to update
 
-    // nome must not be empty
+    // nome must not be empty if provided
     if (nome !== undefined && !nome.trim())
       return res.status(400).json({ error: 'Il nome non puo essere vuoto' });
 
@@ -128,6 +143,8 @@ router.put('/me', requireCustomer, async (req, res) => {
     await pool.execute(`UPDATE customers SET ${fields.join(', ')} WHERE id = ?`, vals);
     return res.json({ ok: true });
   } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY')
+      return res.status(409).json({ error: 'Email già in uso da un altro account' });
     console.error('update me error', err);
     return res.status(500).json({ error: 'Errore server' });
   }
@@ -174,8 +191,8 @@ router.post('/reset-password', async (req, res) => {
   const { token, password } = req.body;
   if (!token || !password)
     return res.status(400).json({ error: 'Token e nuova password obbligatori' });
-  if (password.length < 6)
-    return res.status(400).json({ error: 'La password deve avere almeno 6 caratteri' });
+  if (password.length < 8)
+    return res.status(400).json({ error: 'La password deve avere almeno 8 caratteri' });
 
   try {
     let payload;

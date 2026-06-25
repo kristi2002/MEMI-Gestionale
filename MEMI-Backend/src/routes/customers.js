@@ -33,7 +33,12 @@ router.get('/', requireAdmin, async (req, res) => {
     sql += ` ORDER BY total_spent DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
 
     const [customers] = await pool.execute(sql, params);
-    const [[{ total }]] = await pool.execute('SELECT COUNT(*) as total FROM customers');
+    // Count query mirrors the same q filter so pagination total is correct
+    const countSql    = q
+      ? 'SELECT COUNT(*) as total FROM customers WHERE nome LIKE ? OR cognome LIKE ? OR email LIKE ?'
+      : 'SELECT COUNT(*) as total FROM customers';
+    const countParams = q ? [`%${q}%`, `%${q}%`, `%${q}%`] : [];
+    const [[{ total }]] = await pool.execute(countSql, countParams);
     return res.json({ customers, total });
   } catch (err) {
     console.error('customers list error', err);
@@ -66,13 +71,22 @@ router.get('/:id', requireAdmin, async (req, res) => {
 
 /* ── PUT /api/admin/customers/:id ── */
 router.put('/:id', requireAdmin, async (req, res) => {
-  const { nome, cognome, telefono, indirizzo, citta, cap, paese } = req.body;
+  const allowed = ['nome', 'cognome', 'telefono', 'indirizzo', 'citta', 'cap', 'paese'];
+  const fields = [];
+  const vals   = [];
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) {
+      fields.push(`${key} = ?`);
+      vals.push(req.body[key]);
+    }
+  }
+  if (!fields.length) return res.status(400).json({ error: 'Nessun campo da aggiornare' });
   try {
-    await pool.execute(
-      `UPDATE customers SET nome=?, cognome=?, telefono=?, indirizzo=?, citta=?, cap=?, paese=?
-       WHERE id = ?`,
-      [nome, cognome, telefono, indirizzo, citta, cap, paese, req.params.id]
+    vals.push(req.params.id);
+    const [result] = await pool.execute(
+      `UPDATE customers SET ${fields.join(', ')} WHERE id = ?`, vals
     );
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Cliente non trovato' });
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });
@@ -82,7 +96,8 @@ router.put('/:id', requireAdmin, async (req, res) => {
 /* ── DELETE /api/admin/customers/:id ── */
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
-    await pool.execute('DELETE FROM customers WHERE id = ?', [req.params.id]);
+    const [result] = await pool.execute('DELETE FROM customers WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Cliente non trovato' });
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });

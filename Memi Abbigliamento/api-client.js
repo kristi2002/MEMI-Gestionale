@@ -95,10 +95,12 @@
       return data;
     },
 
-    /** Logout — clears local token. */
+    /** Logout — clears local token, cart, and wishlist. */
     logout: function() {
       clearToken();
       try { localStorage.removeItem('memi_session'); } catch(_) {}
+      try { localStorage.removeItem('memi_cart'); } catch(_) {}
+      try { localStorage.removeItem('memi_wishlist'); } catch(_) {}
     },
 
     /** Returns current user profile from the API (requires valid token). */
@@ -170,12 +172,34 @@
     couriers: function() { return get('/shipping/couriers'); },
   };
 
+  /* ═══════════════════════════════════════════════════════
+     REVIEWS
+     ═══════════════════════════════════════════════════════ */
+  var reviews = {
+    /** Published reviews for a product (public). */
+    forProduct: function(productId) {
+      return get('/reviews/product/' + encodeURIComponent(productId));
+    },
+    /** Submit a review (public, optionally authenticated). */
+    submit: function(data) { return post('/reviews', data); },
+  };
+
+  /* ═══════════════════════════════════════════════════════
+     RETURNS (customer-facing)
+     ═══════════════════════════════════════════════════════ */
+  var resi = {
+    /** Submit a return request — verified by order_number + email. */
+    request: function(data) { return post('/resi/request', data); },
+  };
+
   /* ── Expose public API ──────────────────────────────────── */
   root.MemiAPI = {
     auth:     auth,
     products: products,
     orders:   orders,
     shipping: shipping,
+    reviews:  reviews,
+    resi:     resi,
 
     // Expose low-level request for custom calls
     _request: request,

@@ -201,6 +201,9 @@
         '<span>' + o.tracking_number + '</span>' +
       '</div>';
     }
+    var detailBtn = '<button class="order-detail-btn" data-id="' + o.id + '" ' +
+      'style="font-size:.75rem;color:var(--espresso);background:none;border:1px solid var(--beige);border-radius:4px;padding:3px 10px;cursor:pointer;transition:background .15s" ' +
+      'onmouseover="this.style.background=\'var(--cream)\'" onmouseout="this.style.background=\'none\'">Dettaglio ›</button>';
     return '<div class="order-row" style="' + (trackingRow ? 'grid-template-rows:auto auto;' : '') + '">' +
       '<div>' +
         '<div class="order-number">' + o.order_number + '</div>' +
@@ -208,10 +211,70 @@
       '</div>' +
       '<div class="order-items-summary">' + items + '</div>' +
       '<div class="order-total">' + fmtPrice(o.total) + '</div>' +
-      '<span class="order-status ' + o.order_status + '">' + statusLabel(o.order_status) + '</span>' +
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">' +
+        '<span class="order-status ' + o.order_status + '">' + statusLabel(o.order_status) + '</span>' +
+        detailBtn +
+      '</div>' +
       trackingRow +
     '</div>';
   }
+
+  /* Order detail modal */
+  function showOrderDetail(orderId) {
+    if (!window.MemiAPI) return;
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.innerHTML = '<div style="background:#fff;border-radius:12px;padding:28px 32px;max-width:560px;width:100%;max-height:80vh;overflow-y:auto">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+        '<h3 style="font-family:var(--font-serif);font-size:1.2rem;font-weight:300">Dettaglio ordine</h3>' +
+        '<button onclick="this.closest(\'[style*=fixed]\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>' +
+      '</div>' +
+      '<p style="color:var(--brown-light);font-size:.875rem">Caricamento…</p>' +
+    '</div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
+
+    window.MemiAPI.orders.myOrder(orderId).then(function(data) {
+      var o = data;
+      var rows = (o.items || []).map(function(i) {
+        return '<tr>' +
+          '<td style="padding:8px 0;font-size:.875rem">' + (i.product_name || '—') + (i.taglia ? ' <span style="color:var(--brown-light);font-size:.75rem">/ ' + i.taglia + '</span>' : '') + '</td>' +
+          '<td style="text-align:center;font-size:.875rem;color:var(--brown-mid)">' + (i.qty || 1) + '</td>' +
+          '<td style="text-align:right;font-size:.875rem">' + fmtPrice(i.price) + '</td>' +
+        '</tr>';
+      }).join('');
+      var box = overlay.querySelector('div > div');
+      box.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">' +
+          '<h3 style="font-family:var(--font-serif);font-size:1.2rem;font-weight:300">Ordine ' + o.order_number + '</h3>' +
+          '<button onclick="this.closest(\'[style*=fixed]\').remove()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:16px;font-size:.85rem">' +
+          '<div><span style="color:var(--brown-light)">Data</span><br>' + fmtDate(o.created_at) + '</div>' +
+          '<div><span style="color:var(--brown-light)">Stato</span><br><span class="order-status ' + o.order_status + '">' + statusLabel(o.order_status) + '</span></div>' +
+          '<div><span style="color:var(--brown-light)">Pagamento</span><br>' + statusLabel(o.payment_status) + '</div>' +
+          (o.tracking_number ? '<div><span style="color:var(--brown-light)">Tracking</span><br>' + (o.courier_code || '') + ' ' + o.tracking_number + '</div>' : '') +
+        '</div>' +
+        (rows ? '<table style="width:100%;border-collapse:collapse;border-top:1px solid var(--beige)">' +
+          '<thead><tr style="font-size:.75rem;color:var(--brown-light);text-transform:uppercase;letter-spacing:.05em">' +
+            '<th style="padding:8px 0;text-align:left;font-weight:500">Prodotto</th>' +
+            '<th style="text-align:center;font-weight:500">Qtà</th>' +
+            '<th style="text-align:right;font-weight:500">Prezzo</th>' +
+          '</tr></thead><tbody>' + rows + '</tbody>' +
+          '<tfoot><tr><td colspan="2" style="padding:10px 0;font-size:.85rem;font-weight:500;border-top:1px solid var(--beige)">Totale</td>' +
+            '<td style="text-align:right;font-size:.95rem;font-weight:600;border-top:1px solid var(--beige)">' + fmtPrice(o.total) + '</td></tr></tfoot>' +
+        '</table>' : '<p style="color:var(--brown-light);font-size:.875rem">Nessun articolo trovato.</p>') +
+        '<div style="margin-top:16px;text-align:right">' +
+          '<a href="returns.html" style="font-size:.8rem;color:var(--espresso);text-decoration:underline">Richiedi un reso ›</a>' +
+        '</div>';
+    }).catch(function() {
+      overlay.querySelector('p').textContent = 'Impossibile caricare il dettaglio. Riprova.';
+    });
+  }
+
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.order-detail-btn');
+    if (btn) showOrderDetail(btn.dataset.id);
+  });
 
   function renderOrdersPanel(orders) {
     if (!orders || !orders.length) {
@@ -268,110 +331,138 @@
             '<input class="field-input" type="text" id="pfCognome" value="' + (user.cognome || '') + '" /></div>' +
           '<div class="field-full"><label class="field-label">Email</label>' +
             '<input class="field-input" type="email" id="pfEmail" value="' + (user.email || '') + '" /></div>' +
-          '<div><label class="field-label">Telefono</label>' +
-            '<input class="field-input" type="tel" id="pfTelefono" value="' + (user.telefono || '') + '" /></div>' +
+          '<div class="field-full"><label class="field-label">Telefono</label>' +
+            '<input class="field-input" type="tel" id="pfTel" value="' + (user.telefono || '') + '" /></div>' +
+          '<div class="field-full"><label class="field-label">Indirizzo</label>' +
+            '<input class="field-input" type="text" id="pfAddr" value="' + (user.indirizzo || '') + '" /></div>' +
           '<div><label class="field-label">Città</label>' +
             '<input class="field-input" type="text" id="pfCitta" value="' + (user.citta || '') + '" /></div>' +
           '<div><label class="field-label">CAP</label>' +
-            '<input class="field-input" type="text" id="pfCap" value="' + (user.cap || '') + '" maxlength="10" /></div>' +
+            '<input class="field-input" type="text" id="pfCap" value="' + (user.cap || '') + '" /></div>' +
           '<div><label class="field-label">Paese</label>' +
             '<input class="field-input" type="text" id="pfPaese" value="' + (user.paese || 'Italia') + '" /></div>' +
-          '<div class="field-full"><label class="field-label">Indirizzo</label>' +
-            '<input class="field-input" type="text" id="pfIndirizzo" value="' + (user.indirizzo || '') + '" /></div>' +
           '<div class="profile-form-footer">' +
-            '<button type="submit" class="btn-save">Salva modifiche</button>' +
-            '<span class="profile-msg" id="profileMsg"></span>' +
+            '<button type="submit" class="btn-primary-outline">Salva modifiche</button>' +
+            '<span id="profileMsg" style="font-size:.8rem"></span>' +
           '</div>' +
         '</form>' +
-      '</div>';
 
-    /* ── Tab switching ── */
-    document.querySelectorAll('.account-tab').forEach(function(tab) {
-      tab.addEventListener('click', function() {
-        document.querySelectorAll('.account-tab').forEach(function(t){ t.classList.remove('active'); });
-        document.querySelectorAll('.account-panel').forEach(function(p){ p.classList.remove('active'); });
+        '<div style="margin-top:2.5rem;padding-top:2rem;border-top:1px solid var(--beige)">' +
+          '<h3 style="font-size:.9rem;font-weight:500;margin-bottom:.5rem">Cambia password</h3>' +
+          '<p style="font-size:.8rem;color:var(--brown-light);margin-bottom:1rem">Lascia vuoto per non modificare la password.</p>' +
+          '<form class="profile-form" id="passwordForm">' +
+            '<div><label class="field-label">Nuova password</label>' +
+              '<input class="field-input" type="password" id="pfPassNew" placeholder="Minimo 8 caratteri" /></div>' +
+            '<div><label class="field-label">Conferma password</label>' +
+              '<input class="field-input" type="password" id="pfPassConf" placeholder="Ripeti la password" /></div>' +
+            '<div class="profile-form-footer">' +
+              '<button type="submit" class="btn-primary-outline">Aggiorna password</button>' +
+              '<span id="passMsg" style="font-size:.8rem"></span>' +
+            '</div>' +
+          '</form>' +
+        '</div>' +
+      '</div>';  // end panel-profile
+
+    // Tab switching
+    main.addEventListener('click', function(e) {
+      var tab = e.target.closest('.account-tab');
+      if (tab) {
+        main.querySelectorAll('.account-tab').forEach(function(t) { t.classList.remove('active'); });
+        main.querySelectorAll('.account-panel').forEach(function(p) { p.classList.remove('active'); });
         tab.classList.add('active');
-        document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+        var panel = main.querySelector('#panel-' + tab.dataset.panel);
+        if (panel) panel.classList.add('active');
+      }
+    });
+
+    // Logout
+    var logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function() {
+        window.MemiAPI.auth.logout();
+        window.location.href = 'index.html';
       });
-    });
+    }
 
-    /* ── Logout ── */
-    document.getElementById('logoutBtn').addEventListener('click', function() {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(SESSION_KEY);
-      if (window.MemiAPI) window.MemiAPI.auth.logout();
-      window.location.href = 'index.html';
-    });
-
-    /* ── Profile form ── */
-    document.getElementById('profileForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      var msg = document.getElementById('profileMsg');
-      msg.textContent = 'Salvataggio…';
-      msg.className = 'profile-msg';
-
-      var data = {
-        nome:       document.getElementById('pfNome').value.trim(),
-        cognome:    document.getElementById('pfCognome').value.trim(),
-        telefono:   document.getElementById('pfTelefono').value.trim(),
-        citta:      document.getElementById('pfCitta').value.trim(),
-        cap:        document.getElementById('pfCap').value.trim(),
-        paese:      document.getElementById('pfPaese').value.trim(),
-        indirizzo:  document.getElementById('pfIndirizzo').value.trim(),
-      };
-
-      if (!window.MemiAPI) { msg.textContent = 'API non disponibile.'; msg.className = 'profile-msg err'; return; }
-
-      window.MemiAPI.auth.updateMe(data).then(function() {
-        msg.textContent = 'Profilo aggiornato ✓';
-        msg.className = 'profile-msg ok';
-        /* Update session cache */
-        try {
-          var sess = JSON.parse(localStorage.getItem(SESSION_KEY)) || {};
-          sess.name = data.nome;
-          sess.email = data.email;
-          localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
-        } catch(_) {}
-        setTimeout(function(){ msg.textContent = ''; }, 3000);
-      }).catch(function(err) {
-        msg.textContent = (err && err.error) || 'Errore nel salvataggio.';
-        msg.className = 'profile-msg err';
+    // Profile update
+    var profileForm = document.getElementById('profileForm');
+    if (profileForm) {
+      profileForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var msgEl = document.getElementById('profileMsg');
+        var btn   = profileForm.querySelector('[type=submit]');
+        btn.disabled = true;
+        window.MemiAPI.auth.updateMe({
+          nome:      document.getElementById('pfNome').value.trim(),
+          cognome:   document.getElementById('pfCognome').value.trim(),
+          email:     document.getElementById('pfEmail').value.trim(),
+          telefono:  document.getElementById('pfTel').value.trim(),
+          indirizzo: document.getElementById('pfAddr').value.trim(),
+          citta:     document.getElementById('pfCitta').value.trim(),
+          cap:       document.getElementById('pfCap').value.trim(),
+          paese:     document.getElementById('pfPaese').value.trim(),
+        }).then(function() {
+          msgEl.style.color = '#3a7a4a';
+          msgEl.textContent = 'Modifiche salvate.';
+          setTimeout(function() { msgEl.textContent = ''; }, 3000);
+        }).catch(function(err) {
+          msgEl.style.color = '#c0453a';
+          msgEl.textContent = (err && err.error) || 'Errore. Riprova.';
+        }).finally(function() { btn.disabled = false; });
       });
-    });
+    }
+
+    // Password change
+    var passForm = document.getElementById('passwordForm');
+    if (passForm) {
+      passForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var newPass  = document.getElementById('pfPassNew').value;
+        var confPass = document.getElementById('pfPassConf').value;
+        var msgEl    = document.getElementById('passMsg');
+        var btn      = passForm.querySelector('[type=submit]');
+        if (!newPass) return;
+        if (newPass.length < 8) { msgEl.style.color='#c0453a'; msgEl.textContent='Minimo 8 caratteri.'; return; }
+        if (newPass !== confPass) { msgEl.style.color='#c0453a'; msgEl.textContent='Le password non coincidono.'; return; }
+        btn.disabled = true;
+        window.MemiAPI.auth.updateMe({ password: newPass })
+          .then(function() {
+            msgEl.style.color = '#3a7a4a';
+            msgEl.textContent = 'Password aggiornata.';
+            passForm.reset();
+            setTimeout(function() { msgEl.textContent = ''; }, 3000);
+          })
+          .catch(function(err) {
+            msgEl.style.color = '#c0453a';
+            msgEl.textContent = (err && err.error) || 'Errore. Riprova.';
+          })
+          .finally(function() { btn.disabled = false; });
+      });
+    }
   }
 
-  /* ── Fetch profile + orders ─────────────────────────── */
-  var profilePromise = window.MemiAPI
-    ? window.MemiAPI.auth.me()
-    : Promise.reject({ error: 'API non disponibile' });
+  // ── Init ────────────────────────────────────────────────
+  if (!window.MemiAPI || !window.MemiAPI.auth.isLoggedIn()) {
+    window.location.href = 'index.html?login=required';
+    return;
+  }
 
-  var ordersPromise = window.MemiAPI
-    ? window.MemiAPI.orders.myOrders()
-    : Promise.resolve([]);
+  var userPromise   = window.MemiAPI.auth.me();
+  var ordersPromise = window.MemiAPI.orders.myOrders().catch(function() { return []; });
 
-  Promise.all([profilePromise, ordersPromise]).then(function(results) {
-    var user   = results[0].user || results[0];
-    var orders = results[1].orders || results[1] || [];
-    renderPage(user, orders);
-  }).catch(function(err) {
-    /* Token expired or invalid */
-    if (err && (err.error === 'Token non valido' || err.error === 'Token scaduto')) {
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(SESSION_KEY);
-      main.innerHTML = '<div class="acc-redirect">' +
-        '<p>La tua sessione è scaduta. Effettua di nuovo l\'accesso.</p>' +
-        '<a href="/" onclick="window.openAuthDrawer&&window.openAuthDrawer(\'login\');return false;">Accedi ›</a>' +
-      '</div>';
-    } else {
-      main.innerHTML = '<div class="acc-redirect">' +
-        '<p>Impossibile caricare il profilo. Riprova più tardi.</p>' +
-        '<a href="index.html">Torna alla Home</a>' +
-      '</div>';
-    }
-  });
+  Promise.all([userPromise, ordersPromise])
+    .then(function(results) {
+      var user   = results[0].user || results[0];
+      var orders = Array.isArray(results[1]) ? results[1] : (results[1].orders || []);
+      renderPage(user, orders);
+    })
+    .catch(function() {
+      // Token expired
+      window.MemiAPI.auth.logout();
+      window.location.href = 'index.html?session=expired';
+    });
 
 })();
 </script>
-
 </body>
 </html>

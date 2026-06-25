@@ -176,8 +176,27 @@
     submit: function(d)      { return post('/reviews', d); },
   };
 
+  /* ================================================================
+     STAFF
+     ================================================================ */
+  var staff = {
+    list:   function()       { return get('/admin/staff'); },
+    create: function(d)      { return post('/admin/staff', d); },
+    update: function(id, d)  { return put('/admin/staff/' + id, d); },
+    delete: function(id)     { return del('/admin/staff/' + id); },
+  };
+
+  /* ================================================================
+     SETTINGS
+     ================================================================ */
+  var settings = {
+    get:    function()  { return get('/admin/settings'); },
+    update: function(d) { return put('/admin/settings', d); },
+  };
+
+
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {

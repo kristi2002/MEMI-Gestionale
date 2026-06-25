@@ -34,7 +34,18 @@ router.get('/admin', requireAdmin, async (req, res) => {
     sql += ` ORDER BY created_at DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
 
     const [reviews]       = await pool.execute(sql, params);
-    const [[{ total }]]   = await pool.execute('SELECT COUNT(*) as total FROM reviews');
+
+    // Count query mirrors the same filters so pagination totals are correct
+    let countSql    = 'SELECT COUNT(*) as total FROM reviews WHERE 1=1';
+    const countParams = [];
+    if (stato)      { countSql += ' AND stato = ?';      countParams.push(stato); }
+    if (product_id) { countSql += ' AND product_id = ?'; countParams.push(product_id); }
+    if (q) {
+      countSql += ' AND (customer_nome LIKE ? OR customer_email LIKE ? OR product_name LIKE ? OR testo LIKE ?)';
+      const like2 = `%${q}%`;
+      countParams.push(like2, like2, like2, like2);
+    }
+    const [[{ total }]]   = await pool.execute(countSql, countParams);
     const [[{ pending }]] = await pool.execute("SELECT COUNT(*) as pending FROM reviews WHERE stato = 'in_attesa'");
     return res.json({ reviews, total, pending });
   } catch (err) {
@@ -84,13 +95,21 @@ router.post('/', optionalCustomer, async (req, res) => {
 
 /* ── PUT /api/admin/reviews/:id ── */
 router.put('/admin/:id', requireAdmin, async (req, res) => {
-  const { stato } = req.body;
-  if (!stato) return res.status(400).json({ error: 'stato obbligatorio' });
+  const { stato, risposta_admin } = req.body;
+  if (!stato && risposta_admin === undefined)
+    return res.status(400).json({ error: 'stato o risposta_admin obbligatori' });
   try {
-    await pool.execute('UPDATE reviews SET stato = ? WHERE id = ?', [stato, req.params.id]);
+    const fields = [];
+    const vals   = [];
+    if (stato !== undefined)           { fields.push('stato = ?');           vals.push(stato); }
+    if (risposta_admin !== undefined)  { fields.push('risposta_admin = ?');  vals.push(risposta_admin || null); }
+    vals.push(req.params.id);
+    const [result] = await pool.execute(`UPDATE reviews SET ${fields.join(', ')} WHERE id = ?`, vals);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Recensione non trovata' });
     const [[review]] = await pool.execute('SELECT * FROM reviews WHERE id = ?', [req.params.id]);
     return res.json({ review });
   } catch (err) {
+    console.error('update review error', err);
     return res.status(500).json({ error: 'Errore server' });
   }
 });

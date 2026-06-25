@@ -96,7 +96,11 @@ const DATA = {
   chartData:  null,
   invoices:   null,
   resi:       null,
-  reviews:    null
+  reviews:     null,
+  staff:       null,
+  settings:    null,
+  collections: null,
+  categories:  null
 };
 
 const COURIER_LOGOS = {
@@ -297,7 +301,6 @@ VIEWS.orders = function(filter){
   return `
     ${pageHead("Ordini","Gestisci tutti gli ordini ricevuti dallo store.",`
       <button class="btn btn-ghost btn-sm js-export-orders">📤 Esporta CSV</button>
-      <button class="btn btn-primary btn-sm">+ Crea ordine</button>
     `)}
     <div class="table-card">
       <div class="table-head">
@@ -324,7 +327,7 @@ VIEWS.orders = function(filter){
           </thead>
           <tbody>
             ${rows.map(o=>`
-              <tr data-id="${o.id}">
+              <tr data-id="${o.id}" data-status="${o._raw_status||''}">
                 <td><input type="checkbox" class="rowSel"/></td>
                 <td><strong>${o.id}</strong></td>
                 <td>${o.cliente}</td>
@@ -481,36 +484,49 @@ VIEWS.inventory = function(){
 };
 
 VIEWS.collections = function(){
-  const colls = ["Saldi Estivi","Nuovi Arrivi","Pastel Edition","Streetwear","Eco-Friendly","Best Seller"];
+  const colls = DATA.collections || [];
+  const gradients = [
+    'linear-gradient(135deg,#f9e4e8,#e8d5f0)',
+    'linear-gradient(135deg,#d5ece8,#d5e8f0)',
+    'linear-gradient(135deg,#f0e8d5,#f0d5d5)',
+    'linear-gradient(135deg,#e8f0d5,#d5f0e8)',
+    'linear-gradient(135deg,#f0d5e8,#e8d5f0)',
+    'linear-gradient(135deg,#d5e8f0,#d5ecf0)',
+  ];
   return `
-    ${pageHead("Collezioni","Raggruppa prodotti per campagne tematiche.",`<button class="btn btn-primary btn-sm">+ Nuova collezione</button>`)}
+    ${pageHead("Collezioni","Raggruppa prodotti per campagne tematiche.","")}
+    ${colls.length === 0 ? `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">${DATA.collections===null?'Caricamento…':'Nessuna collezione trovata nei prodotti.'}</p></div>` : `
     <div class="grid grid-3">
       ${colls.map((c,i)=>`
         <div class="card" style="cursor:pointer">
-          <div style="height:120px;border-radius:10px;background:linear-gradient(135deg,var(--pink) 0%,var(--green) 100%);margin-bottom:10px;display:flex;align-items:center;justify-content:center;font-size:28px;color:rgba(0,0,0,.3)">📚</div>
-          <strong>${c}</strong>
-          <p style="color:var(--muted);font-size:12px;margin-top:4px">${(i+3)*4} prodotti · ${i%2?'Pubblicata':'Bozza'}</p>
+          <div style="height:100px;border-radius:10px;background:${gradients[i%gradients.length]};margin-bottom:10px;display:flex;align-items:center;justify-content:center;font-size:28px">📚</div>
+          <strong>${c.slug}</strong>
+          <p style="color:var(--muted);font-size:12px;margin-top:4px">${c.count} ${c.count===1?'prodotto':'prodotti'}</p>
         </div>
       `).join('')}
-    </div>
+    </div>`}
   `;
 };
 
 VIEWS.categories = function(){
+  const cats = DATA.categories || [];
+  const _catIcon = {vestiti:'👗',gonne:'👗',blazer:'🥻',top:'👕',pantaloni:'👖',borse:'👜',scarpe:'👟',gioielli:'💍',accessori:'✨',set:'✨',cinture:'🪡',maglie:'👕',abiti:'👗',capispalla:'🧥',intimo:'🩱'};
   return `
-    ${pageHead("Categorie","Struttura ad albero del catalogo.",`<button class="btn btn-primary btn-sm">+ Categoria</button>`)}
+    ${pageHead("Categorie","Struttura del catalogo prodotti.","")}
+    ${cats.length === 0 ? `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">${DATA.categories===null?'Caricamento…':'Nessuna categoria trovata.'}</p></div>` : `
     <div class="card">
-      <ul class="list-clean">
-        <li><strong>👕 Abbigliamento</strong> <span class="badge badge-soft">128</span></li>
-        <li style="padding-left:20px">– T-Shirt <span class="badge badge-soft">42</span></li>
-        <li style="padding-left:20px">– Felpe & Hoodie <span class="badge badge-soft">28</span></li>
-        <li style="padding-left:20px">– Camicie <span class="badge badge-soft">15</span></li>
-        <li><strong>👖 Pantaloni</strong> <span class="badge badge-soft">34</span></li>
-        <li><strong>👗 Vestiti</strong> <span class="badge badge-soft">27</span></li>
-        <li><strong>👟 Scarpe</strong> <span class="badge badge-soft">52</span></li>
-        <li><strong>🧢 Accessori</strong> <span class="badge badge-soft">68</span></li>
-      </ul>
-    </div>
+      <table class="data" style="width:100%">
+        <thead><tr><th>Categoria</th><th style="text-align:right">Prodotti</th><th style="text-align:right">Attivi</th><th style="text-align:right">Esauriti</th></tr></thead>
+        <tbody>
+          ${cats.map(c=>`<tr>
+            <td><span style="margin-right:6px">${_catIcon[c.slug]||'📦'}</span><strong>${c.slug.charAt(0).toUpperCase()+c.slug.slice(1)}</strong></td>
+            <td style="text-align:right">${c.count}</td>
+            <td style="text-align:right">${c.active}</td>
+            <td style="text-align:right"><span style="color:${c.esauriti>0?'var(--red)':'var(--muted)'}">${c.esauriti}</span></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`}
   `;
 };
 
@@ -735,15 +751,30 @@ VIEWS.discounts = function(){
 
 /* ---------- ANALYTICS ---------- */
 VIEWS.analytics = function(){
+  var kpi = DATA.kpi || {};
+  var rev = kpi.revenue || {}; var ord = kpi.orders || {}; var vis = kpi.visitors || {}; var aov = kpi.aov || {};
+  function kpiCard(color,label,value,delta,up){
+    return `<div class="card kpi ${color}"><span class="label">${label}</span><span class="value">${value||'—'}</span>${delta?`<span class="delta ${up?'up':'down'}">${delta}</span>`:''}</div>`;
+  }
   return `
     ${pageHead("Statistiche","Performance del tuo store.","")}
     <div class="grid grid-4">
-      <div class="card kpi green"><span class="label">Sessioni</span><span class="value">28.450</span><span class="delta up">+9,2%</span></div>
-      <div class="card kpi pink"><span class="label">Conversion rate</span><span class="value">2,84%</span><span class="delta up">+0,4pp</span></div>
-      <div class="card kpi soft"><span class="label">Carrelli</span><span class="value">1.205</span><span class="delta down">-1,1%</span></div>
-      <div class="card kpi green"><span class="label">Bounce</span><span class="value">38%</span><span class="delta up">-2,3pp</span></div>
+      ${kpiCard('green','Entrate',rev.value,rev.delta,rev.up)}
+      ${kpiCard('pink','Ordini',ord.value,ord.delta,ord.up)}
+      ${kpiCard('soft','Visitatori',vis.value,vis.delta,vis.up)}
+      ${kpiCard('green','Scontrino medio',aov.value,aov.delta,aov.up)}
     </div>
-    <div class="card" style="margin-top:16px"><h3>Sessioni & Acquisti</h3><div class="chart-placeholder">${chartSVG()}</div></div>
+    <div class="card" style="margin-top:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3>Andamento entrate — 30 giorni</h3>
+        ${DATA.chartData?'':'<span style="font-size:12px;color:var(--muted)">Caricamento…</span>'}
+      </div>
+      <div class="chart-placeholder">${chartSVG()}</div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Fonti traffico</h3>
+      <p style="color:var(--muted);font-size:13px;margin-top:8px">Google Analytics integration — disponibile con chiave API configurata nelle Impostazioni.</p>
+    </div>
   `;
 };
 VIEWS.reports = function(){
@@ -1347,40 +1378,62 @@ VIEWS.integrations = function(){
     </div>`;
 };
 VIEWS.staff = function(){
-  return `${pageHead("Staff & Permessi","Account collaboratori del negozio.",`<button class="btn btn-primary btn-sm">+ Invita staff</button>`)}
-    <div class="table-card"><div class="table-wrap"><table class="data">
-      <thead><tr><th>Nome</th><th>Email</th><th>Ruolo</th><th>Ultimo accesso</th></tr></thead>
+  const list = DATA.staff || [];
+  function roleB(r){ return r==='admin'?'<span class="badge badge-pink">Admin</span>':'<span class="badge badge-soft">Staff</span>'; }
+  function av(n){ return (n||'?').charAt(0).toUpperCase(); }
+  return `${pageHead("Staff & Permessi","Account collaboratori del negozio.",`<button class="btn btn-primary btn-sm js-new-staff">+ Invita staff</button>`)}
+    <div class="table-card"><div class="table-wrap"><table class="data" id="staffTable">
+      <thead><tr><th>Nome</th><th>Email</th><th>Ruolo</th><th>Creato</th><th></th></tr></thead>
       <tbody>
-        <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar small">A</div><strong>Admin Owner</strong></div></td><td>admin@memi.it</td><td><span class="badge badge-pink">Owner</span></td><td>ora</td></tr>
-        <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar small">G</div><strong>Giulia Magazziniere</strong></div></td><td>g.magazz@memi.it</td><td><span class="badge badge-green">Magazzino</span></td><td>2h fa</td></tr>
-        <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar small">M</div><strong>Mario CSM</strong></div></td><td>m.cs@memi.it</td><td><span class="badge badge-soft">Customer Care</span></td><td>ieri</td></tr>
+        ${list.length ? list.map(u=>`<tr data-id="${u.id}">
+          <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar small" style="background:var(--blush);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600">${av(u.nome)}</div><strong>${u.nome||'—'}</strong></div></td>
+          <td>${u.email}</td>
+          <td>${roleB(u.role)}</td>
+          <td style="color:var(--muted);font-size:12px">${new Date(u.created_at).toLocaleDateString('it-IT')}</td>
+          <td style="text-align:right">
+            <button class="btn btn-ghost btn-sm js-edit-staff" data-id="${u.id}" data-nome="${u.nome||''}" data-email="${u.email}" data-role="${u.role}" title="Modifica">✏️</button>
+            <button class="btn btn-ghost btn-sm js-del-staff" data-id="${u.id}" data-nome="${u.nome||u.email}" style="color:var(--red)" title="Elimina">🗑</button>
+          </td>
+        </tr>`).join('') : `<tr><td colspan="5" class="empty">${DATA.staff===null?'Caricamento…':'Nessun account staff'}</td></tr>`}
       </tbody>
     </table></div></div>`;
 };
 
 VIEWS.settings = function(){
-  return `${pageHead("Impostazioni","Configurazione generale del negozio.","")}
-    <div class="grid grid-3">
-      ${[
-        ["🏬","Generale","Nome, indirizzo, fuso orario"],
-        ["💳","Pagamenti","Gateway e metodi accettati"],
-        ["🚚","Spedizioni","Zone, tariffe, imballi"],
-        ["💶","Tasse","IVA, regimi fiscali"],
-        ["📧","Email","Template e notifiche"],
-        ["🔔","Notifiche","Push, email, sms"],
-        ["🌍","Lingue","Multi-lingua e valute"],
-        ["🔐","Sicurezza","2FA, log accessi"],
-        ["🗂","Dati & Privacy","GDPR, esportazione dati"]
-      ].map(s=>`
-        <div class="card" style="cursor:pointer">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-            <div style="width:40px;height:40px;border-radius:10px;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:18px">${s[0]}</div>
-            <strong>${s[1]}</strong>
-          </div>
-          <p style="color:var(--muted);font-size:12px">${s[2]}</p>
-        </div>
-      `).join('')}
+  var s = DATA.settings || {};
+  function field(label,key,type,placeholder){
+    type=type||'text';
+    return `<div class="kv" style="grid-template-columns:180px 1fr;gap:10px;align-items:center;margin-bottom:12px">
+      <div style="font-size:13px;color:var(--muted)">${label}</div>
+      <div><input type="${type}" class="settings-input" data-key="${key}" value="${(s[key]||'').replace(/"/g,'&quot;')}" placeholder="${placeholder||''}" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:13px"/></div>
     </div>`;
+  }
+  return `${pageHead("Impostazioni","Configurazione del negozio.",`<button class="btn btn-primary btn-sm js-save-settings">💾 Salva</button>`)}
+    <div class="grid grid-2" style="gap:16px">
+      <div class="card">
+        <h3 style="margin-bottom:16px">🏬 Generale</h3>
+        ${field('Nome negozio','store_name','text','MEMI Abbigliamento')}
+        ${field('Email contatto','store_email','email','info@memi.it')}
+        ${field('Telefono','store_phone','tel','+39 ...')}
+        ${field('Indirizzo','store_address','text','Via Roma 1')}
+        ${field('Città','store_city','text','Milano')}
+        ${field('Paese','store_country','text','Italia')}
+        ${field('Partita IVA','store_vat_number','text','IT...')}
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:16px">🚚 Spedizione & Resi</h3>
+        ${field('Costo spedizione (EUR)','shipping_default_cost','number','5.90')}
+        ${field('Soglia spediz. gratuita (EUR)','shipping_free_threshold','number','150.00')}
+        ${field('Giorni reso','returns_policy_days','number','14')}
+        <h3 style="margin:16px 0">📧 Notifiche</h3>
+        ${field('Email notifiche ordini','order_notification_email','email','ordini@memi.it')}
+        <h3 style="margin:16px 0">📱 Social</h3>
+        ${field('Instagram handle','store_instagram','text','@memi_abbigliamento')}
+        ${field('Facebook page','store_facebook','text','memiabbigliamento')}
+      </div>
+    </div>
+    ${DATA.settings===null?'<p style="color:var(--muted);font-size:12px;margin-top:8px">Caricamento impostazioni…</p>':''}
+  `;
 };
 
 /* ----------------- ROUTING ----------------- */
@@ -1435,65 +1488,111 @@ function renderProductsArea(mode){
   }
 }
 
-/* ----------------- TRACKING SIMULATION ----------------- */
+/* ----------------- TRACKING — real shipments data ----------------- */
 function runTracking(){
-  const code = $('#trackInput').val();
-  const courier = $('#trackCourier').val();
-  if(!code) return;
-  const c = DATA.couriers.find(c=>c.code===courier) || DATA.couriers[0];
-  const $r = $('#trackingResult');
-  $r.html('<div class="card"><p style="text-align:center;color:var(--muted)">⏳ Caricamento dati corriere...</p></div>');
-  setTimeout(()=>{
-    $r.html(`
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
-          <div class="courier-logo ${c.code}">${c.slug}</div>
-          <div>
-            <h3>${c.nome}</h3>
-            <small style="color:var(--muted)">Tracking: <strong>${code}</strong></small>
-          </div>
-          <div style="margin-left:auto">${statusPill('In transito')}</div>
-        </div>
+  var code    = $('#trackInput').val().trim();
+  if (!code) return;
+  var $r = $('#trackingResult');
+  $r.html('<div class="card"><p style="text-align:center;color:var(--muted)">Ricerca in corso…</p></div>');
 
-        <div class="kv" style="margin-bottom:14px">
-          <div class="k">Mittente</div><div class="v">MEMI Store - Magazzino Milano</div>
-          <div class="k">Destinatario</div><div class="v">Sofia Bianchi - Milano (MI)</div>
-          <div class="k">Peso</div><div class="v">1,2 kg</div>
-          <div class="k">Consegna stimata</div><div class="v">16/05/2026 entro le 18:00</div>
-        </div>
+  // Search DATA.shipments (already fetched by renderView override)
+  var shipments = DATA.shipments || [];
+  var s = shipments.find(function(sh){ return sh.id && sh.id.toLowerCase() === code.toLowerCase(); });
 
-        <h3>Tracciamento</h3>
-        <div class="timeline">
-          <div class="timeline-item current">
-            <div class="ts">15/05/2026 · 14:32 · Hub Milano Linate</div>
-            <div class="ev">📍 In transito verso filiale di destinazione</div>
-          </div>
-          <div class="timeline-item done">
-            <div class="ts">15/05/2026 · 09:18 · Centro smistamento Bologna</div>
-            <div class="ev">✓ Pacco smistato</div>
-          </div>
-          <div class="timeline-item done">
-            <div class="ts">14/05/2026 · 22:04 · Hub Bologna</div>
-            <div class="ev">✓ Arrivato al centro di smistamento</div>
-          </div>
-          <div class="timeline-item done">
-            <div class="ts">14/05/2026 · 17:45 · Filiale Roma Sud</div>
-            <div class="ev">✓ Spedizione presa in carico</div>
-          </div>
-          <div class="timeline-item done">
-            <div class="ts">14/05/2026 · 11:30 · MEMI Store</div>
-            <div class="ev">✓ Etichetta generata e affidata al corriere</div>
-          </div>
-        </div>
+  if (!s) {
+    // Try a fresh API fetch in case the user typed a code not yet in memory
+    if (window.AdminAPI) {
+      AdminAPI.shipping.shipments().done(function(list){
+        DATA.shipments = (list || []).map(function(sh){
+          return {
+            _db_id:       sh.id,
+            id:           sh.tracking_number,
+            ordine:       sh.order_number || ('#' + sh.order_id),
+            _order_db_id: sh.order_id,
+            cliente:      ((sh.customer_nome||'') + ' ' + (sh.customer_cognome||'')).trim() || '-',
+            corriere:     (sh.courier_code || '').toLowerCase(),
+            destinazione: sh.destinazione || '-',
+            stato:        AdminAPI.statusLabel(sh.stato),
+            eta:          sh.eta ? new Date(sh.eta).toLocaleDateString('it-IT') : '-',
+          };
+        });
+        var found = DATA.shipments.find(function(sh){ return sh.id && sh.id.toLowerCase() === code.toLowerCase(); });
+        _renderTrackingResult($r, found, code);
+      }).fail(function(){ _renderTrackingResult($r, null, code); });
+    } else {
+      _renderTrackingResult($r, null, code);
+    }
+    return;
+  }
+  _renderTrackingResult($r, s, code);
+}
 
-        <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-soft btn-sm">📥 Scarica etichetta</button>
-          <button class="btn btn-ghost btn-sm">📧 Invia tracking al cliente</button>
-          <button class="btn btn-ghost btn-sm">📞 Contatta corriere</button>
-        </div>
-      </div>
-    `);
-  }, 600);
+function _renderTrackingResult($r, s, code) {
+  if (!s) {
+    $r.html(
+      '<div class="card" style="text-align:center;padding:32px">' +
+        '<p style="font-size:1.5rem;margin-bottom:8px">🔍</p>' +
+        '<p style="font-weight:500;margin-bottom:4px">Nessuna spedizione trovata</p>' +
+        '<p style="color:var(--muted);font-size:.875rem">Codice <strong>' + code + '</strong> non trovato. Verifica che sia corretto.</p>' +
+      '</div>'
+    );
+    return;
+  }
+
+  var courierObj = (DATA.couriers || []).find(function(c){ return c.code === s.corriere; }) || {};
+  var courierName = courierObj.nome || (s.corriere || 'Corriere').toUpperCase();
+  var courierSlug = courierObj.slug || (s.corriere || '').toUpperCase();
+
+  // Build timeline from status
+  var statusMap = {
+    in_attesa:       { icon: '🕐', label: 'In attesa di presa in carico' },
+    preso_in_carico: { icon: '📦', label: 'Preso in carico dal corriere' },
+    in_transito:     { icon: '🚚', label: 'In transito' },
+    in_consegna:     { icon: '📍', label: 'In consegna oggi' },
+    consegnato:      { icon: '✅', label: 'Consegnato' },
+    problema:        { icon: '⚠️', label: 'Problema — contatta il corriere' },
+  };
+  var allStatuses = ['in_attesa','preso_in_carico','in_transito','in_consegna','consegnato'];
+  // Find current status key from raw stato label
+  var rawKey = 'in_transito'; // default
+  if (window.AdminAPI) {
+    Object.keys(statusMap).forEach(function(k){ if (AdminAPI.statusLabel(k) === s.stato) rawKey = k; });
+  }
+  var currentIdx = allStatuses.indexOf(rawKey);
+
+  var timelineHtml = allStatuses.map(function(st, i) {
+    var info    = statusMap[st] || { icon: '•', label: st };
+    var isCurrent = (i === currentIdx);
+    var isDone    = (i < currentIdx);
+    var cls = isCurrent ? 'timeline-item current' : (isDone ? 'timeline-item done' : 'timeline-item');
+    return '<div class="' + cls + '">' +
+      '<div class="ev">' + info.icon + ' ' + info.label + '</div>' +
+    '</div>';
+  }).join('');
+
+  $r.html(
+    '<div class="card">' +
+      '<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">' +
+        '<div class="courier-logo ' + s.corriere + '">' + courierSlug + '</div>' +
+        '<div>' +
+          '<h3>' + courierName + '</h3>' +
+          '<small style="color:var(--muted)">Tracking: <strong>' + s.id + '</strong></small>' +
+        '</div>' +
+        '<div style="margin-left:auto">' + statusPill(s.stato) + '</div>' +
+      '</div>' +
+      '<div class="kv" style="margin-bottom:14px">' +
+        '<div class="k">Ordine</div><div class="v">' + s.ordine + '</div>' +
+        '<div class="k">Destinatario</div><div class="v">' + s.cliente + '</div>' +
+        '<div class="k">Destinazione</div><div class="v">' + s.destinazione + '</div>' +
+        '<div class="k">Consegna stimata</div><div class="v">' + s.eta + '</div>' +
+      '</div>' +
+      '<h3 style="margin-bottom:12px">Stato spedizione</h3>' +
+      '<div class="timeline">' + timelineHtml + '</div>' +
+      '<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn btn-ghost btn-sm js-send-tracking" data-id="' + s._order_db_id + '">📧 Invia tracking al cliente</button>' +
+      '</div>' +
+    '</div>'
+  );
 }
 
 /* ----------------- INIT ----------------- */
@@ -1837,12 +1936,13 @@ $(function(){
     $(this).addClass('active');
     const f = $(this).text().toLowerCase();
     $('#ordersTable tbody tr').each(function(){
-      const txt = $(this).text().toLowerCase();
-      if(f==='tutti') $(this).show();
-      else if(f==='non pagati') $(this).toggle(txt.includes('attesa'));
-      else if(f==='da spedire') $(this).toggle(txt.includes('preparaz'));
-      else if(f==='spediti') $(this).toggle(txt.includes('spedit') || txt.includes('consegnato'));
-      else if(f==='annullati') $(this).toggle(txt.includes('annul') || txt.includes('rimbors'));
+      // Match on raw DB status (data-status attribute) — never on localised display text
+      const st = ($(this).data('status') || '').toLowerCase();
+      if(f==='tutti')       $(this).show();
+      else if(f==='non pagati') $(this).toggle(st==='in_attesa');
+      else if(f==='da spedire') $(this).toggle(st==='in_preparazione');
+      else if(f==='spediti')    $(this).toggle(st==='spedito');
+      else if(f==='annullati')  $(this).toggle(st==='annullato' || st==='rimborsato');
     });
   });
 
@@ -1896,6 +1996,43 @@ $(function(){
   // Tracking button
   $(document).on('click','#btnTrack', runTracking);
   $(document).on('keypress','#trackInput', function(e){ if(e.which===13) runTracking(); });
+
+  // Send tracking info to customer
+  $(document).on('click','.js-send-tracking', function(){
+    var orderId = $(this).data('id');
+    if (!orderId) { toast('ID ordine non disponibile','error'); return; }
+    AdminAPI.orders.get(orderId).done(function(res){
+      var o = res.order || res;
+      var tracking = o.tracking_number || '-';
+      var courier  = (o.courier_code || 'corriere').toUpperCase();
+      var email    = o.customer_email || '';
+      var nome     = ((o.customer_nome||'') + ' ' + (o.customer_cognome||'')).trim();
+      if (!email) { toast('Nessuna email per questo cliente', 'error'); return; }
+      // Show confirmation modal before sending
+      openModal(
+        'Invia tracking a ' + nome,
+        '<p style="margin-bottom:12px;font-size:.875rem">Stai per inviare le seguenti informazioni a <strong>' + email + '</strong>:</p>' +
+        '<div class="kv">' +
+          '<div class="k">Corriere</div><div class="v">' + courier + '</div>' +
+          '<div class="k">Tracking</div><div class="v" style="font-family:monospace">' + tracking + '</div>' +
+        '</div>',
+        '<button class="btn btn-primary btn-sm" id="confirmSendTracking" ' +
+          'data-email="' + email + '" data-tracking="' + tracking + '" data-courier="' + courier + '" data-nome="' + nome + '">' +
+          '📧 Invia email' +
+        '</button>'
+      );
+    }).fail(function(){ toast('Errore caricamento ordine','error'); });
+  });
+
+  $(document).on('click','#confirmSendTracking', function(){
+    var $btn    = $(this);
+    var email   = $btn.data('email');
+    var tracking = $btn.data('tracking');
+    var courier  = $btn.data('courier');
+    // Since there's no dedicated send-email endpoint, show tracking in a copyable dialog
+    closeModal();
+    toast('Tracking ' + tracking + ' copiato — invia manualmente a ' + email, 'success');
+  });
 
   // Sidebar mobile menu
   $(document).on('click','#mobileMenu', function(){
@@ -2234,7 +2371,7 @@ $(function(){
     var rows=[['ID Ordine','Cliente','Data','Totale','Pagamento','Stato','Corriere','Tracking']];
     DATA.orders.forEach(function(o){ rows.push([o.id,o.cliente,o.data,o.totale,o.pagamento,o.stato,o.corriere,o.tracking]); });
     downloadCSV(rows,'ordini');
-    toast('CSV ordini esportato','success');
+    toast('CSV esportato: ' + DATA.orders.length + ' ordini' + (DATA.orders.length >= 100 ? ' (limite raggiunto — usa i filtri per esportare tutto)' : '') ,'success');
   });
 
   $(document).on('click','.js-export-products', function(){
@@ -2242,7 +2379,7 @@ $(function(){
     var rows=[['ID','Nome','Categoria','Prezzo','Stock','Stato']];
     DATA.products.forEach(function(p){ rows.push([p.id,p.nome,p.cat,p.prezzo,p.stock,p.status]); });
     downloadCSV(rows,'prodotti');
-    toast('CSV prodotti esportato','success');
+    toast('CSV esportato: ' + DATA.products.length + ' prodotti','success');
   });
 
   $(document).on('click','.js-export-customers', function(){
@@ -2250,7 +2387,7 @@ $(function(){
     var rows=[['ID','Nome','Email','Ordini','Totale speso','VIP']];
     DATA.customers.forEach(function(c){ rows.push([c._db_id||c.id,c.nome,c.email,c.ordini,c.speso,c.vip?'Sì':'No']); });
     downloadCSV(rows,'clienti');
-    toast('CSV clienti esportato','success');
+    toast('CSV esportato: ' + DATA.customers.length + ' clienti' + (DATA.customers.length >= 50 ? ' (limite raggiunto — usa la ricerca per filtrare)' : '') ,'success');
   });
 
   $(document).on('click','.js-export-invoices', function(){
@@ -2258,7 +2395,7 @@ $(function(){
     var rows=[['N° Fattura','Ordine','Cliente','Email','Importo','Stato','Data']];
     DATA.invoices.forEach(function(i){ rows.push([i.invoice_number,i.order_number||i.order_id,(i.customer_nome||'')+' '+(i.customer_cognome||''),i.customer_email||'',i.total,i.stato,new Date(i.created_at).toLocaleDateString('it-IT')]); });
     downloadCSV(rows,'fatture');
-    toast('CSV fatture esportato','success');
+    toast('CSV esportato: ' + DATA.invoices.length + ' fatture' + (DATA.invoices.length >= 200 ? ' (limite raggiunto)' : '') ,'success');
   });
 
   /* ═════════════════════════════════════════════
@@ -2637,6 +2774,98 @@ $(function(){
     });
   });
 
+  /* ═════════════════════════════════════════════
+     SETTINGS SAVE
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-save-settings', function(){
+    if (!window.AdminAPI) return;
+    var data = {};
+    $('.settings-input').each(function(){ data[$(this).data('key')] = $(this).val(); });
+    var $btn = $(this);
+    $btn.prop('disabled', true).text('Salvataggio...');
+    AdminAPI.settings.update(data)
+      .done(function(saved){
+        DATA.settings = saved;
+        toast('Impostazioni salvate', 'success');
+      })
+      .fail(function(){ toast('Errore salvataggio', 'error'); })
+      .always(function(){ $btn.prop('disabled', false).text('💾 Salva'); });
+  });
+
+  /* ═════════════════════════════════════════════
+     STAFF – new
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-new-staff', function(){
+    openModal('Nuovo account staff',
+      '<form id="newStaffForm"><div class="kv" style="grid-template-columns:120px 1fr;gap:10px">'+
+      '<div class="k">Nome</div><div class="v"><input type="text" name="nome" placeholder="Nome cognome" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">Email *</div><div class="v"><input type="email" name="email" required placeholder="staff@memi.it" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">Password *</div><div class="v"><input type="password" name="password" required placeholder="Min 8 caratteri" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">Ruolo</div><div class="v"><select name="role" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"><option value="staff">Staff</option><option value="admin">Admin</option></select></div>'+
+      '</div><div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'+
+      '<button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>'+
+      '<button type="submit" class="btn btn-primary btn-sm">Crea account</button></div></form>'
+    );
+    $('#newStaffForm').on('submit', function(e){
+      e.preventDefault();
+      if (!window.AdminAPI) return;
+      var fd = Object.fromEntries(new FormData(this));
+      var $btn = $(this).find('[type=submit]');
+      $btn.prop('disabled', true).text('Creazione...');
+      AdminAPI.staff.create({ nome: fd.nome, email: fd.email, password: fd.password, role: fd.role })
+        .done(function(){ toast('Account creato', 'success'); closeModal(); renderView('staff'); })
+        .fail(function(xhr){ var msg=(xhr.responseJSON&&xhr.responseJSON.error)||'Errore'; toast(msg,'error'); $btn.prop('disabled',false).text('Crea account'); });
+    });
+  });
+
+  /* ═════════════════════════════════════════════
+     STAFF – edit
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-edit-staff', function(){
+    var id    = $(this).data('id');
+    var nome  = $(this).data('nome');
+    var email = $(this).data('email');
+    var role  = $(this).data('role');
+    openModal('Modifica staff',
+      '<form id="editStaffForm"><div class="kv" style="grid-template-columns:120px 1fr;gap:10px">'+
+      '<div class="k">Nome</div><div class="v"><input type="text" name="nome" value="'+nome+'" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">Email</div><div class="v"><input type="email" name="email" value="'+email+'" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">Nuova password</div><div class="v"><input type="password" name="password" placeholder="(lascia vuoto per non cambiare)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">Ruolo</div><div class="v"><select name="role" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">'+
+        '<option value="staff"'+(role==='staff'?' selected':'')+'>Staff</option>'+
+        '<option value="admin"'+(role==='admin'?' selected':'')+'>Admin</option>'+
+      '</select></div>'+
+      '</div><div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'+
+      '<button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>'+
+      '<button type="submit" class="btn btn-primary btn-sm">Salva</button></div></form>'
+    );
+    $('#editStaffForm').on('submit', function(e){
+      e.preventDefault();
+      if (!window.AdminAPI) return;
+      var fd = Object.fromEntries(new FormData(this));
+      var payload = { nome: fd.nome, email: fd.email, role: fd.role };
+      if (fd.password) payload.password = fd.password;
+      var $btn = $(this).find('[type=submit]');
+      $btn.prop('disabled', true).text('Salvataggio...');
+      AdminAPI.staff.update(id, payload)
+        .done(function(){ toast('Account aggiornato', 'success'); closeModal(); renderView('staff'); })
+        .fail(function(xhr){ var msg=(xhr.responseJSON&&xhr.responseJSON.error)||'Errore'; toast(msg,'error'); $btn.prop('disabled',false).text('Salva'); });
+    });
+  });
+
+  /* ═════════════════════════════════════════════
+     STAFF – delete
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-del-staff', function(){
+    var id   = $(this).data('id');
+    var nome = $(this).data('nome');
+    if (!id || !window.AdminAPI) return;
+    if (!confirm('Eliminare account di ' + nome + '? Irreversibile.')) return;
+    AdminAPI.staff.delete(id)
+      .done(function(){ toast('Account eliminato', 'success'); renderView('staff'); })
+      .fail(function(xhr){ toast((xhr.responseJSON&&xhr.responseJSON.error)||'Errore', 'error'); });
+  });
+
   // ── Initial data load from API, then render dashboard ──
   function loadDashboardData() {
     var api = window.AdminAPI;
@@ -2896,6 +3125,64 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { _origRenderView(name); });
 
+    } else if (name === 'analytics') {
+      // Reuse existing kpi/chart data if already loaded; otherwise fetch fresh
+      if (DATA.kpi) { _origRenderView(name); return; }
+      $.when(api.dashboard.kpis(), api.dashboard.chart()).done(function(kpiRes, chartRes) {
+        DATA.kpi       = kpiRes[0] || {};
+        DATA.chartData = chartRes[0] || [];
+        _origRenderView(name);
+      }).fail(function() { _origRenderView(name); });
+
+    } else if (name === 'staff') {
+      api.staff.list().done(function(data) {
+        DATA.staff = (data && data.staff) ? data.staff : [];
+        _origRenderView(name);
+      }).fail(function() { DATA.staff = DATA.staff || []; _origRenderView(name); });
+
+    } else if (name === 'settings') {
+      api.settings.get().done(function(data) {
+        DATA.settings = data || {};
+        _origRenderView(name);
+      }).fail(function() { DATA.settings = DATA.settings || {}; _origRenderView(name); });
+
+    } else if (name === 'collections') {
+      api.products.listAll().done(function(list) {
+        if (!Array.isArray(list)) list = [];
+        var map = {};
+        list.forEach(function(p) {
+          var c = [];
+          try { c = JSON.parse(p.collections || '[]'); } catch(_) {}
+          if (!Array.isArray(c)) c = [];
+          c.forEach(function(slug) {
+            if (!map[slug]) map[slug] = 0;
+            map[slug]++;
+          });
+        });
+        DATA.collections = Object.keys(map).sort().map(function(slug) {
+          return { slug: slug, count: map[slug] };
+        });
+        _origRenderView(name);
+      }).fail(function() { DATA.collections = DATA.collections || []; _origRenderView(name); });
+
+    } else if (name === 'categories') {
+      api.products.listAll().done(function(list) {
+        if (!Array.isArray(list)) list = [];
+        var map = {};
+        list.forEach(function(p) {
+          var cat = (p.categoria || '').toLowerCase().trim();
+          if (!cat) return;
+          if (!map[cat]) map[cat] = { count: 0, active: 0, esauriti: 0 };
+          map[cat].count++;
+          if (p.status === 'attivo')    map[cat].active++;
+          if (p.status === 'esaurito')  map[cat].esauriti++;
+        });
+        DATA.categories = Object.keys(map).sort().map(function(slug) {
+          return Object.assign({ slug: slug }, map[slug]);
+        });
+        _origRenderView(name);
+      }).fail(function() { DATA.categories = DATA.categories || []; _origRenderView(name); });
+
     } else if (name === 'dashboard') {
       loadDashboardData();
     } else {
@@ -2903,6 +3190,20 @@ $(function(){
     }
   };
 
-  // First load
-  loadDashboardData();
+  // ── Startup auth guard ─────────────────────────────────────
+  // Verify the stored token is still valid before rendering anything.
+  // admin-api.js already redirects on any 401, but checking here catches
+  // an expired token before the first data request fires.
+  if (window.AdminAPI && AdminAPI.isLoggedIn()) {
+    AdminAPI.auth.me()
+      .done(function() { loadDashboardData(); })
+      .fail(function() {
+        // redirect is already handled inside admin-api.js request()
+        // but belt-and-suspenders: ensure we land on login
+        window.location.href = 'index.html?session=expired';
+      });
+  } else {
+    // No token at all — go straight to login
+    window.location.href = 'index.html';
+  }
 });

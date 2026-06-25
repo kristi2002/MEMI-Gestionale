@@ -6,8 +6,8 @@ RUN apk add --no-cache curl
 WORKDIR /app
 
 # Install dependencies first (layer caching)
-COPY package.json ./
-RUN npm install --omit=dev --no-audit --no-fund
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
 
 # Copy source
 COPY src/ ./src/
@@ -18,7 +18,5 @@ USER memi
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
 
 CMD ["node", "src/server.js"]
