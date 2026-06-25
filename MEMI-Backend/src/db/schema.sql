@@ -110,6 +110,9 @@ CREATE TABLE IF NOT EXISTS orders (
   notes              TEXT,
   created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_orders_customer (customer_id),
+  KEY idx_orders_statuses (order_status, payment_status),
+  KEY idx_orders_created (created_at),
   FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -272,6 +275,7 @@ CREATE TABLE IF NOT EXISTS resi (
   rimborso_amount  DECIMAL(10,2) NULL,
   created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_resi_stato (stato),
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -291,6 +295,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   stato          ENUM('in_attesa','pubblicata','rifiutata') DEFAULT 'in_attesa',
   risposta_admin TEXT NULL,
   created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_reviews_product (product_id, stato),
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
   FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -395,15 +400,10 @@ INSERT INTO product_sizes (product_id, taglia, stock) VALUES
 ON DUPLICATE KEY UPDATE stock=VALUES(stock);
 
 -- -------------------------------------------------------------
--- Indexes for high-frequency query columns
--- -------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_orders_customer   ON orders(customer_id);
-CREATE INDEX IF NOT EXISTS idx_orders_statuses   ON orders(order_status, payment_status);
-CREATE INDEX IF NOT EXISTS idx_orders_created    ON orders(created_at);
-CREATE INDEX IF NOT EXISTS idx_resi_stato        ON resi(stato);
-CREATE INDEX IF NOT EXISTS idx_reviews_product   ON reviews(product_id, stato);
-CREATE INDEX IF NOT EXISTS idx_newsletter_email  ON newsletter_subscribers(email);
-
+-- (Indexes for high-frequency query columns are declared inline
+--  within their CREATE TABLE definitions above — MySQL 8 does not
+--  support CREATE INDEX IF NOT EXISTS, and inline KEYs stay
+--  idempotent under CREATE TABLE IF NOT EXISTS on re-runs.)
 -- -------------------------------------------------------------
 -- Store settings (key/value pairs)
 -- -------------------------------------------------------------

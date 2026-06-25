@@ -51,10 +51,10 @@ router.get('/kpis', requireAdmin, async (req, res) => {
     };
 
     return res.json({
-      revenue:  { value: `€ ${Number(curr.revenue).toFixed(2)}`,  delta: pctChange(curr.revenue, prev.revenue),  up: curr.revenue >= prev.revenue },
-      orders:   { value: `${curr.orders}`,                         delta: pctChange(curr.orders, prev.orders),    up: curr.orders >= prev.orders },
+      revenue:  { value: `€ ${Number(curr.revenue).toFixed(2)}`,  delta: pctChange(Number(curr.revenue), Number(prev.revenue)),  up: Number(curr.revenue) >= Number(prev.revenue) },
+      orders:   { value: `${curr.orders}`,                         delta: pctChange(Number(curr.orders), Number(prev.orders)),    up: Number(curr.orders) >= Number(prev.orders) },
       visitors: { value: `${visitors.total}`,                      delta: '',                                     up: true },
-      aov:      { value: `€ ${Number(curr.aov).toFixed(2)}`,      delta: pctChange(curr.aov, prev.aov),          up: curr.aov >= prev.aov },
+      aov:      { value: `€ ${Number(curr.aov).toFixed(2)}`,      delta: pctChange(Number(curr.aov), Number(prev.aov)),          up: Number(curr.aov) >= Number(prev.aov) },
     });
   } catch (err) {
     console.error('kpis error', err);

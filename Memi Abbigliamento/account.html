@@ -162,6 +162,7 @@
   var TOKEN_KEY   = 'memi_token';
   var SESSION_KEY = 'memi_session';
   var main        = document.getElementById('accountMain');
+  var loadedOrders = [];
 
   /* ── Redirect if not logged in ─────────────────────── */
   var token = localStorage.getItem(TOKEN_KEY);
@@ -234,8 +235,12 @@
     document.body.appendChild(overlay);
     overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
 
-    window.MemiAPI.orders.myOrder(orderId).then(function(data) {
-      var o = data;
+    var o = loadedOrders.filter(function(x){ return String(x.id) === String(orderId); })[0];
+    if (!o) {
+      overlay.querySelector('p').textContent = 'Impossibile caricare il dettaglio. Riprova.';
+      return;
+    }
+    (function() {
       var rows = (o.items || []).map(function(i) {
         return '<tr>' +
           '<td style="padding:8px 0;font-size:.875rem">' + (i.product_name || '—') + (i.taglia ? ' <span style="color:var(--brown-light);font-size:.75rem">/ ' + i.taglia + '</span>' : '') + '</td>' +
@@ -266,9 +271,7 @@
         '<div style="margin-top:16px;text-align:right">' +
           '<a href="returns.html" style="font-size:.8rem;color:var(--espresso);text-decoration:underline">Richiedi un reso ›</a>' +
         '</div>';
-    }).catch(function() {
-      overlay.querySelector('p').textContent = 'Impossibile caricare il dettaglio. Riprova.';
-    });
+    })();
   }
 
   document.addEventListener('click', function(e) {
@@ -454,6 +457,7 @@
     .then(function(results) {
       var user   = results[0].user || results[0];
       var orders = Array.isArray(results[1]) ? results[1] : (results[1].orders || []);
+      loadedOrders = orders;
       renderPage(user, orders);
     })
     .catch(function() {

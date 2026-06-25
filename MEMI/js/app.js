@@ -1,3 +1,4 @@
+/* MEMI Admin SPA — jQuery + MEMI Backend API (sync probe marker) */
 /* ===========================================================
    MEMI Admin - SPA con jQuery + MEMI Backend API
    I dati vengono caricati dall'API in tempo reale.
@@ -100,7 +101,12 @@ const DATA = {
   staff:       null,
   settings:    null,
   collections: null,
-  categories:  null
+  categories:  null,
+  giftcards:   null,
+  giftSummary: null,
+  campaigns:   null,
+  pages:       null,
+  blog:        null
 };
 
 const COURIER_LOGOS = {
@@ -203,8 +209,8 @@ VIEWS.dashboard = function(){
   const k = DATA.kpi;
   return `
     ${pageHead("Buongiorno, Admin 👋","Ecco cosa è successo oggi nel tuo store.",`
-      <button class="btn btn-soft btn-sm">Esporta</button>
-      <button class="btn btn-primary btn-sm">+ Nuovo ordine</button>
+      <button class="btn btn-soft btn-sm js-export-orders">📤 Esporta</button>
+      <button class="btn btn-primary btn-sm js-new-order">+ Nuovo ordine</button>
     `)}
     <div class="grid grid-4">
       <div class="card kpi green"><div class="icon-wrap">💰</div>
@@ -545,17 +551,37 @@ VIEWS.transfers = function(){
 };
 
 VIEWS.giftcards = function(){
+  const cards = DATA.giftcards || [];
+  const sum   = DATA.giftSummary || { total:0, attive:0, balance:0, emesso:0 };
+  const eur   = v => '€ ' + (Number(v)||0).toFixed(2).replace('.', ',');
   return `
-    ${pageHead("Gift Card","Card prepagate digitali.",`<button class="btn btn-primary btn-sm">+ Emetti gift card</button>`)}
-    <div class="grid grid-3">
-      ${[25,50,100,200].map(v=>`
-        <div class="card" style="background:linear-gradient(135deg,var(--green),var(--pink))">
-          <h3 style="font-size:13px;color:#fff">MEMI Gift Card</h3>
-          <div style="font-size:32px;font-weight:700;color:#fff;margin:14px 0">€ ${v}</div>
-          <small style="color:#fff;opacity:.85">12 emesse · 4 utilizzate</small>
-        </div>
-      `).join('')}
+    ${pageHead("Gift Card","Card prepagate digitali.",`<button class="btn btn-primary btn-sm js-new-giftcard">+ Emetti gift card</button>`)}
+    <div class="grid grid-4" style="margin-bottom:16px">
+      <div class="card kpi green"><span class="label">Emesse</span><span class="value">${sum.total}</span></div>
+      <div class="card kpi pink"><span class="label">Attive</span><span class="value">${sum.attive}</span></div>
+      <div class="card kpi soft"><span class="label">Valore residuo</span><span class="value">${eur(sum.balance)}</span></div>
+      <div class="card kpi green"><span class="label">Totale emesso</span><span class="value">${eur(sum.emesso)}</span></div>
     </div>
+    <div class="table-card"><div class="table-wrap"><table class="data">
+      <thead><tr><th>Codice</th><th>Valore iniziale</th><th>Saldo</th><th>Destinatario</th><th>Stato</th><th>Emessa</th><th></th></tr></thead>
+      <tbody>
+        ${cards.length ? cards.map(c=>`
+          <tr data-id="${c.id}">
+            <td><strong style="font-family:monospace">${c.code}</strong></td>
+            <td>${eur(c.initial_amount)}</td>
+            <td><strong>${eur(c.balance)}</strong></td>
+            <td>${c.recipient_email||'—'}</td>
+            <td>${statusPill(AdminAPI?AdminAPI.statusLabel(c.stato):c.stato)}</td>
+            <td style="color:var(--muted)">${new Date(c.created_at).toLocaleDateString('it-IT')}</td>
+            <td class="row-actions">
+              <button class="js-copy-code" data-code="${c.code}" title="Copia codice">📋</button>
+              <button class="js-toggle-giftcard" data-id="${c.id}" data-stato="${c.stato}" title="${c.stato==='disattivata'?'Riattiva':'Disattiva'}">${c.stato==='disattivata'?'✅':'🚫'}</button>
+              <button class="js-del-giftcard" data-id="${c.id}" data-code="${c.code}" title="Elimina">🗑</button>
+            </td>
+          </tr>
+        `).join('') : `<tr><td colspan="7" class="empty">${DATA.giftcards===null?'Caricamento…':'Nessuna gift card emessa'}</td></tr>`}
+      </tbody>
+    </table></div></div>
   `;
 };
 
@@ -593,7 +619,7 @@ VIEWS.customers = function(){
 
 VIEWS.segments = function(){
   return `
-    ${pageHead("Segmenti","Raggruppa i clienti per comportamento.",`<button class="btn btn-primary btn-sm">+ Nuovo segmento</button>`)}
+    ${pageHead("Segmenti","Raggruppa i clienti per comportamento.",`<button class="btn btn-primary btn-sm js-new-segment">+ Analizza segmento</button>`)}
     <div class="grid grid-3">
       ${[
         ["VIP","Speso > €500","18 clienti"],
@@ -652,19 +678,32 @@ VIEWS.reviews = function(){
 
 /* ---------- MARKETING ---------- */
 VIEWS.marketing = function(){
+  const camps = DATA.campaigns || [];
+  const eur = v => '€ ' + (Number(v)||0).toFixed(0);
+  const tipoIcon = { email:'📧', ads:'📣', automazione:'⚙️', sms:'💬' };
   return `
-    ${pageHead("Marketing","Campagne attive e performance.",`<button class="btn btn-primary btn-sm">+ Nuova campagna</button>`)}
+    ${pageHead("Marketing","Campagne attive e performance.",`<button class="btn btn-primary btn-sm js-new-campaign">+ Nuova campagna</button>`)}
+    ${camps.length===0 ? `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">${DATA.campaigns===null?'Caricamento…':'Nessuna campagna. Creane una con “+ Nuova campagna”.'}</p></div>` : `
     <div class="grid grid-3">
-      <div class="card"><h3>Estate Pastel 🌸</h3><p style="color:var(--muted);font-size:12px">Email · 12.340 destinatari</p>
-        <div style="margin-top:10px;display:flex;gap:14px"><div><strong>32%</strong><small style="display:block;color:var(--muted)">Open</small></div><div><strong>4,8%</strong><small style="display:block;color:var(--muted)">Click</small></div></div>
-      </div>
-      <div class="card"><h3>Black Sneakers</h3><p style="color:var(--muted);font-size:12px">Meta Ads · €450 budget</p>
-        <div style="margin-top:10px;display:flex;gap:14px"><div><strong>2,1k</strong><small style="display:block;color:var(--muted)">Click</small></div><div><strong>4,2x</strong><small style="display:block;color:var(--muted)">ROAS</small></div></div>
-      </div>
-      <div class="card"><h3>Welcome Flow</h3><p style="color:var(--muted);font-size:12px">Automazione · 3 step</p>
-        <div style="margin-top:10px;display:flex;gap:14px"><div><strong>892</strong><small style="display:block;color:var(--muted)">Iscritti</small></div><div><strong>€ 4.2k</strong><small style="display:block;color:var(--muted)">Generati</small></div></div>
-      </div>
-    </div>
+      ${camps.map(c=>`
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <h3>${tipoIcon[c.tipo]||'📌'} ${c.nome}</h3>
+            ${statusPill(AdminAPI?AdminAPI.statusLabel(c.stato):c.stato)}
+          </div>
+          <p style="color:var(--muted);font-size:12px;margin-top:4px">${(c.tipo||'').charAt(0).toUpperCase()+(c.tipo||'').slice(1)}${c.canale?' · '+c.canale:''}${c.destinatari?' · '+c.destinatari+' destinatari':''}${Number(c.budget)>0?' · '+eur(c.budget)+' budget':''}</p>
+          <div style="margin-top:10px;display:flex;gap:14px;flex-wrap:wrap">
+            <div><strong>${Number(c.open_rate)||0}%</strong><small style="display:block;color:var(--muted)">Open</small></div>
+            <div><strong>${Number(c.click_rate)||0}%</strong><small style="display:block;color:var(--muted)">Click</small></div>
+            <div><strong>${eur(c.revenue)}</strong><small style="display:block;color:var(--muted)">Generati</small></div>
+          </div>
+          <div style="margin-top:12px;display:flex;gap:6px">
+            <button class="btn btn-soft btn-sm js-edit-campaign" data-id="${c.id}" data-nome="${(c.nome||'').replace(/"/g,'&quot;')}" data-stato="${c.stato}">✏ Modifica</button>
+            <button class="btn btn-ghost btn-sm js-del-campaign" data-id="${c.id}" data-nome="${(c.nome||'').replace(/"/g,'&quot;')}">🗑</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`}
   `;
 };
 VIEWS.automations = ()=> VIEWS.marketing();
@@ -778,9 +817,9 @@ VIEWS.analytics = function(){
   `;
 };
 VIEWS.reports = function(){
-  return `${pageHead("Report","Reportistica avanzata.","")}<div class="grid grid-3">
-    ${["Vendite per canale","Vendite per prodotto","Vendite per cliente","Sconti utilizzati","Inventario movimenti","Tasse riscosse"].map(r=>`
-      <div class="card" style="cursor:pointer"><h3>📊 ${r}</h3><small style="color:var(--muted)">Aggiornato 5 min fa</small></div>
+  return `${pageHead("Report","Reportistica avanzata. Clicca un report per esportarlo in CSV.","")}<div class="grid grid-3">
+    ${[["orders","Vendite — Ordini"],["products","Vendite per prodotto"],["customers","Vendite per cliente"],["discounts","Sconti utilizzati"],["inventory","Inventario / Stock"],["invoices","Fatture emesse"]].map(r=>`
+      <div class="card js-run-report" data-report="${r[0]}" style="cursor:pointer"><h3>📊 ${r[1]}</h3><small style="color:var(--muted)">Esporta CSV →</small></div>
     `).join('')}
     </div>`;
 };
@@ -797,31 +836,61 @@ VIEWS.liveview = function(){
 
 /* ---------- CONTENUTI ---------- */
 VIEWS.content = function(){
-  return `${pageHead("Pagine","Pagine statiche del sito.",`<button class="btn btn-primary btn-sm">+ Nuova pagina</button>`)}
+  const pages = DATA.pages || [];
+  return `${pageHead("Pagine","Pagine statiche del sito.",`<button class="btn btn-primary btn-sm js-new-page">+ Nuova pagina</button>`)}
     <div class="table-card"><div class="table-wrap"><table class="data">
-      <thead><tr><th>Titolo</th><th>URL</th><th>Stato</th><th>Modificata</th></tr></thead>
+      <thead><tr><th>Titolo</th><th>URL</th><th>Stato</th><th>Modificata</th><th></th></tr></thead>
       <tbody>
-        <tr><td><strong>Chi siamo</strong></td><td>/chi-siamo</td><td>${statusPill('Pubblicata')}</td><td>10/05/2026</td></tr>
-        <tr><td><strong>Spedizioni & Resi</strong></td><td>/spedizioni</td><td>${statusPill('Pubblicata')}</td><td>02/05/2026</td></tr>
-        <tr><td><strong>Termini e condizioni</strong></td><td>/termini</td><td>${statusPill('Pubblicata')}</td><td>15/01/2026</td></tr>
-        <tr><td><strong>Lavora con noi</strong></td><td>/careers</td><td>${statusPill('Bozza')}</td><td>14/05/2026</td></tr>
+        ${pages.length ? pages.map(p=>`
+          <tr data-id="${p.id}">
+            <td><strong>${p.titolo}</strong></td>
+            <td><code style="font-size:11px">/${p.slug}</code></td>
+            <td>${statusPill(p.stato==='pubblicata'?'Pubblicata':'Bozza')}</td>
+            <td style="color:var(--muted)">${new Date(p.updated_at||p.created_at).toLocaleDateString('it-IT')}</td>
+            <td class="row-actions">
+              <button class="js-edit-page" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}" data-stato="${p.stato}" data-slug="${p.slug}" title="Modifica">✏</button>
+              <button class="js-del-page" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}" title="Elimina">🗑</button>
+            </td>
+          </tr>
+        `).join('') : `<tr><td colspan="5" class="empty">${DATA.pages===null?'Caricamento…':'Nessuna pagina. Creane una con “+ Nuova pagina”.'}</td></tr>`}
       </tbody>
     </table></div></div>`;
 };
 VIEWS.blog = function(){
-  return `${pageHead("Blog","Articoli e contenuti editoriali.",`<button class="btn btn-primary btn-sm">+ Nuovo articolo</button>`)}
+  const posts = DATA.blog || [];
+  return `${pageHead("Blog","Articoli e contenuti editoriali.",`<button class="btn btn-primary btn-sm js-new-blog">+ Nuovo articolo</button>`)}
+    ${posts.length===0 ? `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">${DATA.blog===null?'Caricamento…':'Nessun articolo. Creane uno con “+ Nuovo articolo”.'}</p></div>` : `
     <div class="grid grid-3">
-      ${["Guida ai capi pastello 2026","5 outfit per la primavera","Sostenibilità: il nostro impegno","Sneaker bianche: come abbinarle"].map((t,i)=>`
-        <div class="card"><div style="height:100px;border-radius:8px;background:linear-gradient(135deg,var(--pink),var(--green));margin-bottom:10px"></div>
-        <strong>${t}</strong><p style="color:var(--muted);font-size:12px;margin-top:4px">Pubblicato il 1${i}/05/2026</p></div>
+      ${posts.map(p=>`
+        <div class="card">
+          <div style="height:100px;border-radius:8px;background:${p.cover_color||'linear-gradient(135deg,var(--pink),var(--green))'};margin-bottom:10px"></div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <strong>${p.titolo}</strong>
+            ${statusPill(p.stato==='pubblicato'?'Pubblicato':'Bozza')}
+          </div>
+          <p style="color:var(--muted);font-size:12px;margin-top:4px">${p.published_at?('Pubblicato il '+new Date(p.published_at).toLocaleDateString('it-IT')):'Bozza'}</p>
+          <div style="margin-top:10px;display:flex;gap:6px">
+            <button class="btn btn-soft btn-sm js-edit-blog" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}" data-estratto="${(p.estratto||'').replace(/"/g,'&quot;')}" data-stato="${p.stato}" data-slug="${p.slug}">✏ Modifica</button>
+            <button class="btn btn-ghost btn-sm js-del-blog" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}">🗑</button>
+          </div>
+        </div>
       `).join('')}
-    </div>`;
+    </div>`}`;
 };
 VIEWS.files = function(){
-  return `${pageHead("File","Asset multimediali del negozio.",`<button class="btn btn-primary btn-sm">+ Carica file</button>`)}
+  // Media library persisted as a JSON list in store_settings['media_library']
+  let media = [];
+  try { media = JSON.parse((DATA.settings && DATA.settings.media_library) || '[]'); } catch(_) {}
+  if (!Array.isArray(media)) media = [];
+  return `${pageHead("File","Asset multimediali del negozio (per URL).",`<button class="btn btn-primary btn-sm js-add-file">+ Aggiungi file</button>`)}
+    ${media.length===0 ? `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun file. Aggiungi un'immagine tramite URL con “+ Aggiungi file”.</p></div>` : `
     <div class="grid grid-4">
-      ${Array.from({length:8}).map((_,i)=>`<div class="card" style="text-align:center"><div style="height:80px;background:var(--line-2);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:28px">🖼</div><small style="display:block;margin-top:8px">img-${1000+i}.jpg</small></div>`).join('')}
-    </div>`;
+      ${media.map((m,i)=>`<div class="card" style="text-align:center">
+        <div style="height:90px;background:var(--line-2) center/cover no-repeat;${m.url?`background-image:url('${m.url.replace(/'/g,'')}')`:''};border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:28px">${m.url?'':'🖼'}</div>
+        <small style="display:block;margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.nome||('file-'+(i+1))}</small>
+        <button class="btn btn-ghost btn-sm js-del-file" data-idx="${i}" style="margin-top:4px">🗑</button>
+      </div>`).join('')}
+    </div>`}`;
 };
 VIEWS.menus = function(){
   return `${pageHead("Menu di navigazione","Configura header e footer del sito.","")}
@@ -842,8 +911,8 @@ VIEWS.menus = function(){
 VIEWS.couriers = function(){
   return `
     ${pageHead("Corrieri","Gestisci i partner di spedizione integrati con il tuo store.",`
-      <button class="btn btn-ghost btn-sm">📥 Importa tariffe</button>
-      <button class="btn btn-primary btn-sm">+ Aggiungi corriere</button>
+      <button class="btn btn-ghost btn-sm js-import-rates">📥 Importa tariffe</button>
+      <button class="btn btn-primary btn-sm js-new-courier">+ Aggiungi corriere</button>
     `)}
 
     <div class="grid grid-4" style="margin-bottom:16px">
@@ -876,6 +945,7 @@ VIEWS.couriers = function(){
             <button class="btn btn-soft btn-sm js-courier-config" data-courier="${c.code}">⚙ Configura</button>
             <button class="btn btn-ghost btn-sm js-courier-track" data-courier="${c.code}">📍 Tracking</button>
             <button class="btn btn-ghost btn-sm js-courier-rates" data-courier="${c.code}">💶 Tariffe</button>
+            <button class="btn btn-ghost btn-sm js-del-courier" data-courier="${c.code}" data-nome="${(c.nome||'').replace(/"/g,'&quot;')}" title="Rimuovi corriere">🗑</button>
           </div>
         </div>
       `).join('')}
@@ -904,8 +974,8 @@ VIEWS.couriers = function(){
 VIEWS.shipments = function(){
   return `
     ${pageHead("Spedizioni in corso","Monitora ogni pacco in tempo reale.",`
-      <button class="btn btn-ghost btn-sm">📤 Esporta CSV</button>
-      <button class="btn btn-primary btn-sm">+ Nuova spedizione</button>
+      <button class="btn btn-ghost btn-sm js-export-shipments">📤 Esporta CSV</button>
+      <button class="btn btn-primary btn-sm js-new-shipment">+ Nuova spedizione</button>
     `)}
 
     <div class="card" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
@@ -934,7 +1004,7 @@ VIEWS.shipments = function(){
               <td>${s.destinazione}</td>
               <td>${statusPill(s.stato)}</td>
               <td>${s.eta}</td>
-              <td class="row-actions"><button class="js-track-detail" data-id="${s.id}" title="Dettaglio">📍</button><button title="Etichetta">🏷</button></td>
+              <td class="row-actions"><button class="js-track-detail" data-id="${s.id}" title="Dettaglio">📍</button><button class="js-ship-label" data-id="${s.id}" data-ordine="${s.ordine}" data-cliente="${(s.cliente||'').replace(/"/g,'&quot;')}" data-dest="${(s.destinazione||'').replace(/"/g,'&quot;')}" title="Etichetta">🏷</button></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -1006,22 +1076,25 @@ VIEWS["shipping-zones"] = function(){
 
 VIEWS.pickup = function(){
   return `
-    ${pageHead("Punti di ritiro","Network di pickup point per consegna alternativa.",`<button class="btn btn-primary btn-sm">+ Aggiungi punto</button>`)}
+    ${pageHead("Punti di ritiro","Network di pickup point per consegna alternativa.",`<button class="btn btn-primary btn-sm js-new-pickup">+ Aggiungi punto</button>`)}
     <div class="table-card"><div class="table-wrap"><table class="data">
       <thead><tr><th>Nome</th><th>Indirizzo</th><th>Corriere</th><th>Orari</th><th></th></tr></thead>
       <tbody>
-        ${DATA.pickupPoints.map(p=>`
-          <tr>
+        ${(DATA.pickupPoints||[]).map(p=>`
+          <tr data-id="${p._db_id||''}">
             <td><strong>${p.nome}</strong></td>
             <td>${p.indirizzo}</td>
-            <td><span class="badge badge-green">${p.corriere}</span></td>
-            <td>${p.orari}</td>
-            <td class="row-actions"><button>✏</button><button>🗺</button></td>
+            <td><span class="badge badge-green">${p.corriere||'-'}</span></td>
+            <td>${p.orari||'-'}</td>
+            <td class="row-actions">
+              <button class="js-edit-pickup" data-id="${p._db_id||''}" data-nome="${(p.nome||'').replace(/"/g,'&quot;')}" data-indirizzo="${(p.indirizzo||'').replace(/"/g,'&quot;')}" data-corriere="${p.corriere||''}" data-orari="${(p.orari||'').replace(/"/g,'&quot;')}" title="Modifica">✏</button>
+              <button class="js-del-pickup" data-id="${p._db_id||''}" data-nome="${(p.nome||'').replace(/"/g,'&quot;')}" title="Elimina">🗑</button>
+            </td>
           </tr>
         `).join('')}
+        ${(DATA.pickupPoints||[]).length===0?'<tr><td colspan="5" class="empty">Nessun punto di ritiro. Aggiungine uno.</td></tr>':''}
       </tbody>
     </table></div></div>
-    <div class="card" style="margin-top:16px;height:280px;background:linear-gradient(180deg,#f0f5f2,#fff);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px">🗺 Mappa interattiva dei punti di ritiro (placeholder)</div>
   `;
 };
 
@@ -1224,9 +1297,9 @@ function renderActiveChat(){
 
     <div class="ci-section">
       <h4>Azioni rapide</h4>
-      <button class="btn btn-soft btn-sm" style="width:100%;margin-bottom:6px">🎁 Invia sconto -10%</button>
-      <button class="btn btn-soft btn-sm" style="width:100%;margin-bottom:6px">📦 Vai all'ordine</button>
-      <button class="btn btn-ghost btn-sm" style="width:100%">🚫 Blocca cliente</button>
+      <button class="btn btn-soft btn-sm js-chat-discount" style="width:100%;margin-bottom:6px">🎁 Invia sconto -10%</button>
+      <button class="btn btn-soft btn-sm js-chat-goorder" data-order="${ord?ord.id:''}" style="width:100%;margin-bottom:6px">📦 Vai all'ordine</button>
+      <button class="btn btn-ghost btn-sm js-chat-block" style="width:100%">🚫 Blocca cliente</button>
     </div>
 
     <div class="ci-section">
@@ -1326,10 +1399,14 @@ VIEWS.taxes = function(){
 
 /* ---------- CANALI ---------- */
 VIEWS["online-store"] = function(){
-  return `${pageHead("Negozio online","Tema, dominio e configurazione del sito.",`<button class="btn btn-primary btn-sm">🎨 Personalizza tema</button>`)}
+  const s = DATA.settings || {};
+  const theme  = s.theme_name    || 'Pastel Minimal v2.4';
+  const color  = s.theme_primary || '#7fc29b';
+  const domain = s.store_domain  || 'memi.it';
+  return `${pageHead("Negozio online","Tema, dominio e configurazione del sito.",`<button class="btn btn-primary btn-sm js-customize-theme">🎨 Personalizza tema</button>`)}
     <div class="grid grid-3">
-      <div class="card"><h3>Tema attivo</h3><p>Pastel Minimal v2.4</p><small style="color:var(--muted)">Aggiornato 3 giorni fa</small></div>
-      <div class="card"><h3>Dominio</h3><p>memi.it</p><small style="color:var(--muted)">SSL attivo · Scade 12/02/2027</small></div>
+      <div class="card"><h3>Tema attivo</h3><p style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:${color};display:inline-block"></span>${theme}</p><small style="color:var(--muted)">Colore primario ${color}</small></div>
+      <div class="card"><h3>Dominio</h3><p>${domain}</p><small style="color:var(--muted)">SSL attivo</small></div>
       <div class="card"><h3>Velocità</h3><p>Score: <strong>92/100</strong></p><small style="color:var(--muted)">Ultima analisi ieri</small></div>
     </div>`;
 };
@@ -1351,7 +1428,7 @@ VIEWS.social = function(){
 
 /* ---------- SISTEMA ---------- */
 VIEWS.apps = function(){
-  return `${pageHead("App installate","Estendi le funzionalità del tuo store.",`<button class="btn btn-primary btn-sm">+ App Store</button>`)}
+  return `${pageHead("App installate","Estendi le funzionalità del tuo store.",`<button class="btn btn-primary btn-sm js-app-store">+ App Store</button>`)}
     <div class="grid grid-3">
       ${DATA.apps.map(a=>`
         <div class="card">
@@ -1361,7 +1438,7 @@ VIEWS.apps = function(){
           </div>
           <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
             ${statusPill(a.stato)}
-            <button class="btn btn-soft btn-sm">Apri</button>
+            <button class="btn btn-soft btn-sm js-open-app" data-nome="${(a.nome||'').replace(/"/g,'&quot;')}" data-cat="${a.cat}" data-stato="${a.stato}">Apri</button>
           </div>
         </div>
       `).join('')}
@@ -2866,6 +2943,440 @@ $(function(){
       .fail(function(xhr){ toast((xhr.responseJSON&&xhr.responseJSON.error)||'Errore', 'error'); });
   });
 
+  /* ═════════════════════════════════════════════
+     NEW FEATURE HANDLERS (gift cards, campaigns, CMS,
+     pickup, couriers, shipments, theme, apps, reports…)
+     ═════════════════════════════════════════════ */
+  var inputCss = 'width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-family:inherit;font-size:13px';
+  function fieldRow(label, inner){ return '<div class="k">'+label+'</div><div class="v">'+inner+'</div>'; }
+  function modalForm(formId, rowsHtml, submitLabel){
+    return '<form id="'+formId+'"><div class="kv" style="grid-template-columns:140px 1fr;gap:10px;align-items:center">'+rowsHtml+'</div>'+
+      '<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">'+
+      '<button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>'+
+      '<button type="submit" class="btn btn-primary btn-sm">'+(submitLabel||'Salva')+'</button></div></form>';
+  }
+  function apiReady(){ if(!window.AdminAPI){ toast('API non disponibile','error'); return false; } return true; }
+
+  /* ── Dashboard: new manual order ── */
+  $(document).on('click','.js-new-order', function(){
+    openModal('Nuovo ordine manuale',
+      modalForm('newOrderForm',
+        fieldRow('Nome cliente *','<input name="nome" required placeholder="Mario" style="'+inputCss+'"/>')+
+        fieldRow('Cognome','<input name="cognome" placeholder="Rossi" style="'+inputCss+'"/>')+
+        fieldRow('Email *','<input type="email" name="email" required placeholder="cliente@mail.it" style="'+inputCss+'"/>')+
+        fieldRow('Articolo *','<input name="product_name" required placeholder="es. T-Shirt Cotone" style="'+inputCss+'"/>')+
+        fieldRow('Prezzo (EUR) *','<input type="number" step="0.01" min="0" name="price" required placeholder="29.90" style="'+inputCss+'"/>')+
+        fieldRow('Quantità','<input type="number" min="1" name="qty" value="1" style="'+inputCss+'"/>')+
+        fieldRow('Spedizione (EUR)','<input type="number" step="0.01" min="0" name="shipping_cost" value="0" style="'+inputCss+'"/>')+
+        fieldRow('Pagamento','<select name="payment_status" style="'+inputCss+'"><option value="in_attesa">In attesa</option><option value="pagato">Pagato</option></select>'),
+        'Crea ordine'));
+    $('#newOrderForm').on('submit', function(e){
+      e.preventDefault(); if(!apiReady()) return;
+      var fd = Object.fromEntries(new FormData(this));
+      var $btn=$(this).find('[type=submit]'); $btn.prop('disabled',true).text('Creazione...');
+      AdminAPI.orders.create({
+        nome:fd.nome, cognome:fd.cognome||'', email:fd.email,
+        shipping_cost:fd.shipping_cost||0, payment_status:fd.payment_status||'in_attesa',
+        items:[{ product_name:fd.product_name, price:fd.price, qty:fd.qty||1 }]
+      }).done(function(r){ toast('Ordine '+(r.order_number||'')+' creato','success'); closeModal(); renderView('orders'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore creazione ordine','error'); $btn.prop('disabled',false).text('Crea ordine'); });
+    });
+  });
+
+  /* ── Gift cards ── */
+  $(document).on('click','.js-new-giftcard', function(){
+    openModal('Emetti gift card',
+      modalForm('newGiftForm',
+        fieldRow('Importo (EUR) *','<input type="number" step="0.01" min="1" name="initial_amount" required placeholder="50.00" style="'+inputCss+'"/>')+
+        fieldRow('Email destinatario','<input type="email" name="recipient_email" placeholder="(facoltativa)" style="'+inputCss+'"/>')+
+        fieldRow('Note','<input name="note" placeholder="(facoltative)" style="'+inputCss+'"/>'),
+        'Emetti'));
+    $('#newGiftForm').on('submit', function(e){
+      e.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      var $btn=$(this).find('[type=submit]'); $btn.prop('disabled',true).text('Emissione...');
+      AdminAPI.giftcards.create(fd).done(function(r){ toast('Gift card '+r.code+' emessa','success'); closeModal(); renderView('giftcards'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); $btn.prop('disabled',false).text('Emetti'); });
+    });
+  });
+  $(document).on('click','.js-toggle-giftcard', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id'); var cur=$(this).data('stato');
+    var next = cur==='disattivata' ? 'attiva' : 'disattivata';
+    AdminAPI.giftcards.update(id,{stato:next}).done(function(){ toast('Gift card aggiornata','success'); renderView('giftcards'); })
+      .fail(function(){ toast('Errore','error'); });
+  });
+  $(document).on('click','.js-del-giftcard', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id'); var code=$(this).data('code');
+    if(!confirm('Eliminare la gift card '+code+'?')) return;
+    AdminAPI.giftcards.delete(id).done(function(){ toast('Gift card eliminata','success'); renderView('giftcards'); })
+      .fail(function(){ toast('Errore','error'); });
+  });
+
+  /* ── Campaigns ── */
+  function campaignForm(formId, data){
+    data = data || {};
+    var opt=function(v,l,sel){ return '<option value="'+v+'"'+(sel===v?' selected':'')+'>'+l+'</option>'; };
+    return modalForm(formId,
+      fieldRow('Nome *','<input name="nome" required value="'+(data.nome||'').replace(/"/g,'&quot;')+'" placeholder="Saldi estate" style="'+inputCss+'"/>')+
+      fieldRow('Tipo','<select name="tipo" style="'+inputCss+'">'+opt('email','Email',data.tipo)+opt('ads','Ads',data.tipo)+opt('automazione','Automazione',data.tipo)+opt('sms','SMS',data.tipo)+'</select>')+
+      fieldRow('Canale','<input name="canale" value="'+(data.canale||'')+'" placeholder="es. Meta, Klaviyo" style="'+inputCss+'"/>')+
+      fieldRow('Budget (EUR)','<input type="number" step="0.01" min="0" name="budget" value="'+(data.budget||0)+'" style="'+inputCss+'"/>')+
+      fieldRow('Destinatari','<input type="number" min="0" name="destinatari" value="'+(data.destinatari||0)+'" style="'+inputCss+'"/>')+
+      fieldRow('Stato','<select name="stato" style="'+inputCss+'">'+opt('bozza','Bozza',data.stato)+opt('attiva','Attiva',data.stato)+opt('pianificata','Pianificata',data.stato)+opt('conclusa','Conclusa',data.stato)+'</select>'),
+      data.id?'Salva':'Crea campagna');
+  }
+  $(document).on('click','.js-new-campaign', function(){
+    openModal('Nuova campagna', campaignForm('newCampaignForm'));
+    $('#newCampaignForm').on('submit', function(e){
+      e.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.campaigns.create(fd).done(function(){ toast('Campagna creata','success'); closeModal(); renderView('marketing'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-edit-campaign', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id');
+    var c=(DATA.campaigns||[]).find(function(x){ return String(x.id)===String(id); })||{};
+    openModal('Modifica campagna', campaignForm('editCampaignForm', c));
+    $('#editCampaignForm').on('submit', function(e){
+      e.preventDefault();
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.campaigns.update(id,fd).done(function(){ toast('Campagna aggiornata','success'); closeModal(); renderView('marketing'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-del-campaign', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id'); var nome=$(this).data('nome');
+    if(!confirm('Eliminare la campagna "'+nome+'"?')) return;
+    AdminAPI.campaigns.delete(id).done(function(){ toast('Campagna eliminata','success'); renderView('marketing'); })
+      .fail(function(){ toast('Errore','error'); });
+  });
+
+  /* ── CMS Pages ── */
+  $(document).on('click','.js-new-page', function(){
+    openModal('Nuova pagina',
+      modalForm('newPageForm',
+        fieldRow('Titolo *','<input name="titolo" required placeholder="Chi siamo" style="'+inputCss+'"/>')+
+        fieldRow('Contenuto','<textarea name="contenuto" rows="5" placeholder="Testo della pagina..." style="'+inputCss+'"></textarea>')+
+        fieldRow('Stato','<select name="stato" style="'+inputCss+'"><option value="bozza">Bozza</option><option value="pubblicata">Pubblicata</option></select>'),
+        'Crea pagina'));
+    $('#newPageForm').on('submit', function(e){
+      e.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.pages.create(fd).done(function(){ toast('Pagina creata','success'); closeModal(); renderView('content'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-edit-page', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id'); var titolo=$(this).data('titolo'); var stato=$(this).data('stato');
+    openModal('Modifica pagina',
+      modalForm('editPageForm',
+        fieldRow('Titolo *','<input name="titolo" required value="'+String(titolo).replace(/"/g,'&quot;')+'" style="'+inputCss+'"/>')+
+        fieldRow('Stato','<select name="stato" style="'+inputCss+'"><option value="bozza"'+(stato==='bozza'?' selected':'')+'>Bozza</option><option value="pubblicata"'+(stato==='pubblicata'?' selected':'')+'>Pubblicata</option></select>'),
+        'Salva'));
+    $('#editPageForm').on('submit', function(e){
+      e.preventDefault();
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.pages.update(id,fd).done(function(){ toast('Pagina aggiornata','success'); closeModal(); renderView('content'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-del-page', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id'); var titolo=$(this).data('titolo');
+    if(!confirm('Eliminare la pagina "'+titolo+'"?')) return;
+    AdminAPI.pages.delete(id).done(function(){ toast('Pagina eliminata','success'); renderView('content'); })
+      .fail(function(){ toast('Errore','error'); });
+  });
+
+  /* ── Blog ── */
+  $(document).on('click','.js-new-blog', function(){
+    openModal('Nuovo articolo',
+      modalForm('newBlogForm',
+        fieldRow('Titolo *','<input name="titolo" required placeholder="Guida outfit estate" style="'+inputCss+'"/>')+
+        fieldRow('Estratto','<input name="estratto" placeholder="Breve riassunto" style="'+inputCss+'"/>')+
+        fieldRow('Contenuto','<textarea name="contenuto" rows="5" style="'+inputCss+'"></textarea>')+
+        fieldRow('Stato','<select name="stato" style="'+inputCss+'"><option value="bozza">Bozza</option><option value="pubblicato">Pubblicato</option></select>'),
+        'Crea articolo'));
+    $('#newBlogForm').on('submit', function(e){
+      e.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.blog.create(fd).done(function(){ toast('Articolo creato','success'); closeModal(); renderView('blog'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-edit-blog', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id'); var titolo=$(this).data('titolo'); var estratto=$(this).data('estratto'); var stato=$(this).data('stato');
+    openModal('Modifica articolo',
+      modalForm('editBlogForm',
+        fieldRow('Titolo *','<input name="titolo" required value="'+String(titolo).replace(/"/g,'&quot;')+'" style="'+inputCss+'"/>')+
+        fieldRow('Estratto','<input name="estratto" value="'+String(estratto||'').replace(/"/g,'&quot;')+'" style="'+inputCss+'"/>')+
+        fieldRow('Stato','<select name="stato" style="'+inputCss+'"><option value="bozza"'+(stato==='bozza'?' selected':'')+'>Bozza</option><option value="pubblicato"'+(stato==='pubblicato'?' selected':'')+'>Pubblicato</option></select>'),
+        'Salva'));
+    $('#editBlogForm').on('submit', function(e){
+      e.preventDefault();
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.blog.update(id,fd).done(function(){ toast('Articolo aggiornato','success'); closeModal(); renderView('blog'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-del-blog', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id'); var titolo=$(this).data('titolo');
+    if(!confirm('Eliminare l\'articolo "'+titolo+'"?')) return;
+    AdminAPI.blog.delete(id).done(function(){ toast('Articolo eliminato','success'); renderView('blog'); })
+      .fail(function(){ toast('Errore','error'); });
+  });
+
+  /* ── Media library (Files) — stored in store_settings ── */
+  function getMedia(){ try { var m=JSON.parse((DATA.settings&&DATA.settings.media_library)||'[]'); return Array.isArray(m)?m:[]; } catch(_){ return []; } }
+  function saveMedia(list, okMsg){
+    if(!apiReady()) return;
+    AdminAPI.settings.update({ media_library: JSON.stringify(list) }).done(function(saved){
+      DATA.settings = saved || DATA.settings || {};
+      if(DATA.settings) DATA.settings.media_library = JSON.stringify(list);
+      toast(okMsg||'Salvato','success'); renderView('files');
+    }).fail(function(){ toast('Errore salvataggio','error'); });
+  }
+  $(document).on('click','.js-add-file', function(){
+    openModal('Aggiungi file',
+      modalForm('addFileForm',
+        fieldRow('Nome *','<input name="nome" required placeholder="hero-estate.jpg" style="'+inputCss+'"/>')+
+        fieldRow('URL immagine *','<input name="url" required placeholder="https://..." style="'+inputCss+'"/>'),
+        'Aggiungi'));
+    $('#addFileForm').on('submit', function(e){
+      e.preventDefault();
+      var fd=Object.fromEntries(new FormData(this));
+      var list=getMedia(); list.unshift({ nome:fd.nome, url:fd.url });
+      closeModal(); saveMedia(list,'File aggiunto');
+    });
+  });
+  $(document).on('click','.js-del-file', function(){
+    var idx=parseInt($(this).data('idx'),10);
+    var list=getMedia();
+    if(idx>=0 && idx<list.length){ list.splice(idx,1); saveMedia(list,'File rimosso'); }
+  });
+
+  /* ── Couriers: add / delete / import rates ── */
+  $(document).on('click','.js-new-courier', function(){
+    openModal('Aggiungi corriere',
+      modalForm('newCourierForm',
+        fieldRow('Codice *','<input name="code" required placeholder="es. tnt" style="'+inputCss+'"/>')+
+        fieldRow('Nome *','<input name="nome" required placeholder="TNT Express" style="'+inputCss+'"/>')+
+        fieldRow('Sigla','<input name="slug" maxlength="6" placeholder="TNT" style="'+inputCss+'"/>')+
+        fieldRow('Tariffa base (EUR)','<input type="number" step="0.01" min="0" name="rate" value="6.00" style="'+inputCss+'"/>')+
+        fieldRow('Attivo','<select name="attivo" style="'+inputCss+'"><option value="1">Sì</option><option value="0">No</option></select>'),
+        'Aggiungi'));
+    $('#newCourierForm').on('submit', function(e){
+      e.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this)); fd.attivo = fd.attivo==='1';
+      AdminAPI.shipping.createCourier(fd).done(function(){ toast('Corriere aggiunto','success'); closeModal(); renderView('couriers'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-del-courier', function(){
+    if(!apiReady()) return;
+    var code=$(this).data('courier'); var nome=$(this).data('nome');
+    if(!confirm('Rimuovere il corriere "'+nome+'"?')) return;
+    AdminAPI.shipping.deleteCourier(code).done(function(){ toast('Corriere rimosso','success'); renderView('couriers'); })
+      .fail(function(){ toast('Errore','error'); });
+  });
+  $(document).on('click','.js-import-rates', function(){
+    var rows=(DATA.couriers||[]).map(function(c){
+      return fieldRow(c.nome,'<input type="number" step="0.01" min="0" class="rate-input" data-code="'+c.code+'" value="'+(String(c.rate||'').replace(/[^0-9.,]/g,'').replace(',','.')||'0')+'" style="'+inputCss+'"/>');
+    }).join('');
+    openModal('Importa / aggiorna tariffe',
+      '<form id="ratesForm"><div class="kv" style="grid-template-columns:160px 1fr;gap:10px;align-items:center">'+rows+'</div>'+
+      '<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>'+
+      '<button type="submit" class="btn btn-primary btn-sm">Aggiorna tariffe</button></div></form>');
+    $('#ratesForm').on('submit', function(e){
+      e.preventDefault(); if(!apiReady()) return;
+      var updates=[]; $('.rate-input').each(function(){ updates.push(AdminAPI.shipping.updateCourier($(this).data('code'),{ rate:parseFloat($(this).val())||0 })); });
+      $.when.apply($,updates).done(function(){ toast('Tariffe aggiornate','success'); closeModal(); renderView('couriers'); })
+        .fail(function(){ toast('Errore aggiornamento','error'); });
+    });
+  });
+
+  /* ── Shipments: new / export / label ── */
+  $(document).on('click','.js-new-shipment', function(){
+    var couriers = (DATA.couriers&&DATA.couriers.length)?DATA.couriers:[{code:'sda',nome:'SDA'},{code:'brt',nome:'BRT'},{code:'gls',nome:'GLS'},{code:'dhl',nome:'DHL'}];
+    var courierOpts = couriers.map(function(c){ return '<option value="'+c.code+'">'+c.nome+'</option>'; }).join('');
+    openModal('Nuova spedizione',
+      modalForm('newShipForm',
+        fieldRow('N° Ordine / ID *','<input name="order_id" required placeholder="es. #10254 o 12" style="'+inputCss+'"/>')+
+        fieldRow('Corriere *','<select name="courier_code" required style="'+inputCss+'">'+courierOpts+'</select>')+
+        fieldRow('Tracking *','<input name="tracking_number" required placeholder="SDA1234567890" style="'+inputCss+'"/>')+
+        fieldRow('Destinazione','<input name="destinazione" placeholder="Milano (MI)" style="'+inputCss+'"/>')+
+        fieldRow('ETA','<input type="date" name="eta" style="'+inputCss+'"/>'),
+        'Crea spedizione'));
+    $('#newShipForm').on('submit', function(e){
+      e.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      fd.order_id = String(fd.order_id).replace('#','').trim();
+      AdminAPI.shipping.createShipment(fd).done(function(){ toast('Spedizione creata','success'); closeModal(); renderView('shipments'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-export-shipments', function(){
+    if(!DATA.shipments||!DATA.shipments.length){ toast('Nessuna spedizione da esportare','info'); return; }
+    var rows=[['Tracking','Ordine','Cliente','Corriere','Destinazione','Stato','ETA']];
+    DATA.shipments.forEach(function(s){ rows.push([s.id,s.ordine,s.cliente,(s.corriere||'').toUpperCase(),s.destinazione,s.stato,s.eta]); });
+    downloadCSV(rows,'spedizioni'); toast('CSV esportato: '+DATA.shipments.length+' spedizioni','success');
+  });
+  $(document).on('click','.js-ship-label', function(){
+    var id=$(this).data('id'), ordine=$(this).data('ordine'), cliente=$(this).data('cliente'), dest=$(this).data('dest');
+    var w=window.open('','_blank');
+    if(!w){ toast('Abilita i popup per stampare l\'etichetta','info'); return; }
+    w.document.write('<html><head><title>Etichetta '+id+'</title><style>body{font-family:Arial;padding:24px}.lbl{border:2px solid #000;border-radius:8px;padding:20px;max-width:380px}.lbl h2{margin:0 0 8px}.row{margin:6px 0;font-size:14px}.bc{font-family:monospace;font-size:22px;letter-spacing:3px;margin-top:14px;border-top:1px dashed #888;padding-top:12px}</style></head><body><div class="lbl"><h2>MEMI · Etichetta di spedizione</h2><div class="row"><b>Ordine:</b> '+ordine+'</div><div class="row"><b>Destinatario:</b> '+cliente+'</div><div class="row"><b>Destinazione:</b> '+dest+'</div><div class="bc">'+id+'</div></div><script>window.print()</script></body></html>');
+    w.document.close();
+  });
+
+  /* ── Pickup points: new / edit / delete ── */
+  function pickupForm(formId, d){
+    d=d||{};
+    return modalForm(formId,
+      fieldRow('Nome *','<input name="nome" required value="'+(d.nome||'').replace(/"/g,'&quot;')+'" placeholder="Edicola Centro" style="'+inputCss+'"/>')+
+      fieldRow('Indirizzo *','<input name="indirizzo" required value="'+(d.indirizzo||'').replace(/"/g,'&quot;')+'" placeholder="Via Roma 1, Milano" style="'+inputCss+'"/>')+
+      fieldRow('Corriere','<input name="corriere" value="'+(d.corriere||'')+'" placeholder="SDA" style="'+inputCss+'"/>')+
+      fieldRow('Orari','<input name="orari" value="'+(d.orari||'').replace(/"/g,'&quot;')+'" placeholder="Lun-Sab 8-19" style="'+inputCss+'"/>'),
+      d.id?'Salva':'Aggiungi');
+  }
+  $(document).on('click','.js-new-pickup', function(){
+    openModal('Nuovo punto di ritiro', pickupForm('newPickupForm'));
+    $('#newPickupForm').on('submit', function(e){
+      e.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.shipping.createPickup(fd).done(function(){ toast('Punto aggiunto','success'); closeModal(); renderView('pickup'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-edit-pickup', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id');
+    if(!id){ toast('Salva prima i dati dal server','info'); return; }
+    var d={ id:id, nome:$(this).data('nome'), indirizzo:$(this).data('indirizzo'), corriere:$(this).data('corriere'), orari:$(this).data('orari') };
+    openModal('Modifica punto di ritiro', pickupForm('editPickupForm', d));
+    $('#editPickupForm').on('submit', function(e){
+      e.preventDefault();
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.shipping.updatePickup(id,fd).done(function(){ toast('Punto aggiornato','success'); closeModal(); renderView('pickup'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-del-pickup', function(){
+    if(!apiReady()) return;
+    var id=$(this).data('id'); var nome=$(this).data('nome');
+    if(!id){ toast('Punto non sincronizzato','info'); return; }
+    if(!confirm('Eliminare "'+nome+'"?')) return;
+    AdminAPI.shipping.deletePickup(id).done(function(){ toast('Punto eliminato','success'); renderView('pickup'); })
+      .fail(function(){ toast('Errore','error'); });
+  });
+
+  /* ── Online store: customize theme (saved to settings) ── */
+  $(document).on('click','.js-customize-theme', function(){
+    var s=DATA.settings||{};
+    openModal('Personalizza tema',
+      modalForm('themeForm',
+        fieldRow('Nome tema','<input name="theme_name" value="'+(s.theme_name||'Pastel Minimal v2.4').replace(/"/g,'&quot;')+'" style="'+inputCss+'"/>')+
+        fieldRow('Colore primario','<input type="color" name="theme_primary" value="'+(s.theme_primary||'#7fc29b')+'" style="height:38px;width:80px;border:1px solid var(--line);border-radius:6px"/>')+
+        fieldRow('Dominio','<input name="store_domain" value="'+(s.store_domain||'memi.it').replace(/"/g,'&quot;')+'" style="'+inputCss+'"/>'),
+        'Salva tema'));
+    $('#themeForm').on('submit', function(e){
+      e.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.settings.update(fd).done(function(saved){ DATA.settings=saved||Object.assign(DATA.settings||{},fd); toast('Tema salvato','success'); closeModal(); renderView('online-store'); })
+        .fail(function(){ toast('Errore salvataggio','error'); });
+    });
+  });
+
+  /* ── Apps: open / app store ── */
+  $(document).on('click','.js-open-app', function(){
+    var nome=$(this).data('nome'), cat=$(this).data('cat'), stato=$(this).data('stato');
+    openModal(nome,
+      '<div class="kv" style="grid-template-columns:120px 1fr;gap:8px">'+
+        '<div class="k">Categoria</div><div class="v">'+cat+'</div>'+
+        '<div class="k">Stato</div><div class="v">'+statusPill(stato)+'</div>'+
+      '</div><p style="margin-top:12px;color:var(--muted);font-size:13px">Configurazione e log dell\'app. Gestisci chiavi API e webhook dalla sezione Integrazioni.</p>'+
+      '<div style="margin-top:14px;display:flex;justify-content:flex-end"><button class="btn btn-primary btn-sm" onclick="closeModal()">Chiudi</button></div>');
+  });
+  $(document).on('click','.js-app-store', function(){
+    var avail=[['Mailchimp','Marketing'],['Yotpo Reviews','Recensioni'],['ShipStation','Spedizioni'],['QuickBooks','Fatturazione'],['TikTok Pixel','Marketing'],['Algolia Search','Ricerca']];
+    openModal('App Store',
+      '<p style="color:var(--muted);font-size:13px;margin-bottom:10px">App disponibili da installare:</p><div class="grid grid-2" style="gap:10px">'+
+      avail.map(function(a){ return '<div class="card" style="box-shadow:none;border:1px solid var(--line)"><strong>'+a[0]+'</strong><small style="display:block;color:var(--muted)">'+a[1]+'</small><button class="btn btn-soft btn-sm js-install-app" data-nome="'+a[0]+'" style="margin-top:8px">Installa</button></div>'; }).join('')+
+      '</div>');
+  });
+  $(document).on('click','.js-install-app', function(){
+    toast('“'+$(this).data('nome')+'” installata','success'); closeModal();
+  });
+
+  /* ── Segments: live analysis from customer data ── */
+  $(document).on('click','.js-new-segment', function(){
+    openModal('Analizza segmento clienti',
+      modalForm('segForm',
+        fieldRow('Criterio','<select name="rule" style="'+inputCss+'"><option value="vip">VIP (speso &gt; €300)</option><option value="spend100">Speso &gt; €100</option><option value="multi">Più di 1 ordine</option><option value="single">Un solo ordine</option></select>'),
+        'Calcola'));
+    $('#segForm').on('submit', function(e){
+      e.preventDefault();
+      var rule=$(this).find('[name=rule]').val();
+      var custs=DATA.customers||[];
+      var num=function(s){ return parseFloat(String(s||'').replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.'))||0; };
+      var match=custs.filter(function(c){
+        var spent=num(c.speso), ord=parseInt(c.ordini)||0;
+        if(rule==='vip') return c.vip||spent>300;
+        if(rule==='spend100') return spent>100;
+        if(rule==='multi') return ord>1;
+        if(rule==='single') return ord===1;
+        return false;
+      });
+      $('#modalBody').html('<p style="font-size:15px"><strong>'+match.length+'</strong> clienti corrispondono al criterio selezionato'+(custs.length?' (su '+custs.length+' caricati).':'.')+'</p>'+
+        (match.length?'<ul class="list-clean" style="margin-top:10px;max-height:220px;overflow:auto">'+match.slice(0,50).map(function(c){ return '<li><span>'+c.nome+'</span><small style="color:var(--muted)">'+c.speso+'</small></li>'; }).join('')+'</ul>':'')+
+        '<div style="margin-top:14px;display:flex;justify-content:flex-end"><button class="btn btn-primary btn-sm" onclick="closeModal()">Chiudi</button></div>');
+    });
+  });
+
+  /* ── Reports: export CSV from already-loaded / freshly-fetched data ── */
+  $(document).on('click','.js-run-report', function(){
+    if(!apiReady()) return;
+    var rep=$(this).data('report');
+    toast('Generazione report...','info');
+    function go(rows,name){ if(rows.length<2){ toast('Nessun dato per questo report','info'); return; } downloadCSV(rows,'report_'+name); toast('Report esportato','success'); }
+    if(rep==='orders'){
+      AdminAPI.orders.list({limit:200}).done(function(d){ var l=(d&&d.orders)||[]; var rows=[['Ordine','Cliente','Email','Totale','Pagamento','Stato','Data']]; l.forEach(function(o){ rows.push([o.order_number,(o.customer_nome||'')+' '+(o.customer_cognome||''),o.customer_email,o.total,o.payment_status,o.order_status,new Date(o.created_at).toLocaleDateString('it-IT')]); }); go(rows,'ordini'); }).fail(function(){ toast('Errore report','error'); });
+    } else if(rep==='products'){
+      AdminAPI.products.listAll().done(function(l){ l=l||[]; var rows=[['ID','Nome','Categoria','Prezzo','Stato']]; l.forEach(function(p){ rows.push([p.id,p.name,p.categoria,p.price,p.status]); }); go(rows,'prodotti'); }).fail(function(){ toast('Errore report','error'); });
+    } else if(rep==='customers'){
+      AdminAPI.customers.list({limit:200}).done(function(d){ var l=(d&&d.customers)||[]; var rows=[['ID','Nome','Email','Ordini','Speso']]; l.forEach(function(c){ rows.push([c.id,c.nome+' '+(c.cognome||''),c.email,c.total_orders||0,c.total_spent||0]); }); go(rows,'clienti'); }).fail(function(){ toast('Errore report','error'); });
+    } else if(rep==='discounts'){
+      AdminAPI.discounts.list().done(function(l){ l=l||[]; var rows=[['Codice','Tipo','Valore','Utilizzi','Max','Stato']]; l.forEach(function(d){ rows.push([d.code,d.tipo,d.valore,d.utilizzi||0,d.max_utilizzi||'-',d.stato]); }); go(rows,'sconti'); }).fail(function(){ toast('Errore report','error'); });
+    } else if(rep==='inventory'){
+      AdminAPI.products.listAll().done(function(l){ l=l||[]; var rows=[['ID','Nome','Categoria','Stock totale']]; l.forEach(function(p){ var st=0; (p.taglie||[]).forEach(function(t){ st+=parseInt(t.stock)||0; }); rows.push([p.id,p.name,p.categoria,st]); }); go(rows,'inventario'); }).fail(function(){ toast('Errore report','error'); });
+    } else if(rep==='invoices'){
+      AdminAPI.invoices.list({limit:200}).done(function(d){ var l=(d&&d.invoices)||(Array.isArray(d)?d:[]); var rows=[['N°','Ordine','Cliente','Totale','Stato','Data']]; l.forEach(function(i){ rows.push([i.invoice_number,i.order_number||i.order_id,(i.customer_nome||'')+' '+(i.customer_cognome||''),i.total,i.stato,new Date(i.created_at).toLocaleDateString('it-IT')]); }); go(rows,'fatture'); }).fail(function(){ toast('Errore report','error'); });
+    }
+  });
+
+  /* ── Chat quick actions ── */
+  $(document).on('click','.js-chat-discount', function(){
+    var c=CHATS.find(function(x){ return x.id===activeChatId; });
+    if(c){ sendChatMessage('🎁 Ecco un codice sconto del 10% per te: MEMI10'); toast('Sconto inviato in chat','success'); }
+  });
+  $(document).on('click','.js-chat-goorder', function(){
+    var ordId=$(this).data('order');
+    if(ordId){ renderView('orders'); setActiveNav('orders'); toast('Apertura ordine '+ordId,'info'); }
+    else { toast('Nessun ordine collegato a questa chat','info'); }
+  });
+  $(document).on('click','.js-chat-block', function(){
+    var c=CHATS.find(function(x){ return x.id===activeChatId; });
+    if(c && confirm('Bloccare '+c.nome+'? Non potrà più scriverti.')){ toast(c.nome+' bloccato','success'); }
+  });
+
   // ── Initial data load from API, then render dashboard ──
   function loadDashboardData() {
     var api = window.AdminAPI;
@@ -3182,6 +3693,48 @@ $(function(){
         });
         _origRenderView(name);
       }).fail(function() { DATA.categories = DATA.categories || []; _origRenderView(name); });
+
+    } else if (name === 'giftcards') {
+      api.giftcards.list().done(function(data) {
+        DATA.giftcards   = (data && data.cards)   ? data.cards   : [];
+        DATA.giftSummary = (data && data.summary) ? data.summary : null;
+        _origRenderView(name);
+      }).fail(function() { DATA.giftcards = DATA.giftcards || []; _origRenderView(name); });
+
+    } else if (name === 'marketing' || name === 'automations') {
+      api.campaigns.list().done(function(list) {
+        DATA.campaigns = Array.isArray(list) ? list : [];
+        _origRenderView(name);
+      }).fail(function() { DATA.campaigns = DATA.campaigns || []; _origRenderView(name); });
+
+    } else if (name === 'content') {
+      api.pages.list().done(function(list) {
+        DATA.pages = Array.isArray(list) ? list : [];
+        _origRenderView(name);
+      }).fail(function() { DATA.pages = DATA.pages || []; _origRenderView(name); });
+
+    } else if (name === 'blog') {
+      api.blog.list().done(function(list) {
+        DATA.blog = Array.isArray(list) ? list : [];
+        _origRenderView(name);
+      }).fail(function() { DATA.blog = DATA.blog || []; _origRenderView(name); });
+
+    } else if (name === 'files' || name === 'online-store') {
+      api.settings.get().done(function(data) {
+        DATA.settings = data || {};
+        _origRenderView(name);
+      }).fail(function() { DATA.settings = DATA.settings || {}; _origRenderView(name); });
+
+    } else if (name === 'pickup') {
+      api.shipping.pickup().done(function(list) {
+        if (Array.isArray(list) && list.length) {
+          DATA.pickupPoints = list.map(function(p) {
+            return { _db_id: p.id, nome: p.nome, indirizzo: p.indirizzo,
+                     corriere: p.corriere || '-', orari: p.orari || '-', attivo: !!p.attivo };
+          });
+        }
+        _origRenderView(name);
+      }).fail(function() { _origRenderView(name); });
 
     } else if (name === 'dashboard') {
       loadDashboardData();

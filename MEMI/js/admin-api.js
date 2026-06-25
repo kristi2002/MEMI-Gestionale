@@ -97,6 +97,7 @@
   var orders = {
     list:         function(params) { return get('/orders/admin/list' + (params ? '?' + $.param(params) : '')); },
     get:          function(id)     { return get('/orders/admin/' + id); },
+    create:       function(data)   { return post('/orders/admin', data); },
     updateStatus: function(id, data) { return put('/orders/admin/' + id + '/status', data); },
     ship:         function(id, data) { return put('/orders/admin/' + id + '/ship', data); },
     delete:       function(id)     { return del('/orders/admin/' + id); },
@@ -132,9 +133,44 @@
     updateZone:      function(id, d)  { return put('/shipping/zones/' + id, d); },
     deleteZone:      function(id)     { return del('/shipping/zones/' + id); },
     couriers:        function()       { return get('/shipping/couriers?all=1'); },
+    createCourier:   function(d)      { return post('/shipping/couriers', d); },
     updateCourier:   function(code, d) { return put('/shipping/couriers/' + code, d); },
+    deleteCourier:   function(code)   { return del('/shipping/couriers/' + code); },
     shipments:       function()       { return get('/shipping/shipments'); },
+    createShipment:  function(d)      { return post('/shipping/shipments', d); },
     updateShipment:  function(id, d)  { return put('/shipping/shipments/' + id, d); },
+    pickup:          function()       { return get('/shipping/pickup'); },
+    createPickup:    function(d)      { return post('/shipping/pickup', d); },
+    updatePickup:    function(id, d)  { return put('/shipping/pickup/' + id, d); },
+    deletePickup:    function(id)     { return del('/shipping/pickup/' + id); },
+  };
+
+  /* ═══════════════════════════════════════════════════════
+     GIFT CARDS · CAMPAIGNS · CMS (pages + blog)
+     ═══════════════════════════════════════════════════════ */
+  var giftcards = {
+    list:   function()       { return get('/admin/giftcards'); },
+    create: function(d)      { return post('/admin/giftcards', d); },
+    update: function(id, d)  { return put('/admin/giftcards/' + id, d); },
+    delete: function(id)     { return del('/admin/giftcards/' + id); },
+  };
+  var campaigns = {
+    list:   function()       { return get('/admin/campaigns'); },
+    create: function(d)      { return post('/admin/campaigns', d); },
+    update: function(id, d)  { return put('/admin/campaigns/' + id, d); },
+    delete: function(id)     { return del('/admin/campaigns/' + id); },
+  };
+  var pages = {
+    list:   function()       { return get('/admin/cms/pages'); },
+    create: function(d)      { return post('/admin/cms/pages', d); },
+    update: function(id, d)  { return put('/admin/cms/pages/' + id, d); },
+    delete: function(id)     { return del('/admin/cms/pages/' + id); },
+  };
+  var blog = {
+    list:   function()       { return get('/admin/cms/blog'); },
+    create: function(d)      { return post('/admin/cms/blog', d); },
+    update: function(id, d)  { return put('/admin/cms/blog/' + id, d); },
+    delete: function(id)     { return del('/admin/cms/blog/' + id); },
   };
 
   /* ═══════════════════════════════════════════════════════
@@ -196,7 +232,7 @@
 
 
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {
@@ -214,6 +250,13 @@
       in_consegna:     'In consegna',
       problema:        'Problema',
       attivo:          'Attivo',
+      attiva:          'Attiva',
+      utilizzata:      'Utilizzata',
+      disattivata:     'Disattivata',
+      pianificata:     'Pianificata',
+      conclusa:        'Conclusa',
+      pubblicata:      'Pubblicata',
+      pubblicato:      'Pubblicato',
       bozza:           'Bozza',
       esaurito:        'Esaurito',
     };

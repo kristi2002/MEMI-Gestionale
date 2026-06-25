@@ -122,7 +122,8 @@
 
   function renderReviews(productId, container) {
     if (!window.MemiAPI || !window.MemiAPI.reviews) return;
-    window.MemiAPI.reviews.forProduct(productId).then(function (list) {
+    window.MemiAPI.reviews.forProduct(productId).then(function (res) {
+      var list = Array.isArray(res) ? res : (res && res.reviews) || [];
       var avg = list.length ? (list.reduce(function (s, r) { return s + (r.rating || 0); }, 0) / list.length).toFixed(1) : null;
       var html = '<section class="reviews-section" style="margin-top:40px;padding-top:32px;border-top:1px solid var(--beige)">';
       html += '<h2 style="font-family:var(--font-serif);font-size:1.25rem;font-weight:300;margin-bottom:4px">Recensioni</h2>';

@@ -44,9 +44,23 @@ const resiPublicRoutes    = require('./routes/resi-public');
 const reviewsRoutes       = require('./routes/reviews');
 const settingsRoutes      = require('./routes/settings');
 const staffRoutes         = require('./routes/staff');
+const giftcardsRoutes     = require('./routes/giftcards');
+const campaignsRoutes     = require('./routes/campaigns');
+const cmsRoutes           = require('./routes/cms');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
+
+// ── Fail fast if critical secrets are missing ─────────────────
+// jwt.sign/verify throw at request time if these are undefined, which
+// turns every login into an opaque 500. Catch it at boot instead.
+const requiredSecrets = ['JWT_SECRET', 'JWT_ADMIN_SECRET'];
+const missingSecrets  = requiredSecrets.filter(k => !process.env[k]);
+if (missingSecrets.length) {
+  console.error(`❌  Missing required environment variables: ${missingSecrets.join(', ')}`);
+  console.error('    Set them in your .env / deployment config before starting.');
+  process.exit(1);
+}
 
 // ── Trust proxy (required behind Traefik / nginx / Coolify) ───
 // Without this, express-rate-limit throws on X-Forwarded-For headers.
@@ -120,6 +134,9 @@ app.use('/api/resi',              resiPublicRoutes);
 app.use('/api/reviews',           reviewsRoutes);
 app.use('/api/admin/settings',    settingsRoutes);
 app.use('/api/admin/staff',       staffRoutes);
+app.use('/api/admin/giftcards',   giftcardsRoutes);
+app.use('/api/admin/campaigns',   campaignsRoutes);
+app.use('/api/admin/cms',         cmsRoutes);
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));
@@ -134,6 +151,14 @@ app.use((err, req, res, _next) => {
 (async () => {
   try {
     await testConnection();
+    // Ensure feature tables added after the initial schema exist (idempotent)
+    try {
+      const { pool } = require('./db');
+      const { runMigrations } = require('./db/migrations');
+      await runMigrations(pool);
+    } catch (mErr) {
+      console.error('⚠️  Migrations failed (continuing):', mErr.message);
+    }
     const server = app.listen(PORT, () => {
       console.log(`🚀  MEMI API running on port ${PORT}`);
       console.log(`    NODE_ENV = ${process.env.NODE_ENV || 'development'}`);

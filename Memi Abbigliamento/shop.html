@@ -944,7 +944,8 @@ window.submitNewsletter = function (form) {
 
     fetch('/api/products?limit=200')
       .then(function (r) { return r.json(); })
-      .then(function (products) {
+      .then(function (res) {
+        var products = Array.isArray(res) ? res : (res && res.products) || [];
         if (!Array.isArray(products) || !products.length) {
           grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--brown-light);font-size:.88rem;">Nessun prodotto disponibile.</div>';
           if (typeof applyFilters === 'function') applyFilters();

@@ -84,10 +84,11 @@ router.post('/', optionalCustomer, async (req, res) => {
            AND min_order <= ?`,
         [discount_code.toUpperCase(), subtotal]
       );
-      if (!dc) return res.status(400).json({ error: 'Codice sconto non valido o scaduto' });
+      if (!dc) { await conn.rollback(); return res.status(400).json({ error: 'Codice sconto non valido o scaduto' }); }
       discountCodeId = dc.id;
-      if (dc.tipo === 'percentuale') discountAmount = subtotal * (dc.valore / 100);
-      else if (dc.tipo === 'fisso')  discountAmount = Math.min(dc.valore, subtotal);
+      const dcValore = Number(dc.valore);
+      if (dc.tipo === 'percentuale') discountAmount = subtotal * (dcValore / 100);
+      else if (dc.tipo === 'fisso')  discountAmount = Math.min(dcValore, subtotal);
       else if (dc.tipo === 'spedizione') shippingCost = 0;
     }
 
@@ -235,6 +236,55 @@ router.get('/admin/list', requireAdmin, async (req, res) => {
   }
 });
 
+/* ── POST /api/admin/orders ── create a manual order from the admin panel ── */
+router.post('/admin', requireAdmin, async (req, res) => {
+  const {
+    nome, cognome = '', email,
+    telefono, indirizzo = '-', citta = '-', cap = '-', paese = 'Italia',
+    items = [], shipping_cost = 0, payment_status = 'in_attesa', payment_method = 'carta',
+  } = req.body;
+
+  if (!nome || !email) return res.status(400).json({ error: 'Nome ed email obbligatori' });
+  if (!Array.isArray(items) || items.length === 0)
+    return res.status(400).json({ error: 'Aggiungi almeno un articolo' });
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const subtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (parseInt(i.qty) || 1), 0);
+    const ship     = Number(shipping_cost) || 0;
+    const total    = Math.max(0, subtotal + ship);
+    const orderNumber = await nextOrderNumber(conn);
+
+    const [result] = await conn.execute(
+      `INSERT INTO orders
+         (order_number, customer_id, customer_nome, customer_cognome, customer_email,
+          customer_telefono, shipping_address, shipping_citta, shipping_cap, shipping_paese,
+          subtotal, shipping_cost, discount_amount, total, payment_method, payment_status, order_status)
+       VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, 'in_preparazione')`,
+      [orderNumber, nome, cognome, email, telefono || null,
+       indirizzo, citta, cap, paese, subtotal, ship, total, payment_method, payment_status]
+    );
+    const orderId = result.insertId;
+    for (const item of items) {
+      await conn.execute(
+        `INSERT INTO order_items (order_id, product_id, product_name, taglia, colore, price, qty)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [orderId, item.product_id || null, item.product_name || 'Articolo',
+         item.taglia || null, item.colore || null, Number(item.price) || 0, parseInt(item.qty) || 1]
+      );
+    }
+    await conn.commit();
+    return res.status(201).json({ ok: true, id: orderId, order_number: orderNumber, total });
+  } catch (err) {
+    await conn.rollback();
+    console.error('admin create order error', err);
+    return res.status(500).json({ error: 'Errore nella creazione ordine' });
+  } finally {
+    conn.release();
+  }
+});
+
 /* ── GET /api/admin/orders/:id ── */
 router.get('/admin/:id', requireAdmin, async (req, res) => {
   try {
@@ -360,26 +410,29 @@ router.post('/validate-discount', async (req, res) => {
     );
 
     if (!dc) return res.status(404).json({ error: 'Codice non valido o scaduto' });
-    if (dc.min_order > 0 && subtotal < dc.min_order)
-      return res.status(400).json({ error: `Ordine minimo EUR${dc.min_order.toFixed(2)} per questo codice` });
+    const dcValore   = Number(dc.valore);
+    const dcMinOrder = Number(dc.min_order) || 0;
+    const sub        = Number(subtotal) || 0;
+    if (dcMinOrder > 0 && sub < dcMinOrder)
+      return res.status(400).json({ error: `Ordine minimo EUR${dcMinOrder.toFixed(2)} per questo codice` });
 
     let discountAmount = 0;
     let freeShipping   = false;
-    if (dc.tipo === 'percentuale')  discountAmount = subtotal * (dc.valore / 100);
-    else if (dc.tipo === 'fisso')   discountAmount = Math.min(dc.valore, subtotal);
+    if (dc.tipo === 'percentuale')  discountAmount = sub * (dcValore / 100);
+    else if (dc.tipo === 'fisso')   discountAmount = Math.min(dcValore, sub);
     else if (dc.tipo === 'spedizione') freeShipping = true;
 
     return res.json({
       ok: true,
       code: dc.code,
       tipo: dc.tipo,
-      valore: dc.valore,
+      valore: dcValore,
       discount_amount: discountAmount,
       free_shipping: freeShipping,
       label: dc.tipo === 'percentuale'
-        ? `${dc.valore}% di sconto`
+        ? `${dcValore}% di sconto`
         : dc.tipo === 'fisso'
-          ? `EUR ${dc.valore.toFixed(2)} di sconto`
+          ? `EUR ${dcValore.toFixed(2)} di sconto`
           : 'Spedizione gratuita',
     });
   } catch (err) {
