@@ -99,6 +99,7 @@
     get:          function(id)     { return get('/orders/admin/' + id); },
     updateStatus: function(id, data) { return put('/orders/admin/' + id + '/status', data); },
     ship:         function(id, data) { return put('/orders/admin/' + id + '/ship', data); },
+    delete:       function(id)     { return del('/orders/admin/' + id); },
   };
 
   /* ═══════════════════════════════════════════════════════
@@ -109,6 +110,7 @@
     get:    function(id)     { return get('/admin/customers/' + id); },
     update: function(id, d)  { return put('/admin/customers/' + id, d); },
     delete: function(id)     { return del('/admin/customers/' + id); },
+    create: function(d)      { return post('/admin/customers', d); },
   };
 
   /* ═══════════════════════════════════════════════════════
@@ -143,10 +145,41 @@
     subscribe: function(email, fonte) { return post('/newsletter/subscribe', { email: email, fonte: fonte || 'admin' }); },
   };
 
-  /* ── Expose ─────────────────────────────────────────────── */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter };
+  /* ═══════════════════════════════════════════════════════
+     INVOICES (fatture)
+     ═══════════════════════════════════════════════════════ */
+  var invoices = {
+    list:   function(params) { return get('/admin/invoices' + (params ? '?' + $.param(params) : '')); },
+    get:    function(id)     { return get('/admin/invoices/' + id); },
+    create: function(d)      { return post('/admin/invoices', d); },
+    update: function(id, d)  { return put('/admin/invoices/' + id, d); },
+    delete: function(id)     { return del('/admin/invoices/' + id); },
+  };
+  /* ================================================================
+     RESI (returns)
+     ================================================================ */
+  var resi = {
+    list:   function(params) { return get('/admin/resi' + (params ? '?' + $.param(params) : '')); },
+    get:    function(id)     { return get('/admin/resi/' + id); },
+    create: function(d)      { return post('/admin/resi', d); },
+    update: function(id, d)  { return put('/admin/resi/' + id, d); },
+    delete: function(id)     { return del('/admin/resi/' + id); },
+  };
 
-  /* ── Status-to-display helpers ──────────────────────────── */
+  /* ================================================================
+     REVIEWS
+     ================================================================ */
+  var reviews = {
+    list:   function(params) { return get('/reviews/admin' + (params ? '?' + $.param(params) : '')); },
+    update: function(id, d)  { return put('/reviews/admin/' + id, d); },
+    delete: function(id)     { return del('/reviews/admin/' + id); },
+    submit: function(d)      { return post('/reviews', d); },
+  };
+
+  /* -- Expose ---------------------------------------------------- */
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews };
+
+  /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {
     var map = {
       in_attesa:       'In attesa',

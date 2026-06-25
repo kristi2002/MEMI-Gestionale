@@ -14,6 +14,9 @@
  *   /api/admin/discounts Admin discount code CRUD
  *   /api/shipping        Zones, couriers, shipments
  *   /api/admin/dashboard KPIs + analytics
+ *   /api/admin/invoices   Invoice (fatture) CRUD
+ *   /api/admin/resi       Returns (resi) CRUD
+ *   /api/reviews          Product reviews (public submit + admin moderation)
  */
 
 require('dotenv').config();
@@ -35,6 +38,9 @@ const shippingRoutes   = require('./routes/shipping');
 const dashboardRoutes  = require('./routes/dashboard');
 const paymentsRoutes      = require('./routes/payments');
 const newsletterRoutes    = require('./routes/newsletter');
+const invoicesRoutes      = require('./routes/invoices');
+const resiRoutes          = require('./routes/resi');
+const reviewsRoutes       = require('./routes/reviews');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -103,6 +109,9 @@ app.use('/api/shipping',          shippingRoutes);
 app.use('/api/admin/dashboard',   dashboardRoutes);
 app.use('/api/payments',          paymentsRoutes);
 app.use('/api/newsletter',        newsletterRoutes);
+app.use('/api/admin/invoices',    invoicesRoutes);
+app.use('/api/admin/resi',        resiRoutes);
+app.use('/api/reviews',           reviewsRoutes);
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));

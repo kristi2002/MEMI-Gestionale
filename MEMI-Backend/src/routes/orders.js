@@ -314,6 +314,34 @@ router.put('/admin/:id/ship', requireAdmin, async (req, res) => {
   }
 });
 
+/* ── DELETE /api/orders/admin/:id ── */
+router.delete('/admin/:id', requireAdmin, async (req, res) => {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    // Delete child records first (FK constraints)
+    await conn.execute('DELETE FROM order_items WHERE order_id = ?', [req.params.id]);
+    await conn.execute('DELETE FROM shipments WHERE order_id = ?', [req.params.id]);
+    await conn.execute('DELETE FROM discount_usage WHERE order_id = ?', [req.params.id]);
+    // Delete from resi and invoices if those tables exist
+    await conn.execute('DELETE FROM resi WHERE order_id = ?', [req.params.id]).catch(() => {});
+    await conn.execute('DELETE FROM invoices WHERE order_id = ?', [req.params.id]).catch(() => {});
+    const [result] = await conn.execute('DELETE FROM orders WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) {
+      await conn.rollback();
+      return res.status(404).json({ error: 'Ordine non trovato' });
+    }
+    await conn.commit();
+    return res.json({ ok: true, message: 'Ordine eliminato' });
+  } catch (err) {
+    await conn.rollback();
+    console.error('delete order error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  } finally {
+    conn.release();
+  }
+});
+
 /* ── POST /api/orders/validate-discount ── */
 router.post('/validate-discount', async (req, res) => {
   const { code, subtotal = 0 } = req.body;
@@ -331,7 +359,7 @@ router.post('/validate-discount', async (req, res) => {
 
     if (!dc) return res.status(404).json({ error: 'Codice non valido o scaduto' });
     if (dc.min_order > 0 && subtotal < dc.min_order)
-      return res.status(400).json({ error: `Ordine minimo €${dc.min_order.toFixed(2)} per questo codice` });
+      return res.status(400).json({ error: `Ordine minimo EUR${dc.min_order.toFixed(2)} per questo codice` });
 
     let discountAmount = 0;
     let freeShipping   = false;
@@ -349,7 +377,7 @@ router.post('/validate-discount', async (req, res) => {
       label: dc.tipo === 'percentuale'
         ? `${dc.valore}% di sconto`
         : dc.tipo === 'fisso'
-          ? `€${dc.valore.toFixed(2)} di sconto`
+          ? `EUR ${dc.valore.toFixed(2)} di sconto`
           : 'Spedizione gratuita',
     });
   } catch (err) {

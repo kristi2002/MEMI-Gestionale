@@ -92,7 +92,11 @@ const DATA = {
     {nome:"SDA Tracking API",cat:"Spedizioni",stato:"Attiva"},
     {nome:"Loox UGC",cat:"Recensioni",stato:"Disattiva"}
   ],
-  newsletter: null
+  newsletter: null,
+  chartData:  null,
+  invoices:   null,
+  resi:       null,
+  reviews:    null
 };
 
 const COURIER_LOGOS = {
@@ -125,16 +129,51 @@ function pageHead(title, sub, actions){
 }
 
 function chartSVG(){
-  return `<svg viewBox="0 0 600 220" preserveAspectRatio="none">
-    <defs>
-      <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stop-color="#7fc29b" stop-opacity=".4"/>
+  var data = DATA.chartData;
+  var W = 600, H = 220, PX = 24, PY = 18;
+  if (!data || data.length < 2) {
+    // Placeholder while loading or no data
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="#7fc29b" stop-opacity=".3"/>
         <stop offset="100%" stop-color="#7fc29b" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    <path d="M0,180 C60,140 120,160 180,120 C240,90 300,130 360,80 C420,50 480,90 540,60 L600,70 L600,220 L0,220 Z" fill="url(#g1)"/>
-    <path d="M0,180 C60,140 120,160 180,120 C240,90 300,130 360,80 C420,50 480,90 540,60 L600,70" fill="none" stroke="#7fc29b" stroke-width="2.5"/>
-    <path d="M0,200 C60,180 120,170 180,160 C240,150 300,140 360,150 C420,160 480,140 540,130 L600,135" fill="none" stroke="#e89aae" stroke-width="2" stroke-dasharray="4 3"/>
+      </linearGradient></defs>
+      <path d="M0,180 C60,140 120,160 180,120 C240,90 300,130 360,80 C420,50 480,90 540,60 L600,70 L600,220 L0,220 Z" fill="url(#g1)"/>
+      <path d="M0,180 C60,140 120,160 180,120 C240,90 300,130 360,80 C420,50 480,90 540,60 L600,70" fill="none" stroke="#7fc29b" stroke-width="2.5"/>
+    </svg>`;
+  }
+  var revenues = data.map(function(d){ return parseFloat(d.revenue)||0; });
+  var orders   = data.map(function(d){ return parseFloat(d.orders)||0; });
+  var maxRev   = Math.max.apply(null, revenues) || 1;
+  var maxOrd   = Math.max.apply(null, orders) || 1;
+  var n = data.length;
+  function toPoints(vals, maxV) {
+    return vals.map(function(v, i){
+      var x = PX + (i/(n-1))*(W-2*PX);
+      var y = H - PY - (v/maxV)*(H-2*PY);
+      return x.toFixed(1)+','+y.toFixed(1);
+    });
+  }
+  var rPts = toPoints(revenues, maxRev);
+  var oPts = toPoints(orders, maxOrd);
+  var rLine = rPts.map(function(p,i){ return (i===0?'M':'L')+p; }).join(' ');
+  var rArea = rLine+' L'+(W-PX)+','+(H-PY)+' L'+PX+','+(H-PY)+' Z';
+  var oLine = oPts.map(function(p,i){ return (i===0?'M':'L')+p; }).join(' ');
+  // Grid lines
+  var gridLines = '';
+  for (var g=0;g<4;g++){
+    var gy = PY + g*((H-2*PY)/3);
+    gridLines += '<line x1="'+PX+'" x2="'+(W-PX)+'" y1="'+gy.toFixed(0)+'" y2="'+gy.toFixed(0)+'" stroke="var(--line)" stroke-width="1"/>';
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="overflow:visible">
+    <defs><linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#7fc29b" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="#7fc29b" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${gridLines}
+    <path d="${rArea}" fill="url(#g1)"/>
+    <path d="${rLine}" fill="none" stroke="#7fc29b" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="${oLine}" fill="none" stroke="#e89aae" stroke-width="2" stroke-dasharray="5 3" stroke-linejoin="round"/>
   </svg>`;
 }
 
@@ -257,7 +296,7 @@ VIEWS.orders = function(filter){
   if(filter==="abandoned") rows = []; // simulato
   return `
     ${pageHead("Ordini","Gestisci tutti gli ordini ricevuti dallo store.",`
-      <button class="btn btn-ghost btn-sm">📤 Esporta</button>
+      <button class="btn btn-ghost btn-sm js-export-orders">📤 Esporta CSV</button>
       <button class="btn btn-primary btn-sm">+ Crea ordine</button>
     `)}
     <div class="table-card">
@@ -296,8 +335,8 @@ VIEWS.orders = function(filter){
                 <td>${o.corriere}</td>
                 <td class="row-actions">
                   <button title="Visualizza" class="js-view-order">👁</button>
-                  <button title="Stampa">🖨</button>
-                  <button title="Elimina">🗑</button>
+                  <button title="Stampa" class="js-print-order-row">🖨</button>
+                  <button title="Elimina" class="js-del-order" data-id="${o._db_id||''}" data-order="${o.id}">🗑</button>
                 </td>
               </tr>
             `).join('')}
@@ -312,38 +351,81 @@ VIEWS["orders-drafts"]    = ()=> VIEWS.orders("drafts");
 VIEWS["orders-abandoned"] = ()=> VIEWS.orders("abandoned");
 
 VIEWS.invoices = function(){
+  const invs = DATA.invoices || [];
+  const total  = invs.length;
+  const emesse = invs.filter(i=>i.stato==='emessa'||i.stato==='inviata').length;
+  const pagate = invs.filter(i=>i.stato==='pagata').length;
   return `
-    ${pageHead("Fatture","Documenti fiscali emessi.",`<button class="btn btn-primary btn-sm">+ Nuova fattura</button>`)}
-    <div class="table-card"><div class="table-wrap"><table class="data">
-      <thead><tr><th>N°</th><th>Cliente</th><th>Data</th><th>Importo</th><th>Stato</th><th></th></tr></thead>
-      <tbody>
-        ${DATA.orders.slice(0,6).map((o,i)=>`
-          <tr>
-            <td><strong>F-2026/${1000+i}</strong></td>
-            <td>${o.cliente}</td><td>${o.data}</td><td>${o.totale}</td>
-            <td>${statusPill(i%3?'Inviata':'In attesa')}</td>
-            <td class="row-actions"><button>📥</button><button>✉</button></td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table></div></div>
+    ${pageHead("Fatture","Documenti fiscali emessi.",`
+      <button class="btn btn-soft btn-sm js-export-invoices">📤 Esporta CSV</button>
+      <button class="btn btn-primary btn-sm js-new-invoice">+ Nuova fattura</button>
+    `)}
+    <div class="grid grid-3" style="margin-bottom:16px">
+      <div class="card kpi green"><span class="label">Totale fatture</span><span class="value">${total}</span></div>
+      <div class="card kpi soft"><span class="label">Emesse / Inviate</span><span class="value">${emesse}</span></div>
+      <div class="card kpi pink"><span class="label">Pagate</span><span class="value">${pagate}</span></div>
+    </div>
+    <div class="table-card">
+      <div class="table-head">
+        <div style="display:flex;gap:6px">
+          <input type="text" id="invSearch" placeholder="Cerca fattura..." style="padding:6px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px;width:220px"/>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="data" id="invoiceTable">
+        <thead><tr><th>N° Fattura</th><th>Ordine</th><th>Cliente</th><th>Data</th><th>Importo</th><th>Stato</th><th></th></tr></thead>
+        <tbody>
+          ${invs.length ? invs.map(inv=>`
+            <tr data-id="${inv.id}">
+              <td><strong>${inv.invoice_number}</strong></td>
+              <td>${inv.order_number||('Ord. '+inv.order_id)}</td>
+              <td>${(inv.customer_nome||'')+' '+(inv.customer_cognome||'')}</td>
+              <td style="color:var(--muted)">${new Date(inv.created_at).toLocaleDateString('it-IT')}</td>
+              <td><strong>€ ${parseFloat(inv.total||0).toFixed(2).replace('.',',')}</strong></td>
+              <td>${statusPill(AdminAPI?AdminAPI.statusLabel(inv.stato):inv.stato)}</td>
+              <td class="row-actions">
+                <button class="js-view-invoice" data-id="${inv.id}" title="Visualizza">👁</button>
+                <button class="js-inv-stato" data-id="${inv.id}" data-stato="inviata" title="Segna inviata">✉</button>
+                <button class="js-del-invoice" data-id="${inv.id}" title="Elimina">🗑</button>
+              </td>
+            </tr>
+          `).join('') : `<tr><td colspan="7" class="empty">${DATA.invoices===null?'Caricamento…':'Nessuna fattura emessa'}</td></tr>`}
+        </tbody>
+      </table></div>
+    </div>
   `;
 };
 
 VIEWS.returns = function(){
+  const resiList = DATA.resi || [];
+  const aperti    = resiList.filter(r=>r.stato==='aperto').length;
+  const inAnalisi = resiList.filter(r=>r.stato==='in_analisi').length;
+  const rimborsati= resiList.filter(r=>r.stato==='rimborsato').length;
   return `
-    ${pageHead("Resi","Gestisci richieste di reso e rimborsi.","")}
-    <div class="grid grid-3">
-      <div class="card kpi pink"><div class="icon-wrap">↩</div><span class="label">Aperti</span><span class="value">7</span></div>
-      <div class="card kpi soft"><div class="icon-wrap">⏳</div><span class="label">In analisi</span><span class="value">3</span></div>
-      <div class="card kpi green"><div class="icon-wrap">✅</div><span class="label">Rimborsati (mese)</span><span class="value">12</span></div>
+    ${pageHead("Resi","Gestisci richieste di reso e rimborsi.",`
+      <button class="btn btn-primary btn-sm js-new-reso">+ Nuovo reso</button>
+    `)}
+    <div class="grid grid-3" style="margin-bottom:16px">
+      <div class="card kpi pink"><div class="icon-wrap">↩</div><span class="label">Aperti</span><span class="value">${aperti}</span></div>
+      <div class="card kpi soft"><div class="icon-wrap">⏳</div><span class="label">In analisi</span><span class="value">${inAnalisi}</span></div>
+      <div class="card kpi green"><div class="icon-wrap">✅</div><span class="label">Rimborsati</span><span class="value">${rimborsati}</span></div>
     </div>
-    <div class="table-card" style="margin-top:16px"><div class="table-wrap"><table class="data">
-      <thead><tr><th>RMA</th><th>Ordine</th><th>Cliente</th><th>Motivo</th><th>Stato</th><th></th></tr></thead>
+    <div class="table-card"><div class="table-wrap"><table class="data" id="resiTable">
+      <thead><tr><th>RMA</th><th>Ordine</th><th>Cliente</th><th>Motivo</th><th>Data</th><th>Stato</th><th></th></tr></thead>
       <tbody>
-        <tr><td>R-9921</td><td>#10248</td><td>Chiara Esposito</td><td>Taglia errata</td><td>${statusPill('In analisi')}</td><td class="row-actions"><button>👁</button></td></tr>
-        <tr><td>R-9920</td><td>#10245</td><td>Marta Rinaldi</td><td>Difetto cucitura</td><td>${statusPill('Approvato')}</td><td class="row-actions"><button>👁</button></td></tr>
-        <tr><td>R-9919</td><td>#10240</td><td>Andrea Russo</td><td>Non gradito</td><td>${statusPill('Rimborsato')}</td><td class="row-actions"><button>👁</button></td></tr>
+        ${resiList.length ? resiList.map(r=>`
+          <tr data-id="${r.id}">
+            <td><strong>${r.rma_number}</strong></td>
+            <td>${r.order_number||('#'+r.order_id)}</td>
+            <td>${r.customer_nome||r.customer_email||'—'}</td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.motivo||'—'}</td>
+            <td style="color:var(--muted)">${new Date(r.created_at).toLocaleDateString('it-IT')}</td>
+            <td>${statusPill(AdminAPI?AdminAPI.statusLabel(r.stato):r.stato)}</td>
+            <td class="row-actions">
+              <button class="js-view-reso" data-id="${r.id}" title="Gestisci reso">👁</button>
+              <button class="js-del-reso" data-id="${r.id}" data-rma="${r.rma_number}" title="Elimina">🗑</button>
+            </td>
+          </tr>
+        `).join('') : `<tr><td colspan="7" class="empty">${DATA.resi===null?'Caricamento…':'Nessun reso registrato'}</td></tr>`}
       </tbody>
     </table></div></div>
   `;
@@ -353,14 +435,21 @@ VIEWS.returns = function(){
 VIEWS.products = function(){
   return `
     ${pageHead("Prodotti","Gestisci catalogo, varianti, prezzi e magazzino.",`
-      <button class="btn btn-ghost btn-sm">📥 Importa</button>
-      <button class="btn btn-soft btn-sm">📤 Esporta</button>
+      <button class="btn btn-ghost btn-sm js-export-products">📤 Esporta CSV</button>
       <button class="btn btn-primary btn-sm js-new-product">+ Nuovo prodotto</button>
     `)}
     <div class="card" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
       <input type="text" id="prodSearch" placeholder="Cerca prodotto..." style="flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:#fafafa"/>
-      <select class="btn btn-soft btn-sm"><option>Tutte le categorie</option><option>T-Shirt</option><option>Felpe</option><option>Pantaloni</option></select>
-      <select class="btn btn-soft btn-sm"><option>Tutti gli stati</option><option>Attivi</option><option>Bozze</option><option>Esauriti</option></select>
+      <select id="prodCatFilter" class="btn btn-soft btn-sm">
+        <option value="">Tutte le categorie</option>
+        ${(()=>{ var cats=[...new Set((DATA.products||[]).map(p=>p.cat).filter(Boolean))].sort(); return cats.map(c=>`<option value="${c}">${c}</option>`).join(''); })()}
+      </select>
+      <select id="prodStatusFilter" class="btn btn-soft btn-sm">
+        <option value="">Tutti gli stati</option>
+        <option value="attivo">Attivo</option>
+        <option value="bozza">Bozza</option>
+        <option value="esaurito">Esaurito</option>
+      </select>
       <div style="margin-left:auto;display:flex;gap:4px">
         <button class="btn btn-soft btn-sm view-toggle active" data-mode="grid">▦ Griglia</button>
         <button class="btn btn-soft btn-sm view-toggle" data-mode="list">☰ Lista</button>
@@ -372,18 +461,20 @@ VIEWS.products = function(){
 
 VIEWS.inventory = function(){
   return `
-    ${pageHead("Magazzino","Tracciamento giacenze in tutti i depositi.","")}
+    ${pageHead("Magazzino","Tracciamento giacenze e aggiornamento stock.","")}
     <div class="table-card"><div class="table-wrap"><table class="data">
-      <thead><tr><th>SKU</th><th>Prodotto</th><th>Deposito MI</th><th>Deposito RM</th><th>Totale</th><th>Stato</th></tr></thead>
+      <thead><tr><th>SKU / ID</th><th>Prodotto</th><th>Categoria</th><th>Stock totale</th><th>Stato</th><th></th></tr></thead>
       <tbody>
-        ${DATA.products.map(p=>{
-          const mi = Math.floor(p.stock*0.6), rm = p.stock-mi;
-          return `<tr>
-            <td>${p.id}</td><td>${p.nome}</td>
-            <td>${mi}</td><td>${rm}</td><td><strong>${p.stock}</strong></td>
-            <td>${statusPill(p.stock===0?'Esaurito':p.stock<10?'Scorta bassa':'OK')}</td>
-          </tr>`;
-        }).join('')}
+        ${DATA.products.map(p=>`<tr data-prod-id="${p.id}">
+          <td><code style="font-size:11px">${p.id}</code></td>
+          <td><div style="display:flex;align-items:center;gap:8px"><span>${p.img}</span><strong>${p.nome}</strong></div></td>
+          <td>${p.cat}</td>
+          <td><strong>${p.stock}</strong></td>
+          <td>${statusPill(p.stock===0?'Esaurito':p.stock<10?'Scorta bassa':'OK')}</td>
+          <td class="row-actions">
+            <button class="btn btn-soft btn-sm js-update-stock" data-id="${p.id}" data-nome="${p.nome}" title="Aggiorna stock">✏ Stock</button>
+          </td>
+        </tr>`).join('')}
       </tbody>
     </table></div></div>
   `;
@@ -456,8 +547,8 @@ VIEWS.giftcards = function(){
 VIEWS.customers = function(){
   return `
     ${pageHead("Clienti","Anagrafica e cronologia acquisti.",`
-      <button class="btn btn-soft btn-sm">📤 Esporta</button>
-      <button class="btn btn-primary btn-sm">+ Nuovo cliente</button>
+      <button class="btn btn-soft btn-sm js-export-customers">📤 Esporta CSV</button>
+      <button class="btn btn-primary btn-sm js-new-customer">+ Nuovo cliente</button>
     `)}
     <div class="grid grid-4" style="margin-bottom:16px">
       <div class="card kpi green"><span class="label">Totale clienti</span><span class="value">${DATA.customers.length}</span></div>
@@ -507,25 +598,39 @@ VIEWS.segments = function(){
 };
 
 VIEWS.reviews = function(){
+  const rvs     = (DATA.reviews && DATA.reviews.list) ? DATA.reviews.list : [];
+  const pending = (DATA.reviews && DATA.reviews.pending) ? DATA.reviews.pending : 0;
+  const total   = (DATA.reviews && DATA.reviews.total)   ? DATA.reviews.total   : 0;
+  const avgRaw  = rvs.length ? (rvs.reduce((s,r)=>s+(parseFloat(r.rating)||0),0)/rvs.length).toFixed(1) : '—';
   return `
-    ${pageHead("Recensioni","Feedback dei clienti sui prodotti.","")}
-    <div class="grid grid-2">
-      ${[
-        ["Sofia B.","T-Shirt Oversize",5,"Tessuto morbidissimo, vestibilità perfetta!"],
-        ["Marco R.","Felpa Hoodie Pink",4,"Bella, taglia un po' grande."],
-        ["Luca N.","Sneaker Bianche",5,"Comode da subito, consigliate!"],
-        ["Anna G.","Borsa Tote",3,"Carina ma cuciture migliorabili."]
-      ].map(r=>`
-        <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <strong>${r[0]}</strong>
-            <span style="color:#e89aae">${"★".repeat(r[2])}${"☆".repeat(5-r[2])}</span>
-          </div>
-          <small style="color:var(--muted);display:block;margin-bottom:8px">${r[1]}</small>
-          <p>${r[3]}</p>
-        </div>
-      `).join('')}
+    ${pageHead("Recensioni","Moderation e feedback prodotti.",`
+      <button class="btn btn-soft btn-sm js-filter-reviews" data-stato="">Tutte</button>
+      <button class="btn btn-soft btn-sm js-filter-reviews" data-stato="in_attesa">⏳ In attesa (${pending})</button>
+    `)}
+    <div class="grid grid-3" style="margin-bottom:16px">
+      <div class="card kpi green"><span class="label">Totale recensioni</span><span class="value">${total}</span></div>
+      <div class="card kpi pink"><span class="label">In attesa moderaz.</span><span class="value">${pending}</span></div>
+      <div class="card kpi soft"><span class="label">Rating medio</span><span class="value">${avgRaw}★</span></div>
     </div>
+    <div class="table-card"><div class="table-wrap"><table class="data" id="reviewsTable">
+      <thead><tr><th>Prodotto</th><th>Cliente</th><th>Rating</th><th>Testo</th><th>Data</th><th>Stato</th><th></th></tr></thead>
+      <tbody>
+        ${rvs.length ? rvs.map(r=>`
+          <tr data-id="${r.id}">
+            <td><strong>${r.product_name||r.product_id}</strong></td>
+            <td>${r.customer_nome||'Anonimo'}</td>
+            <td style="color:#e89aae;font-size:15px">${'★'.repeat(parseInt(r.rating)||0)}${'☆'.repeat(5-(parseInt(r.rating)||0))}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)">${r.testo||'—'}</td>
+            <td style="color:var(--muted)">${new Date(r.created_at).toLocaleDateString('it-IT')}</td>
+            <td>${statusPill(AdminAPI?AdminAPI.statusLabel(r.stato):r.stato)}</td>
+            <td class="row-actions">
+              ${r.stato==='in_attesa'?`<button class="js-approve-review" data-id="${r.id}" title="Pubblica" style="color:var(--green)">✓</button><button class="js-reject-review" data-id="${r.id}" title="Rifiuta" style="color:var(--pink)">✗</button>`:''}
+              <button class="js-del-review" data-id="${r.id}" title="Elimina">🗑</button>
+            </td>
+          </tr>
+        `).join('') : `<tr><td colspan="7" class="empty">${DATA.reviews===null?'Caricamento…':'Nessuna recensione'}</td></tr>`}
+      </tbody>
+    </table></div></div>
   `;
 };
 
@@ -1425,11 +1530,42 @@ $(function(){
     if(e.target.id==='modalClose' || e.target.id==='modalBackdrop') closeModal();
   });
 
-  // Search top
+  // Top-bar global search
+  var $topSearchWrap = $('#topSearch').wrap('<div style="position:relative;flex:1"></div>').parent();
+  $topSearchWrap.css('flex','1');
   $('#topSearch').on('keypress', function(e){
-    if(e.which===13){
-      toast(`Ricerca per "${$(this).val()}" (demo)`, 'info');
-    }
+    if(e.which!==13) return;
+    var q = $(this).val().trim().toLowerCase();
+    if(!q) return;
+    // Search across orders, products, customers
+    var results = [];
+    (DATA.orders||[]).forEach(function(o){
+      if((o.id+' '+o.cliente).toLowerCase().includes(q))
+        results.push({label:'🧾 '+o.id+' — '+o.cliente, view:'orders'});
+    });
+    (DATA.products||[]).forEach(function(p){
+      if((p.nome+' '+p.cat).toLowerCase().includes(q))
+        results.push({label:'👗 '+p.nome, view:'products'});
+    });
+    (DATA.customers||[]).forEach(function(c){
+      if((c.nome+' '+c.email).toLowerCase().includes(q))
+        results.push({label:'👤 '+c.nome+' <'+c.email+'>', view:'customers'});
+    });
+    // Remove existing dropdown
+    $('#globalSearchDrop').remove();
+    if(!results.length){ toast('Nessun risultato per "'+$(this).val()+'"','info'); return; }
+    var items = results.slice(0,8).map(function(r){
+      return '<div class="gsd-item" data-view="'+r.view+'" style="padding:8px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)">'+r.label+'</div>';
+    }).join('');
+    var $drop = $('<div id="globalSearchDrop" style="position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:1000;margin-top:4px">'+items+'</div>');
+    $topSearchWrap.append($drop);
+    $drop.on('click','.gsd-item',function(){
+      var view=$(this).data('view');
+      $('#globalSearchDrop').remove();
+      setActiveNav(view);
+      renderView(view);
+    });
+    $(document).one('click',function(){ $('#globalSearchDrop').remove(); });
   });
 
   // Delegated handlers
@@ -2082,39 +2218,407 @@ $(function(){
       .fail(function(){ toast('Errore eliminazione','error'); });
   });
 
-  /* SHIP ORDER */
-  $(document).on('click','.js-open-ship-modal', function(){
-    const dbId    = $(this).data('id');
-    const orderNr = $(this).data('order');
-    const couriers = DATA.couriers && DATA.couriers.length ? DATA.couriers : [
-      {code:'sda',nome:'SDA'},{code:'brt',nome:'BRT'},{code:'gls',nome:'GLS'},
-      {code:'poste',nome:'Poste Italiane'},{code:'dhl',nome:'DHL'}
-    ];
-    const courierOpts = couriers.map(function(c){ return '<option value="' + c.code + '">' + c.nome + '</option>'; }).join('');
-    openModal('Spedisci ordine ' + orderNr, `
-      <form id="shipForm">
-        <div class="kv" style="grid-template-columns:130px 1fr;gap:10px">
-          <div class="k">Corriere *</div><div class="v">
-            <select name="courier_code" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">
-              ${courierOpts}
-            </select>
-          </div>
-          <div class="k">Tracking # *</div><div class="v"><input type="text" name="tracking_number" required placeholder="es. SDA1234567890" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
-          <div class="k">Destinazione</div><div class="v"><input type="text" name="destinazione" placeholder="es. Roma (RM)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
-          <div class="k">ETA</div><div class="v"><input type="date" name="eta" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+  /* ═════════════════════════════════════════════
+     CSV EXPORTS
+     ═════════════════════════════════════════════ */
+  function downloadCSV(rows, filename) {
+    var csv = rows.map(function(r){ return r.map(function(c){ return '"'+String(c==null?'':c).replace(/"/g,'""')+'"'; }).join(','); }).join('\n');
+    var a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download = filename+'_'+new Date().toISOString().slice(0,10)+'.csv';
+    a.click();
+  }
+
+  $(document).on('click','.js-export-orders', function(){
+    if (!DATA.orders || !DATA.orders.length){ toast('Nessun ordine da esportare','info'); return; }
+    var rows=[['ID Ordine','Cliente','Data','Totale','Pagamento','Stato','Corriere','Tracking']];
+    DATA.orders.forEach(function(o){ rows.push([o.id,o.cliente,o.data,o.totale,o.pagamento,o.stato,o.corriere,o.tracking]); });
+    downloadCSV(rows,'ordini');
+    toast('CSV ordini esportato','success');
+  });
+
+  $(document).on('click','.js-export-products', function(){
+    if (!DATA.products || !DATA.products.length){ toast('Nessun prodotto da esportare','info'); return; }
+    var rows=[['ID','Nome','Categoria','Prezzo','Stock','Stato']];
+    DATA.products.forEach(function(p){ rows.push([p.id,p.nome,p.cat,p.prezzo,p.stock,p.status]); });
+    downloadCSV(rows,'prodotti');
+    toast('CSV prodotti esportato','success');
+  });
+
+  $(document).on('click','.js-export-customers', function(){
+    if (!DATA.customers || !DATA.customers.length){ toast('Nessun cliente da esportare','info'); return; }
+    var rows=[['ID','Nome','Email','Ordini','Totale speso','VIP']];
+    DATA.customers.forEach(function(c){ rows.push([c._db_id||c.id,c.nome,c.email,c.ordini,c.speso,c.vip?'Sì':'No']); });
+    downloadCSV(rows,'clienti');
+    toast('CSV clienti esportato','success');
+  });
+
+  $(document).on('click','.js-export-invoices', function(){
+    if (!DATA.invoices || !DATA.invoices.length){ toast('Nessuna fattura da esportare','info'); return; }
+    var rows=[['N° Fattura','Ordine','Cliente','Email','Importo','Stato','Data']];
+    DATA.invoices.forEach(function(i){ rows.push([i.invoice_number,i.order_number||i.order_id,(i.customer_nome||'')+' '+(i.customer_cognome||''),i.customer_email||'',i.total,i.stato,new Date(i.created_at).toLocaleDateString('it-IT')]); });
+    downloadCSV(rows,'fatture');
+    toast('CSV fatture esportato','success');
+  });
+
+  /* ═════════════════════════════════════════════
+     PRODUCTS FILTER
+     ═════════════════════════════════════════════ */
+  $(document).on('change','#prodCatFilter, #prodStatusFilter', function(){
+    var cat    = $('#prodCatFilter').val().toLowerCase();
+    var status = $('#prodStatusFilter').val().toLowerCase();
+    $('#productsArea .prod-card, #productsArea tbody tr').each(function(){
+      var txt = $(this).text().toLowerCase();
+      var okCat    = !cat    || txt.includes(cat);
+      var okStatus = !status || txt.includes(status==='attivo'?'attiv':status==='bozza'?'bozza':status==='esaurito'?'esaur':status);
+      $(this).toggle(okCat && okStatus);
+    });
+  });
+
+  /* ═════════════════════════════════════════════
+     INVENTORY STOCK UPDATE
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-update-stock', function(){
+    var id   = $(this).data('id');
+    var nome = $(this).data('nome');
+    if (!id || !window.AdminAPI) return;
+    // Load current sizes from API
+    AdminAPI.products.get(id).done(function(p){
+      var taglie = (p.taglie && p.taglie.length) ? p.taglie : [];
+      var rows = taglie.map(function(t){
+        return '<tr><td style="padding:6px 8px;font-weight:600">'+t.taglia+'</td><td style="padding:6px 8px"><input type="number" min="0" class="stock-input field-input" data-taglia="'+t.taglia+'" value="'+t.stock+'" style="width:80px;padding:4px 8px;border:1px solid var(--line);border-radius:6px"/></td></tr>';
+      }).join('');
+      if(!rows) rows='<tr><td colspan="2" style="padding:16px;color:var(--muted);text-align:center">Nessuna taglia configurata. Usa Modifica prodotto.</td></tr>';
+      openModal('Stock: '+nome, `
+        <table style="width:100%;margin-bottom:16px"><thead><tr><th style="padding:4px 8px">Taglia</th><th style="padding:4px 8px">Stock</th></tr></thead><tbody>${rows}</tbody></table>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>
+          <button class="btn btn-primary btn-sm" id="saveStockBtn" data-id="${id}">💾 Salva stock</button>
         </div>
-        <p style="margin-top:12px;font-size:12px;color:var(--muted)">Lo stato ordine verra impostato a <strong>Spedito</strong> e il pagamento a <strong>Pagato</strong>.</p>
+      `);
+    }).fail(function(){ toast('Errore caricamento prodotto','error'); });
+  });
+
+  $(document).on('click','#saveStockBtn', function(){
+    var id   = $(this).data('id');
+    var $btn = $(this);
+    var tasks= [];
+    $('.stock-input').each(function(){
+      var taglia= $(this).data('taglia');
+      var stock = parseInt($(this).val());
+      if(taglia && !isNaN(stock)) tasks.push({taglia:taglia,stock:stock});
+    });
+    if(!tasks.length){ closeModal(); return; }
+    $btn.prop('disabled',true).text('Salvataggio…');
+    var dfd = $.Deferred().resolve();
+    tasks.forEach(function(t){
+      dfd = dfd.then(function(){ return AdminAPI.products.updateStock(id,t.taglia,t.stock); });
+    });
+    dfd.done(function(){ toast('Stock aggiornato','success'); closeModal(); renderView('inventory'); })
+       .fail(function(){ toast('Errore aggiornamento stock','error'); $btn.prop('disabled',false).text('💾 Salva stock'); });
+  });
+
+  /* ═════════════════════════════════════════════
+     NUOVO CLIENTE
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-new-customer', function(){
+    openModal('Nuovo cliente', `
+      <form id="newCustomerForm">
+        <div class="kv" style="grid-template-columns:130px 1fr;gap:10px">
+          <div class="k">Nome *</div><div class="v"><input type="text" name="nome" required placeholder="Nome" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Cognome</div><div class="v"><input type="text" name="cognome" placeholder="Cognome" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Email *</div><div class="v"><input type="email" name="email" required placeholder="email@esempio.it" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Telefono</div><div class="v"><input type="tel" name="telefono" placeholder="+39..." style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Citta</div><div class="v"><input type="text" name="citta" placeholder="Citta" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Password temp.</div><div class="v"><input type="password" name="password" placeholder="(auto-generata se vuoto)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+        </div>
         <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
           <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>
-          <button type="submit" class="btn btn-primary btn-sm">Conferma spedizione</button>
+          <button type="submit" class="btn btn-primary btn-sm">+ Crea cliente</button>
         </div>
       </form>
     `);
+    $('#newCustomerForm').on('submit',function(e){
+      e.preventDefault();
+      if(!window.AdminAPI) return;
+      var fd   = Object.fromEntries(new FormData(this));
+      var $btn = $(this).find('[type=submit]');
+      $btn.prop('disabled',true).text('Creazione...');
+      AdminAPI.customers.create({
+        nome: fd.nome, cognome: fd.cognome||'', email: fd.email,
+        telefono: fd.telefono||null, citta: fd.citta||null,
+        password: fd.password||null
+      }).done(function(){
+        toast('Cliente creato','success'); closeModal(); renderView('customers');
+      }).fail(function(xhr){
+        var msg=(xhr.responseJSON&&xhr.responseJSON.error)||'Errore creazione';
+        toast(msg,'error'); $btn.prop('disabled',false).text('+ Crea cliente');
+      });
+    });
+  });
+
+  /* ═════════════════════════════════════════════
+     DELETE ORDER
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-del-order', function(){
+    var dbId    = $(this).data('id');
+    var orderNr = $(this).data('order');
+    if (!dbId || !window.AdminAPI){ toast('ID ordine non disponibile','error'); return; }
+    if (!confirm('Eliminare definitivamente l\'ordine '+orderNr+'? L\'azione e\' irreversibile.')) return;
+    AdminAPI.orders.delete(dbId)
+      .done(function(){ toast('Ordine eliminato','success'); renderView('orders'); })
+      .fail(function(xhr){ toast((xhr.responseJSON&&xhr.responseJSON.error)||'Errore eliminazione','error'); });
+  });
+
+  /* ═════════════════════════════════════════════
+     PRINT ORDER ROW
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-print-order-row', function(){
+    var id = $(this).closest('tr').data('id');
+    var o  = DATA.orders.find(function(x){ return x.id===id; });
+    if (!o){ window.print(); return; }
+    var win = window.open('','_blank');
+    win.document.write('<html><body style="font-family:sans-serif;padding:30px">'+
+      '<h2>Ordine '+o.id+'</h2>'+
+      '<p><strong>Cliente:</strong> '+o.cliente+'</p>'+
+      '<p><strong>Data:</strong> '+o.data+'</p>'+
+      '<p><strong>Totale:</strong> '+o.totale+'</p>'+
+      '<p><strong>Stato:</strong> '+o.stato+'</p>'+
+      '<p><strong>Corriere:</strong> '+o.corriere+' - '+o.tracking+'</p>'+
+      '</body></html>');
+    win.document.close(); win.print();
+  });
+
+  /* ═════════════════════════════════════════════
+     SEARCH: FATTURE
+     ═════════════════════════════════════════════ */
+  $(document).on('keyup','#invSearch', function(){
+    var q=$(this).val().toLowerCase();
+    $('#invoiceTable tbody tr').each(function(){ $(this).toggle($(this).text().toLowerCase().includes(q)); });
+  });
+
+  /* ═════════════════════════════════════════════
+     INVOICES CRUD
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-new-invoice', function(){
+    if (!DATA.orders || !DATA.orders.length){ toast('Carica prima la lista ordini','info'); return; }
+    var orderOpts = DATA.orders.map(function(o){
+      return '<option value="'+(o._db_id||'')+'">'+o.id+' - '+o.cliente+' - '+o.totale+'</option>';
+    }).join('');
+    openModal('Nuova fattura', '<form id="newInvoiceForm"><div class="kv" style="grid-template-columns:140px 1fr;gap:10px">'+
+      '<div class="k">Ordine *</div><div class="v"><select name="order_id" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"><option value="">- Seleziona ordine -</option>'+orderOpts+'</select></div>'+
+      '<div class="k">Scadenza</div><div class="v"><input type="date" name="due_date" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">Aliquota IVA %</div><div class="v"><input type="number" name="tax_rate" value="22" min="0" max="100" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">C.F. cliente</div><div class="v"><input type="text" name="customer_cf" placeholder="(opzionale)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">Note</div><div class="v"><textarea name="note" rows="2" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"></textarea></div>'+
+      '</div><div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'+
+      '<button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>'+
+      '<button type="submit" class="btn btn-primary btn-sm">Emetti fattura</button></div></form>');
+    $('#newInvoiceForm').on('submit',function(e){
+      e.preventDefault();
+      if(!window.AdminAPI) return;
+      var fd=Object.fromEntries(new FormData(this));
+      var $btn=$(this).find('[type=submit]');
+      $btn.prop('disabled',true).text('Emissione...');
+      AdminAPI.invoices.create({
+        order_id: fd.order_id, due_date: fd.due_date||null,
+        tax_rate: parseFloat(fd.tax_rate)||22,
+        customer_cf: fd.customer_cf||null, note: fd.note||null
+      }).done(function(){
+        toast('Fattura emessa','success'); closeModal(); renderView('invoices');
+      }).fail(function(xhr){
+        var msg=(xhr.responseJSON&&xhr.responseJSON.error)||'Errore emissione';
+        toast(msg,'error'); $btn.prop('disabled',false).text('Emetti fattura');
+      });
+    });
+  });
+
+  $(document).on('click','.js-view-invoice', function(){
+    var id=$(this).data('id');
+    if(!id||!window.AdminAPI) return;
+    AdminAPI.invoices.get(id).done(function(inv){
+      var items=(inv.items||[]).map(function(i){ return '<tr><td>'+i.product_name+'</td><td style="text-align:center">'+(i.taglia||'-')+'</td><td style="text-align:center">'+i.qty+'</td><td style="text-align:right">EUR '+parseFloat(i.price||0).toFixed(2).replace('.',',')+'</td></tr>'; }).join('');
+      var statoOpts=['bozza','emessa','inviata','pagata','annullata'].map(function(s){ return '<option value="'+s+'"'+(inv.stato===s?' selected':'')+'>'+s+'</option>'; }).join('');
+      openModal('Fattura '+inv.invoice_number,
+        '<div class="kv" style="grid-template-columns:130px 1fr;gap:8px">'+
+        '<div class="k">N Fattura</div><div class="v"><strong>'+inv.invoice_number+'</strong></div>'+
+        '<div class="k">Ordine</div><div class="v">'+(inv.order_number||inv.order_id)+'</div>'+
+        '<div class="k">Cliente</div><div class="v">'+((inv.customer_nome||'')+' '+(inv.customer_cognome||''))+'</div>'+
+        '<div class="k">Importo</div><div class="v"><strong>EUR '+parseFloat(inv.total||0).toFixed(2).replace('.',',')+'</strong></div>'+
+        '<div class="k">Stato</div><div class="v"><select id="invStatoSel" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px">'+statoOpts+'</select></div>'+
+        '</div>'+
+        (items?'<div style="margin-top:12px"><table class="data" style="width:100%"><thead><tr><th>Prodotto</th><th>Taglia</th><th>Qty</th><th>Prezzo</th></tr></thead><tbody>'+items+'</tbody></table></div>':'')+
+        '<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">'+
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Chiudi</button>'+
+        '<button class="btn btn-primary btn-sm js-save-inv-stato" data-id="'+inv.id+'">Salva stato</button></div>'
+      );
+    }).fail(function(){ toast('Errore caricamento fattura','error'); });
+  });
+
+  $(document).on('click','.js-save-inv-stato', function(){
+    var id=$(this).data('id');
+    var stato=$('#invStatoSel').val();
+    var $btn=$(this);
+    $btn.prop('disabled',true).text('Salvataggio...');
+    AdminAPI.invoices.update(id,{stato:stato})
+      .done(function(){ toast('Stato fattura aggiornato','success'); closeModal(); renderView('invoices'); })
+      .fail(function(){ toast('Errore','error'); $btn.prop('disabled',false).text('Salva stato'); });
+  });
+
+  $(document).on('click','.js-inv-stato', function(){
+    var id=$(this).data('id'), stato=$(this).data('stato');
+    if(!id||!window.AdminAPI) return;
+    AdminAPI.invoices.update(id,{stato:stato})
+      .done(function(){ toast('Fattura aggiornata','success'); renderView('invoices'); })
+      .fail(function(){ toast('Errore','error'); });
+  });
+
+  $(document).on('click','.js-del-invoice', function(){
+    var id=$(this).data('id');
+    if(!id||!window.AdminAPI) return;
+    if(!confirm('Eliminare questa fattura?')) return;
+    AdminAPI.invoices.delete(id)
+      .done(function(){ toast('Fattura eliminata','success'); renderView('invoices'); })
+      .fail(function(){ toast('Errore eliminazione','error'); });
+  });
+
+  /* ═════════════════════════════════════════════
+     RESI CRUD
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-new-reso', function(){
+    if(!DATA.orders||!DATA.orders.length){ toast('Carica prima la lista ordini','info'); return; }
+    var orderOpts=DATA.orders.map(function(o){ return '<option value="'+(o._db_id||'')+'">'+o.id+' - '+o.cliente+'</option>'; }).join('');
+    openModal('Nuovo reso',
+      '<form id="newResoForm"><div class="kv" style="grid-template-columns:130px 1fr;gap:10px">'+
+      '<div class="k">Ordine *</div><div class="v"><select name="order_id" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"><option value="">- Seleziona ordine -</option>'+orderOpts+'</select></div>'+
+      '<div class="k">Motivo *</div><div class="v"><select name="motivo" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">'+
+      '<option>Taglia errata</option><option>Difetto di produzione</option><option>Non corrispondente alla descrizione</option>'+
+      '<option>Non gradito</option><option>Danneggiato alla consegna</option><option>Altro</option></select></div>'+
+      '<div class="k">Descrizione</div><div class="v"><textarea name="descrizione" rows="3" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"></textarea></div>'+
+      '</div><div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'+
+      '<button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>'+
+      '<button type="submit" class="btn btn-primary btn-sm">Apri reso</button></div></form>');
+    $('#newResoForm').on('submit',function(e){
+      e.preventDefault();
+      if(!window.AdminAPI) return;
+      var fd=Object.fromEntries(new FormData(this));
+      var $btn=$(this).find('[type=submit]');
+      $btn.prop('disabled',true).text('Creazione...');
+      AdminAPI.resi.create({order_id:fd.order_id,motivo:fd.motivo,descrizione:fd.descrizione||null})
+        .done(function(){ toast('Reso aperto','success'); closeModal(); renderView('returns'); })
+        .fail(function(xhr){ var msg=(xhr.responseJSON&&xhr.responseJSON.error)||'Errore'; toast(msg,'error'); $btn.prop('disabled',false).text('Apri reso'); });
+    });
+  });
+
+  $(document).on('click','.js-view-reso', function(){
+    var id=$(this).data('id');
+    if(!id||!window.AdminAPI) return;
+    AdminAPI.resi.get(id).done(function(r){
+      var items=(r.items||[]).map(function(i){ return '<tr><td>'+i.product_name+'</td><td>'+(i.taglia||'-')+'</td><td>'+i.qty+'</td><td>EUR '+parseFloat(i.price||0).toFixed(2).replace('.',',')+'</td></tr>'; }).join('');
+      var statoOpts=['aperto','in_analisi','approvato','rifiutato','rimborsato'].map(function(s){ return '<option value="'+s+'"'+(r.stato===s?' selected':'')+'>'+(AdminAPI?AdminAPI.statusLabel(s):s)+'</option>'; }).join('');
+      openModal('Reso '+r.rma_number,
+        '<div class="kv" style="grid-template-columns:130px 1fr;gap:8px">'+
+        '<div class="k">RMA</div><div class="v"><strong>'+r.rma_number+'</strong></div>'+
+        '<div class="k">Ordine</div><div class="v">'+(r.order_number||('#'+r.order_id))+'</div>'+
+        '<div class="k">Motivo</div><div class="v">'+(r.motivo||'-')+'</div>'+
+        '<div class="k">Descrizione</div><div class="v">'+(r.descrizione||'-')+'</div>'+
+        '<div class="k">Stato</div><div class="v"><select id="resoStatoSel" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px">'+statoOpts+'</select></div>'+
+        '<div class="k">Rimborso EUR</div><div class="v"><input type="number" id="resoRimborso" step="0.01" min="0" value="'+(r.rimborso_amount||'')+'" placeholder="(vuoto = nessuno)" style="padding:4px 8px;border:1px solid var(--line);border-radius:6px;width:120px"/></div>'+
+        '</div>'+
+        (items?'<div style="margin-top:12px"><table class="data" style="width:100%"><thead><tr><th>Prodotto</th><th>Taglia</th><th>Qty</th><th>Prezzo</th></tr></thead><tbody>'+items+'</tbody></table></div>':'')+
+        '<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">'+
+        '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Chiudi</button>'+
+        '<button class="btn btn-primary btn-sm js-save-reso" data-id="'+r.id+'">Aggiorna reso</button></div>'
+      );
+    }).fail(function(){ toast('Errore caricamento reso','error'); });
+  });
+
+  $(document).on('click','.js-save-reso', function(){
+    var id=$(this).data('id');
+    var stato=$('#resoStatoSel').val();
+    var rimborso=$('#resoRimborso').val();
+    var $btn=$(this);
+    $btn.prop('disabled',true).text('Salvataggio...');
+    AdminAPI.resi.update(id,{stato:stato,rimborso_amount:rimborso?parseFloat(rimborso):null})
+      .done(function(){ toast('Reso aggiornato','success'); closeModal(); renderView('returns'); })
+      .fail(function(){ toast('Errore','error'); $btn.prop('disabled',false).text('Aggiorna reso'); });
+  });
+
+  $(document).on('click','.js-del-reso', function(){
+    var id=$(this).data('id'), rma=$(this).data('rma');
+    if(!id||!window.AdminAPI) return;
+    if(!confirm('Eliminare il reso '+rma+'?')) return;
+    AdminAPI.resi.delete(id)
+      .done(function(){ toast('Reso eliminato','success'); renderView('returns'); })
+      .fail(function(){ toast('Errore eliminazione','error'); });
+  });
+
+  /* ═════════════════════════════════════════════
+     REVIEWS CRUD
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-approve-review', function(){
+    var id=$(this).data('id');
+    if(!id||!window.AdminAPI) return;
+    AdminAPI.reviews.update(id,{stato:'pubblicata'})
+      .done(function(){ toast('Recensione pubblicata','success'); renderView('reviews'); })
+      .fail(function(){ toast('Errore','error'); });
+  });
+
+  $(document).on('click','.js-reject-review', function(){
+    var id=$(this).data('id');
+    if(!id||!window.AdminAPI) return;
+    AdminAPI.reviews.update(id,{stato:'rifiutata'})
+      .done(function(){ toast('Recensione rifiutata','info'); renderView('reviews'); })
+      .fail(function(){ toast('Errore','error'); });
+  });
+
+  $(document).on('click','.js-del-review', function(){
+    var id=$(this).data('id');
+    if(!id||!window.AdminAPI) return;
+    if(!confirm('Eliminare questa recensione?')) return;
+    AdminAPI.reviews.delete(id)
+      .done(function(){ toast('Recensione eliminata','success'); renderView('reviews'); })
+      .fail(function(){ toast('Errore eliminazione','error'); });
+  });
+
+  $(document).on('click','.js-filter-reviews', function(){
+    var stato=$(this).data('stato');
+    if(stato){
+      $('#reviewsTable tbody tr').each(function(){
+        $(this).toggle($(this).text().toLowerCase().includes(stato.replace('_',' ')));
+      });
+    } else {
+      $('#reviewsTable tbody tr').show();
+    }
+  });
+
+  /* ═════════════════════════════════════════════
+     SHIP ORDER
+     ═════════════════════════════════════════════ */
+  $(document).on('click','.js-open-ship-modal', function(){
+    var dbId    = $(this).data('id');
+    var orderNr = $(this).data('order');
+    var couriers = DATA.couriers && DATA.couriers.length ? DATA.couriers : [
+      {code:'sda',nome:'SDA'},{code:'brt',nome:'BRT'},{code:'gls',nome:'GLS'},
+      {code:'poste',nome:'Poste Italiane'},{code:'dhl',nome:'DHL'}
+    ];
+    var courierOpts = couriers.map(function(c){ return '<option value="'+c.code+'">'+c.nome+'</option>'; }).join('');
+    openModal('Spedisci ordine '+orderNr,
+      '<form id="shipForm"><div class="kv" style="grid-template-columns:130px 1fr;gap:10px">'+
+      '<div class="k">Corriere *</div><div class="v"><select name="courier_code" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">'+courierOpts+'</select></div>'+
+      '<div class="k">Tracking # *</div><div class="v"><input type="text" name="tracking_number" required placeholder="es. SDA1234567890" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">Destinazione</div><div class="v"><input type="text" name="destinazione" placeholder="es. Roma (RM)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '<div class="k">ETA</div><div class="v"><input type="date" name="eta" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
+      '</div><p style="margin-top:12px;font-size:12px;color:var(--muted)">Lo stato ordine sara impostato a Spedito e il pagamento a Pagato.</p>'+
+      '<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'+
+      '<button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>'+
+      '<button type="submit" class="btn btn-primary btn-sm">Conferma spedizione</button></div></form>'
+    );
     $('#shipForm').on('submit', function(e){
       e.preventDefault();
       if (!window.AdminAPI) return;
-      const fd   = Object.fromEntries(new FormData(this));
-      const $btn = $(this).find('[type=submit]');
+      var fd   = Object.fromEntries(new FormData(this));
+      var $btn = $(this).find('[type=submit]');
       $btn.prop('disabled', true).text('Invio...');
       AdminAPI.orders.ship(dbId, {
         courier_code:    fd.courier_code,
@@ -2126,7 +2630,7 @@ $(function(){
         closeModal();
         renderView('orders');
       }).fail(function(xhr){
-        const msg = (xhr.responseJSON && xhr.responseJSON.error) || 'Errore spedizione';
+        var msg = (xhr.responseJSON && xhr.responseJSON.error) || 'Errore spedizione';
         toast(msg, 'error');
         $btn.prop('disabled', false).text('Conferma spedizione');
       });
@@ -2134,27 +2638,26 @@ $(function(){
   });
 
   // ── Initial data load from API, then render dashboard ──
-  // NOTE: calls _origRenderView (not renderView) to avoid the infinite loop
-  // where overridden renderView('dashboard') would re-trigger loadDashboardData.
   function loadDashboardData() {
-    const api = window.AdminAPI;
+    var api = window.AdminAPI;
     if (!api) { (typeof _origRenderView === 'function' ? _origRenderView : renderView)('dashboard'); return; }
 
     $.when(
       api.dashboard.kpis(),
       api.dashboard.recentOrders(),
       api.dashboard.topProducts(),
-      api.shipping.shipments()
-    ).done(function(kpiRes, ordersRes, topRes, shipRes) {
+      api.shipping.shipments(),
+      api.dashboard.chart()
+    ).done(function(kpiRes, ordersRes, topRes, shipRes, chartRes) {
       var kpi      = kpiRes[0]   || {};
       var recent   = ordersRes[0]|| [];
       var topProds = topRes[0]   || [];
       var shipList = shipRes[0]  || [];
+      var chartData= chartRes[0] || [];
 
-      // KPIs — backend returns {revenue:{value,delta,up}, orders:{...}, visitors:{...}, aov:{...}}
+      // KPIs
       if (kpi.revenue) {
         DATA.kpi = kpi;
-        // Update sidebar orders badge with real pending orders count
         var pendingCount = parseInt((kpi.orders && kpi.orders.value) || 0);
         if (pendingCount > 0) $('.sidebar .badge-pink').first().text(pendingCount);
       }
@@ -2177,22 +2680,26 @@ $(function(){
         });
       }
 
-      // Top products (from dashboard endpoint — lightweight name+
-      // Top products (from dashboard endpoint — lightweight name+revenue data)
+      // Top products
       if (Array.isArray(topProds) && topProds.length) {
         DATA.products = topProds.map(function(p) {
           var cat = (p.categoria || '').toLowerCase();
           var _iconMap2 = { vestiti:'👗', gonne:'👗', blazer:'🥻', top:'👕', pantaloni:'👖', borse:'👜', scarpe:'👟', gioielli:'💍', accessori:'✨', set:'✨', cinture:'🪡' };
           return {
             id:     p.product_id || p.id || '',
-            nome:   p.product_name || p.name || '—',
+            nome:   p.product_name || p.name || '-',
             cat:    p.categoria   || '',
-            prezzo: p.revenue     ? '€ ' + parseFloat(p.revenue).toFixed(2).replace('.', ',') : '—',
+            prezzo: p.revenue     ? 'EUR ' + parseFloat(p.revenue).toFixed(2).replace('.', ',') : '-',
             stock:  p.units_sold  || 0,
             status: 'Attivo',
             img:    _iconMap2[cat] || '👗',
           };
         });
+      }
+
+      // Chart data
+      if (Array.isArray(chartData) && chartData.length) {
+        DATA.chartData = chartData;
       }
 
       // Active shipments
@@ -2221,7 +2728,7 @@ $(function(){
   // ── Override renderView to fetch fresh API data per view ──
   var _origRenderView = renderView;
   renderView = function(name) {
-    const api = window.AdminAPI;
+    var api = window.AdminAPI;
     if (!api) { _origRenderView(name); return; }
 
     var loading = '<div style="padding:60px;text-align:center;color:var(--muted)">Caricamento...</div>';
@@ -2354,6 +2861,28 @@ $(function(){
           _origRenderView(name);
         }
       }).fail(function() { _origRenderView(name); });
+
+    } else if (name === 'invoices') {
+      api.invoices.list({ limit: 200 }).done(function(data) {
+        DATA.invoices = (data && data.invoices) ? data.invoices : (Array.isArray(data) ? data : []);
+        _origRenderView(name);
+      }).fail(function() { DATA.invoices = DATA.invoices || []; _origRenderView(name); });
+
+    } else if (name === 'returns') {
+      api.resi.list({ limit: 200 }).done(function(data) {
+        DATA.resi = (data && data.resi) ? data.resi : (Array.isArray(data) ? data : []);
+        _origRenderView(name);
+      }).fail(function() { DATA.resi = DATA.resi || []; _origRenderView(name); });
+
+    } else if (name === 'reviews') {
+      api.reviews.list({ limit: 200 }).done(function(data) {
+        DATA.reviews = {
+          list:    (data && data.reviews) ? data.reviews  : (Array.isArray(data) ? data : []),
+          total:   (data && data.total)   ? data.total    : 0,
+          pending: (data && data.pending) ? data.pending  : 0,
+        };
+        _origRenderView(name);
+      }).fail(function() { DATA.reviews = DATA.reviews || {list:[],total:0,pending:0}; _origRenderView(name); });
 
     } else if (name === 'newsletter') {
       api.newsletter.list({ limit: 500 }).done(function(data) {

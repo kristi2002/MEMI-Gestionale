@@ -89,4 +89,33 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   }
 });
 
+/* ── POST /api/admin/customers — Create customer from admin panel ── */
+router.post('/', requireAdmin, async (req, res) => {
+  const { nome, cognome, email, telefono, indirizzo, citta, cap, paese = 'Italia', password } = req.body;
+  if (!nome || !email) return res.status(400).json({ error: 'Nome ed email obbligatori' });
+
+  const bcrypt = require('bcryptjs');
+  try {
+    // Use provided password or generate a random temporary one
+    const rawPassword = password || Math.random().toString(36).slice(-8) + 'A1!';
+    const password_hash = await bcrypt.hash(rawPassword, 10);
+
+    const [result] = await pool.execute(
+      `INSERT INTO customers (nome, cognome, email, telefono, indirizzo, citta, cap, paese, password_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nome, cognome || '', email, telefono || null, indirizzo || null, citta || null, cap || null, paese, password_hash]
+    );
+    const [[customer]] = await pool.execute(
+      `SELECT id, email, nome, cognome, telefono, citta, paese, total_orders, total_spent, created_at
+       FROM customers WHERE id = ?`,
+      [result.insertId]
+    );
+    return res.status(201).json({ customer });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email già registrata' });
+    console.error('create customer error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 module.exports = router;

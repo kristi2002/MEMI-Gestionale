@@ -230,6 +230,70 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
   unsubscribed  TINYINT(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- -------------------------------------------------------------
+-- Invoices (fatture)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS invoices (
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  invoice_number   VARCHAR(50) NOT NULL UNIQUE,
+  order_id         INT NOT NULL,
+  customer_nome    VARCHAR(100),
+  customer_cognome VARCHAR(100),
+  customer_email   VARCHAR(255),
+  customer_cf      VARCHAR(20),
+  customer_piva    VARCHAR(20),
+  indirizzo        TEXT,
+  subtotal         DECIMAL(10,2) DEFAULT 0.00,
+  tax_rate         DECIMAL(5,2)  DEFAULT 22.00,
+  tax_amount       DECIMAL(10,2) DEFAULT 0.00,
+  total            DECIMAL(10,2) NOT NULL,
+  stato            ENUM('bozza','emessa','inviata','pagata','annullata') DEFAULT 'emessa',
+  note             TEXT,
+  issued_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  due_date         DATE NULL,
+  created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -------------------------------------------------------------
+-- Resi (returns / refund requests)
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS resi (
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  rma_number       VARCHAR(50) NOT NULL UNIQUE,
+  order_id         INT NOT NULL,
+  order_number     VARCHAR(20),
+  customer_nome    VARCHAR(200),
+  customer_email   VARCHAR(255),
+  motivo           VARCHAR(200),
+  descrizione      TEXT,
+  stato            ENUM('aperto','in_analisi','approvato','rifiutato','rimborsato') DEFAULT 'aperto',
+  rimborso_amount  DECIMAL(10,2) NULL,
+  created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -------------------------------------------------------------
+-- Reviews
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS reviews (
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  product_id     VARCHAR(100) NOT NULL,
+  product_name   VARCHAR(255),
+  customer_id    INT NULL,
+  customer_nome  VARCHAR(200),
+  customer_email VARCHAR(255),
+  rating         TINYINT NOT NULL DEFAULT 5,
+  titolo         VARCHAR(255),
+  testo          TEXT,
+  stato          ENUM('in_attesa','pubblicata','rifiutata') DEFAULT 'in_attesa',
+  created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- =============================================================
 -- Seed: Products (migrated from productsData.js)
 -- =============================================================

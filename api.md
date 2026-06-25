@@ -77,7 +77,8 @@ Default admin credentials: `admin@memi.it` / `memi2026admin`
 | GET | `/orders/admin/list` | Admin | `?status=&page=1&limit=20` | `{orders:[...], total, pages}` |
 | GET | `/orders/admin/:id` | Admin | — | `{order, items}` |
 | PUT | `/orders/admin/:id/status` | Admin | `{order_status?, payment_status?, notes?}` | `{message, order}` |
-| PUT | `/orders/admin/:id/ship` | Admin | `{courier_code, tracking_number, eta?}` | `{message, order}` |
+| PUT | `/orders/admin/:id/ship` | Admin | `{courier_code, tracking_number, eta?, destinazione?}` | `{ok:true}` |
+| DELETE | `/orders/admin/:id` | Admin | — | `{ok:true, message}` — cascades to order_items, shipments, discount_usage, resi, invoices |
 
 ---
 
@@ -87,6 +88,7 @@ Default admin credentials: `admin@memi.it` / `memi2026admin`
 |--------|------|------|------|---------|
 | GET | `/admin/customers` | Admin | `?q=email&page=1&limit=20` | `{customers:[...], total, pages}` |
 | GET | `/admin/customers/:id` | Admin | — | `{customer, orders}` |
+| POST | `/admin/customers` | Admin | `{nome, email, cognome?, telefono?, indirizzo?, citta?, cap?, paese?, password?}` | `{customer}` — password auto-generated if omitted |
 | PUT | `/admin/customers/:id` | Admin | partial fields | `{customer}` |
 | DELETE | `/admin/customers/:id` | Admin | — | `{message}` |
 
@@ -138,6 +140,48 @@ Used by `checkout.html`: call this first, then `stripe.confirmCardPayment(client
 | GET | `/admin/dashboard/chart` | Admin | `[{day,revenue,orders}]` array — last 30 days |
 | GET | `/admin/dashboard/top-products` | Admin | `[{product_id,product_name,units_sold,revenue}]` array — top 10 last 30 days |
 | GET | `/admin/dashboard/recent-orders` | Admin | `[...orders]` array — last 10 |
+
+---
+
+## Invoices (Fatture) — `/api/admin/invoices`
+
+| Method | Path | Auth | Body / Query | Returns |
+|--------|------|------|------|---------|
+| GET | `/admin/invoices` | Admin | `?stato=emessa&limit=200&offset=0` | `{invoices:[...], total}` — each invoice includes `order_number` (joined) |
+| GET | `/admin/invoices/:id` | Admin | — | `{...invoiceFields, items:[{product_name,taglia,qty,price}]}` |
+| POST | `/admin/invoices` | Admin | `{order_id, tax_rate?, due_date?, customer_cf?, note?}` | `{invoice}` — auto-generates sequential number `F-YYYY-NNNN` |
+| PUT | `/admin/invoices/:id` | Admin | `{stato?, note?, due_date?}` | `{invoice}` |
+| DELETE | `/admin/invoices/:id` | Admin | — | `{ok:true, message}` |
+
+**Invoice `stato` values:** `bozza` → `emessa` → `inviata` → `pagata` → `annullata`
+
+---
+
+## Returns (Resi) — `/api/admin/resi`
+
+| Method | Path | Auth | Body / Query | Returns |
+|--------|------|------|------|---------|
+| GET | `/admin/resi` | Admin | `?stato=aperto&limit=200&offset=0` | `{resi:[...], total}` |
+| GET | `/admin/resi/:id` | Admin | — | `{...resoFields, items:[...order_items]}` |
+| POST | `/admin/resi` | Admin | `{order_id, motivo, descrizione?}` | `{reso}` — auto-generates RMA number `R-XXXXXX` |
+| PUT | `/admin/resi/:id` | Admin | `{stato?, rimborso_amount?}` | `{reso}` — setting `stato=rimborsato` also updates order `payment_status` to `rimborsato` |
+| DELETE | `/admin/resi/:id` | Admin | — | `{ok:true, message}` |
+
+**Reso `stato` values:** `aperto` → `in_analisi` → `approvato` / `rifiutato` → `rimborsato`
+
+---
+
+## Reviews (Recensioni) — `/api/reviews`
+
+| Method | Path | Auth | Body / Query | Returns |
+|--------|------|------|------|---------|
+| GET | `/reviews/admin` | Admin | `?stato=in_attesa&product_id=&q=&limit=50` | `{reviews:[...], total, pending}` |
+| GET | `/reviews/product/:product_id` | None | — | `[{id,customer_nome,rating,titolo,testo,created_at}]` — published only |
+| POST | `/reviews` | Optional | `{product_id, rating(1-5), titolo?, testo?, customer_nome?, customer_email?}` | `{ok:true, id, message}` — stato defaults to `in_attesa` |
+| PUT | `/reviews/admin/:id` | Admin | `{stato}` | `{review}` |
+| DELETE | `/reviews/admin/:id` | Admin | — | `{ok:true, message}` |
+
+**Review `stato` values:** `in_attesa` → `pubblicata` / `rifiutata`
 
 ---
 
