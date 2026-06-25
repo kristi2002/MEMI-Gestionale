@@ -4,6 +4,58 @@ Status key: ✅ Fixed | ⚠️ Known limitation | ❌ Missing | 🔄 Workaround 
 
 ---
 
+## Sprint Giugno 2026 — Phase 4 (admin completion, deploy hardening, storefront polish)
+
+### Admin panel
+| # | Issue | Fix Applied |
+|---|-------|-------------|
+| 40 | Many admin buttons were inert placeholders (Nuovo ordine, gift card, campagna, pagina, articolo, corriere, spedizione, punti ritiro, tema, app store, report, ecc.) | Wired every button to a real handler in `MEMI/js/app.js`; modals + API calls. |
+| 41 | `AdminAPI.isLoggedIn is not a function` thrown on every load | Startup guard called `AdminAPI.isLoggedIn()` — corrected to `AdminAPI.auth.isLoggedIn()`. |
+| 42 | Hardcoded sidebar badges (Ordini 12, Bozze 3, Sconti 4, Chat 5, ecc.) | `updateSidebarBadges()` populates from real data; badges hidden when zero. |
+| 43 | Invented demo numbers across views (Finanza, Live View, Clienti KPI, Segmenti, Corrieri, Pagamenti, Spese, Pop-up, POS, Social, Integrazioni, App) | Replaced with real values where an endpoint exists, otherwise "—" / honest empty states. |
+| 44 | Admin had no favicon | Added `MEMI/favicon.svg` (letter "A", same design as the storefront "M"); linked in dashboard/index/404. |
+
+### New backend features (tables auto-created on boot via `migrations.js`)
+| # | Feature | Endpoints |
+|---|---------|-----------|
+| 45 | Gift cards | `GET/POST/PUT/DELETE /api/admin/giftcards` |
+| 46 | Marketing campaigns | `GET/POST/PUT/DELETE /api/admin/campaigns` |
+| 47 | CMS pages | `GET/POST/PUT/DELETE /api/admin/cms/pages` |
+| 48 | Blog posts | `GET/POST/PUT/DELETE /api/admin/cms/blog` |
+| 49 | Pickup points | `GET/POST/PUT/DELETE /api/shipping/pickup` |
+| 50 | Courier create/delete | `POST /api/shipping/couriers`, `DELETE /api/shipping/couriers/:code` |
+| 51 | Standalone shipment create | `POST /api/shipping/shipments` |
+| 52 | Manual admin order create | `POST /api/orders/admin` |
+
+### Backend bugs
+| # | Issue | Fix Applied |
+|---|-------|-------------|
+| 53 | `validate-discount` 500 — `.toFixed()` on a string DECIMAL | `Number()`-wrap `valore`/`min_order`/`subtotal`. |
+| 54 | Dashboard KPI up/down used string comparison on DECIMALs | `Number()`-wrap before compare. |
+| 55 | `CREATE INDEX IF NOT EXISTS` invalid on MySQL 8 → init aborted, tables after it never created | Moved indexes inline into `CREATE TABLE`; removed the unsupported block. |
+| 56 | Schema drift: prod DB initialized once via `initdb.d`, later-added tables (settings/reviews/newsletter/resi/invoices/product_sizes) missing → 500s | `ensureSchema()` in `migrations.js` re-applies the CREATE TABLE statements (structural only, seeds skipped) on every boot. |
+| 57 | `shipping_zones` seed had no `ON DUPLICATE KEY` → would duplicate on re-run | `ensureSchema` strips all seed INSERTs; first-time seeding still via `initdb.d` / `db:init`. |
+| 58 | No fail-fast on missing JWT secrets | Startup guard exits if `JWT_SECRET` / `JWT_ADMIN_SECRET` unset. |
+
+### Storefront
+| # | Issue | Fix Applied |
+|---|-------|-------------|
+| 59 | Broken API paths (reviews, returns, order history/detail) | Corrected to `/reviews?product_id=`, `/resi`, `/orders`. |
+| 60 | Search drawer + `/search` page showed 12 hardcoded fake products | Both now load live from `/api/products`; empty store ⇒ no results (no fake data). |
+| 61 | "Tutti gli Editoriali" index page didn't make sense | Removed from nav (desktop + mobile + footer); `editoriali.html` now redirects to the latest editorial. |
+| 62 | Editoriali subpage navbar rendered black (dark body showed through transparent header) | Gave `.site-header` the standard translucent-white background on all 3 subpages. |
+| 63 | `ed-back` back-link element on editoriali subpages | Removed from all 3 subpages (header nav is enough). |
+| 64 | "Look" nav link unbalanced the header | Moved to the left group (left of the centered Memi logo). |
+| 65 | Category filter counts hardcoded (`Vestiti(12)`, ecc.) | `updateCategoryCounts()` computes from real products; empty categories hidden. |
+| 66 | `app.js` cache version stale | Bumped `?v=7` → `?v=9` across all 56 storefront pages. |
+
+### Known limitations (still ⚠️)
+- Admin **Chat clienti** is a self-contained front-end demo (no messaging backend).
+- **Live View / analytics traffic sources** require a GA4 (or similar) integration.
+- **Payments / payouts / email** stay disabled until Stripe + SMTP keys are configured.
+
+---
+
 ## Critical — Fixed Sprint Giugno 2026 (Phase 2 + 3)
 
 | # | Issue | Fix Applied |

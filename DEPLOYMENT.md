@@ -239,3 +239,15 @@ find /backups -name "memi_*.sql.gz" -mtime +30 -delete
 | Checkout shows "Servizio pagamenti non disponibile" | `STRIPE_SECRET_KEY` not set | Add Stripe env vars in Coolify |
 | Order saved but no confirmation email | `SMTP_USER` not set or SMTP error | Check backend logs: `docker compose logs backend \| grep -i email`; add SMTP env vars |
 | Stripe card error in browser | Wrong `STRIPE_PUBLISHABLE_KEY` | Verify pk_ key matches sk_ key environment (test vs live) |
+| List endpoints return 500 (settings/reviews/newsletter/resi/invoices/products) | DB initialized with an older schema — tables missing (the `initdb.d` schema only runs on a fresh volume) | **Restart the backend** — `db/migrations.js → ensureSchema()` auto-creates missing tables on boot. Watch for `Core schema ensured` in logs. |
+| Backend exits immediately on boot | `JWT_SECRET` or `JWT_ADMIN_SECRET` not set | Set both in Coolify env; the startup guard fails fast by design. |
+| Admin code/UI changes not showing after deploy | Browser cached `app.js` (nginx serves JS `immutable`) | Bump the `?v=N` query on the script tags (admin: `dashboard.html`; storefront: bulk across pages) and hard-refresh. |
+
+> **Phase 4 note — DB self-heal:** the backend now applies `schema.sql`'s
+> `CREATE TABLE IF NOT EXISTS` statements (structural only, seeds skipped) on every
+> startup via `ensureSchema()`, plus ensures the Phase-4 feature tables. A drifted
+> production database is repaired automatically on the next backend restart — no
+> manual `schema.sql` run needed. First-time **seed data** still comes from the
+> `initdb.d` mount (fresh volume) or `npm run db:init`.
+>
+> For running the whole stack locally, see **LOCAL-RUN.md**.

@@ -809,7 +809,7 @@
 })();
 </script>
 <script src="api-client.js"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=9"></script>
 <script>
 /* ═══════════════════════════════════════════════════════════════
    NEWSLETTER FORM HANDLER
@@ -979,32 +979,4 @@ window.submitNewsletter = function (form) {
           // Insert editorial banner after the 4th card (like the original)
           if (!bannerInserted && i === 4) {
             html += buildEditorialBanner();
-            bannerInserted = true;
-          }
-          html += buildCard(p);
-        });
-        if (!bannerInserted) html += buildEditorialBanner();
-
-        grid.innerHTML = html;
-
-        // Now that cards exist, run filter engine + pagination
-        if (typeof applyFilters   === 'function') applyFilters();
-        if (typeof initPagination === 'function') initPagination();
-      })
-      .catch(function () { showError(grid); });
-  };
-
-  // Hook into DOMContentLoaded (which is where the filter IIFE also wires up)
-  // We defer catalog load to AFTER DOMContentLoaded so applyFilters exists
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () {
-      // Small tick to ensure filter IIFE has finished its DOMContentLoaded handler
-      setTimeout(window.initShopCatalog, 0);
-    });
-  } else {
-    setTimeout(window.initShopCatalog, 0);
-  }
-})();
-</script>
-</body>
-</html>
+            bannerInserte

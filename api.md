@@ -217,3 +217,69 @@ Validation: order must be `spedito` or `consegnato`; no existing open reso for t
 | PUT | `/admin/settings` | Admin | `{key: value, ...}` (any subset of keys) | `{ok:true, updated: N}` |
 
 Keys are UPSERT'd via `ON DUPLICATE KEY UPDATE`. Any key not in the payload is left unchanged.
+Arbitrary keys are accepted (e.g. `theme_name`, `theme_primary`, `store_domain`, `media_library`, `store_vat_rate`).
+
+---
+
+## Gift Cards — `/api/admin/giftcards` (Phase 4)
+
+| Method | Path | Auth | Body | Returns |
+|--------|------|------|------|---------|
+| GET | `/admin/giftcards` | Admin | — | `{cards:[...], summary:{total, attive, balance, emesso}}` |
+| POST | `/admin/giftcards` | Admin | `{initial_amount, recipient_email?, note?}` | `{ok:true, id, code}` (code auto-generated, e.g. `MEMI-7F3A-9K2C`) |
+| PUT | `/admin/giftcards/:id` | Admin | `{balance?, stato?, recipient_email?}` | `{ok:true}` |
+| DELETE | `/admin/giftcards/:id` | Admin | — | `{ok:true}` |
+
+## Campaigns — `/api/admin/campaigns` (Phase 4)
+
+| Method | Path | Auth | Body | Returns |
+|--------|------|------|------|---------|
+| GET | `/admin/campaigns` | Admin | — | `[{id, nome, tipo, canale, budget, destinatari, stato, open_rate, click_rate, revenue}]` |
+| POST | `/admin/campaigns` | Admin | `{nome, tipo?, canale?, budget?, destinatari?, stato?}` | `{ok:true, id}` |
+| PUT | `/admin/campaigns/:id` | Admin | any subset of fields | `{ok:true}` |
+| DELETE | `/admin/campaigns/:id` | Admin | — | `{ok:true}` |
+
+`tipo` ∈ {email, ads, automazione, sms}; `stato` ∈ {bozza, attiva, pianificata, conclusa}.
+
+## CMS — `/api/admin/cms` (Phase 4)
+
+| Method | Path | Auth | Body | Returns |
+|--------|------|------|------|---------|
+| GET | `/admin/cms/pages` | Admin | — | `[{id, titolo, slug, contenuto, stato, created_at, updated_at}]` |
+| POST | `/admin/cms/pages` | Admin | `{titolo, contenuto?, stato?, slug?}` | `{ok:true, id, slug}` |
+| PUT | `/admin/cms/pages/:id` | Admin | any subset | `{ok:true}` |
+| DELETE | `/admin/cms/pages/:id` | Admin | — | `{ok:true}` |
+| GET | `/admin/cms/blog` | Admin | — | `[{id, titolo, slug, estratto, contenuto, cover_color, stato, published_at}]` |
+| POST | `/admin/cms/blog` | Admin | `{titolo, estratto?, contenuto?, cover_color?, stato?, slug?}` | `{ok:true, id, slug}` |
+| PUT | `/admin/cms/blog/:id` | Admin | any subset | `{ok:true}` |
+| DELETE | `/admin/cms/blog/:id` | Admin | — | `{ok:true}` |
+
+Slugs are auto-generated from the title (accent-stripped) when not provided.
+
+## Shipping additions — `/api/shipping` (Phase 4)
+
+| Method | Path | Auth | Body | Returns |
+|--------|------|------|------|---------|
+| POST | `/shipping/couriers` | Admin | `{code, nome, slug?, rate?, attivo?}` | `{ok:true, code}` |
+| DELETE | `/shipping/couriers/:code` | Admin | — | `{ok:true}` |
+| POST | `/shipping/shipments` | Admin | `{order_id, courier_code, tracking_number, destinazione?, eta?, stato?}` | `{ok:true, id}` (sets order → spedito) |
+| GET | `/shipping/pickup` | Admin | — | `[{id, nome, indirizzo, corriere, orari, attivo}]` |
+| POST | `/shipping/pickup` | Admin | `{nome, indirizzo, corriere?, orari?, attivo?}` | `{ok:true, id}` |
+| PUT | `/shipping/pickup/:id` | Admin | any subset | `{ok:true}` |
+| DELETE | `/shipping/pickup/:id` | Admin | — | `{ok:true}` |
+
+## Orders addition — `/api/orders` (Phase 4)
+
+| Method | Path | Auth | Body | Returns |
+|--------|------|------|------|---------|
+| POST | `/orders/admin` | Admin | `{nome, email, cognome?, items:[{product_name, price, qty}], shipping_cost?, payment_status?}` | `{ok:true, id, order_number, total}` (manual order, status → in_preparazione) |
+
+---
+
+## Auto-migration note
+
+On startup the backend runs `db/migrations.js → runMigrations()`, which (1) re-applies the
+`CREATE TABLE` statements from `schema.sql` (structural only, seed `INSERT`s skipped) to heal any
+missing tables, and (2) ensures the Phase-4 feature tables (`gift_cards`, `campaigns`,
+`cms_pages`, `blog_posts`, `pickup_points`). This makes already-deployed databases self-heal
+without a manual `npm run db:init`.

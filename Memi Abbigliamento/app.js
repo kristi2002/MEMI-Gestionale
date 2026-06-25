@@ -36,7 +36,7 @@
     { collection: 'accessori', label: 'Accessori' },
     { collection: 'saldi',     label: 'Saldi' },
     { href: 'look',        label: 'Shop the Look' },
-    { href: 'editoriali',  label: 'Editoriali' },
+    { href: 'editoriali/primavera-estate-2026/', label: 'Editoriali' },
     { href: 'about',       label: 'Chi Siamo' },
   ];
 
@@ -111,12 +111,12 @@
             '</div>' +
           '</div>' +
         '</div>' +
+        '<a href="/look"' + ac('look') + '>Look</a>' +
       '</nav>';
 
     // RIGHT group — Look, Editoriali, Chi Siamo mega-trigger (sits right of the centered logo)
     const desktopNavRight =
       '<nav class="desktop-nav desktop-nav-right" aria-label="Altri link">' +
-        '<a href="/look"' + ac('look') + '>Look</a>' +
         '<div class="mega-trigger" data-mega="editoriali">' +
           '<span class="mega-label' + editorialiActive + '">' +
             'Editoriali' +
@@ -124,7 +124,6 @@
           '</span>' +
           '<div class="mega-panel mega-panel--sm" role="navigation" aria-label="Editoriali">' +
             '<div class="mega-col">' +
-              '<a href="/editoriali" class="mega-link">Tutti gli Editoriali</a>' +
               '<a href="/editoriali/primavera-estate-2026/" class="mega-link">Primavera Estate 2026</a>' +
               '<a href="/editoriali/estate-2025/" class="mega-link">Estate 2025</a>' +
               '<a href="/editoriali/autunno-inverno-2025/" class="mega-link">Autunno Inverno 2025</a>' +
@@ -261,22 +260,43 @@
 
   window.toggleWishlist = toggleWishlist;
 
-  /* ── 3. PRODUCT CATALOG (for search) ──────────────────── */
+  /* ── 3. PRODUCT CATALOG (for search) — loaded live from the API ── */
+  // Starts empty and is filled from /api/products. If the store has no
+  // products, search correctly finds nothing (no more fake placeholder data).
+  const CATALOG = [];
 
-  const CATALOG = [
-    { id: 'vestito-lino-cannes',   name: 'Vestito Lino Cannes',   color: 'Rosa cipria',       colorKey: 'ph-blush',    price: '€89,00',  href: '/product', tags: ['vestiti','novita'] },
-    { id: 'blazer-sartoriale-mia', name: 'Blazer Sartoriale Mia', color: 'Verde salvia',      colorKey: 'ph-sage',     price: '€105,00', href: '/product', tags: ['blazer','saldi'] },
-    { id: 'top-seta-lucida-aria',  name: 'Top Seta Lucida Aria',  color: 'Lavanda',           colorKey: 'ph-lavender', price: '€65,00',  href: '/product', tags: ['top','novita'] },
-    { id: 'gonna-plisse-nuvola',   name: 'Gonna Plissé Nuvola',   color: 'Avorio naturale',   colorKey: 'ph-cream',    price: '€79,00',  href: '/product', tags: ['gonne'] },
-    { id: 'camicia-cotone-brisa',  name: 'Camicia Cotone Brisa',  color: 'Corallo pastello',  colorKey: 'ph-blush',    price: '€55,00',  href: '/product', tags: ['top','novita'] },
-    { id: 'giacca-kimono-fresca',  name: 'Giacca Kimono Fresca',  color: 'Verde menta',       colorKey: 'ph-sage',     price: '€72,00',  href: '/product', tags: ['accessori','saldi'] },
-    { id: 'set-coordinato-viola',  name: 'Set Coordinato Viola',  color: 'Lilla morbido',     colorKey: 'ph-lavender', price: '€130,00', href: '/product', tags: ['set'] },
-    { id: 'pantalone-culotte-zen', name: 'Pantalone Culotte Zen', color: 'Verde muschio',     colorKey: 'ph-sage',     price: '€88,00',  href: '/product', tags: ['pantaloni'] },
-    { id: 'vestito-midi-fiori',    name: 'Vestito Midi Fiori',    color: 'Rosa antico',       colorKey: 'ph-blush',    price: '€115,00', href: '/product', tags: ['vestiti','novita'] },
-    { id: 'gonna-wrap-salvia',     name: 'Gonna Wrap Salvia',     color: 'Verde salvia',      colorKey: 'ph-sage',     price: '€70,00',  href: '/product', tags: ['gonne'] },
-    { id: 'maxi-cardigan-nuvola',  name: 'Maxi Cardigan Nuvola',  color: 'Grigio cipria',     colorKey: 'ph-lavender', price: '€85,00',  href: '/product', tags: ['accessori','saldi'] },
-    { id: 'top-bustier-perla',     name: 'Top Bustier Perla',     color: 'Avorio madreperla', colorKey: 'ph-cream',    price: '€48,00',  href: '/product', tags: ['top','novita','accessori'] },
-  ];
+  function _searchColorKey(colore) {
+    var c = (colore || '').toLowerCase();
+    if (/ros|blush|coral|cipria|peony|antico/.test(c))     return 'ph-blush';
+    if (/verd|salv|menta|musch|sage|oliv/.test(c))          return 'ph-sage';
+    if (/lavan|lilla|viola|glic|malva/.test(c))             return 'ph-lavender';
+    if (/avor|crema|panna|bianc|perla|nud|sabbia/.test(c))  return 'ph-cream';
+    return 'ph-flat';
+  }
+
+  function loadSearchCatalog() {
+    if (typeof fetch !== 'function') return;
+    fetch('/api/products?limit=300')
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        var products = Array.isArray(res) ? res : (res && res.products) || [];
+        CATALOG.length = 0;
+        products.forEach(function (p) {
+          CATALOG.push({
+            id:       p.id,
+            name:     p.name || '',
+            color:    p.color_label || p.colore || '',
+            colorKey: _searchColorKey(p.colore || p.color_label),
+            price:    '€' + (Number(p.price) || 0).toFixed(2).replace('.', ','),
+            tags:     [ (p.categoria || '') ]
+                        .concat(p.is_new ? ['novita', 'new'] : [])
+                        .concat((Number(p.discount_pct) > 0) ? ['saldi', 'sale'] : [])
+          });
+        });
+      })
+      .catch(function () { /* offline / no products → search finds nothing */ });
+  }
+  loadSearchCatalog();
 
   /* ── 4. FOOTER INJECTION ───────────────────────────────── */
 
@@ -323,7 +343,7 @@
         <h4>Azienda</h4>
         <ul>
           <li><a href="/about">Chi Siamo</a></li>
-          <li><a href="/editoriali">Editoriali</a></li>
+          <li><a href="/editoriali/primavera-estate-2026/">Editoriali</a></li>
           <li><a href="/valori">I Nostri Valori</a></li>
         </ul>
       </div>

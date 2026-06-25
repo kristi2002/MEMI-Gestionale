@@ -195,9 +195,8 @@
   </div>
 </main>
 
-<script src="productsData.js"></script>
 <script src="api-client.js"></script>
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=9"></script>
 <script>
 (function () {
   var ICONS = {
@@ -291,24 +290,19 @@
     if (typeof window.wireProductCards === 'function') window.wireProductCards();
   }
 
-  // Read q from URL and run
-  var params = new URLSearchParams(window.location.search);
-  var q = (params.get('q') || '').trim();
-  runSearch(q);
-
-  // Re-run on form submit (page reload with new q)
-  var form = document.getElementById('searchPageForm');
-  if (form) {
-    form.addEventListener('submit', function(e) {
-      e.preventDefault();
-      var val = document.getElementById('searchPageInput').value.trim();
-      if (val) {
-        history.pushState({}, '', '/search?q=' + encodeURIComponent(val));
-        runSearch(val);
-      }
-    });
-  }
-})();
-</script>
-</body>
-</html>
+  // Map an API product to the shape renderCard/runSearch expect.
+  function mapApiToProduct(p) {
+    return {
+      id:            p.id,
+      name:          p.name || '',
+      categoria:     p.categoria || '',
+      colore:        p.colore || '',
+      colorLabel:    p.color_label || p.colore || '',
+      price:         Number(p.price) || 0,
+      originalPrice: p.original_price ? Number(p.original_price) : null,
+      discountPct:   p.discount_pct || 0,
+      isNew:         !!p.is_new,
+      icon:          p.icon || 'dress',
+      altColor:      p.alt_color || 'ph-flat',
+      popularity:    p.popularity || 999,
+   
