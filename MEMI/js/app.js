@@ -3736,7 +3736,7 @@ $(function(){
   // Verify the stored token is still valid before rendering anything.
   // admin-api.js already redirects on any 401, but checking here catches
   // an expired token before the first data request fires.
-  if (window.AdminAPI && AdminAPI.isLoggedIn()) {
+  if (window.AdminAPI && AdminAPI.auth.isLoggedIn()) {
     AdminAPI.auth.me()
       .done(function() { updateSidebarBadges(); loadDashboardData(); })
       .fail(function() {

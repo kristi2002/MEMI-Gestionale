@@ -80,11 +80,59 @@ const STATEMENTS = [
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
+const fs    = require('fs');
+const path  = require('path');
+const mysql = require('mysql2/promise');
+
+/**
+ * Self-heal the core schema: applies the CREATE TABLE statements from
+ * schema.sql (all use IF NOT EXISTS) so a database that was initialized with
+ * an older/partial schema gets any missing tables created.
+ *
+ * This is intentionally STRUCTURAL ONLY — we strip the `CREATE DATABASE` /
+ * `USE` lines and every seed `INSERT` so re-running on each boot never
+ * duplicates or overwrites data. First-time seeding still happens through
+ * schema.sql when the DB is initialized (docker initdb.d or `npm run db:init`).
+ * We run against the database configured via DB_NAME, never a hardcoded name.
+ */
+async function ensureSchema() {
+  const schemaPath = path.join(__dirname, 'schema.sql');
+  if (!fs.existsSync(schemaPath)) return;
+
+  let sql = fs.readFileSync(schemaPath, 'utf8');
+  sql = sql
+    .replace(/^\s*CREATE\s+DATABASE[^;]*;/gim, '')
+    .replace(/^\s*USE\s+[^;]*;/gim, '')
+    .replace(/INSERT\s+INTO[\s\S]*?;/gi, '');  // skip all seed data on heal
+
+  const conn = await mysql.createConnection({
+    host:               process.env.DB_HOST     || 'localhost',
+    port:               parseInt(process.env.DB_PORT || '3306', 10),
+    user:               process.env.DB_USER     || 'memi_user',
+    password:           process.env.DB_PASSWORD || '',
+    database:           process.env.DB_NAME     || 'memi_db',
+    multipleStatements: true,
+  });
+  try {
+    await conn.query(sql);
+    console.log('✅  Core schema ensured (missing tables created)');
+  } finally {
+    await conn.end();
+  }
+}
+
 async function runMigrations(pool) {
+  // 1. Heal any missing core tables from schema.sql
+  try {
+    await ensureSchema();
+  } catch (err) {
+    console.error('⚠️  ensureSchema failed (continuing with feature tables):', err.message);
+  }
+  // 2. Ensure feature tables added after the initial schema
   for (const sql of STATEMENTS) {
     await pool.query(sql);
   }
-  console.log(`✅  Migrations applied (${STATEMENTS.length} tables ensured)`);
+  console.log(`✅  Migrations applied (${STATEMENTS.length} feature tables ensured)`);
 }
 
-module.exports = { runMigrations, STATEMENTS };
+module.exports = { runMigrations, ensureSchema, STATEMENTS };
