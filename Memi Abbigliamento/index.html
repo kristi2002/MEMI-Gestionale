@@ -1373,7 +1373,7 @@
         ? '<img class="product-img-alt" src="' + esc(img2) + '" alt="" loading="lazy" style="' + imgStyle + '">'
         : fig('product-img-alt placeholder-figure ' + esc(p.alt_color || 'ph-sage'), p.icon);
 
-      return '<article class="product-card" data-id="' + esc(p.id) + '" role="listitem" tabindex="0">' +
+      return '<article class="product-card in-view" data-id="' + esc(p.id) + '" role="listitem" tabindex="0">' +
           '<div class="product-img-wrap">' + main + alt +
             (badges ? '<div class="product-badges">' + badges + '</div>' : '') +
             '<button class="product-wishlist" aria-label="Aggiungi ai preferiti"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>' +

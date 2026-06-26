@@ -229,7 +229,7 @@
     }).join('');
 
     return '<a class="product-card-link" href="/product?id=' + encodeURIComponent(p.id) + '">' +
-      '<article class="product-card" style="--i:' + idx + '" ' +
+      '<article class="product-card in-view" style="--i:' + idx + '" ' +
         'data-categoria="' + p.categoria + '" data-colore="' + p.colore + '" ' +
         'data-prezzo="' + p.price + '" data-popularity="' + (p.popularity || 999) + '">' +
         '<div class="product-img-wrap">' +
