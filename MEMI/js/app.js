@@ -1981,6 +1981,7 @@ $(function(){
           <div class="kv" style="grid-template-columns:120px 1fr;gap:10px">
             <div class="k">Nome *</div><div class="v"><input class="field-input" type="text" name="name" value="${(p.name||'').replace(/"/g,'&quot;')}" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
             <div class="k">Categoria *</div><div class="v"><input class="field-input" type="text" name="categoria" value="${(p.categoria||'').replace(/"/g,'&quot;')}" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+            <div class="k">Collezioni</div><div class="v"><input class="field-input" type="text" name="collections_str" value="${(Array.isArray(p.collections)?p.collections.join(', '):'').replace(/"/g,'&quot;')}" placeholder="shop-all, novita, estate-2025" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/><small style="color:var(--muted)">Slug separati da virgola — controllano le pagine collezione dello shop</small></div>
             <div class="k">Prezzo €</div><div class="v"><input class="field-input" type="number" name="price" step="0.01" value="${p.price||''}" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
             <div class="k">Stato</div><div class="v">
               <select name="status" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">
@@ -2002,10 +2003,11 @@ $(function(){
         const fd = Object.fromEntries(new FormData(this));
         const $btn = $(this).find('[type=submit]');
         $btn.prop('disabled',true).text('Salvataggio…');
+        var collections = (fd.collections_str || '').split(',').map(function(s){ return s.trim().toLowerCase(); }).filter(Boolean);
         AdminAPI.products.update(id, {
           name: fd.name, categoria: fd.categoria,
           price: parseFloat(fd.price), status: fd.status,
-          description: fd.description
+          description: fd.description, collections: collections
         }).done(function(){
           toast('Prodotto aggiornato','success');
           closeModal();
@@ -2217,6 +2219,7 @@ $(function(){
           <div class="k">ID / SKU *</div><div class="v"><input class="field-input" type="text" name="id" placeholder="es. vestito-floreale-01" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
           <div class="k">Nome *</div><div class="v"><input class="field-input" type="text" name="name" placeholder="Nome prodotto" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
           <div class="k">Categoria *</div><div class="v"><input class="field-input" type="text" name="categoria" placeholder="es. Vestiti" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Collezioni</div><div class="v"><small style="color:var(--muted)">Slug separati da virgola (controllano le pagine collezione)</small><input class="field-input" type="text" name="collections_str" placeholder="shop-all, novita, estate-2025" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px;margin-top:4px"/></div>
           <div class="k">Prezzo € *</div><div class="v"><input class="field-input" type="number" name="price" step="0.01" min="0" placeholder="0.00" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
           <div class="k">Prezzo orig. €</div><div class="v"><input class="field-input" type="number" name="original_price" step="0.01" min="0" placeholder="(se scontato)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
           <div class="k">Stato</div><div class="v">
@@ -2248,12 +2251,14 @@ $(function(){
       });
       $btn.prop('disabled', true).text('Creazione...');
       const newId = fd.id.trim().toLowerCase().replace(/\s+/g, '-');
+      const collections = (fd.collections_str || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
       AdminAPI.products.create({
         id: newId,
         name: fd.name, categoria: fd.categoria,
         price: parseFloat(fd.price),
         original_price: fd.original_price ? parseFloat(fd.original_price) : null,
         status: fd.status, description: fd.description, taglie: taglie,
+        collections: collections,
       }).done(function(){
         toast('Prodotto creato — ora aggiungi le immagini', 'success');
         // Reopen in the editor so images can be uploaded right away
@@ -3851,8 +3856,10 @@ $(function(){
         if (!Array.isArray(list)) list = [];
         var map = {};
         list.forEach(function(p) {
-          var c = [];
-          try { c = JSON.parse(p.collections || '[]'); } catch(_) {}
+          // The API returns collections already parsed (array). Older/raw rows
+          // may still be a JSON string — handle both so the list never comes back empty.
+          var c = p.collections;
+          if (typeof c === 'string') { try { c = JSON.parse(c || '[]'); } catch(_) { c = []; } }
           if (!Array.isArray(c)) c = [];
           c.forEach(function(slug) {
             if (!map[slug]) map[slug] = 0;
