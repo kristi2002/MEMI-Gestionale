@@ -47,14 +47,11 @@
     return !x ? null : (typeof x === 'string' ? x : (x[size] || x.card || x.full || x.thumb));
   }
 
+  // Consistent, honest placeholder for products that have no uploaded image
+  // (no misleading stock photos). Shared visual with the PDP and shop.
+  var NO_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><rect width="600" height="800" fill="#f1ece6"/><rect x="225" y="300" width="150" height="120" rx="10" fill="none" stroke="#cbb9a8" stroke-width="6"/><circle cx="268" cy="338" r="13" fill="none" stroke="#cbb9a8" stroke-width="6"/><path d="M232 414 L300 358 L338 392 L368 366 L368 418 Z" fill="#cbb9a8"/><text x="300" y="476" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="26" fill="#a8978a">Nessuna immagine</text></svg>');
   function imgFallback(seed) {
-    var pool = [
-      'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&h=800&q=80',
-      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80',
-      'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80',
-      'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80'
-    ];
-    return pool[Math.abs(seed) % pool.length];
+    return NO_IMAGE;
   }
 
   function buildCard(p, idx, opts) {

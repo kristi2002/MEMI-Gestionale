@@ -2071,6 +2071,15 @@ $(function(){
     (DATA.products||[]).forEach(function(p){ (Array.isArray(p.collections)?p.collections:[]).forEach(function(s){ if(s) set[String(s).toLowerCase().trim()]=1; }); });
     return Object.keys(set).filter(Boolean).sort();
   }
+  var PRODUCT_COLORS = [['blush','Rosa cipria'],['salvia','Salvia'],['lavanda','Lavanda'],['avorio','Avorio'],['menta','Menta'],['antico','Rosa antico'],['espresso','Espresso']];
+  function colorLabelFor(key){ for(var i=0;i<PRODUCT_COLORS.length;i++){ if(PRODUCT_COLORS[i][0]===key) return PRODUCT_COLORS[i][1]; } return ''; }
+  function colorSelect(current){
+    current = (current||'').toLowerCase();
+    return '<select class="field-input" name="colore" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">'
+      + '<option value="">— nessuno —</option>'
+      + PRODUCT_COLORS.map(function(c){ return '<option value="'+c[0]+'"'+(c[0]===current?' selected':'')+'>'+c[1]+'</option>'; }).join('')
+      + '</select>';
+  }
   function categorySelect(current){
     var cats = _catalogCategories();
     current = (current||'').toLowerCase().trim();
@@ -2099,6 +2108,9 @@ $(function(){
             <div class="k">Categoria *</div><div class="v">${categorySelect(p.categoria)}</div>
             <div class="k">Collezioni</div><div class="v">${collectionChecks(Array.isArray(p.collections)?p.collections:[])}<small style="color:var(--muted);display:block;margin-top:4px">Seleziona le collezioni — controllano le pagine collezione dello shop</small></div>
             <div class="k">Prezzo €</div><div class="v"><input class="field-input" type="number" name="price" step="0.01" value="${p.price||''}" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+            <div class="k">Prezzo orig. €</div><div class="v"><input class="field-input" type="number" name="original_price" step="0.01" min="0" value="${p.original_price||''}" placeholder="(se scontato → calcola sconto)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+            <div class="k">Colore</div><div class="v">${colorSelect(p.colore)}</div>
+            <div class="k">Novità</div><div class="v"><label style="display:inline-flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" name="is_new" ${p.is_new?'checked':''}/> Mostra badge "New"</label></div>
             <div class="k">Stato</div><div class="v">
               <select name="status" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">
                 ${['attivo','bozza','esaurito'].map(s=>`<option value="${s}" ${p.status===s?'selected':''}>${AdminAPI.statusLabel(s)}</option>`).join('')}
@@ -2120,9 +2132,17 @@ $(function(){
         const $btn = $(this).find('[type=submit]');
         $btn.prop('disabled',true).text('Salvataggio…');
         var collections = $('#editProductForm .coll-check:checked').map(function(){ return this.value; }).get();
+        var coloreKey = fd.colore || null;
+        var isNew = $('#editProductForm [name=is_new]').is(':checked');
+        var origP = fd.original_price ? parseFloat(fd.original_price) : null;
+        var priceP = parseFloat(fd.price);
+        var discountPct = (origP && origP > priceP) ? Math.round((1 - priceP/origP) * 100) : 0;
         AdminAPI.products.update(id, {
           name: fd.name, categoria: fd.categoria,
-          price: parseFloat(fd.price), status: fd.status,
+          price: priceP, original_price: origP,
+          colore: coloreKey, color_label: coloreKey ? colorLabelFor(coloreKey) : null,
+          is_new: isNew, discount_pct: discountPct,
+          status: fd.status,
           description: fd.description, collections: collections
         }).done(function(){
           toast('Prodotto aggiornato','success');
@@ -2337,7 +2357,9 @@ $(function(){
           <div class="k">Categoria *</div><div class="v">${categorySelect('')}</div>
           <div class="k">Collezioni</div><div class="v">${collectionChecks([])}<small style="color:var(--muted);display:block;margin-top:4px">Seleziona le collezioni (controllano le pagine collezione)</small></div>
           <div class="k">Prezzo € *</div><div class="v"><input class="field-input" type="number" name="price" step="0.01" min="0" placeholder="0.00" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
-          <div class="k">Prezzo orig. €</div><div class="v"><input class="field-input" type="number" name="original_price" step="0.01" min="0" placeholder="(se scontato)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Prezzo orig. €</div><div class="v"><input class="field-input" type="number" name="original_price" step="0.01" min="0" placeholder="(se scontato → calcola sconto)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Colore</div><div class="v">${colorSelect('')}</div>
+          <div class="k">Novità</div><div class="v"><label style="display:inline-flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox" name="is_new" /> Mostra badge "New"</label></div>
           <div class="k">Stato</div><div class="v">
             <select name="status" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">
               <option value="attivo">Attivo</option>
@@ -2368,11 +2390,18 @@ $(function(){
       $btn.prop('disabled', true).text('Creazione...');
       const newId = fd.id.trim().toLowerCase().replace(/\s+/g, '-');
       const collections = $('#newProductForm .coll-check:checked').map(function(){ return this.value; }).get();
+      const coloreKey = fd.colore || null;
+      const isNew = $('#newProductForm [name=is_new]').is(':checked');
+      const origP = fd.original_price ? parseFloat(fd.original_price) : null;
+      const priceP = parseFloat(fd.price);
+      const discountPct = (origP && origP > priceP) ? Math.round((1 - priceP/origP) * 100) : 0;
       AdminAPI.products.create({
         id: newId,
         name: fd.name, categoria: fd.categoria,
-        price: parseFloat(fd.price),
-        original_price: fd.original_price ? parseFloat(fd.original_price) : null,
+        price: priceP,
+        original_price: origP,
+        colore: coloreKey, color_label: coloreKey ? colorLabelFor(coloreKey) : null,
+        is_new: isNew, discount_pct: discountPct,
         status: fd.status, description: fd.description, taglie: taglie,
         collections: collections,
       }).done(function(){
