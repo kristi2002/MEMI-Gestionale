@@ -19,6 +19,13 @@
 const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { sendShippingConfirmation } = require('../email');
+
+// Build a courier deep-link from its template ({tracking} → the number).
+function buildTrackingUrl(template, trackingNumber) {
+  if (!template || !trackingNumber) return null;
+  return template.replace(/\{tracking\}/gi, encodeURIComponent(trackingNumber));
+}
 
 /* ── GET /api/shipping/zones ── */
 router.get('/zones', async (req, res) => {
@@ -84,15 +91,15 @@ router.delete('/zones/:id', requireAdmin, async (req, res) => {
 
 /* ── POST /api/shipping/couriers ── (admin) — add a new courier ── */
 router.post('/couriers', requireAdmin, async (req, res) => {
-  let { code, nome, slug, rate = 6.00, attivo = true } = req.body;
+  let { code, nome, slug, rate = 6.00, attivo = true, tracking_url_template = null } = req.body;
   if (!code || !nome) return res.status(400).json({ error: 'Codice e nome obbligatori' });
   code = String(code).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
   if (!code) return res.status(400).json({ error: 'Codice non valido' });
   slug = (slug ? String(slug) : code).toUpperCase().slice(0, 10);
   try {
     await pool.execute(
-      'INSERT INTO couriers (code, nome, slug, rate, attivo) VALUES (?, ?, ?, ?, ?)',
-      [code, nome, slug, Number(rate) || 0, attivo ? 1 : 0]
+      'INSERT INTO couriers (code, nome, slug, rate, attivo, tracking_url_template) VALUES (?, ?, ?, ?, ?, ?)',
+      [code, nome, slug, Number(rate) || 0, attivo ? 1 : 0, tracking_url_template || null]
     );
     return res.status(201).json({ ok: true, code });
   } catch (err) {
@@ -121,8 +128,11 @@ router.post('/shipments', requireAdmin, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
-    // Ensure the order exists
-    const [[order]] = await conn.execute('SELECT id FROM orders WHERE id = ? OR order_number = ? LIMIT 1', [order_id, order_id]);
+    // Ensure the order exists (grab the fields the shipping email needs)
+    const [[order]] = await conn.execute(
+      'SELECT id, order_number, customer_nome, customer_email FROM orders WHERE id = ? OR order_number = ? LIMIT 1',
+      [order_id, order_id]
+    );
     if (!order) { await conn.rollback(); return res.status(404).json({ error: 'Ordine non trovato' }); }
     const [r] = await conn.execute(
       `INSERT INTO shipments (tracking_number, order_id, courier_code, destinazione, stato, eta)
@@ -135,7 +145,28 @@ router.post('/shipments', requireAdmin, async (req, res) => {
       [courier_code, tracking_number, order.id]
     );
     await conn.commit();
-    return res.status(201).json({ ok: true, id: r.insertId });
+
+    // Build the courier deep-link and AUTO-SEND the shipping confirmation email.
+    // Best-effort: a mail failure must never fail the shipment (email.js no-ops without SMTP).
+    let tracking_url = null;
+    try {
+      const [[cour]] = await pool.execute('SELECT tracking_url_template FROM couriers WHERE code = ?', [courier_code]);
+      tracking_url = buildTrackingUrl(cour && cour.tracking_url_template, tracking_number);
+      if (order.customer_email) {
+        await sendShippingConfirmation({
+          order_number: order.order_number,
+          nome:         order.customer_nome,
+          email:        order.customer_email,
+          courier_code, tracking_number,
+          eta:          eta || null,
+          tracking_url,
+        });
+      }
+    } catch (mailErr) {
+      console.error('shipping email warning:', mailErr.message);
+    }
+
+    return res.status(201).json({ ok: true, id: r.insertId, tracking_url });
   } catch (err) {
     await conn.rollback();
     if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Tracking number già esistente' });
@@ -203,13 +234,14 @@ router.delete('/pickup/:id', requireAdmin, async (req, res) => {
 
 /* ── PUT /api/shipping/couriers/:code ── (admin) ── */
 router.put('/couriers/:code', requireAdmin, async (req, res) => {
-  const { attivo, rate, nome } = req.body;
+  const { attivo, rate, nome, tracking_url_template } = req.body;
   try {
     const fields = [];
     const vals   = [];
     if (attivo !== undefined) { fields.push('attivo = ?'); vals.push(attivo); }
     if (rate   !== undefined) { fields.push('rate = ?');   vals.push(rate); }
     if (nome   !== undefined) { fields.push('nome = ?');   vals.push(nome); }
+    if (tracking_url_template !== undefined) { fields.push('tracking_url_template = ?'); vals.push(tracking_url_template || null); }
     if (!fields.length) return res.status(400).json({ error: 'Nessun campo' });
     vals.push(req.params.code);
     await pool.execute(`UPDATE couriers SET ${fields.join(', ')} WHERE code = ?`, vals);

@@ -150,6 +150,7 @@ app.use('/api/admin/staff',       staffRoutes);
 app.use('/api/admin/giftcards',   giftcardsRoutes);
 app.use('/api/admin/campaigns',   campaignsRoutes);
 app.use('/api/admin/cms',         cmsRoutes);
+app.use('/api/cms',               cmsRoutes);   // public /published/* routes for the storefront
 app.use('/api/admin/loyalty',     loyaltyRoutes);
 
 // ── 404 catch-all ─────────────────────────────────────────────

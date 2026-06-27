@@ -176,6 +176,21 @@ async function runMigrations(pool) {
     await ensureColumn(pool, 'customers', 'points', 'points INT NOT NULL DEFAULT 0');
     await ensureIndex(pool, 'order_items', 'idx_oi_product', 'product_id');
     await ensureIndex(pool, 'products', 'idx_products_cat_status', 'categoria, status');
+    // Per-courier tracking deep-link template ({tracking} → the tracking number)
+    await ensureColumn(pool, 'couriers', 'tracking_url_template', 'tracking_url_template VARCHAR(255) NULL');
+    const TRACK_TEMPLATES = {
+      sda:   'https://www.sda.it/wps/portal/Servizi_online/dettaglio-spedizione?tracing.letteraVettura={tracking}',
+      brt:   'https://vas.brt.it/vas/sps_ricerca_spedizione_par.htm?nspediz={tracking}',
+      gls:   'https://www.gls-italy.com/it/servizi-online/ricerca-spedizioni?match={tracking}',
+      poste: 'https://www.poste.it/cerca/index.html#/risultati-spedizioni/{tracking}',
+      dhl:   'https://www.dhl.com/it-it/home/tracking/tracking-express.html?submit=1&tracking-id={tracking}',
+    };
+    for (const code of Object.keys(TRACK_TEMPLATES)) {
+      await pool.query(
+        "UPDATE couriers SET tracking_url_template = ? WHERE code = ? AND (tracking_url_template IS NULL OR tracking_url_template = '')",
+        [TRACK_TEMPLATES[code], code]
+      );
+    }
   } catch (err) {
     console.error('⚠️  column/index migration warning:', err.message);
   }

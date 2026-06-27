@@ -9,7 +9,7 @@
 
 const router       = require('express').Router();
 const { pool }     = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, requireRole } = require('../middleware/auth');
 
 /* ── GET /api/admin/settings ── */
 router.get('/', requireAdmin, async (req, res) => {
@@ -25,7 +25,7 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /api/admin/settings ── */
-router.put('/', requireAdmin, async (req, res) => {
+router.put('/', requireAdmin, requireRole('admin'), async (req, res) => {
   const updates = req.body;
   if (!updates || typeof updates !== 'object' || Array.isArray(updates))
     return res.status(400).json({ error: 'Body deve essere un oggetto chiave/valore' });
@@ -52,6 +52,41 @@ router.put('/', requireAdmin, async (req, res) => {
   } finally {
     conn.release();
   }
+});
+
+/* ── GET /api/admin/settings/integrations ──
+   Connection status for external services. Returns booleans + safe details
+   only — never the secret values themselves. */
+router.get('/integrations', requireAdmin, requireRole('admin'), async (req, res) => {
+  const stripeKey = process.env.STRIPE_SECRET_KEY || '';
+  const integrations = [
+    {
+      key: 'stripe', nome: 'Stripe', categoria: 'Pagamenti', icona: '💳',
+      connesso: !!stripeKey,
+      dettaglio: stripeKey
+        ? (stripeKey.startsWith('sk_live') ? 'Modalità LIVE attiva' : 'Modalità TEST attiva')
+        : 'Chiave non configurata — checkout disattivato',
+    },
+    {
+      key: 'smtp', nome: 'Email transazionali (SMTP)', categoria: 'Notifiche', icona: '✉️',
+      connesso: !!process.env.SMTP_USER,
+      dettaglio: process.env.SMTP_USER
+        ? ('Host: ' + (process.env.SMTP_HOST || '—'))
+        : 'SMTP non configurato — le email non vengono inviate',
+    },
+    {
+      key: 'uploads', nome: 'Storage immagini', categoria: 'Media', icona: '🖼️',
+      connesso: true,
+      dettaglio: 'Volume: ' + (process.env.UPLOADS_DIR || './uploads'),
+    },
+  ];
+  let dbOk = false;
+  try { await pool.query('SELECT 1'); dbOk = true; } catch (_) {}
+  integrations.push({
+    key: 'database', nome: 'Database MySQL', categoria: 'Infrastruttura', icona: '🗄️',
+    connesso: dbOk, dettaglio: dbOk ? 'Connesso' : 'Errore di connessione',
+  });
+  return res.json({ integrations });
 });
 
 module.exports = router;

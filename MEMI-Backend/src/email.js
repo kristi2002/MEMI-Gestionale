@@ -130,11 +130,16 @@ async function sendShippingConfirmation(order) {
   const t = getTransporter();
   if (!t) return;
 
-  const { order_number, nome, email, courier_code, tracking_number, eta } = order;
+  const { order_number, nome, email, courier_code, tracking_number, eta, tracking_url } = order;
   const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
 
   const etaLine = eta
     ? `<p style="color:#7a6060;font-size:14px;margin:0 0 12px;"><strong>Consegna prevista:</strong> ${eta}</p>`
+    : '';
+
+  // Clickable courier deep-link (only when the courier has a tracking URL template configured)
+  const trackButton = tracking_url
+    ? `<div style="text-align:center;margin:8px 0 24px;"><a href="${tracking_url}" style="display:inline-block;background:#3B2B2B;color:#fff;text-decoration:none;font-size:14px;letter-spacing:.06em;padding:13px 30px;border-radius:8px;">Traccia il pacco →</a></div>`
     : '';
 
   const html = `
@@ -155,7 +160,8 @@ async function sendShippingConfirmation(order) {
         <p style="font-size:12px;color:#888;margin:0;">Corriere: ${courier_code}</p>
       </div>
       ${etaLine}
-      <p style="color:#7a6060;font-size:14px;line-height:1.6;">Usa il codice di tracciamento sul sito del corriere per seguire il pacco in tempo reale.</p>
+      ${trackButton}
+      <p style="color:#7a6060;font-size:14px;line-height:1.6;">${tracking_url ? 'Clicca il pulsante qui sopra per seguire il pacco in tempo reale.' : 'Usa il codice di tracciamento sul sito del corriere per seguire il pacco in tempo reale.'}</p>
     </div>
     <div style="background:#faf7f4;padding:20px 40px;text-align:center;font-size:12px;color:#a89090;">
       © 2026 Memi Abbigliamento · Milano, Italia
@@ -164,7 +170,7 @@ async function sendShippingConfirmation(order) {
 </body>
 </html>`;
 
-  const text = `Ciao ${nome},\n\nIl tuo ordine ${order_number} è stato spedito!\n\nTracking: ${tracking_number}\nCorriere: ${courier_code}${eta ? '\nConsegna prevista: ' + eta : ''}\n\nCordiali saluti,\nMemi Abbigliamento`;
+  const text = `Ciao ${nome},\n\nIl tuo ordine ${order_number} è stato spedito!\n\nTracking: ${tracking_number}\nCorriere: ${courier_code}${tracking_url ? '\nTraccia il pacco: ' + tracking_url : ''}${eta ? '\nConsegna prevista: ' + eta : ''}\n\nCordiali saluti,\nMemi Abbigliamento`;
 
   try {
     await t.sendMail({ from, to: email, subject: `Il tuo ordine ${order_number} è in viaggio — Memi`, text, html });

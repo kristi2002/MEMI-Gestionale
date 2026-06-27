@@ -74,6 +74,7 @@
     chart:        function() { return get('/admin/dashboard/chart'); },
     topProducts:  function() { return get('/admin/dashboard/top-products'); },
     recentOrders: function() { return get('/admin/dashboard/recent-orders'); },
+    finance:      function() { return get('/admin/dashboard/finance'); },
   };
 
   /* ═══════════════════════════════════════════════════════
@@ -251,8 +252,9 @@
      SETTINGS
      ================================================================ */
   var settings = {
-    get:    function()  { return get('/admin/settings'); },
-    update: function(d) { return put('/admin/settings', d); },
+    get:          function()  { return get('/admin/settings'); },
+    update:       function(d) { return put('/admin/settings', d); },
+    integrations: function()  { return get('/admin/settings/integrations'); },
   };
 
 

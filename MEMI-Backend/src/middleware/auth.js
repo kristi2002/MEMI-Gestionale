@@ -52,4 +52,18 @@ function requireAdmin(req, res, next) {
   }
 }
 
-module.exports = { requireCustomer, optionalCustomer, requireAdmin };
+/**
+ * requireRole(...roles)
+ * Gate a route to specific admin roles. MUST be chained after requireAdmin
+ * (it reads req.admin.role). Example: router.get('/x', requireAdmin, requireRole('admin'), handler)
+ */
+function requireRole(...roles) {
+  return function (req, res, next) {
+    if (!req.admin) return res.status(401).json({ error: 'Non autenticato' });
+    if (!roles.includes(req.admin.role))
+      return res.status(403).json({ error: 'Permessi insufficienti per questa sezione' });
+    next();
+  };
+}
+
+module.exports = { requireCustomer, optionalCustomer, requireAdmin, requireRole };

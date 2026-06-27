@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blog — Memi Abbigliamento</title>
+  <meta name="description" content="Articoli, storie e consigli di stile dal blog di Memi Abbigliamento." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="tokens.css?v=2" />
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{background:var(--bg-base);color:var(--espresso);font-family:var(--font-sans);line-height:var(--leading-normal);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+    img{display:block;width:100%;object-fit:cover;}
+    a{color:inherit;text-decoration:none;}
+    button{cursor:pointer;border:none;background:none;font-family:inherit;}
+    .announcement-bar{background:var(--blush-light);color:var(--brown-mid);text-align:center;padding:var(--space-2) var(--space-4);font-size:var(--text-xs);letter-spacing:var(--tracking-wider);text-transform:uppercase;font-weight:500;border-bottom:1px solid var(--blush);}
+    .page-hero{padding:clamp(4rem,8vw,7rem) var(--space-6) clamp(2rem,4vw,3rem);max-width:1280px;margin:0 auto;border-bottom:1px solid var(--beige);}
+    .page-hero-eyebrow{font-size:var(--text-xs);letter-spacing:var(--tracking-wider);text-transform:uppercase;color:var(--brown-light);font-weight:500;margin-bottom:var(--space-3);}
+    .page-hero-title{font-family:var(--font-serif);font-size:clamp(2.5rem,5vw,4.5rem);font-weight:300;letter-spacing:-0.03em;line-height:1.08;}
+    .page-hero-title em{font-style:italic;}
+    .page-hero-sub{margin-top:var(--space-5);font-size:var(--text-base);color:var(--brown-mid);max-width:540px;}
+    .blog-wrap{max-width:1280px;margin:0 auto;padding:clamp(2.5rem,5vw,4rem) var(--space-6) clamp(4rem,8vw,6rem);}
+    .blog-grid{display:grid;grid-template-columns:1fr;gap:var(--space-8);}
+    @media(min-width:640px){.blog-grid{grid-template-columns:1fr 1fr;}}
+    @media(min-width:960px){.blog-grid{grid-template-columns:repeat(3,1fr);}}
+    .blog-card{display:block;transition:transform var(--dur-fast);}
+    .blog-card:hover{transform:translateY(-3px);}
+    .blog-cover{aspect-ratio:4/3;border-radius:var(--radius-lg,12px);overflow:hidden;margin-bottom:var(--space-4);}
+    .blog-title{font-family:var(--font-serif);font-size:var(--text-xl);font-weight:400;line-height:1.25;margin-bottom:var(--space-2);}
+    .blog-excerpt{font-size:var(--text-sm);color:var(--brown-mid);line-height:1.7;}
+    .blog-date{font-size:var(--text-xs);letter-spacing:var(--tracking-wide);text-transform:uppercase;color:var(--brown-light);margin-top:var(--space-3);}
+    .blog-empty{grid-column:1/-1;text-align:center;color:var(--brown-light);padding:4rem 1rem;font-size:.9rem;}
+  </style>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="announcement-bar">Spedizione gratuita da €50 &nbsp;·&nbsp; Resi gratuiti entro 30 giorni</div>
+  <div data-include="site-header"></div>
+
+  <div class="page-hero">
+    <p class="page-hero-eyebrow">Memi Abbigliamento</p>
+    <h1 class="page-hero-title">Dal <em>blog</em></h1>
+    <p class="page-hero-sub">Storie, ispirazioni e consigli di stile dalla nostra redazione.</p>
+  </div>
+
+  <div class="blog-wrap">
+    <div class="blog-grid" id="blogGrid">
+      <div class="blog-empty">Caricamento articoli…</div>
+    </div>
+  </div>
+
+  <div data-include="site-footer"></div>
+
+  <script src="api-client.js?v=2"></script>
+  <script src="app.js?v=10"></script>
+  <script>
+  (function(){
+    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function fmtDate(d){ if(!d) return ''; try{return new Date(d).toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});}catch(_){return '';} }
+    var grid = document.getElementById('blogGrid');
+    fetch('/api/cms/published/blog')
+      .then(function(r){ return r.json(); })
+      .then(function(posts){
+        if(!Array.isArray(posts) || !posts.length){ grid.innerHTML = '<div class="blog-empty">Nessun articolo pubblicato al momento.</div>'; return; }
+        grid.innerHTML = posts.map(function(p){
+          var cover = p.cover_color || 'linear-gradient(135deg,#e89aae,#7fc29b)';
+          return '<a class="blog-card" href="/articolo?slug=' + encodeURIComponent(p.slug) + '">' +
+            '<div class="blog-cover" style="background:' + cover + '"></div>' +
+            '<h2 class="blog-title">' + esc(p.titolo) + '</h2>' +
+            (p.estratto ? '<p class="blog-excerpt">' + esc(p.estratto) + '</p>' : '') +
+            (p.published_at ? '<p class="blog-date">' + fmtDate(p.published_at) + '</p>' : '') +
+          '</a>';
+        }).join('');
+      })
+      .catch(function(){ grid.innerHTML = '<div class="blog-empty">Impossibile caricare gli articoli.</div>'; });
+  })();
+  </script>
+</body>
+</html>

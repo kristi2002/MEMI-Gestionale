@@ -344,6 +344,7 @@
         <ul>
           <li><a href="/about">Chi Siamo</a></li>
           <li><a href="/editoriali/primavera-estate-2026/">Editoriali</a></li>
+          <li><a href="/blog">Blog</a></li>
           <li><a href="/valori">I Nostri Valori</a></li>
         </ul>
       </div>

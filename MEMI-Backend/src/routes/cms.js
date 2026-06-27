@@ -156,4 +156,48 @@ router.delete('/blog/:id', requireAdmin, async (req, res) => {
   }
 });
 
+/* ══════════════════════════════════════════════════════════════
+   PUBLIC (no auth) — published content for the storefront.
+   Mounted at /api/cms (see server.js). Only returns PUBLISHED rows.
+   ══════════════════════════════════════════════════════════════ */
+router.get('/published/pages/:slug', async (req, res) => {
+  try {
+    const [[page]] = await pool.execute(
+      "SELECT titolo, slug, contenuto, updated_at FROM cms_pages WHERE slug = ? AND stato = 'pubblicata' LIMIT 1",
+      [req.params.slug]
+    );
+    if (!page) return res.status(404).json({ error: 'Pagina non trovata' });
+    return res.json(page);
+  } catch (err) {
+    console.error('cms public page error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+router.get('/published/blog', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      "SELECT titolo, slug, estratto, cover_color, published_at FROM blog_posts WHERE stato = 'pubblicato' ORDER BY COALESCE(published_at, created_at) DESC LIMIT 50"
+    );
+    return res.json(rows);
+  } catch (err) {
+    console.error('cms public blog list error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+router.get('/published/blog/:slug', async (req, res) => {
+  try {
+    const [[post]] = await pool.execute(
+      "SELECT titolo, slug, estratto, contenuto, cover_color, published_at FROM blog_posts WHERE slug = ? AND stato = 'pubblicato' LIMIT 1",
+      [req.params.slug]
+    );
+    if (!post) return res.status(404).json({ error: 'Articolo non trovato' });
+    return res.json(post);
+  } catch (err) {
+    console.error('cms public blog error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 module.exports = router;

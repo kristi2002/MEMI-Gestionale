@@ -10,8 +10,8 @@
  */
 
 const router = require('express').Router();
-const { pool }         = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const { pool }                     = require('../db');
+const { requireAdmin, requireRole } = require('../middleware/auth');
 
 /* ── GET /api/admin/dashboard/kpis ── */
 router.get('/kpis', requireAdmin, async (req, res) => {
@@ -113,6 +113,59 @@ router.get('/recent-orders', requireAdmin, async (req, res) => {
     `);
     return res.json(rows);
   } catch (err) {
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── GET /api/admin/dashboard/finance ── real financial overview from orders ── */
+router.get('/finance', requireAdmin, requireRole('admin'), async (req, res) => {
+  try {
+    const [[totals]] = await pool.execute(`
+      SELECT
+        COALESCE(SUM(CASE WHEN payment_status='pagato'     THEN total END),0)         AS revenue_total,
+        COALESCE(SUM(CASE WHEN payment_status='in_attesa'  THEN total END),0)         AS pending_amount,
+        COALESCE(SUM(CASE WHEN payment_status='rimborsato' THEN total END),0)         AS refunded_amount,
+        COALESCE(SUM(CASE WHEN payment_status='pagato'     THEN shipping_cost END),0) AS shipping_collected,
+        COUNT(CASE WHEN payment_status='pagato' THEN 1 END)                           AS paid_count,
+        COALESCE(AVG(CASE WHEN payment_status='pagato' THEN total END),0)             AS aov
+      FROM orders
+    `);
+    const [[mtd]] = await pool.execute(
+      "SELECT COALESCE(SUM(total),0) AS revenue_month FROM orders WHERE payment_status='pagato' AND created_at >= DATE_FORMAT(NOW(),'%Y-%m-01')"
+    );
+    const [[today]] = await pool.execute(
+      "SELECT COALESCE(SUM(total),0) AS revenue_today FROM orders WHERE payment_status='pagato' AND DATE(created_at)=CURDATE()"
+    );
+    const [byMethod] = await pool.execute(
+      "SELECT COALESCE(payment_method,'—') AS method, COUNT(*) AS cnt, COALESCE(SUM(total),0) AS total FROM orders WHERE payment_status='pagato' GROUP BY payment_method ORDER BY total DESC"
+    );
+    const [recent] = await pool.execute(`
+      SELECT order_number, customer_nome, customer_cognome, total, payment_method, payment_status, created_at
+      FROM orders ORDER BY created_at DESC LIMIT 15
+    `);
+    return res.json({
+      summary: {
+        revenue_total:      Number(totals.revenue_total),
+        revenue_month:      Number(mtd.revenue_month),
+        revenue_today:      Number(today.revenue_today),
+        pending_amount:     Number(totals.pending_amount),
+        refunded_amount:    Number(totals.refunded_amount),
+        shipping_collected: Number(totals.shipping_collected),
+        paid_count:         Number(totals.paid_count),
+        aov:                Number(totals.aov),
+      },
+      by_method: byMethod.map(m => ({ method: m.method, count: Number(m.cnt), total: Number(m.total) })),
+      recent: recent.map(r => ({
+        order_number:   r.order_number,
+        customer:       ((r.customer_nome || '') + ' ' + (r.customer_cognome || '')).trim() || '—',
+        total:          Number(r.total),
+        method:         r.payment_method || '—',
+        payment_status: r.payment_status,
+        created_at:     r.created_at,
+      })),
+    });
+  } catch (err) {
+    console.error('finance summary error', err);
     return res.status(500).json({ error: 'Errore server' });
   }
 });

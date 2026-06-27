@@ -946,6 +946,13 @@ VIEWS.couriers = function(){
   `;
 };
 
+// Build a clickable courier deep-link from the courier's saved template ({tracking} → number).
+function courierTrackingUrl(code, tn){
+  if(!code||!tn) return '';
+  var c=(DATA.couriers||[]).find(function(x){ return x.code===String(code).toLowerCase(); });
+  var tpl=c&&c.tracking_url_template;
+  return tpl ? tpl.replace(/\{tracking\}/gi, encodeURIComponent(tn)) : '';
+}
 VIEWS.shipments = function(){
   return `
     ${pageHead("Spedizioni in corso","Monitora ogni pacco in tempo reale.",`
@@ -979,7 +986,7 @@ VIEWS.shipments = function(){
               <td>${s.destinazione}</td>
               <td>${statusPill(s.stato)}</td>
               <td>${s.eta}</td>
-              <td class="row-actions"><button class="js-track-detail" data-id="${s.id}" title="Dettaglio">📍</button><button class="js-ship-label" data-id="${s.id}" data-ordine="${s.ordine}" data-cliente="${(s.cliente||'').replace(/"/g,'&quot;')}" data-dest="${(s.destinazione||'').replace(/"/g,'&quot;')}" title="Etichetta">🏷</button></td>
+              <td class="row-actions">${(function(){var u=courierTrackingUrl(s.corriere,s.id);return u?'<a class="btn btn-ghost btn-sm" href="'+u+'" target="_blank" rel="noopener" title="Traccia sul sito del corriere">🔗</a>':'';})()}<button class="js-track-detail" data-id="${s.id}" title="Dettaglio">📍</button><button class="js-ship-label" data-id="${s.id}" data-ordine="${s.ordine}" data-cliente="${(s.cliente||'').replace(/"/g,'&quot;')}" data-dest="${(s.destinazione||'').replace(/"/g,'&quot;')}" title="Etichetta">🏷</button></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -1321,20 +1328,41 @@ function sendChatMessage(text){
 
 /* ---------- FINANZA ---------- */
 VIEWS.finance = function(){
-  const rev = (DATA.kpi && DATA.kpi.revenue && DATA.kpi.revenue.value) ? DATA.kpi.revenue.value : '—';
-  return `${pageHead("Finanza","Panoramica economica del negozio.","")}
+  var f = (DATA.finance && DATA.finance.summary) || null;
+  var eur = function(n){ return '€ ' + (Number(n)||0).toFixed(2).replace('.', ','); };
+  if (!f) return `${pageHead("Finanza","Panoramica economica del negozio.","")}
+    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">${DATA.finance===null?'Caricamento…':'Nessun dato finanziario.'}</p></div>`;
+  var methods = (DATA.finance.by_method) || [];
+  return `${pageHead("Finanza","Panoramica economica — ordini pagati.","")}
     <div class="grid grid-4">
-      <div class="card kpi green"><span class="label">Fatturato (oggi)</span><span class="value">${rev}</span></div>
-      <div class="card kpi pink"><span class="label">Saldo disponibile</span><span class="value">—</span></div>
-      <div class="card kpi soft"><span class="label">In attesa di payout</span><span class="value">—</span></div>
-      <div class="card kpi green"><span class="label">Margine medio</span><span class="value">—</span></div>
+      <div class="card kpi green"><span class="label">Fatturato totale</span><span class="value">${eur(f.revenue_total)}</span></div>
+      <div class="card kpi pink"><span class="label">Questo mese</span><span class="value">${eur(f.revenue_month)}</span></div>
+      <div class="card kpi soft"><span class="label">In attesa</span><span class="value">${eur(f.pending_amount)}</span></div>
+      <div class="card kpi green"><span class="label">Scontrino medio</span><span class="value">${eur(f.aov)}</span></div>
     </div>
-    <div class="card" style="margin-top:16px"><h3>Cash flow ultimi 30 giorni</h3><div class="chart-placeholder">${chartSVG()}</div></div>
-    <p style="color:var(--muted);font-size:12px;margin-top:10px">Saldo, payout e margini richiedono il collegamento di un gateway di pagamento (es. Stripe) nelle Impostazioni.</p>`;
+    <div class="grid grid-2" style="margin-top:16px">
+      <div class="card"><h3>Riepilogo</h3><div class="kv">
+        <div class="k">Ordini pagati</div><div class="v">${f.paid_count}</div>
+        <div class="k">Fatturato oggi</div><div class="v">${eur(f.revenue_today)}</div>
+        <div class="k">Spedizioni incassate</div><div class="v">${eur(f.shipping_collected)}</div>
+        <div class="k">Rimborsato</div><div class="v" style="color:${f.refunded_amount>0?'var(--red)':'inherit'}">${eur(f.refunded_amount)}</div>
+      </div></div>
+      <div class="card"><h3>Per metodo di pagamento</h3>
+        ${methods.length ? `<table class="data" style="width:100%"><thead><tr><th>Metodo</th><th style="text-align:right">Ordini</th><th style="text-align:right">Totale</th></tr></thead><tbody>
+          ${methods.map(function(m){ return `<tr><td>${m.method}</td><td style="text-align:right">${m.count}</td><td style="text-align:right">${eur(m.total)}</td></tr>`; }).join('')}
+        </tbody></table>` : '<p style="color:var(--muted);font-size:13px">Nessun pagamento registrato.</p>'}
+      </div>
+    </div>`;
 };
 VIEWS.payouts = function(){
-  return `${pageHead("Pagamenti ricevuti","Bonifici dal gateway al tuo conto.","")}
-    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun payout registrato.<br><span style="font-size:12px">Collega un gateway di pagamento per visualizzare i bonifici ricevuti.</span></p></div>`;
+  var recent = (DATA.finance && DATA.finance.recent) || [];
+  var eur = function(n){ return '€ ' + (Number(n)||0).toFixed(2).replace('.', ','); };
+  var paid = recent.filter(function(r){ return r.payment_status==='pagato'; });
+  return `${pageHead("Pagamenti ricevuti","Incassi dagli ordini pagati.","")}
+    ${paid.length ? `<div class="table-card"><div class="table-wrap"><table class="data">
+      <thead><tr><th>Ordine</th><th>Cliente</th><th>Metodo</th><th>Data</th><th style="text-align:right">Importo</th></tr></thead>
+      <tbody>${paid.map(function(r){ return `<tr><td><strong>${r.order_number}</strong></td><td>${r.customer}</td><td>${r.method}</td><td style="color:var(--muted)">${new Date(r.created_at).toLocaleDateString('it-IT')}</td><td style="text-align:right"><strong>${eur(r.total)}</strong></td></tr>`; }).join('')}</tbody>
+    </table></div></div>` : `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">${DATA.finance===null?'Caricamento…':'Nessun pagamento registrato.'}</p></div>`}`;
 };
 VIEWS.bills = function(){
   return `${pageHead("Fatture & Spese","Spese del negozio (piano, app, dominio).","")}
@@ -1405,8 +1433,25 @@ VIEWS.apps = function(){
     </div>`}`;
 };
 VIEWS.integrations = function(){
-  return `${pageHead("Integrazioni","Webhook e API esterne.","")}
-    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun webhook configurato.</p></div>`;
+  var list = DATA.integrations || [];
+  return `
+    ${pageHead("Integrazioni","Stato delle connessioni ai servizi esterni.","")}
+    ${(!list.length)
+      ? `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">${DATA.integrations===null?'Caricamento…':'Nessuna integrazione disponibile.'}</p></div>`
+      : `<div class="grid grid-3">
+          ${list.map(function(i){
+            return `<div class="card">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <span style="font-size:24px">${i.icona||'🔌'}</span>
+                <div><strong>${i.nome||''}</strong><div style="font-size:11px;color:var(--muted)">${i.categoria||''}</div></div>
+              </div>
+              <div style="margin:10px 0">${i.connesso?'<span class="status-pill ok">Connesso</span>':'<span class="status-pill neutral">Non configurato</span>'}</div>
+              <p style="font-size:12px;color:var(--muted);margin:0">${i.dettaglio||''}</p>
+            </div>`;
+          }).join('')}
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:14px">Le credenziali si configurano come variabili d'ambiente sul server (Coolify → Environment Variables). Questa pagina mostra solo lo stato, mai i valori segreti.</p>`}
+  `;
 };
 VIEWS.staff = function(){
   const list = DATA.staff || [];
@@ -1427,7 +1472,11 @@ VIEWS.staff = function(){
           </td>
         </tr>`).join('') : `<tr><td colspan="5" class="empty">${DATA.staff===null?'Caricamento…':'Nessun account staff'}</td></tr>`}
       </tbody>
-    </table></div></div>`;
+    </table></div></div>
+    <div class="grid grid-2" style="margin-top:16px">
+      <div class="card"><h3>👑 Admin</h3><p style="color:var(--muted);font-size:13px;margin-top:6px">Accesso completo: ordini, catalogo, clienti, marketing, <strong>finanza</strong>, <strong>statistiche</strong>, <strong>impostazioni</strong>, integrazioni e gestione staff.</p></div>
+      <div class="card"><h3>🧑‍💼 Staff</h3><p style="color:var(--muted);font-size:13px;margin-top:6px">Accesso operativo: ordini, catalogo, magazzino, clienti, contenuti e spedizioni. <strong>Non</strong> vede finanza, statistiche, impostazioni, integrazioni né gestione account.</p></div>
+    </div>`;
 };
 
 VIEWS.settings = function(){
@@ -1468,6 +1517,27 @@ VIEWS.settings = function(){
 };
 
 /* ----------------- ROUTING ----------------- */
+/* ── Role-based permissions ─────────────────────────────────
+   'admin' = full access. 'staff' = operational sections only
+   (no finance, statistiche, staff management, settings, integrations). */
+var ADMIN_ONLY_VIEWS = ['analytics','reports','liveview','finance','payouts','bills','taxes','integrations','staff','settings'];
+function currentRole(){ return (window.CURRENT_ADMIN && window.CURRENT_ADMIN.role) || 'admin'; }
+function canAccessView(name){ return currentRole()==='admin' || ADMIN_ONLY_VIEWS.indexOf(name)===-1; }
+function applyRolePermissions(){
+  if (currentRole()==='admin') return;            // full access — nothing to hide
+  ADMIN_ONLY_VIEWS.forEach(function(v){
+    document.querySelectorAll('[data-view="'+v+'"]').forEach(function(el){ el.style.display='none'; });
+  });
+  // collapse parent groups left with no visible children
+  document.querySelectorAll('.nav-parent').forEach(function(p){
+    var kids = p.querySelectorAll('.nav-children .nav-item');
+    if (kids.length && !Array.prototype.some.call(kids, function(k){ return k.style.display!=='none'; })) {
+      p.style.display = 'none';
+    }
+  });
+}
+window.applyRolePermissions = applyRolePermissions;
+
 function renderView(name){
   const fn = VIEWS[name] || VIEWS.dashboard;
   $('#viewContainer').html(fn()).hide().fadeIn(150);
@@ -1734,20 +1804,34 @@ $(function(){
     e.stopPropagation();
     const code = $(this).data('courier');
     const c = DATA.couriers.find(c=>c.code===code);
-    openModal(`Configurazione - ${c.nome}`, `
-      <div class="kv">
-        <div class="k">API Key</div><div class="v">••••••••••••${c.code.toUpperCase()}9F2</div>
-        <div class="k">Endpoint</div><div class="v">https://api.${c.code}.it/v2</div>
-        <div class="k">Mittente</div><div class="v">MEMI Store SRL</div>
-        <div class="k">Account ID</div><div class="v">MEMI-${c.code.toUpperCase()}-001</div>
-        <div class="k">Pickup automatico</div><div class="v"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-        <div class="k">Notifiche cliente</div><div class="v"><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
-      </div>
-      <div style="margin-top:18px;display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn btn-ghost btn-sm">🔄 Test connessione</button>
-        <button class="btn btn-primary btn-sm">💾 Salva</button>
-      </div>
+    openModal(`Configurazione — ${c.nome||code}`, `
+      <form id="courierConfigForm">
+        <div class="kv" style="grid-template-columns:150px 1fr;gap:10px">
+          <div class="k">Nome</div><div class="v"><input class="field-input" name="nome" value="${(c.nome||'').replace(/"/g,'&quot;')}" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Tariffa base €</div><div class="v"><input class="field-input" type="number" step="0.01" min="0" name="rate" value="${c.rate_raw!=null?c.rate_raw:''}" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Attivo</div><div class="v"><label class="switch"><input type="checkbox" name="attivo" ${c.attivo?'checked':''}><span class="slider"></span></label></div>
+          <div class="k">URL tracking</div><div class="v"><input class="field-input" name="tracking_url_template" value="${(c.tracking_url_template||'').replace(/"/g,'&quot;')}" placeholder="https://corriere.it/track?n={tracking}" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/><small style="color:var(--muted)">Usa <code>{tracking}</code> dove va il numero. Il link viene inviato automaticamente al cliente alla spedizione.</small></div>
+        </div>
+        <div style="margin-top:18px;display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>
+          <button type="submit" class="btn btn-primary btn-sm">💾 Salva</button>
+        </div>
+      </form>
     `);
+    $('#courierConfigForm').on('submit', function(ev){
+      ev.preventDefault();
+      var fd = Object.fromEntries(new FormData(this));
+      var attivo = $(this).find('[name=attivo]').is(':checked') ? 1 : 0;
+      var $btn = $(this).find('[type=submit]');
+      $btn.prop('disabled',true).text('Salvataggio…');
+      AdminAPI.shipping.updateCourier(code, {
+        nome: fd.nome,
+        rate: (fd.rate!==undefined && fd.rate!=='') ? parseFloat(fd.rate) : undefined,
+        attivo: attivo,
+        tracking_url_template: fd.tracking_url_template || null
+      }).done(function(){ toast('Corriere aggiornato','success'); closeModal(); renderView('couriers'); })
+        .fail(function(){ toast('Errore aggiornamento corriere','error'); $btn.prop('disabled',false).text('💾 Salva'); });
+    });
   });
   $(document).on('click','.js-courier-track', function(){
     setActiveNav('tracking');
@@ -3688,6 +3772,11 @@ $(function(){
   // ── Override renderView to fetch fresh API data per view ──
   var _origRenderView = renderView;
   renderView = function(name) {
+    // Permission gate: staff cannot open admin-only sections (defense beyond the hidden nav).
+    if (!canAccessView(name)) {
+      if (typeof toast === 'function') toast('Sezione riservata agli amministratori', 'error');
+      name = 'dashboard';
+    }
     var api = window.AdminAPI;
     if (!api) { _origRenderView(name); return; }
 
@@ -3792,7 +3881,7 @@ $(function(){
         var couriers = Array.isArray(courRes[0]) ? courRes[0] : [];
         var zones    = Array.isArray(zoneRes[0]) ? zoneRes[0] : [];
         DATA.couriers = couriers.map(function(c) {
-          return { code: c.code, nome: c.nome, slug: c.slug || c.code.toUpperCase(), rate: 'EUR ' + parseFloat(c.rate || 0).toFixed(2), attivo: !!c.attivo, sped: 0, consegnati: 0, ritardi: 0 };
+          return { code: c.code, nome: c.nome, slug: c.slug || c.code.toUpperCase(), rate: 'EUR ' + parseFloat(c.rate || 0).toFixed(2), rate_raw: parseFloat(c.rate || 0), attivo: !!c.attivo, tracking_url_template: c.tracking_url_template || '', sped: 0, consegnati: 0, ritardi: 0 };
         });
         DATA.zones = zones.map(function(z) {
           return { _db_id: z.id, nome: z.nome, paesi: z.paesi, metodo: z.metodo, prezzo: 'EUR ' + parseFloat(z.prezzo || 0).toFixed(2), grat: z.spedizione_gratuita_da ? 'EUR ' + z.spedizione_gratuita_da : '-' };
@@ -3820,7 +3909,7 @@ $(function(){
           api.shipping.couriers().done(function(courRes) {
             var couriers = Array.isArray(courRes) ? courRes : [];
             DATA.couriers = couriers.map(function(c) {
-              return { code: c.code, nome: c.nome, slug: c.slug || c.code.toUpperCase(), rate: 'EUR ' + parseFloat(c.rate || 0).toFixed(2), attivo: !!c.attivo, sped: 0, consegnati: 0, ritardi: 0 };
+              return { code: c.code, nome: c.nome, slug: c.slug || c.code.toUpperCase(), rate: 'EUR ' + parseFloat(c.rate || 0).toFixed(2), rate_raw: parseFloat(c.rate || 0), attivo: !!c.attivo, tracking_url_template: c.tracking_url_template || '', sped: 0, consegnati: 0, ritardi: 0 };
             });
             _origRenderView(name);
           }).fail(function() { _origRenderView(name); });
@@ -3973,6 +4062,45 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { _origRenderView(name); });
 
+    } else if (name === 'content') {
+      DATA.pages = null;
+      api.pages.list().done(function(list) {
+        DATA.pages = Array.isArray(list) ? list : ((list && list.pages) || []);
+        _origRenderView(name);
+      }).fail(function() { DATA.pages = []; _origRenderView(name); });
+
+    } else if (name === 'blog') {
+      DATA.blog = null;
+      api.blog.list().done(function(list) {
+        DATA.blog = Array.isArray(list) ? list : ((list && list.posts) || []);
+        _origRenderView(name);
+      }).fail(function() { DATA.blog = []; _origRenderView(name); });
+
+    } else if (name === 'files') {
+      api.settings.get().done(function(s) { DATA.settings = s || {}; _origRenderView(name); })
+        .fail(function() { DATA.settings = DATA.settings || {}; _origRenderView(name); });
+
+    } else if (name === 'finance' || name === 'payouts') {
+      DATA.finance = DATA.finance || null;
+      api.dashboard.finance().done(function(res) {
+        DATA.finance = res || { summary: null, by_method: [], recent: [] };
+        _origRenderView(name);
+      }).fail(function() { DATA.finance = { summary: null, by_method: [], recent: [] }; _origRenderView(name); });
+
+    } else if (name === 'analytics') {
+      $.when(api.dashboard.kpis(), api.dashboard.chart()).done(function(kpiRes, chartRes) {
+        var kpi = kpiRes[0] || {}; if (kpi && kpi.revenue) DATA.kpi = kpi;
+        DATA.chartData = chartRes[0] || [];
+        _origRenderView(name);
+      }).fail(function() { _origRenderView(name); });
+
+    } else if (name === 'integrations') {
+      DATA.integrations = null;
+      api.settings.integrations().done(function(res) {
+        DATA.integrations = (res && res.integrations) ? res.integrations : [];
+        _origRenderView(name);
+      }).fail(function() { DATA.integrations = []; _origRenderView(name); });
+
     } else if (name === 'dashboard') {
       loadDashboardData();
     } else {
@@ -3986,7 +4114,7 @@ $(function(){
   // an expired token before the first data request fires.
   if (window.AdminAPI && AdminAPI.auth.isLoggedIn()) {
     AdminAPI.auth.me()
-      .done(function() { updateSidebarBadges(); handleRoute(); })
+      .done(function(me) { window.CURRENT_ADMIN = me || {}; applyRolePermissions(); updateSidebarBadges(); handleRoute(); })
       .fail(function() {
         // redirect is already handled inside admin-api.js request()
         // but belt-and-suspenders: ensure we land on login
