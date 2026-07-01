@@ -1479,7 +1479,11 @@
         var priceEl = card && card.querySelector('.price-current');
         var price = parseFloat((priceEl ? priceEl.textContent : '0').replace('€','').replace(',','.')) || 0;
         var size  = chip.textContent.trim();
-        var id    = name.toLowerCase().replace(/\s+/g, '-') + '-' + size.toLowerCase();
+        // Use the real product id from the card (set from the API); only slugify the
+        // name as a last-resort fallback. Slugified names diverge from real slugs
+        // (e.g. "Borsa Tote Lino" vs "borsa-tote-lino"), corrupting cart/PDP matching.
+        var baseId = (card && card.dataset.id) ? card.dataset.id : name.toLowerCase().replace(/\s+/g, '-');
+        var id    = baseId + '-' + size.toLowerCase();
         var chips = chip.closest('.size-chips');
         if (chips) chips.querySelectorAll('.size-chip').forEach(function(c) {
           c.style.background = ''; c.style.color = ''; c.style.borderColor = '';
@@ -1499,7 +1503,8 @@
       var name     = (card && card.querySelector('.product-name') && card.querySelector('.product-name').textContent.trim()) || 'Prodotto';
       var color    = (card && card.querySelector('.product-color') && card.querySelector('.product-color').textContent.trim()) || '';
       var colorKey = getCardColor(card);
-      var id       = name.toLowerCase().replace(/\s+/g, '-');
+      // Prefer the real product id (from the API) so the heart state matches the PDP.
+      var id       = (card && card.dataset.id) ? card.dataset.id : name.toLowerCase().replace(/\s+/g, '-');
       btn.dataset.id = id;
       // Restore persisted heart state via CSS class (not inline style)
       btn.classList.toggle('is-wishlisted', isWishlisted(id));

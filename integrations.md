@@ -177,3 +177,23 @@ docker exec <backend-container> node src/db/init.js
 | Key | Type | Contents |
 |-----|------|---------|
 | `memi_admin_token` | string | Admin JWT |
+
+---
+
+## Aggiornamento Luglio 2026 (deploy-readiness)
+
+The route map above is now matched by the code (it previously drifted). Specifically fixed in
+`Memi Abbigliamento/api-client.js`:
+
+| Feature | Correct call (now) | Was (broken) |
+|---------|--------------------|--------------|
+| My orders | `GET /api/orders/my` | `GET /api/orders` |
+| Order detail | `GET /api/orders/my/:id` | (absent) |
+| Product reviews | `GET /api/reviews/product/:id` | `GET /api/reviews?product_id=` |
+| Return request | `POST /api/resi/request` | `POST /api/resi` |
+
+**Order lifecycle / payment:** a customer order placed with a verified, succeeded Stripe
+PaymentIntent is now stored with `payment_status='pagato'` (previously it stayed `in_attesa`, which
+is why the admin dashboard read ~zero). Line prices are re-resolved from `products`; the Stripe
+amount/currency are verified against the server-computed total; `orders.payment_intent_id` is UNIQUE
+(no replay). See `CHANGES-DEPLOY-READY.md`.

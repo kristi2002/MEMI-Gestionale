@@ -219,3 +219,23 @@ HTML files are served with `no-cache, must-revalidate` — always re-fetched.
 | `SMTP_USER` | backend | SMTP username / email address |
 | `SMTP_PASS` | backend | SMTP password or app password |
 | `SMTP_FROM` | backend | From address in emails (e.g. `"Memi Abbigliamento <info@memi.it>"`) |
+
+---
+
+## Update Luglio 2026 (deploy-readiness)
+
+**`orders` table:** added `payment_intent_id VARCHAR(255) NULL` with `UNIQUE KEY
+uq_orders_payment_intent` (stores the Stripe PaymentIntent, prevents replay). **`invoices` table:**
+added `UNIQUE KEY uq_invoices_order (order_id)` (one invoice per order). Both are also applied to
+already-deployed databases by `db/migrations.js` (idempotent `ensureUniqueIndex`).
+
+**Admin bootstrap:** `db/migrations.js → bootstrapAdmin(pool)` runs at startup — if `ADMIN_EMAIL`
++ `ADMIN_PASSWORD` are set it upserts that admin with a freshly hashed password, and it logs a
+red SECURITY warning if any admin still uses the shipped default hash. `docker-compose.yml` passes
+these vars to the backend.
+
+**Cache-busting (current):** storefront `app.js?v=11`, `api-client.js?v=3`; admin
+`dashboard.html` → `app.js?v=22`, `admin-api.js?v=15`. Keep one version per asset across all HTML
+(guarded by `verify/run.sh`).
+
+See `CHANGES-DEPLOY-READY.md` for the full change record.

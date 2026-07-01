@@ -55,6 +55,10 @@ router.post('/', requireAdmin, async (req, res) => {
 /* ── PUT /api/admin/discounts/:id ── */
 router.put('/:id', requireAdmin, async (req, res) => {
   const { tipo, valore, max_utilizzi, scadenza, stato, min_order } = req.body;
+  if (tipo !== undefined && !ALLOWED_TIPI.includes(tipo))
+    return res.status(400).json({ error: 'Tipo sconto non valido' });
+  if (stato !== undefined && !ALLOWED_STATI.includes(stato))
+    return res.status(400).json({ error: 'Stato sconto non valido' });
   try {
     const fields = [];
     const vals   = [];

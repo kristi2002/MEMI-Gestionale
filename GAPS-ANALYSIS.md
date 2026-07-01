@@ -260,3 +260,35 @@ Nessuna sezione recensioni nelle schede prodotto. Mancano:
 - Recensioni prodotto (UI + backend + moderazione)
 - SEO per i rimanenti 22 PDP (copiare template da vestito-lino-cannes)
 - Newsletter nell'header/footer iniettato da app.js (ora solo shop.html è cablato)
+
+---
+
+## Aggiornamento Luglio 2026 — Sprint deploy-readiness
+
+> Correzioni di correttezza e sicurezza prima del deploy su Hetzner. Dettaglio completo in
+> `CHANGES-DEPLOY-READY.md`; verifica con `bash verify/run.sh` (36/36 JS ok, 14/14 contract,
+> 6/6 simulazioni ordine).
+
+**Corretto il motivo per cui il pannello admin sembrava rotto:** gli ordini pagati restavano
+`payment_status='in_attesa'` anche dopo Stripe, e dashboard/finanza/top-products filtrano `pagato`
+→ fatturato a ~zero. Ora un PaymentIntent verificato imposta `payment_status='pagato'`.
+
+**Corretta la connessione e-commerce↔backend:** `api-client.js` chiamava percorsi errati
+(`/orders`, `/reviews?product_id=`, `/resi`) → storico ordini, recensioni PDP e resi non
+funzionavano. Ora `/orders/my`, `/reviews/product/:id`, `/resi/request`.
+
+**Sicurezza checkout:** i prezzi delle righe sono ri-risolti dal DB (niente prezzi falsificabili) e
+l'importo dello Stripe PaymentIntent è verificato contro il totale server; `payment_intent_id` è
+UNIQUE (niente replay).
+
+**Admin:** pulsante "Invia tracking" ora visibile (`openModal` con footer); rami `renderView`
+duplicati rimossi (analytics si aggiorna, stati di caricamento CMS corretti); "Nuovo reso"
+funziona anche su navigazione diretta; `statusLabel` completo (resi/fatture/recensioni).
+
+**Validazione input:** ordini, `PUT /auth/me`, sconti PUT restituiscono 4xx invece di 500.
+
+**Deploy:** bootstrap admin via `ADMIN_EMAIL`/`ADMIN_PASSWORD` con avviso di sicurezza se restano
+le credenziali di default; `invoices.order_id` UNIQUE.
+
+**Ancora aperto (fuori scope):** immagini reali su ricerca/drawer (cosmetico), chat backend,
+analytics reali, riscatto gift card al checkout, resi self-service, UI recensioni.

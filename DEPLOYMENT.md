@@ -263,3 +263,24 @@ find /backups -name "memi_*.sql.gz" -mtime +30 -delete
 >    build toolchain. The backend Dockerfile uses `npm install` (not `npm ci`)
 >    so the newly-added `sharp`/`multer` deps install even though the committed
 >    lockfile predates them. `MAX_UPLOAD_MB` (default 8) caps upload size.
+
+---
+
+## Update Luglio 2026 — admin credentials & deploy-readiness
+
+**Set the admin login via env (new).** The backend now reads `ADMIN_EMAIL` + `ADMIN_PASSWORD` at
+startup (`db/migrations.js → bootstrapAdmin`). In Coolify, set both to create/rotate the admin
+account with a securely hashed password. If left unset, `schema.sql` still seeds the default
+`admin@memi.it` / `memi2026admin`, and the backend logs a **red `🔴 SECURITY` warning** on every
+boot until you rotate it. `docker-compose.yml` already forwards these vars to the backend service.
+
+**Go-live checklist (recap):**
+1. Strong `JWT_SECRET` and `JWT_ADMIN_SECRET` (64+ hex, different values).
+2. Strong `DB_PASSWORD` and `MYSQL_ROOT_PASSWORD`.
+3. `ADMIN_EMAIL` + strong `ADMIN_PASSWORD` (no default-credential warning in logs).
+4. Real `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` and `SMTP_*`.
+5. `ALLOWED_ORIGINS` / domain vars set to your real hosts.
+6. First boot: confirm logs show `Core schema ensured`, `Migrations applied`, `MEMI API running`,
+   and **no** default-admin security warning.
+
+See `CHANGES-DEPLOY-READY.md` for everything changed this sprint.

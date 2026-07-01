@@ -82,3 +82,28 @@ upload is **not implemented**, but `DEPLOYMENT.md` "Phase 6 note" says it **is**
 (sharp/multer, `uploads_data` volume, `/api/uploads/...`, `MAX_UPLOAD_MB`). Before
 building or "fixing" a feature, grep the actual code to confirm current state — don't
 trust a single doc.
+
+---
+
+## Update Luglio 2026 (deploy-readiness sprint)
+
+Current cache-bust versions: storefront `app.js?v=11`, `api-client.js?v=3`; admin `app.js?v=22`,
+`admin-api.js?v=15`. If you touch these files, bump the version everywhere they're referenced and
+run `bash verify/run.sh`.
+
+Key correctness facts now true in the code (were bugs before — see `CHANGES-DEPLOY-READY.md`):
+- A verified Stripe payment sets `orders.payment_status='pagato'`; the admin dashboard reads only
+  `pagato` rows, so this is what makes revenue show up.
+- Checkout re-resolves line prices from `products` and verifies the Stripe amount vs the total;
+  `orders.payment_intent_id` is UNIQUE.
+- Storefront API paths: order history `/orders/my`, reviews `/reviews/product/:id`, returns
+  `/resi/request`.
+- Admin bootstrap via `ADMIN_EMAIL`/`ADMIN_PASSWORD`; default credentials trigger a startup warning.
+
+**Verification:** `bash verify/run.sh` (syntax + version + route contract + mock-pool order-flow
+simulation). `run-live.sh` hits a running stack.
+
+**Environment gotcha (this sandbox):** host↔sandbox file sync lags; files changed by the host-side
+editor can read truncated/stale in the Linux sandbox and to `git`, and a whole-file `sed -i` over
+such a file can write the truncation back. Safe pattern: `git show HEAD:<path>` → edit in `/tmp` →
+copy back. Appends and `git show` are safe.

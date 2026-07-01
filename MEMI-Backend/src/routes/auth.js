@@ -162,14 +162,18 @@ router.post('/loyalty/redeem', requireCustomer, async (req, res) => {
 /* ── PUT /api/auth/me ── */
 router.put('/me', requireCustomer, async (req, res) => {
   const { nome, cognome, telefono, indirizzo, citta, cap, paese, password, email } = req.body;
+  // Reject explicitly non-string values up front (e.g. email:null) → 400, never a 500
+  for (const [k, v] of Object.entries({ nome, cognome, telefono, indirizzo, citta, cap, paese, password, email })) {
+    if (v !== undefined && v !== null && typeof v !== 'string')
+      return res.status(400).json({ error: `Campo non valido: ${k}` });
+  }
   try {
     // Build dynamic SET clause — only update fields that were actually sent
     const fields = [];
     const vals   = [];
     const add = (col, val) => {
-      if (val !== undefined) { fields.push(`${col} = ?`); vals.push(val === '' ? null : val); }
+      if (val !== undefined && val !== null) { fields.push(`${col} = ?`); vals.push(val === '' ? null : val); }
     };
-    add('nome',      nome);
     add('cognome',   cognome);
     add('telefono',  telefono);
     add('indirizzo', indirizzo);
@@ -177,14 +181,21 @@ router.put('/me', requireCustomer, async (req, res) => {
     add('cap',       cap);
     add('paese',     paese);
 
+    // nome is NOT NULL — only update when a non-empty string is provided
+    if (nome !== undefined && nome !== null) {
+      if (typeof nome !== 'string' || !nome.trim())
+        return res.status(400).json({ error: 'Il nome non puo essere vuoto' });
+      fields.push('nome = ?'); vals.push(nome.trim());
+    }
+
     // Email change — normalise and check uniqueness at DB level (ER_DUP_ENTRY → 409)
-    if (email !== undefined && email.trim() !== '') {
+    if (typeof email === 'string' && email.trim() !== '') {
       fields.push('email = ?');
       vals.push(email.toLowerCase().trim());
     }
 
     // Password change — hash before storing
-    if (password !== undefined && password !== '') {
+    if (typeof password === 'string' && password !== '') {
       if (password.length < 8)
         return res.status(400).json({ error: 'La password deve avere almeno 8 caratteri' });
       const hash = await bcrypt.hash(password, 10);
@@ -193,10 +204,6 @@ router.put('/me', requireCustomer, async (req, res) => {
     }
 
     if (!fields.length) return res.json({ ok: true }); // nothing to update
-
-    // nome must not be empty if provided
-    if (nome !== undefined && !nome.trim())
-      return res.status(400).json({ error: 'Il nome non puo essere vuoto' });
 
     vals.push(req.customer.id);
     await pool.execute(`UPDATE customers SET ${fields.join(', ')} WHERE id = ?`, vals);

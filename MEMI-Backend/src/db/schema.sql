@@ -109,9 +109,11 @@ CREATE TABLE IF NOT EXISTS orders (
   order_status       ENUM('in_attesa','in_preparazione','spedito','consegnato','annullato') DEFAULT 'in_attesa',
   courier_code       VARCHAR(20) NULL,
   tracking_number    VARCHAR(100) NULL,
+  payment_intent_id  VARCHAR(255) NULL,
   notes              TEXT,
   created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_orders_payment_intent (payment_intent_id),
   KEY idx_orders_customer (customer_id),
   KEY idx_orders_statuses (order_status, payment_status),
   KEY idx_orders_created (created_at),
@@ -259,6 +261,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   due_date         DATE NULL,
   created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_invoices_order (order_id),
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
