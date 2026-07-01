@@ -274,6 +274,23 @@
     return 'ph-flat';
   }
 
+  // Pick a usable image URL from a product's images array (WebP variants or legacy strings).
+  function pickImg(images) {
+    if (!Array.isArray(images) || !images.length) return '';
+    var x = images[0];
+    if (typeof x === 'string') return x;
+    return (x && (x.card || x.full || x.thumb)) || '';
+  }
+  // Find a catalog product's real image by a cart/wishlist item id (base id or id+size).
+  function catalogImg(id) {
+    if (!id) return '';
+    for (var i = 0; i < CATALOG.length; i++) {
+      var p = CATALOG[i];
+      if (id === p.id || id.indexOf(p.id + '-') === 0) return p.img || '';
+    }
+    return '';
+  }
+
   function loadSearchCatalog() {
     if (typeof fetch !== 'function') return;
     fetch('/api/products?limit=300')
@@ -284,6 +301,7 @@
         products.forEach(function (p) {
           CATALOG.push({
             id:       p.id,
+            img:      pickImg(p.images),
             name:     p.name || '',
             color:    p.color_label || p.colore || '',
             colorKey: _searchColorKey(p.colore || p.color_label),
@@ -1067,13 +1085,9 @@
     body.innerHTML = cart.map(item => `
       <div class="cart-item" data-id="${item.id}">
         <div class="cart-item-img">
-          <div class="ph ${item.color || 'ph-blush'}">
-            <svg viewBox="0 0 60 80" fill="none">
-              <ellipse cx="30" cy="14" rx="10" ry="11" fill="white" opacity=".4"/>
-              <path d="M8 80 C8 55 52 55 52 80" fill="white" opacity=".4"/>
-              <rect x="14" y="26" width="32" height="34" rx="5" fill="white" opacity=".4"/>
-            </svg>
-          </div>
+          ${(function(){ var im = catalogImg(item.id); return im
+            ? '<img src="' + im + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center top">'
+            : '<div class="ph ' + (item.color || 'ph-blush') + '"><svg viewBox="0 0 60 80" fill="none"><ellipse cx="30" cy="14" rx="10" ry="11" fill="white" opacity=".4"/><path d="M8 80 C8 55 52 55 52 80" fill="white" opacity=".4"/><rect x="14" y="26" width="32" height="34" rx="5" fill="white" opacity=".4"/></svg></div>'; })()}
         </div>
         <div class="cart-item-info">
           <p class="cart-item-name">${item.name}</p>
@@ -1167,13 +1181,9 @@
       return `
       <div class="cart-item" data-id="${item.id}">
         <div class="cart-item-img">
-          <div class="ph ${item.colorKey || 'ph-blush'}">
-            <svg viewBox="0 0 60 80" fill="none">
-              <ellipse cx="30" cy="14" rx="10" ry="11" fill="white" opacity=".4"/>
-              <path d="M8 80 C8 55 52 55 52 80" fill="white" opacity=".4"/>
-              <rect x="14" y="26" width="32" height="34" rx="5" fill="white" opacity=".4"/>
-            </svg>
-          </div>
+          ${(prod && prod.img)
+            ? '<img src="' + prod.img + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center top">'
+            : '<div class="ph ' + (item.colorKey || 'ph-blush') + '"><svg viewBox="0 0 60 80" fill="none"><ellipse cx="30" cy="14" rx="10" ry="11" fill="white" opacity=".4"/><path d="M8 80 C8 55 52 55 52 80" fill="white" opacity=".4"/><rect x="14" y="26" width="32" height="34" rx="5" fill="white" opacity=".4"/></svg></div>'}
         </div>
         <div class="cart-item-info">
           <p class="cart-item-name">${item.name}</p>
@@ -1344,13 +1354,15 @@
         '<p class="search-results-label">' + matches.length + ' risultat' + (matches.length === 1 ? 'o' : 'i') + '</p>' +
         '<div class="search-results-grid">' +
         matches.map(function(p) {
-          return '<a href="/products/' + p.id + '/" class="search-result-card">' +
+          return '<a href="/product?id=' + p.id + '" class="search-result-card">' +
             '<div class="search-result-card-thumb ph ' + p.colorKey + '">' +
-              '<svg viewBox="0 0 60 80" fill="none">' +
-                '<ellipse cx="30" cy="14" rx="10" ry="11" fill="white" opacity=".4"/>' +
-                '<path d="M8 80 C8 55 52 55 52 80" fill="white" opacity=".4"/>' +
-                '<rect x="14" y="26" width="32" height="34" rx="5" fill="white" opacity=".4"/>' +
-              '</svg>' +
+              (p.img
+                ? '<img src="' + p.img + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center top">'
+                : '<svg viewBox="0 0 60 80" fill="none">' +
+                  '<ellipse cx="30" cy="14" rx="10" ry="11" fill="white" opacity=".4"/>' +
+                  '<path d="M8 80 C8 55 52 55 52 80" fill="white" opacity=".4"/>' +
+                  '<rect x="14" y="26" width="32" height="34" rx="5" fill="white" opacity=".4"/>' +
+                '</svg>') +
             '</div>' +
             '<div class="search-result-card-info">' +
               '<p class="search-result-card-name">' + p.name + '</p>' +

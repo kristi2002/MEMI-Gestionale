@@ -5,6 +5,7 @@ Memi-Transformation-Plan.md
 shop.html.bak
 server.py
 scripts
+!scripts/cache-bust.js
 README.md
 .dockerignore
 Dockerfile

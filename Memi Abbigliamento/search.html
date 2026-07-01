@@ -233,8 +233,10 @@
         'data-categoria="' + p.categoria + '" data-colore="' + p.colore + '" ' +
         'data-prezzo="' + p.price + '" data-popularity="' + (p.popularity || 999) + '">' +
         '<div class="product-img-wrap">' +
-          '<div class="product-img-main ph-fig ph-flat ph-shimmer">' +
-            '<svg viewBox="0 0 120 200" fill="none" class="fig-svg">' + icon + '</svg></div>' +
+          (p.img
+            ? '<div class="product-img-main"><img src="' + p.img + '" alt="' + p.name + '" style="width:100%;height:100%;object-fit:cover;object-position:center top"></div>'
+            : '<div class="product-img-main ph-fig ph-flat ph-shimmer">' +
+              '<svg viewBox="0 0 120 200" fill="none" class="fig-svg">' + icon + '</svg></div>') +
           '<div class="product-img-alt ph-fig ' + p.altColor + '">' +
             '<svg viewBox="0 0 120 200" fill="none" class="fig-svg">' + icon + '</svg></div>' +
           badgesHtml +
@@ -294,6 +296,7 @@
   function mapApiToProduct(p) {
     return {
       id:            p.id,
+      img:           (function(imgs){ if(!Array.isArray(imgs)||!imgs.length) return ''; var x=imgs[0]; return typeof x==='string'?x:(x&&(x.card||x.full||x.thumb))||''; })(p.images),
       name:          p.name || '',
       categoria:     p.categoria || '',
       colore:        p.colore || '',
