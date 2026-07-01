@@ -286,8 +286,17 @@
       conclusa:        'Conclusa',
       pubblicata:      'Pubblicata',
       pubblicato:      'Pubblicato',
+      rifiutata:       'Rifiutata',
       bozza:           'Bozza',
       esaurito:        'Esaurito',
+      aperto:          'Aperto',
+      in_analisi:      'In analisi',
+      approvato:       'Approvato',
+      rifiutato:       'Rifiutato',
+      emessa:          'Emessa',
+      inviata:         'Inviata',
+      pagata:          'Pagata',
+      annullata:       'Annullata',
     };
     return map[code] || code;
   };

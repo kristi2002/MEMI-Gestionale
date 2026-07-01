@@ -125,9 +125,9 @@ function toast(msg, type){
   setTimeout(()=> $t.removeClass('show'), 2200);
 }
 
-function openModal(title, body){
+function openModal(title, body, footer){
   $('#modalTitle').text(title);
-  $('#modalBody').html(body);
+  $('#modalBody').html(body + (footer ? '<div class="modal-foot" style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px">' + footer + '</div>' : ''));
   $('#modalBackdrop').addClass('show');
 }
 function closeModal(){ $('#modalBackdrop').removeClass('show'); }
@@ -2886,8 +2886,8 @@ $(function(){
      RESI CRUD
      ═════════════════════════════════════════════ */
   $(document).on('click','.js-new-reso', function(){
-    if(!DATA.orders||!DATA.orders.length){ toast('Carica prima la lista ordini','info'); return; }
-    var orderOpts=DATA.orders.map(function(o){ return '<option value="'+(o._db_id||'')+'">'+o.id+' - '+o.cliente+'</option>'; }).join('');
+    function buildResoModal(orders){
+    var orderOpts=(orders||[]).map(function(o){ return '<option value="'+(o._db_id||'')+'">'+o.id+' - '+o.cliente+'</option>'; }).join('');
     openModal('Nuovo reso',
       '<form id="newResoForm"><div class="kv" style="grid-template-columns:130px 1fr;gap:10px">'+
       '<div class="k">Ordine *</div><div class="v"><select name="order_id" required style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"><option value="">- Seleziona ordine -</option>'+orderOpts+'</select></div>'+
@@ -2908,6 +2908,19 @@ $(function(){
         .done(function(){ toast('Reso aperto','success'); closeModal(); renderView('returns'); })
         .fail(function(xhr){ var msg=(xhr.responseJSON&&xhr.responseJSON.error)||'Errore'; toast(msg,'error'); $btn.prop('disabled',false).text('Apri reso'); });
     });
+    }
+    // Works even on direct navigation/refresh: load orders on demand if not cached.
+    if (DATA.orders && DATA.orders.length) { buildResoModal(DATA.orders); return; }
+    if (!window.AdminAPI) { buildResoModal([]); return; }
+    AdminAPI.orders.list().done(function(res){
+      var raw = (res && res.orders) ? res.orders : (Array.isArray(res) ? res : []);
+      var mapped = raw.map(function(o){
+        return { _db_id: o.id, id: o.order_number || ('#'+o.id),
+                 cliente: ((o.customer_nome||'')+' '+(o.customer_cognome||'')).trim() || (o.customer_email||'') };
+      });
+      DATA.orders = (DATA.orders && DATA.orders.length) ? DATA.orders : mapped;
+      buildResoModal(mapped);
+    }).fail(function(){ buildResoModal([]); });
   });
 
   $(document).on('click','.js-view-reso', function(){
@@ -3982,10 +3995,9 @@ $(function(){
       }).fail(function() { _origRenderView(name); });
 
     } else if (name === 'analytics') {
-      // Reuse existing kpi/chart data if already loaded; otherwise fetch fresh
-      if (DATA.kpi) { _origRenderView(name); return; }
+      // Always refresh KPI + chart so analytics reflects current numbers.
       $.when(api.dashboard.kpis(), api.dashboard.chart()).done(function(kpiRes, chartRes) {
-        DATA.kpi       = kpiRes[0] || {};
+        var kpi = kpiRes[0] || {}; if (kpi && kpi.revenue) DATA.kpi = kpi;
         DATA.chartData = chartRes[0] || [];
         _origRenderView(name);
       }).fail(function() { _origRenderView(name); });
@@ -4055,16 +4067,18 @@ $(function(){
       }).fail(function() { DATA.campaigns = DATA.campaigns || []; _origRenderView(name); });
 
     } else if (name === 'content') {
+      DATA.pages = null;
       api.pages.list().done(function(list) {
-        DATA.pages = Array.isArray(list) ? list : [];
+        DATA.pages = Array.isArray(list) ? list : ((list && list.pages) || []);
         _origRenderView(name);
-      }).fail(function() { DATA.pages = DATA.pages || []; _origRenderView(name); });
+      }).fail(function() { DATA.pages = []; _origRenderView(name); });
 
     } else if (name === 'blog') {
+      DATA.blog = null;
       api.blog.list().done(function(list) {
-        DATA.blog = Array.isArray(list) ? list : [];
+        DATA.blog = Array.isArray(list) ? list : ((list && list.posts) || []);
         _origRenderView(name);
-      }).fail(function() { DATA.blog = DATA.blog || []; _origRenderView(name); });
+      }).fail(function() { DATA.blog = []; _origRenderView(name); });
 
     } else if (name === 'files' || name === 'online-store') {
       api.settings.get().done(function(data) {
@@ -4091,37 +4105,12 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { _origRenderView(name); });
 
-    } else if (name === 'content') {
-      DATA.pages = null;
-      api.pages.list().done(function(list) {
-        DATA.pages = Array.isArray(list) ? list : ((list && list.pages) || []);
-        _origRenderView(name);
-      }).fail(function() { DATA.pages = []; _origRenderView(name); });
-
-    } else if (name === 'blog') {
-      DATA.blog = null;
-      api.blog.list().done(function(list) {
-        DATA.blog = Array.isArray(list) ? list : ((list && list.posts) || []);
-        _origRenderView(name);
-      }).fail(function() { DATA.blog = []; _origRenderView(name); });
-
-    } else if (name === 'files') {
-      api.settings.get().done(function(s) { DATA.settings = s || {}; _origRenderView(name); })
-        .fail(function() { DATA.settings = DATA.settings || {}; _origRenderView(name); });
-
     } else if (name === 'finance' || name === 'payouts') {
       DATA.finance = DATA.finance || null;
       api.dashboard.finance().done(function(res) {
         DATA.finance = res || { summary: null, by_method: [], recent: [] };
         _origRenderView(name);
       }).fail(function() { DATA.finance = { summary: null, by_method: [], recent: [] }; _origRenderView(name); });
-
-    } else if (name === 'analytics') {
-      $.when(api.dashboard.kpis(), api.dashboard.chart()).done(function(kpiRes, chartRes) {
-        var kpi = kpiRes[0] || {}; if (kpi && kpi.revenue) DATA.kpi = kpi;
-        DATA.chartData = chartRes[0] || [];
-        _origRenderView(name);
-      }).fail(function() { _origRenderView(name); });
 
     } else if (name === 'integrations') {
       DATA.integrations = null;

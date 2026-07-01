@@ -164,7 +164,10 @@
     },
 
     /** Customer's own order history (requires login). */
-    myOrders: function() { return get('/orders'); },
+    myOrders: function() { return get('/orders/my'); },
+
+    /** Single order detail for the logged-in customer. */
+    myOrder: function(id) { return get('/orders/my/' + encodeURIComponent(id)); },
   };
 
   /* ═══════════════════════════════════════════════════════
@@ -181,7 +184,7 @@
   var reviews = {
     /** Published reviews for a product (public). */
     forProduct: function(productId) {
-      return get('/reviews?product_id=' + encodeURIComponent(productId));
+      return get('/reviews/product/' + encodeURIComponent(productId));
     },
     /** Submit a review (public, optionally authenticated). */
     submit: function(data) { return post('/reviews', data); },
@@ -192,7 +195,7 @@
      ═══════════════════════════════════════════════════════ */
   var resi = {
     /** Submit a return request — verified by order_number + email. */
-    request: function(data) { return post('/resi', data); },
+    request: function(data) { return post('/resi/request', data); },
   };
 
   /* ── Expose public API ──────────────────────────────────── */

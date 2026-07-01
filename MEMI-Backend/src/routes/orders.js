@@ -21,6 +21,11 @@ const { requireCustomer, requireAdmin, optionalCustomer } = require('../middlewa
 const { sendOrderConfirmation, sendShippingConfirmation } = require('../email');
 const { awardPurchasePoints } = require('../loyalty');
 
+/* ── enum whitelists (mirror schema.sql ENUM definitions) ── */
+const PAYMENT_STATUSES = ['in_attesa', 'pagato', 'rimborsato', 'fallito'];
+const ORDER_STATUSES   = ['in_attesa', 'in_preparazione', 'spedito', 'consegnato', 'annullato'];
+const PAYMENT_METHODS  = ['carta', 'paypal', 'klarna'];
+
 /* ── helpers ── */
 async function nextOrderNumber(conn) {
   const [[row]] = await conn.execute(
@@ -34,12 +39,18 @@ async function nextOrderNumber(conn) {
    CUSTOMER-FACING ROUTES
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── POST /api/orders ── */
+/* ── POST /api/orders ──
+   Security model:
+   - Line prices/names are ALWAYS re-resolved from the products table; the client-sent
+     price/name are ignored, so a customer can't fake prices.
+   - When Stripe is configured, we verify the PaymentIntent succeeded AND that its amount
+     (and currency) match the server-computed total, then mark the order 'pagato'.
+   - The PaymentIntent id is stored UNIQUE, so it can't be replayed across orders.        */
 router.post('/', optionalCustomer, async (req, res) => {
   const {
     nome, cognome, email, telefono,
     indirizzo, citta, cap, paese = 'Italia',
-    items,          // [{product_id, product_name, taglia, colore, price, qty}]
+    items,          // [{product_id, taglia, colore, qty}] — price/name resolved server-side
     discount_code,
     payment_method = 'carta',
     payment_intent_id,      // Stripe PaymentIntent ID (if card payment)
@@ -47,37 +58,46 @@ router.post('/', optionalCustomer, async (req, res) => {
 
   if (!nome || !cognome || !email || !indirizzo || !citta || !cap)
     return res.status(400).json({ error: 'Dati di spedizione incompleti' });
-  if (!items || !items.length)
+  if (!Array.isArray(items) || !items.length)
     return res.status(400).json({ error: 'Il carrello è vuoto' });
+  if (!PAYMENT_METHODS.includes(payment_method))
+    return res.status(400).json({ error: 'Metodo di pagamento non valido' });
 
-  // Verify Stripe PaymentIntent when Stripe is configured
-  if (payment_method === 'carta' && process.env.STRIPE_SECRET_KEY) {
-    if (!payment_intent_id)
-      return res.status(402).json({ error: 'Dati di pagamento mancanti. Riprova.' });
-    try {
-      const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-      const pi = await stripe.paymentIntents.retrieve(payment_intent_id);
-      if (pi.status !== 'succeeded') {
-        return res.status(402).json({ error: 'Pagamento non completato. Riprova.' });
-      }
-    } catch (stripeErr) {
-      console.error('Stripe verify error:', stripeErr.message);
-      return res.status(402).json({ error: 'Impossibile verificare il pagamento. Riprova.' });
-    }
+  // Validate item shape up front (→ 400, not 500)
+  for (const it of items) {
+    if (!it || !it.product_id)
+      return res.status(400).json({ error: 'Articolo non valido nel carrello' });
+    const q = parseInt(it.qty, 10);
+    if (!Number.isFinite(q) || q < 1)
+      return res.status(400).json({ error: 'Quantità non valida nel carrello' });
   }
 
-  const conn = await pool.getConnection();
   try {
-    await conn.beginTransaction();
+    /* 1. Re-resolve every line item from the catalog (prices are authoritative from the DB) */
+    const resolved = [];
+    for (const it of items) {
+      const [[prod]] = await pool.execute(
+        'SELECT id, name, price, status FROM products WHERE id = ?', [it.product_id]
+      );
+      if (!prod || prod.status === 'bozza')
+        return res.status(400).json({ error: `Prodotto non disponibile: ${it.product_id}` });
+      resolved.push({
+        product_id:   prod.id,
+        product_name: prod.name,
+        price:        Number(prod.price) || 0,
+        qty:          parseInt(it.qty, 10),
+        taglia:       it.taglia || null,
+        colore:       it.colore || null,
+      });
+    }
+    const subtotal = resolved.reduce((s, i) => s + i.price * i.qty, 0);
 
-    // 1. Validate & apply discount code
+    /* 2. Validate & compute discount (read-only here; usage incremented in the txn below) */
     let discountAmount = 0;
-    let discountCodeId = null;
+    let discountCode   = null;
     let shippingCost   = 5.90;
-    const subtotal     = items.reduce((s, i) => s + i.price * i.qty, 0);
-
     if (discount_code) {
-      const [[dc]] = await conn.execute(
+      const [[dc]] = await pool.execute(
         `SELECT * FROM discount_codes
          WHERE code = ? AND stato = 'attivo'
            AND (scadenza IS NULL OR scadenza >= CURDATE())
@@ -85,90 +105,110 @@ router.post('/', optionalCustomer, async (req, res) => {
            AND min_order <= ?`,
         [discount_code.toUpperCase(), subtotal]
       );
-      if (!dc) { await conn.rollback(); return res.status(400).json({ error: 'Codice sconto non valido o scaduto' }); }
-      discountCodeId = dc.id;
+      if (!dc) return res.status(400).json({ error: 'Codice sconto non valido o scaduto' });
+      discountCode = dc;
       const dcValore = Number(dc.valore);
-      if (dc.tipo === 'percentuale') discountAmount = subtotal * (dcValore / 100);
-      else if (dc.tipo === 'fisso')  discountAmount = Math.min(dcValore, subtotal);
-      else if (dc.tipo === 'spedizione') shippingCost = 0;
+      if (dc.tipo === 'percentuale')      discountAmount = subtotal * (dcValore / 100);
+      else if (dc.tipo === 'fisso')       discountAmount = Math.min(dcValore, subtotal);
+      else if (dc.tipo === 'spedizione')  shippingCost = 0;
     }
 
-    const total        = Math.max(0, subtotal - discountAmount + shippingCost);
-    const orderNumber  = await nextOrderNumber(conn);
-    const customerId   = req.customer?.id || null;
+    const total = Math.round(Math.max(0, subtotal - discountAmount + shippingCost) * 100) / 100;
 
-    // 2. Insert order
-    const [result] = await conn.execute(
-      `INSERT INTO orders
-         (order_number, customer_id, customer_nome, customer_cognome, customer_email,
-          customer_telefono, shipping_address, shipping_citta, shipping_cap, shipping_paese,
-          subtotal, shipping_cost, discount_amount, total, discount_code, payment_method)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [orderNumber, customerId, nome, cognome, email, telefono || null,
-       indirizzo, citta, cap, paese,
-       subtotal, shippingCost, discountAmount, total,
-       discount_code ? discount_code.toUpperCase() : null, payment_method]
-    );
-    const orderId = result.insertId;
-
-    // 3. Insert order items & decrement stock
-    for (const item of items) {
-      await conn.execute(
-        `INSERT INTO order_items (order_id, product_id, product_name, taglia, colore, price, qty)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [orderId, item.product_id, item.product_name, item.taglia || null,
-         item.colore || null, item.price, item.qty]
-      );
-
-      // Decrement stock (allow negative — admin can resolve)
-      if (item.taglia) {
-        await conn.execute(
-          `UPDATE product_sizes SET stock = GREATEST(0, stock - ?)
-           WHERE product_id = ? AND taglia = ?`,
-          [item.qty, item.product_id, item.taglia]
-        );
+    /* 3. Verify payment BEFORE writing anything. Card + Stripe configured ⇒ must match. */
+    let paymentStatus = 'in_attesa';
+    if (payment_method === 'carta' && process.env.STRIPE_SECRET_KEY) {
+      if (!payment_intent_id)
+        return res.status(402).json({ error: 'Dati di pagamento mancanti. Riprova.' });
+      try {
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        const pi = await stripe.paymentIntents.retrieve(payment_intent_id);
+        if (pi.status !== 'succeeded')
+          return res.status(402).json({ error: 'Pagamento non completato. Riprova.' });
+        const expected = Math.round(total * 100);
+        if (pi.currency !== 'eur' || Number(pi.amount) !== expected) {
+          console.error(`Stripe amount mismatch: pi=${pi.amount}${pi.currency} expected=${expected}eur`);
+          return res.status(402).json({ error: 'Importo del pagamento non corrisponde. Riprova.' });
+        }
+        paymentStatus = 'pagato';
+      } catch (stripeErr) {
+        console.error('Stripe verify error:', stripeErr.message);
+        return res.status(402).json({ error: 'Impossibile verificare il pagamento. Riprova.' });
       }
     }
 
-    // 4. Increment discount code usage
-    if (discountCodeId) {
-      await conn.execute(
-        'UPDATE discount_codes SET utilizzi = utilizzi + 1 WHERE id = ?',
-        [discountCodeId]
+    /* 4. Persist everything in one transaction */
+    const customerId = req.customer?.id || null;
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const orderNumber = await nextOrderNumber(conn);
+
+      const [result] = await conn.execute(
+        `INSERT INTO orders
+           (order_number, customer_id, customer_nome, customer_cognome, customer_email,
+            customer_telefono, shipping_address, shipping_citta, shipping_cap, shipping_paese,
+            subtotal, shipping_cost, discount_amount, total, discount_code, payment_method,
+            payment_status, payment_intent_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [orderNumber, customerId, nome, cognome, email, telefono || null,
+         indirizzo, citta, cap, paese,
+         subtotal, shippingCost, discountAmount, total,
+         discountCode ? discountCode.code : null, payment_method,
+         paymentStatus, payment_intent_id || null]
       );
-      await conn.execute(
-        'INSERT INTO discount_usage (code_id, order_id, customer_email) VALUES (?, ?, ?)',
-        [discountCodeId, orderId, email]
-      );
+      const orderId = result.insertId;
+
+      for (const item of resolved) {
+        await conn.execute(
+          `INSERT INTO order_items (order_id, product_id, product_name, taglia, colore, price, qty)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [orderId, item.product_id, item.product_name, item.taglia, item.colore, item.price, item.qty]
+        );
+        if (item.taglia) {
+          await conn.execute(
+            `UPDATE product_sizes SET stock = GREATEST(0, stock - ?)
+             WHERE product_id = ? AND taglia = ?`,
+            [item.qty, item.product_id, item.taglia]
+          );
+        }
+      }
+
+      if (discountCode) {
+        await conn.execute('UPDATE discount_codes SET utilizzi = utilizzi + 1 WHERE id = ?', [discountCode.id]);
+        await conn.execute(
+          'INSERT INTO discount_usage (code_id, order_id, customer_email) VALUES (?, ?, ?)',
+          [discountCode.id, orderId, email]
+        );
+      }
+
+      if (customerId) {
+        await conn.execute(
+          'UPDATE customers SET total_orders = total_orders + 1, total_spent = total_spent + ? WHERE id = ?',
+          [total, customerId]
+        );
+      }
+
+      try { await awardPurchasePoints(conn, email, total, orderId); } catch (_) {}
+
+      await conn.commit();
+
+      sendOrderConfirmation({
+        order_number: orderNumber, nome, cognome, email, items: resolved, total,
+      }).catch(() => {});
+
+      return res.status(201).json({ ok: true, order_number: orderNumber, total });
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
-
-    // 5. Update customer totals
-    if (customerId) {
-      await conn.execute(
-        'UPDATE customers SET total_orders = total_orders + 1, total_spent = total_spent + ? WHERE id = ?',
-        [total, customerId]
-      );
-    }
-
-    // 6. Award loyalty points for the purchase (best-effort, never blocks the order)
-    try { await awardPurchasePoints(conn, email, total); } catch (_) {}
-
-    await conn.commit();
-
-    // Send confirmation email (non-blocking — never fails the order response)
-    sendOrderConfirmation({
-      order_number: orderNumber,
-      nome, cognome, email,
-      items, total,
-    }).catch(() => {}); // already logged inside sendOrderConfirmation
-
-    return res.status(201).json({ ok: true, order_number: orderNumber, total });
   } catch (err) {
-    await conn.rollback();
+    if (err && err.code === 'ER_DUP_ENTRY')
+      return res.status(409).json({ error: 'Pagamento già registrato per un altro ordine.' });
     console.error('place order error', err);
     return res.status(500).json({ error: 'Errore nel processare l\'ordine' });
-  } finally {
-    conn.release();
   }
 });
 
@@ -251,6 +291,10 @@ router.post('/admin', requireAdmin, async (req, res) => {
   if (!nome || !email) return res.status(400).json({ error: 'Nome ed email obbligatori' });
   if (!Array.isArray(items) || items.length === 0)
     return res.status(400).json({ error: 'Aggiungi almeno un prodotto dal catalogo' });
+  if (!PAYMENT_STATUSES.includes(payment_status))
+    return res.status(400).json({ error: 'Stato pagamento non valido' });
+  if (!PAYMENT_METHODS.includes(payment_method))
+    return res.status(400).json({ error: 'Metodo di pagamento non valido' });
 
   const conn = await pool.getConnection();
   try {
@@ -344,6 +388,10 @@ router.get('/admin/:id', requireAdmin, async (req, res) => {
 /* ── PUT /api/admin/orders/:id/status ── */
 router.put('/admin/:id/status', requireAdmin, async (req, res) => {
   const { order_status, payment_status } = req.body;
+  if (order_status && !ORDER_STATUSES.includes(order_status))
+    return res.status(400).json({ error: 'Stato ordine non valido' });
+  if (payment_status && !PAYMENT_STATUSES.includes(payment_status))
+    return res.status(400).json({ error: 'Stato pagamento non valido' });
   try {
     const fields = [];
     const vals   = [];

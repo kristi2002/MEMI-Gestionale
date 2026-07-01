@@ -654,7 +654,11 @@
         var raw = sessionStorage.getItem('memi_cart') || localStorage.getItem('memi_cart');
         cartItems = JSON.parse(raw) || [];
       } catch (_) { cartItems = []; }
-      if (cartItems.length === 0) cartItems = DEFAULT_CART.slice();
+      // Never fabricate a cart in production — an empty cart must stay empty so a
+      // customer can't accidentally place an order for demo items. The DEFAULT_CART
+      // is a local-development convenience only.
+      var isLocalDev = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+      if (cartItems.length === 0 && isLocalDev) cartItems = DEFAULT_CART.slice();
       renderOrderSummary();
     }
 
@@ -848,6 +852,8 @@
             if (applyBtn)  applyBtn.style.display = 'none';
             input.disabled = true;
             updateTotals();
+            // Total changed — rebuild the PaymentIntent so the card is charged the discounted amount.
+            if (stripeCardEl) fetchPaymentIntent();
           })
           .catch(function(err) {
             if (feedEl) { feedEl.textContent = (err && err.error) || 'Codice non valido.'; feedEl.style.color = 'var(--blush-dark)'; feedEl.style.display = 'block'; }
@@ -871,6 +877,8 @@
       if (rmBtn)   rmBtn.style.display    = 'none';
       if (applyBtn) applyBtn.style.display = 'inline-flex';
       updateTotals();
+      // Total changed back — rebuild the PaymentIntent for the full amount.
+      if (stripeCardEl) fetchPaymentIntent();
     }
 
     // ── Stripe Elements ───────────────────────────────────────────────────────
@@ -878,6 +886,7 @@
     var stripeCardEl    = null;
     var stripeClientSecret = null;
     var stripePayIntentId  = null;
+    var stripeIntentAmount = null;   // the cents the current client_secret was created for
 
     // Publishable key: set window.MEMI_STRIPE_PK before this script, or via
     // a <meta name="stripe-pk" content="pk_live_..."> tag in the page head.
@@ -919,7 +928,8 @@
       fetchPaymentIntent();
     }
 
-    function fetchPaymentIntent() {
+    // Current order total in cents, mirroring updateTotals()'s math exactly.
+    function currentAmountCents() {
       var discountAmt = 0;
       if (appliedCode && appliedCode.type === 'percent') {
         discountAmt = subtotal * (appliedCode.value / 100);
@@ -927,9 +937,16 @@
         discountAmt = Math.min(appliedCode.value, subtotal);
       }
       var effectiveShipping = (appliedCode && appliedCode.type === 'shipping') ? 0 : shippingCost;
-      var amountCents = Math.round(Math.max(0, subtotal - discountAmt + effectiveShipping) * 100);
-      if (!amountCents) return;
-      fetch('/api/payments/create-intent', {
+      return Math.round(Math.max(0, subtotal - discountAmt + effectiveShipping) * 100);
+    }
+
+    // Create/refresh a PaymentIntent for the CURRENT total. Returns a promise that
+    // resolves to the client_secret (or null). Records the amount it was built for so
+    // confirmOrder can detect a stale secret after a discount changes the total.
+    function fetchPaymentIntent() {
+      var amountCents = currentAmountCents();
+      if (!amountCents) { stripeClientSecret = null; stripeIntentAmount = null; return Promise.resolve(null); }
+      return fetch('/api/payments/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount_cents: amountCents }),
@@ -938,8 +955,10 @@
         .then(function(d) {
           stripeClientSecret = d.client_secret || null;
           stripePayIntentId  = d.payment_intent_id || null;
+          stripeIntentAmount = stripeClientSecret ? amountCents : null;
+          return stripeClientSecret;
         })
-        .catch(function() { /* backend may not have Stripe configured — non-fatal */ });
+        .catch(function() { stripeClientSecret = null; stripeIntentAmount = null; return null; });
     }
 
     // ── Payment ───────────────────────────────────────────────────────────────
@@ -958,6 +977,14 @@
       var tabs      = document.querySelectorAll('.pay-tab');
       var activeIdx = Array.from(tabs).findIndex(function(t) { return t.classList.contains('active'); });
       var payMethod = ['carta', 'paypal', 'klarna'][activeIdx] || 'carta';
+      var isLocalDev = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+
+      // Never let an empty cart place an order.
+      if (!cartItems.length) {
+        var emptyErr = el('paymentError');
+        if (emptyErr) { emptyErr.textContent = 'Il carrello è vuoto.'; emptyErr.style.display = 'flex'; }
+        return;
+      }
 
       // Gather shipping fields
       var nome     = ((el('firstName') || {}).value || '').trim();
@@ -1031,30 +1058,45 @@
 
       setLoading(true);
 
-      // Card payment: go through Stripe
-      if (activeIdx === 0 && stripeInstance && stripeCardEl && stripeClientSecret) {
-        stripeInstance.confirmCardPayment(stripeClientSecret, {
-          payment_method: {
-            card: stripeCardEl,
-            billing_details: { name: nome + ' ' + cognome, email: emailVal },
-          },
-        }).then(function(result) {
-          if (result.error) {
-            setLoading(false);
-            var errEl = el('paymentError');
-            if (errEl) { errEl.textContent = result.error.message; errEl.style.display = 'flex'; }
-          } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-            placeOrder(result.paymentIntent.id);
+      // Card payment: go through Stripe.
+      if (activeIdx === 0) {
+        var wantCents = currentAmountCents();
+        // Reuse the current PaymentIntent only if it was built for the CURRENT total;
+        // otherwise rebuild it so the card is never charged a stale (pre-discount) amount.
+        var ensureSecret = (stripeInstance && stripeCardEl && stripeClientSecret && stripeIntentAmount === wantCents)
+          ? Promise.resolve(stripeClientSecret)
+          : (stripeInstance && stripeCardEl ? fetchPaymentIntent() : Promise.resolve(null));
+
+        ensureSecret.then(function(secret) {
+          if (stripeInstance && stripeCardEl && secret) {
+            stripeInstance.confirmCardPayment(secret, {
+              payment_method: {
+                card: stripeCardEl,
+                billing_details: { name: nome + ' ' + cognome, email: emailVal },
+              },
+            }).then(function(result) {
+              if (result.error) {
+                setLoading(false);
+                var errEl = el('paymentError');
+                if (errEl) { errEl.textContent = result.error.message; errEl.style.display = 'flex'; }
+              } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
+                placeOrder(result.paymentIntent.id);
+              } else {
+                setLoading(false);
+                var errEl = el('paymentError');
+                if (errEl) { errEl.textContent = 'Pagamento non completato. Riprova.'; errEl.style.display = 'flex'; }
+              }
+            });
+          } else if (isLocalDev) {
+            // Local dev without Stripe keys — allow an unverified order so the flow is testable.
+            placeOrder(null);
           } else {
+            // Production without a working PaymentIntent: never create an unpaid order.
             setLoading(false);
             var errEl = el('paymentError');
-            if (errEl) { errEl.textContent = 'Pagamento non completato. Riprova.'; errEl.style.display = 'flex'; }
+            if (errEl) { errEl.textContent = 'Pagamento non disponibile al momento. Riprova tra poco.'; errEl.style.display = 'flex'; }
           }
         });
-      } else if (activeIdx === 0 && !stripeClientSecret) {
-        // Stripe not configured / PaymentIntent not ready — place order without card verification
-        // (fallback for dev/test without real Stripe keys)
-        placeOrder(null);
       } else {
         // PayPal / Klarna — not yet integrated; block submission to prevent unpaid orders
         setLoading(false);
@@ -1216,7 +1258,7 @@
       })();
     });
   </script>
-  <script src="api-client.js?v=2"></script>
-  <script src="app.js?v=10"></script>
+  <script src="api-client.js?v=3"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>

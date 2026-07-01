@@ -263,3 +263,36 @@ Vedi `GAPS-ANALYSIS.md` per un'analisi completa.
 - [ ] SEO JSON-LD Product per i rimanenti 22 PDP (template: vestito-lino-cannes)
 - [ ] Gestione resi self-service (`returns.html` esiste ma è vuota)
 - [ ] `product.html` (root) — rimane orfana
+
+---
+
+## Sprint Luglio 2026 — Deploy-readiness (branch `fix/deploy-ready-audit`)
+
+Full detail in `CHANGES-DEPLOY-READY.md`. Verify with `bash verify/run.sh`.
+
+### Critical fixes
+| # | Issue | Fix |
+|---|-------|-----|
+| 92 | Paid orders stayed `payment_status='in_attesa'` after Stripe success → admin dashboard/finance/top-products (which filter `pagato`) showed ~zero revenue | `POST /api/orders` sets `payment_status='pagato'` on a verified, succeeded PaymentIntent (orders.js) |
+| 93 | Storefront `api-client.js` called wrong paths → account order history, PDP reviews and returns silently failed | Fixed to `/orders/my`, `/reviews/product/:id`, `/resi/request` (api-client.js) |
+| 94 | Checkout trusted client prices; Stripe verify ignored the amount (pay €1 for a €500 order) | Line prices re-resolved from `products`; PaymentIntent amount+currency verified vs server total (orders.js) |
+
+### High / medium fixes
+| # | Issue | Fix |
+|---|-------|-----|
+| 95 | Stale PaymentIntent when a discount was applied after reaching payment (card charged pre-discount amount) | checkout.html rebuilds the intent on total change and before confirm |
+| 96 | Empty-cart DEMO fallback could place phantom orders in prod | DEFAULT_CART limited to localhost; empty cart blocks checkout |
+| 97 | `product.html` stranded on `app.js?v=9` (others v=10) under immutable caching | app.js bumped to v=11, api-client.js to v=3 across all storefront HTML |
+| 98 | Quick-add / wishlist used slugified name as product id (drift for many products) | Use the card's real `data-id` |
+| 99 | Admin "Invia tracking al cliente" button never rendered (3-arg `openModal`, 2-arg signature) | `openModal` supports an optional footer |
+| 100 | Duplicate `renderView` branches: analytics never refetched, CMS/blog loading state wrong | Deduped; analytics always refreshes; content/blog reset to null |
+| 101 | Admin "Nuovo reso" dead on direct navigation (needed `DATA.orders` preloaded) | Loads the order list on demand |
+| 102 | Resi/Fatture/Reviews showed raw enum codes | `statusLabel` completed with all resi/invoice/review keys |
+| 103 | Several routes 500'd on bad input | Enum/type/number validation → 4xx (orders, auth PUT /me, discounts PUT) |
+| 104 | `invoices.order_id` not unique → dedupe never fired | `UNIQUE(order_id)` via migration |
+| 105 | Default admin password baked in source, nothing enforced rotation | Env-driven `ADMIN_EMAIL`/`ADMIN_PASSWORD` bootstrap + red startup warning on default hash |
+| 106 | PaymentIntent could be replayed across orders | `orders.payment_intent_id` UNIQUE; duplicate → 409 |
+
+### Still open (out of scope this sprint — no new features)
+- Search page / search dropdown / cart-drawer render placeholder figures, not real `/api/uploads` images (cosmetic).
+- Chat backend, real analytics/GA4, gift-card checkout redemption, returns self-service, reviews UI — future work.

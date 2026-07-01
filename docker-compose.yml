@@ -67,6 +67,10 @@ services:
       JWT_ADMIN_EXPIRES_IN:  8h
       ALLOWED_ORIGINS:       ${ALLOWED_ORIGINS:-https://memi.testdemo.it,https://admin.memi.testdemo.it}
       FRONTEND_URL:          ${FRONTEND_URL:-https://memi.testdemo.it}
+      # Admin bootstrap — set these in Coolify to create/rotate the admin login on boot.
+      # If set, the backend upserts this admin with a freshly hashed password at startup.
+      ADMIN_EMAIL:           ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD:        ${ADMIN_PASSWORD:-}
       # Stripe — set real keys in Coolify env vars
       STRIPE_SECRET_KEY:     ${STRIPE_SECRET_KEY:-}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}

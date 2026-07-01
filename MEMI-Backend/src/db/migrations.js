@@ -160,6 +160,60 @@ async function ensureIndex(pool, table, indexName, columnsSql) {
   }
 }
 
+// Add a UNIQUE index only if it doesn't already exist. On a NULLable column MySQL
+// permits multiple NULLs, so this doesn't block rows that legitimately have no value.
+async function ensureUniqueIndex(pool, table, indexName, columnsSql) {
+  const [[{ cnt }]] = await pool.query(
+    `SELECT COUNT(*) AS cnt FROM information_schema.statistics
+     WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?`,
+    [table, indexName]
+  );
+  if (!cnt) {
+    await pool.query(`CREATE UNIQUE INDEX \`${indexName}\` ON \`${table}\` (${columnsSql})`);
+    console.log(`   + unique index ${table}.${indexName}`);
+  }
+}
+
+// The bcrypt hash of the shipped default admin password ("memi2026admin").
+const DEFAULT_ADMIN_HASH = '$2a$10$9PikdhSZkBbcPLs/qMcSL.8iUl3fjuQXrDYELFpE4pvsDApWZeBI6';
+
+/**
+ * Admin bootstrap + credential safety.
+ * - If ADMIN_EMAIL + ADMIN_PASSWORD are set, upsert that admin with a freshly
+ *   hashed password (operator controls real credentials via env, not source).
+ * - Warn loudly if any admin still carries the shipped default hash — in
+ *   production this is an error-level log so it can't be missed before go-live.
+ */
+async function bootstrapAdmin(pool) {
+  const email    = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const password = process.env.ADMIN_PASSWORD || '';
+  if (email && password) {
+    try {
+      const bcrypt = require('bcryptjs');
+      const hash = await bcrypt.hash(password, 10);
+      await pool.query(
+        `INSERT INTO admin_users (email, password_hash, nome, role)
+         VALUES (?, ?, 'Admin MEMI', 'admin')
+         ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)`,
+        [email, hash]
+      );
+      console.log(`✅  Admin account bootstrapped from env: ${email}`);
+    } catch (e) { console.error('   ! admin bootstrap failed:', e.message); }
+  }
+  try {
+    const [rows] = await pool.query(
+      'SELECT email FROM admin_users WHERE password_hash = ?', [DEFAULT_ADMIN_HASH]
+    );
+    if (rows.length) {
+      const who = rows.map(r => r.email).join(', ');
+      const msg = `Default admin credentials still active for: ${who} (password "memi2026admin"). `
+                + 'Set ADMIN_EMAIL / ADMIN_PASSWORD (or change the password in-app) before go-live.';
+      if (process.env.NODE_ENV === 'production') console.error('🔴  SECURITY: ' + msg);
+      else console.warn('⚠️  ' + msg);
+    }
+  } catch (_) { /* admin_users may not exist yet on a brand-new DB */ }
+}
+
 async function runMigrations(pool) {
   // 1. Heal any missing core tables from schema.sql
   try {
@@ -178,6 +232,15 @@ async function runMigrations(pool) {
     await ensureIndex(pool, 'products', 'idx_products_cat_status', 'categoria, status');
     // Per-courier tracking deep-link template ({tracking} → the tracking number)
     await ensureColumn(pool, 'couriers', 'tracking_url_template', 'tracking_url_template VARCHAR(255) NULL');
+    // Store the Stripe PaymentIntent id per order and prevent it being replayed across orders.
+    await ensureColumn(pool, 'orders', 'payment_intent_id', 'payment_intent_id VARCHAR(255) NULL');
+    try {
+      await ensureUniqueIndex(pool, 'orders', 'uq_orders_payment_intent', 'payment_intent_id');
+    } catch (e) { console.error('   ! uq_orders_payment_intent skipped:', e.message); }
+    // One invoice per order — makes the "fattura già emessa" dedupe actually fire.
+    try {
+      await ensureUniqueIndex(pool, 'invoices', 'uq_invoices_order', 'order_id');
+    } catch (e) { console.error('   ! uq_invoices_order skipped (existing duplicates?):', e.message); }
     const TRACK_TEMPLATES = {
       sda:   'https://www.sda.it/wps/portal/Servizi_online/dettaglio-spedizione?tracing.letteraVettura={tracking}',
       brt:   'https://vas.brt.it/vas/sps_ricerca_spedizione_par.htm?nspediz={tracking}',
@@ -194,7 +257,9 @@ async function runMigrations(pool) {
   } catch (err) {
     console.error('⚠️  column/index migration warning:', err.message);
   }
+  // 4. Admin bootstrap + default-credential safety check
+  await bootstrapAdmin(pool);
   console.log(`✅  Migrations applied (${STATEMENTS.length} feature tables + columns/indexes ensured)`);
 }
 
-module.exports = { runMigrations, ensureSchema, ensureColumn, ensureIndex, STATEMENTS };
+module.exports = { runMigrations, ensureSchema, ensureColumn, ensureIndex, ensureUniqueIndex, bootstrapAdmin, STATEMENTS };
