@@ -296,3 +296,10 @@ Full detail in `CHANGES-DEPLOY-READY.md`. Verify with `bash verify/run.sh`.
 ### Still open (out of scope this sprint — no new features)
 - Search page / search dropdown / cart-drawer render placeholder figures, not real `/api/uploads` images (cosmetic).
 - Chat backend, real analytics/GA4, gift-card checkout redemption, returns self-service, reviews UI — future work.
+
+## Sprint Luglio 2026 — Design & SEO (storefront)
+Footer spacing (duplicate `.sf2-inner` rule), editoriali light pastel redesign (dropped the
+`#0e0b09` black background), the `.ed-shop-btn` padding bug (undefined `--space-7` token), the
+editoriali nav-icon "circles" (missing `button` CSS reset), and a full SEO pass (`robots.txt`,
+`sitemap.xml`, homepage `WebSite`/`SearchAction` schema, dynamic `Product` JSON-LD on the PDP).
+Full detail in `CHANGES-DESIGN-SEO.md`.

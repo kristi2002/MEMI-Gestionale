@@ -107,3 +107,8 @@ simulation). `run-live.sh` hits a running stack.
 editor can read truncated/stale in the Linux sandbox and to `git`, and a whole-file `sed -i` over
 such a file can write the truncation back. Safe pattern: `git show HEAD:<path>` → edit in `/tmp` →
 copy back. Appends and `git show` are safe.
+
+**Storefront design + SEO (Luglio 2026):** footer spacing, editoriali light redesign, SEO
+(`robots.txt`, `sitemap.xml`, homepage `WebSite`/`SearchAction` + dynamic `Product` JSON-LD in
+`product.html`), and the added `--space-7` token — recorded in `CHANGES-DESIGN-SEO.md`.
+Cache reminder: the footer fix needs `app.js?v=11` → `?v=12` bumped across the storefront HTML.

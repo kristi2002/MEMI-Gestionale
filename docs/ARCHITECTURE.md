@@ -238,4 +238,6 @@ these vars to the backend.
 `dashboard.html` → `app.js?v=22`, `admin-api.js?v=15`. Keep one version per asset across all HTML
 (guarded by `verify/run.sh`).
 
-See `CHANGES-DEPLOY-READY.md` for the full change record.
+See `CHANGES-DEPLOY-READY.md` for the full change record. Storefront design + SEO changes
+(footer spacing, editoriali light redesign, `robots.txt` / `sitemap.xml`, dynamic `Product`
+JSON-LD, the added `--space-7` token) are recorded in `CHANGES-DESIGN-SEO.md`.
