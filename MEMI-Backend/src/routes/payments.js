@@ -17,6 +17,7 @@
 
 const router = require('express').Router();
 const { pool } = require('../db');
+const { validateBody, createIntentSchema } = require('../validation');
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) return null;
@@ -24,7 +25,7 @@ function getStripe() {
 }
 
 /* ── POST /api/payments/create-intent ── */
-router.post('/create-intent', async (req, res) => {
+router.post('/create-intent', validateBody(createIntentSchema), async (req, res) => {
   const stripe = getStripe();
   if (!stripe) {
     return res.status(503).json({ error: 'Pagamenti non configurati sul server.' });
@@ -47,7 +48,7 @@ router.post('/create-intent', async (req, res) => {
       payment_intent_id: paymentIntent.id,
     });
   } catch (err) {
-    console.error('[Stripe] create-intent error:', err.message);
+    (req.log || console).error({ err }, '[Stripe] create-intent error');
     res.status(502).json({ error: 'Errore Stripe: ' + (err.message || 'sconosciuto') });
   }
 });

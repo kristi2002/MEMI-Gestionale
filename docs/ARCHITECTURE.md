@@ -86,9 +86,14 @@ MEMI Gestionale/
 │           ├── discounts.js        # /api/admin/discounts/*
 │           ├── shipping.js         # /api/shipping/*
 │           ├── dashboard.js        # /api/admin/dashboard/*
-│           ├── payments.js         # /api/payments/* (Stripe PaymentIntent)
-│           └── newsletter.js       # /api/newsletter/* (subscribe + admin list)
-│       └── email.js                # sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset — nodemailer
+│           ├── payments.js         # /api/payments/* (Stripe PaymentIntent + webhook)
+│           ├── newsletter.js       # /api/newsletter/* (subscribe + admin list)
+│           ├── giftcards.js / giftcards-public.js  # admin CRUD + public /validate + checkout redemption
+│           └── audit-log.js        # GET /api/admin/audit-log (read-only)
+│       ├── email.js                # send*Email functions — nodemailer (note: sibling of routes/, not inside it)
+│       ├── logger.js               # pino + requestLogger middleware (req.id/req.log) — Phase 5
+│       ├── validation.js           # zod schemas + validateBody() middleware — Phase 5
+│       └── audit.js                # logAdminAction() — writes to the audit_log table — Phase 5
 │
 ├── Memi Abbigliamento/             # E-commerce static site
 │   ├── Dockerfile
@@ -160,12 +165,13 @@ Tables in `memi_db` (MySQL 8, utf8mb4):
 | `resi` | Return/refund requests (RMA number, stato, rimborso_amount) |
 | `reviews` | Product reviews (rating, stato: in_attesa/pubblicata/rifiutata, admin reply) |
 | `store_settings` | Key/value store config (store info, loyalty config, VAT rate, etc.) |
-| `gift_cards` | Gift card codes + balance (admin CRUD only — not yet redeemable at checkout) |
+| `gift_cards` | Gift card codes + balance — redeemable at checkout via `gift_card_code` on `POST /api/orders` (Phase 3 of `docs/PRODUCTION-ROADMAP.md`) |
 | `campaigns` | Marketing campaign records (admin CRUD) |
 | `cms_pages` | CMS static pages (admin editor + public `/api/cms/published/*`) |
 | `blog_posts` | Blog articles (admin editor + public endpoints) |
 | `pickup_points` | Click-and-collect locations (admin CRUD; not wired into checkout) |
 | `loyalty_transactions` | Points ledger (delta, reason, order_id, balance_after) — append-only |
+| `audit_log` | Admin action log (admin_id, action, entity_type/id, details JSON) — see `docs/api.md` "Admin audit log" |
 
 *Note: the 12-table list above was stale (from an earlier sprint before gift cards, campaigns,
 CMS, pickup points, and loyalty were added via `db/migrations.js`). All tables are created
@@ -246,9 +252,8 @@ HTML files are served with `no-cache, must-revalidate` — always re-fetched.
 | `FRONTEND_URL` | backend | Used to build links in emails (password reset, etc.) |
 | `UPLOADS_DIR` | backend | Product image storage path (Docker volume mount, default `/app/uploads`) |
 | `MAX_UPLOAD_MB` | backend | Max product image upload size, default 8 |
-
-*Planned addition (Phase 2 of `docs/PRODUCTION-ROADMAP.md`): `STRIPE_WEBHOOK_SECRET` for the new
-`/api/payments/webhook` endpoint — not yet in the code as of this doc revision.*
+| `STRIPE_WEBHOOK_SECRET` | backend | Signing secret for `POST /api/payments/webhook` (from the Stripe dashboard); without it the endpoint responds 503 to every event, fails safe |
+| `LOG_LEVEL` | backend | pino log level: `trace\|debug\|info\|warn\|error\|fatal`, default `info` |
 
 ---
 

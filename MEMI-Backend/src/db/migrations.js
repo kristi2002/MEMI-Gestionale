@@ -91,6 +91,21 @@ const STATEMENTS = [
      KEY idx_loyalty_customer (customer_id),
      FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Admin audit log — accountability for sensitive admin actions ───────────
+  `CREATE TABLE IF NOT EXISTS audit_log (
+     id           INT AUTO_INCREMENT PRIMARY KEY,
+     admin_id     INT NULL,
+     admin_email  VARCHAR(255) NULL,
+     action       VARCHAR(80) NOT NULL,
+     entity_type  VARCHAR(40) NOT NULL,
+     entity_id    VARCHAR(100) NOT NULL,
+     details      JSON NULL,
+     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_audit_entity (entity_type, entity_id),
+     KEY idx_audit_admin (admin_id),
+     KEY idx_audit_created (created_at)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');

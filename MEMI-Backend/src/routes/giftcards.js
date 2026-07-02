@@ -13,6 +13,8 @@ const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const { sendGiftCardDelivery } = require('../email');
+const { validateBody, createGiftcardSchema } = require('../validation');
+const { logAdminAction } = require('../audit');
 
 function genCode() {
   // e.g. MEMI-7F3A-9K2C
@@ -38,7 +40,7 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 /* ── POST /api/admin/giftcards ── */
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireAdmin, validateBody(createGiftcardSchema), async (req, res) => {
   const { initial_amount, recipient_email, note } = req.body;
   const amount = Number(initial_amount);
   if (!amount || amount <= 0)
@@ -57,6 +59,10 @@ router.post('/', requireAdmin, async (req, res) => {
         if (recipient_email) {
           sendGiftCardDelivery({ code, initial_amount: amount, recipient_email, note }).catch(() => {});
         }
+        logAdminAction({
+          adminId: req.admin.id, adminEmail: req.admin.email, action: 'giftcard.create',
+          entityType: 'gift_card', entityId: result.insertId, details: { code, initial_amount: amount },
+        }).catch(() => {});
         return res.status(201).json({ ok: true, id: result.insertId, code });
       } catch (e) {
         if (e.code === 'ER_DUP_ENTRY') continue;
@@ -84,6 +90,10 @@ router.put('/:id', requireAdmin, async (req, res) => {
     vals.push(req.params.id);
     const [result] = await pool.execute(`UPDATE gift_cards SET ${fields.join(', ')} WHERE id = ?`, vals);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Gift card non trovata' });
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'giftcard.update',
+      entityType: 'gift_card', entityId: req.params.id, details: { balance, stato, recipient_email },
+    }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     console.error('update giftcard error', err);
@@ -96,6 +106,10 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const [result] = await pool.execute('DELETE FROM gift_cards WHERE id = ?', [req.params.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Gift card non trovata' });
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'giftcard.delete',
+      entityType: 'gift_card', entityId: req.params.id, details: {},
+    }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });

@@ -126,7 +126,10 @@ test('catalog admin→DB→API round-trip', async (t) => {
       body: JSON.stringify({
         nome: 'Test', cognome: 'Buyer', email: 'buyer@example.com',
         indirizzo: 'Via Test 1', citta: 'Milano', cap: '20100',
-        payment_method: 'bonifico',
+        // 'carta' — the only always-valid method. ('bonifico' was never in the API's
+        // ENUM('carta','paypal','klarna'); this subtest could never pass with it.)
+        // Without STRIPE_SECRET_KEY configured the order is accepted as in_attesa (2xx).
+        payment_method: 'carta',
         items: [{ product_id: ID, product_name: NAME, taglia: 'M', colore: 'blush', price: 79.5, qty: 2 }],
       }),
     });

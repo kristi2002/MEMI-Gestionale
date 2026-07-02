@@ -17,7 +17,7 @@ Admin token → `localStorage.memi_admin_token`
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/health` | None | Returns `{status:"ok", ts:"..."}`. Used by Docker health check. |
+| GET | `/health` | None | Checks DB connectivity (not just process-alive). Returns `{status:"ok", db:"ok", ts:"..."}` (200) or `{status:"degraded", db:"unreachable", ts:"..."}` (503). Used by Docker health check. |
 
 ---
 
@@ -70,10 +70,10 @@ Default admin credentials: `admin@memi.it` / `memi2026admin`
 
 | Method | Path | Auth | Body / Query | Returns |
 |--------|------|------|------|---------|
-| POST | `/orders` | Optional | `{nome, cognome, email, telefono, indirizzo, citta, cap, paese?, items:[{product_id,taglia,colore,qty}], discount_code?, gift_card_code?, payment_method?, payment_intent_id?}` | `{ok:true, order_number, total}` — line prices re-resolved from DB. Gift card is applied after the discount, capped at the card's balance; if it brings the total to €0, `payment_status` is set to `pagato` immediately and no PaymentIntent/Stripe verification is required regardless of `payment_method`. |
+| POST | `/orders` | Optional | `{nome, cognome, email, telefono, indirizzo, citta, cap, paese?, items:[{product_id,taglia,colore,qty}], discount_code?, gift_card_code?, payment_method?, payment_intent_id?}` | `{ok:true, order_number, total}` — line prices re-resolved from DB. Gift card is applied after the discount, capped at the card's balance; if it brings the total to €0, `payment_status` is set to `pagato` immediately and no PaymentIntent/Stripe verification is required regardless of `payment_method`. Body is validated (zod) before any DB work — see `docs/PRODUCTION-ROADMAP.md` Phase 5. A `discount_code` can only be redeemed **once per customer email** (checked against `discount_usage`, on top of the code's own global `max_utilizzi`) — a second attempt by the same email returns 400 even if the code still has uses left. |
 | GET | `/orders/my` | Customer | — | `[{id, order_number, total, payment_status, order_status, tracking_number, courier_code, created_at}]` |
 | GET | `/orders/my/:id` | Customer | — | `{...order, items:[...]}` |
-| POST | `/orders/validate-discount` | None | `{code, subtotal}` | `{ok:true, code, tipo, valore, discount_amount, free_shipping, label}` |
+| POST | `/orders/validate-discount` | None | `{code, subtotal, email?}` | `{ok:true, code, tipo, valore, discount_amount, free_shipping, label}` — if `email` is passed, previews the per-email-reuse check enforced for real in `POST /orders` (optional field; storefront doesn't send it yet). |
 | GET | `/orders/track` | None | `?number=XXX&email=YYY` | `{order_number, order_status, payment_status, tracking_number, courier_code, tracking_url?, shipping_citta, shipping_paese, subtotal, shipping_cost, discount_amount, total, created_at}` |
 | GET | `/orders/admin/list` | Admin | `?stato=&pagamento=&q=&limit=50&offset=0` | `{orders:[...], total}` |
 | GET | `/orders/admin/:id` | Admin | — | `{...order, items:[...]}` |
@@ -357,3 +357,41 @@ object (legacy plain-URL strings are still tolerated by the storefront/admin).
 Reorder / set-primary is done by `PUT /api/products/:id` with the reordered
 `images` array. Env: `UPLOADS_DIR` (default `<repo>/uploads`, `/app/uploads` in
 Docker) and `MAX_UPLOAD_MB` (default 8).
+
+---
+
+## Admin audit log — `/api/admin/audit-log` (added `docs/PRODUCTION-ROADMAP.md` Phase 5)
+
+Read-only view of sensitive admin actions, written by `src/audit.js` (`logAdminAction`,
+best-effort — a logging failure never blocks the action it's recording). Current call
+sites: order status update, order ship, order delete, discount create/update/delete,
+gift card create/update/delete, resi refund.
+
+| Method | Path | Auth | Query | Returns |
+|--------|------|------|-------|---------|
+| GET | `/admin/audit-log` | Admin | `?limit=200&entity_type=order` | `[{id, admin_id, admin_email, action, entity_type, entity_id, details, created_at}]`, newest first |
+
+`action` values follow a `<entity>.<verb>` convention, e.g. `order.status_update`,
+`order.ship`, `order.delete`, `discount.create`, `discount.update`, `discount.delete`,
+`giftcard.create`, `giftcard.update`, `giftcard.delete`, `resi.refund`. `details` is
+free-form JSON with whatever context that action captured (old/new values, amounts, etc.).
+
+---
+
+## Rate limiting (server.js)
+
+| Scope | Limit | Notes |
+|-------|-------|-------|
+| `/api/*` (global) | 300 / 15 min | `apiLimiter` |
+| Auth endpoints (login/register/forgot-password/reset-password, admin login) | 20 / 15 min | `authLimiter` |
+| `POST /api/orders`, `POST /api/payments/create-intent` | 30 / 15 min | `checkoutLimiter` — added `docs/PRODUCTION-ROADMAP.md` Phase 5; layered on top of the global limiter via bare `app.post(path, checkoutLimiter)` registrations before the routers mount, so it doesn't touch `orders.js`/`payments.js` themselves |
+
+## Input validation (server-side, zod)
+
+`POST /auth/register`, `POST /auth/login`, `POST /orders`, `POST /admin/discounts`,
+`POST /admin/giftcards`, and `POST /payments/create-intent` validate `req.body` against
+a zod schema (`src/validation.js`) before the handler runs — malformed/oversized input
+gets a 400 with a specific field-level message, and unrecognized extra fields are
+silently stripped from `req.body` (e.g. a client-sent fake `price`/`total` on an order
+never reaches the handler). This is layered on top of the business-rule checks already
+inline in each route (stock, enum membership, etc.), not a replacement for them.

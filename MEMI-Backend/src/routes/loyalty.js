@@ -14,6 +14,7 @@ const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const loyalty          = require('../loyalty');
+const { logAdminAction } = require('../audit');
 
 /* ── Config ── */
 router.get('/config', requireAdmin, async (req, res) => {
@@ -38,6 +39,10 @@ router.put('/config', requireAdmin, async (req, res) => {
         [key, String(value)]
       );
     }
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'loyalty.config_update',
+      entityType: 'store_settings', entityId: 'loyalty', details: Object.fromEntries(entries),
+    }).catch(() => {});
     const cfg = await loyalty.getConfig(pool);
     return res.json(cfg);
   } catch (err) {
@@ -98,6 +103,10 @@ router.post('/customers/:id/adjust', requireAdmin, async (req, res) => {
     if (!cust) { await conn.rollback(); return res.status(404).json({ error: 'Cliente non trovato' }); }
     const balance = await loyalty.applyPoints(conn, req.params.id, delta, reason, null);
     await conn.commit();
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'loyalty.points_adjust',
+      entityType: 'customer', entityId: req.params.id, details: { delta, reason, balance_after: balance },
+    }).catch(() => {});
     return res.json({ ok: true, points: balance });
   } catch (err) {
     await conn.rollback();

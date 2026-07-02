@@ -12,6 +12,8 @@
 const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { validateBody, createDiscountSchema } = require('../validation');
+const { logAdminAction } = require('../audit');
 
 const ALLOWED_TIPI  = ['percentuale', 'fisso', 'spedizione'];
 const ALLOWED_STATI = ['attivo', 'disattivo', 'pianificato'];
@@ -30,7 +32,7 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 /* ── POST /api/admin/discounts ── */
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireAdmin, validateBody(createDiscountSchema), async (req, res) => {
   const { code, tipo, valore, max_utilizzi, scadenza, stato = 'attivo', min_order = 0 } = req.body;
   if (!code || !tipo || valore === undefined)
     return res.status(400).json({ error: 'code, tipo e valore obbligatori' });
@@ -43,6 +45,10 @@ router.post('/', requireAdmin, async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [code.toUpperCase(), tipo, valore, max_utilizzi || null, scadenza || null, stato, min_order]
     );
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'discount.create',
+      entityType: 'discount_code', entityId: result.insertId, details: { code: code.toUpperCase(), tipo, valore },
+    }).catch(() => {});
     return res.status(201).json({ ok: true, id: result.insertId });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')
@@ -73,6 +79,10 @@ router.put('/:id', requireAdmin, async (req, res) => {
     if (!fields.length) return res.status(400).json({ error: 'Nessun campo da aggiornare' });
     vals.push(req.params.id);
     await pool.execute(`UPDATE discount_codes SET ${fields.join(', ')} WHERE id = ?`, vals);
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'discount.update',
+      entityType: 'discount_code', entityId: req.params.id, details: { tipo, valore, max_utilizzi, scadenza, stato, min_order },
+    }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });
@@ -85,6 +95,10 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     const [result] = await pool.execute('DELETE FROM discount_codes WHERE id = ?', [req.params.id]);
     if (result.affectedRows === 0)
       return res.status(404).json({ error: 'Codice sconto non trovato' });
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'discount.delete',
+      entityType: 'discount_code', entityId: req.params.id, details: {},
+    }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });

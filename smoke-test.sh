@@ -19,9 +19,10 @@ pass=0; fail=0
 ok() { echo "  [ok] $1"; pass=$((pass+1)); }
 ko() { echo "  [XX] $1"; fail=$((fail+1)); }
 code() { curl -s -o /dev/null -w "%{http_code}" "$@"; }
-jget() { python3 -c 'import sys,json
-try: print(json.load(sys.stdin).get("'"$1"'",""))
-except Exception: print("")' 2>/dev/null; }
+# JSON field extractor — uses node (guaranteed present in this repo's toolchain).
+# python3 was used before, but on Windows it's often a Store stub that errors out,
+# silently turning every parsed value into "" and failing all token/count checks.
+jget() { node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{console.log(JSON.parse(d)["'"$1"'"]??"")}catch(e){console.log("")}})' 2>/dev/null; }
 
 echo "MEMI smoke test against $BASE"
 echo
@@ -36,11 +37,7 @@ fi
 
 # 2 — Product catalog (public)
 echo "[2] Product catalog"
-COUNT="$(curl -fsS "$BASE/api/products" 2>/dev/null | python3 -c 'import sys,json
-try:
-    d=json.load(sys.stdin)
-    print(len(d) if isinstance(d,list) else len(d.get("products",[])))
-except Exception: print(0)' 2>/dev/null)"
+COUNT="$(curl -fsS "$BASE/api/products" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const j=JSON.parse(d);console.log(Array.isArray(j)?j.length:(j.products||[]).length)}catch(e){console.log(0)}})' 2>/dev/null)"
 if [ "${COUNT:-0}" -gt 0 ]; then
   ok "GET /api/products -> $COUNT products"
 else
@@ -75,9 +72,11 @@ C="$(code "$BASE/api/shipping/zones")"
 # 6 — Customer register + me round-trip
 echo "[6] Customer auth round-trip"
 RND="smoke_$(date +%s)@example.com"
+# Field is "nome" (Italian), not "name" — auth.js has always required nome; the old
+# "name" payload made this check fail with a 400 whenever it actually ran.
 CUST_TOKEN="$(curl -fsS -X POST "$BASE/api/auth/register" \
   -H 'Content-Type: application/json' \
-  -d "{\"name\":\"Smoke Test\",\"email\":\"$RND\",\"password\":\"Test1234!\"}" 2>/dev/null | jget token)"
+  -d "{\"nome\":\"Smoke Test\",\"email\":\"$RND\",\"password\":\"Test1234!\"}" 2>/dev/null | jget token)"
 if [ -n "$CUST_TOKEN" ]; then
   C="$(code -H "Authorization: Bearer $CUST_TOKEN" "$BASE/api/auth/me")"
   [ "$C" = "200" ] && ok "register + GET /api/auth/me -> 200" || ko "auth/me -> HTTP $C"
@@ -98,7 +97,10 @@ if [ -n "$ADMIN_TOKEN" ]; then
   IN_COLL="$(curl -fsS "$BASE/api/products?collection=vestiti&limit=500" 2>/dev/null | grep -c "$PID")"
   [ "${IN_COLL:-0}" -gt 0 ] && ok "GET /api/products?collection=vestiti includes new product" || ko "collection filter missing new product"
 
-  PNG="/tmp/smoke-$PID.png"
+  # Relative path on purpose: on Git Bash (Windows) the MSYS /tmp path is NOT
+  # translated when embedded inside curl's -F "images=@/tmp/..." argument, so the
+  # mingw curl can't open the file and fails with exit 26 before any HTTP happens.
+  PNG="smoke-$PID.png"
   printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' | base64 -d > "$PNG" 2>/dev/null
   IMG_URL="$(curl -fsS -X POST "$BASE/api/products/$PID/images" -H "Authorization: Bearer $ADMIN_TOKEN" \
     -F "images=@$PNG;type=image/png" 2>/dev/null | grep -o '/api/uploads/[^"]*' | head -1)"

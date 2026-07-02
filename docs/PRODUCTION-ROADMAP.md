@@ -144,32 +144,149 @@ follow-up reads — not just trusting the implementing agents' self-reports):
   substantially by the cookie-banner work) was intentionally left out of that agent's scope and
   done separately afterward — bumped `?v=13` → `?v=14` across all 42 referencing HTML files.
 
-## Phase 5 — Backend production hardening
-- [ ] Structured logging (pino) + request-id middleware on the highest-value log points
-      (payments/orders/refunds).
-- [ ] Input validation (zod) at the highest-risk boundaries (register/login, `POST /api/orders`,
-      discount/giftcard admin creation, payments).
-- [ ] New `audit_log` table + writes on sensitive admin actions (status change, refund,
-      discount/giftcard create-delete).
-- [ ] Per-customer-email usage limit on discount-code redemption (currently only global
-      `max_utilizzi`/`scadenza`).
-- [ ] Dedicated stricter rate limiter for `POST /api/orders` and `POST /api/payments/create-intent`.
+## Phase 5 — Backend production hardening ✅
+- [x] Structured logging: new `src/logger.js` (pino; pretty in dev via `pino-pretty`, plain JSON
+      in production) + `requestLogger` middleware assigning `req.id`/`req.log` to every request
+      (visible to the client too, via an `X-Request-Id` response header) and logging one summary
+      line per request on completion. Converted the highest-value error sites — Stripe amount
+      mismatch/verify errors and place/ship/delete-order errors in `orders.js`, create-intent
+      errors in `payments.js`, and (most importantly) the "Stripe refund succeeded but DB update
+      failed" path in `resi.js`, now logged at CRITICAL with full context. Deliberately did
+      **not** touch the Stripe webhook handler's `console.error` calls in `payments.js` — the
+      existing `webhook-logic.test.cjs` asserts on their exact console output, and converting them
+      would have broken that test for no real benefit (they're already well-structured).
+- [x] Input validation: new `src/validation.js` (zod schemas + a `validateBody()` middleware
+      factory) applied to `POST /auth/register`, `POST /auth/login`, `POST /orders`,
+      `POST /admin/discounts`, `POST /admin/giftcards`, `POST /payments/create-intent`. Layered on
+      top of (not replacing) each route's existing manual checks. Also silently strips unlisted
+      body fields — verified this doesn't let a client-sent fake `price`/`total` reach the order
+      handler. New `test/validation.test.cjs` (16 cases) — this is the *only* place the validation
+      layer itself gets exercised, since the existing order/giftcard tests call route handlers
+      directly and bypass Express's middleware chain entirely.
+- [x] New `audit_log` table (`db/migrations.js`) + `src/audit.js` (`logAdminAction`, best-effort —
+      never blocks the action it's recording) + a new read endpoint `GET /api/admin/audit-log`
+      (`src/routes/audit-log.js`) so the log is actually usable, not just write-only. Wired into:
+      order status update, order ship, order delete (`orders.js`), discount create/update/delete
+      (`discounts.js`), gift card create/update/delete (`giftcards.js`), resi refund (`resi.js`).
+- [x] Per-customer-email discount-code limit: `orders.js` now checks `discount_usage` for an
+      existing `(code_id, customer_email)` row before allowing redemption in `POST /orders` (on
+      top of the code's own global `max_utilizzi`), closing the "register with 10 emails, reuse
+      the same code 10x" gap. Also added an optional `email` param to the `validate-discount`
+      preview endpoint so the checkout preview *can* match (storefront doesn't call it with email
+      yet — a small, deliberately out-of-scope-for-this-phase frontend follow-up). New test cases
+      T7/T8 in `orders-logic.test.cjs`.
+- [x] Dedicated `checkoutLimiter` (30/15min) for `POST /api/orders` and
+      `POST /api/payments/create-intent`, layered on top of the global `apiLimiter` via bare
+      `app.post(path, checkoutLimiter)` registrations in `server.js` before the routers mount —
+      doesn't touch `orders.js`/`payments.js` at all.
 - Explicit backlog, not built (documented only): file-upload virus scanning, multi-rate VAT /
   line-item invoicing, real courier API, PayPal/Klarna live processing, SDI e-invoicing.
-- Noted during Phase 2's `npm install`: `multer@1.4.5-lts.2` has a known high-severity
-  vulnerability (advisory shown by npm); 2.x fixes it but is a breaking change. Evaluate the
-  upgrade here against `products.js`'s upload pipeline (multer→sharp→WebP) rather than blindly
-  running `npm audit fix --force`.
 
-## Phase 6 — Full test & simulation pass
-- [ ] Extend `MEMI-Backend/test/` for everything added in Phases 2–5.
-- [ ] `node --check` all JS, `verify/run.sh`, `npm test`, `npm run test:e2e`, `smoke-test.sh` —
-      all green.
-- [ ] Live walkthrough on the local Docker stack: register → browse → cart → checkout (Stripe test
-      card) → gift-card redemption → discount code → loyalty redeem → admin login → ship an order →
-      refund → submit a review → newsletter signup → cookie banner → every legal page → guest
-      order tracking.
-- [ ] Any bug found gets fixed and re-tested before moving on.
+**Corrections and findings beyond the original plan:**
+- **Corrected a Phase 2 misattribution:** the "high severity vulnerability" `npm install` flagged
+  back in Phase 2 was assumed to be about `multer` — checking `npm audit` properly this phase
+  showed it was actually **`nodemailer`** (SSRF/arbitrary-file-read, CVSS 7.1, plus a DoS advisory,
+  CVSS 7.5, both currently active on the pinned `^6.9.14`). Upgraded to `^9.0.3` (the version
+  `npm audit` itself recommends) — verified the `createTransport`/`sendMail` API `email.js` uses
+  is unchanged across the major bump, ran a live smoke test of the module loading + transport
+  creation. `npm audit` now reports 0 vulnerabilities. `multer@1.4.5-lts.2`'s deprecation notice
+  is real but is *not* an active advisory match right now — left as documented backlog rather than
+  forcing an upgrade that could break the sharp/multer upload pipeline under time pressure.
+- **Found and fixed a real test-hygiene bug while adding the audit log:** `audit.js` requires the
+  DB module as `./db` (relative to `src/`), a different string than the `../db` the existing test
+  mocks intercepted (relative to `src/routes/`) — without noticing this, `logAdminAction` calls
+  during tests would have silently fallen through to a **real, unmocked mysql2 connection
+  attempt**. Fixed by mocking `../audit` entirely in `orders-logic.test.cjs` and
+  `giftcard-logic.test.cjs`, matching the existing pattern for `../email`/`../loyalty`.
+- **Found and fixed an unrelated, pre-existing bug:** `package.json`'s own `"test": "node --test
+  test/"` script crashes with `MODULE_NOT_FOUND` on the Node version in this environment (v24) —
+  the positional directory argument is mishandled. Bare `node --test` (relying on default
+  auto-discovery) works correctly and picks up all 5 test files. Fixed the script; `npm test` now
+  actually runs (the live-stack-only `catalog.test.mjs` still fails with `ECONNREFUSED` here, as
+  documented in that file itself — no backend is running in this environment).
+
+**Post-implementation adversarial verification** (3 independent reviewers; one returned a garbage
+placeholder response, so its five security checks were re-done by hand instead — every check
+below is from a *completed* review, nothing was waved through):
+- Express wiring reviewer **empirically proved** the checkoutLimiter fall-through pattern by
+  building and running a throwaway Express 4.22 app reproducing the exact
+  bare-`app.post`-before-`app.use` registration: under-limit requests reach the real handler 1:1,
+  over-limit get 429, and sibling routes (`/api/orders/my`, `validate-discount`) see zero
+  collateral throttling. Also confirmed `requestLogger` is the first middleware registered, the
+  audit-log route's full mount chain, and the `audit_log` DDL validity. No findings.
+- Independent test-run reviewer: 31/31 backend files pass `node --check`, full `verify/run.sh`
+  green, `npm test` runs correctly (only the documented live-stack-only `catalog.test.mjs` fails,
+  `ECONNREFUSED`, expected with no backend running), `npm audit` 0 vulnerabilities with
+  nodemailer 9.0.3 *actually installed* (verified via `npm ls`, not just declared).
+- Manual security re-check (replacing the failed reviewer): all 10 `logAdminAction` call sites
+  verified to chain `.catch(() => {})`; audit-log SQL uses placeholders for the filter and the
+  same bounded-integer LIMIT convention as 8 pre-existing routes; per-email discount check
+  compares/stores the same zod-lowercased email (and the DB collation is `_ci` anyway).
+- **Real regression found in my own new validation and fixed:** the admin gift-card form
+  serializes with `FormData`, so a blank optional recipient email arrives as `""` — which
+  `emailSchema.optional().nullable()` rejected with 400, breaking "issue a gift card without a
+  recipient". Fixed with an `optionalEmail` preprocessor (empty string → absent) + a dedicated
+  regression test (now 17 validation cases). The discount form was *not* affected (it
+  pre-normalizes empty fields to `null` client-side — verified by reading the admin form code).
+- **Audit-coverage gap (reviewer finding, most-consequential subset fixed):** `staff.js`
+  (create/update/delete of admin accounts — the single most security-sensitive entity),
+  `loyalty.js` (config update + manual point adjustment — a direct lever on monetary-equivalent
+  balances), and `settings.js` (site-wide config) now also write audit-log entries
+  (`staff.create/update/delete`, `loyalty.config_update`, `loyalty.points_adjust`,
+  `settings.update` — staff password changes log only `password_changed: true`, never the value).
+  Remaining uncovered CUD routes (invoices, cms, campaigns, customers, shipping zones/couriers/
+  pickup, products) are deliberate backlog — less consequential, and each is one
+  mechanical `logAdminAction` call away when wanted.
+
+## Phase 6 — Full test & simulation pass ✅ (run against the live Docker stack)
+- [x] `verify/run.sh` (offline) green: 7 sections — JS syntax, cache-version, route contracts,
+      8 order-flow + 7 webhook + 5 gift-card + 17 validation simulations.
+- [x] `npm test` (backend, live stack) — **14/14 pass**, including the live-stack
+      `catalog.test.mjs` admin→DB→API round-trip (image upload, stock deduction, delete). Fixed
+      one pre-existing bug in that test: it posted `payment_method:'bonifico'`, which was never in
+      the API's `ENUM('carta','paypal','klarna')`, so the "placing an order deducts stock" subtest
+      returned 400 and could never have passed against a real backend — changed to `'carta'`.
+- [x] `npm run test:e2e` (Playwright, real headless Chromium against the nginx-served storefront)
+      — **8/8 pass**. Fixed two assertion bugs in the existing `sync.spec.js` (a new product with
+      default popularity 0 lands on shop page 2+ with `display:none`, so it needs high popularity
+      to be on page 1; and the product card renders its image twice by design — main + hover-swap —
+      so `toHaveCount(1)` was wrong). Added a **new `cookie-banner.spec.js`** (3 tests) proving the
+      GDPR consent banner shows on first visit, stores reject/accept choices in
+      `localStorage.memi_cookie_consent`, stays hidden on reload, wires the footer legal links, and
+      reopens via `window.MemiConsent.openPreferences()`.
+- [x] `smoke-test.sh` (live stack) — **10/10 pass** after fixing three pre-existing bugs in it:
+      (a) it used `python3` for JSON parsing, but on Windows that's a Store stub that errors out,
+      silently turning every check to `""`/fail — switched to `node`; (b) the customer-register
+      check sent `{"name":...}` but the API has always required `nome` (Italian) — the check would
+      400 whenever it ran; (c) the image-upload `curl -F "@/tmp/..."` used an absolute MSYS path
+      that mingw-curl can't open on Git Bash (exit 26, no HTTP) — switched to a relative path.
+- [x] **Live end-to-end walkthrough** (curl-driven against the running stack, since Stripe test
+      keys weren't configured — card checkout stays `in_attesa` without them, which is correct):
+      customer register + login; zod validation rejecting a bad email live; place order with the
+      `WELCOME10` discount; **per-email discount reuse correctly blocked (400)**; stock deducted
+      20→19; admin login; **create a gift card with an empty recipient email (the Phase-5
+      regression) — works**; public gift-card validate; **order fully covered by the gift card →
+      total €0, `payment_status:pagato`, no Stripe** (balance 200→105.10); guest order tracking;
+      admin ship order → `spedito` + real BRT tracking URL; **audit-log endpoint shows the
+      `giftcard.create`/`order.ship` entries**; webhook returns 503 unconfigured (fails safe);
+      review submit → admin publish → appears in public list; newsletter subscribe; **loyalty
+      redeem 100 pts → `PUNTI-XXXX` code, then spent on a real order**; refund on a non-Stripe
+      order → clean 400 (not a crash). Also confirmed the `/health` DB check reports `db:"ok"` live
+      and the structured request logs come out as JSON with `reqId`.
+- [x] All four legal pages served correctly through nginx with their AI-drafted disclosure, the
+      14-day + model-withdrawal-form content, the `foro del consumatore` + `consumer-redress.ec.
+      europa.eu` references, and the PDP's dynamic `Product` JSON-LD present.
+- [x] Reset the DB (`docker compose down -v`, local only) after the walkthrough — back to clean
+      seed (23 products, stock 20).
+
+**Deploy-readiness finding for Phase 7 (not a code bug):** on a **fresh volume**, the first
+`docker compose up` reports `dependency backend failed to start` and needs one retry — MySQL's
+healthcheck goes green (mysqladmin ping succeeds) *before* the `initdb.d` seed finishes, so the
+backend's first connection attempts are refused, it fails its own healthcheck window, and compose
+gives up on that attempt. It self-recovers because the backend has `restart: unless-stopped`, and
+a second `up` is always fine — but a first-time Coolify deploy could show a scary failed-first-boot.
+Documented in Phase 7's go-live notes; the clean fix (a startup DB-retry loop, or a longer backend
+`start_period`) is a candidate there.
 
 ## Phase 7 — Hetzner go-live readiness package
 - [ ] Installable backup script (DB dump + uploads tarball + rotation) and health-check monitor

@@ -49,7 +49,9 @@ const giftcardsPublicRoutes = require('./routes/giftcards-public');
 const campaignsRoutes     = require('./routes/campaigns');
 const cmsRoutes           = require('./routes/cms');
 const loyaltyRoutes       = require('./routes/loyalty');
+const auditLogRoutes      = require('./routes/audit-log');
 const { ensureDir: ensureUploadsDir, UPLOADS_DIR } = require('./images');
+const { requestLogger }  = require('./logger');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -84,6 +86,9 @@ if (process.env.NODE_ENV === 'production') {
 // ── Trust proxy (required behind Traefik / nginx / Coolify) ───
 // Without this, express-rate-limit throws on X-Forwarded-For headers.
 app.set('trust proxy', 1);
+
+// ── Structured request logging (assigns req.id / req.log to every request) ───
+app.use(requestLogger);
 
 // ── Security headers ───────────────────────────────────────────
 app.use(helmet({
@@ -141,6 +146,14 @@ const authLimiter = rateLimit({
   max: 20,  // Stricter for auth endpoints
   message: { error: 'Troppi tentativi, riprova tra 15 minuti' },
 });
+// Dedicated, stricter limiter for the two checkout-money-movement endpoints — the
+// general apiLimiter (300/15min) is generous enough for browsing, but placing orders
+// and creating PaymentIntents are exactly the actions worth throttling harder.
+const checkoutLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Troppi tentativi di checkout, riprova tra qualche minuto' },
+});
 
 app.use('/api', apiLimiter);
 app.use('/api/auth/login',           authLimiter);
@@ -148,6 +161,10 @@ app.use('/api/auth/register',        authLimiter);
 app.use('/api/auth/forgot-password', authLimiter);
 app.use('/api/auth/reset-password',  authLimiter);
 app.use('/api/admin/auth/login',     authLimiter);
+// Registered as bare middleware (falls through via next()) BEFORE the routers below are
+// mounted, so it layers on top of the routes' own handlers rather than replacing them.
+app.post('/api/orders', checkoutLimiter);
+app.post('/api/payments/create-intent', checkoutLimiter);
 
 // ── Health check ───────────────────────────────────────────────
 // Checks DB connectivity, not just "the process is alive" — a Docker/Coolify healthcheck
@@ -187,6 +204,7 @@ app.use('/api/admin/campaigns',   campaignsRoutes);
 app.use('/api/admin/cms',         cmsRoutes);
 app.use('/api/cms',               cmsRoutes);   // public /published/* routes for the storefront
 app.use('/api/admin/loyalty',     loyaltyRoutes);
+app.use('/api/admin/audit-log',   auditLogRoutes);
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));

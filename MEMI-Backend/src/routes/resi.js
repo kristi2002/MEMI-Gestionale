@@ -13,6 +13,7 @@
 const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { logAdminAction } = require('../audit');
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) return null;
@@ -167,7 +168,7 @@ router.post('/:id/refund', requireAdmin, async (req, res) => {
     try {
       refund = await stripe.refunds.create({ payment_intent: row.payment_intent_id, amount: amountCents });
     } catch (stripeErr) {
-      console.error('[Stripe] refund error:', stripeErr.message);
+      (req.log || console).error({ err: stripeErr, resiId: req.params.id, orderId: row.order_id }, '[Stripe] refund error');
       return res.status(502).json({ error: 'Errore Stripe: ' + (stripeErr.message || 'sconosciuto') });
     }
 
@@ -179,12 +180,22 @@ router.post('/:id/refund', requireAdmin, async (req, res) => {
       await conn.commit();
     } catch (dbErr) {
       await conn.rollback();
-      console.error('refund persist error (Stripe refund DID succeed):', dbErr.message);
+      // Money-moved-but-DB-failed is the single most important thing to log loudly and
+      // completely in this whole codebase — an operator must be able to find this line.
+      (req.log || console).error(
+        { err: dbErr, resiId: req.params.id, orderId: row.order_id, stripeRefundId: refund.id, amount },
+        'CRITICAL: Stripe refund succeeded but DB update failed — manual reconciliation required'
+      );
       return res.status(200).json({ ok: true, refund_id: refund.id, amount,
         warning: 'Rimborso Stripe eseguito ma aggiornamento DB fallito — verifica lo stato manualmente.' });
     } finally {
       conn.release();
     }
+
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'resi.refund',
+      entityType: 'resi', entityId: req.params.id, details: { refund_id: refund.id, amount, order_id: row.order_id },
+    }).catch(() => {});
 
     const [[reso]] = await pool.execute('SELECT * FROM resi WHERE id = ?', [req.params.id]);
     return res.json({ ok: true, refund_id: refund.id, amount, reso });

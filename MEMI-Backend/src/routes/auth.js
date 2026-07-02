@@ -17,6 +17,7 @@ const { pool }           = require('../db');
 const { requireCustomer } = require('../middleware/auth');
 const { sendWelcomeEmail, sendPasswordReset } = require('../email');
 const loyalty = require('../loyalty');
+const { validateBody, registerSchema, loginSchema } = require('../validation');
 
 /* ── helpers ── */
 function signToken(payload) {
@@ -26,7 +27,7 @@ function signToken(payload) {
 }
 
 /* ── POST /api/auth/register ── */
-router.post('/register', async (req, res) => {
+router.post('/register', validateBody(registerSchema), async (req, res) => {
   const { nome, email, password } = req.body;
   if (!nome || !email || !password)
     return res.status(400).json({ error: 'Nome, email e password obbligatori' });
@@ -61,7 +62,7 @@ router.post('/register', async (req, res) => {
 });
 
 /* ── POST /api/auth/login ── */
-router.post('/login', async (req, res) => {
+router.post('/login', validateBody(loginSchema), async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
     return res.status(400).json({ error: 'Email e password obbligatori' });

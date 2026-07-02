@@ -48,6 +48,11 @@ test.describe.serial('admin → DB → storefront round-trip', () => {
         color_label: 'E2E', colore: 'blush', description: 'e2e product',
         collections: ['shop-all', COLL], status: 'attivo',
         taglie: [{ taglia: 'M', stock: 9 }],
+        // The shop listing paginates (12/page) and sorts by popularity DESC. With the
+        // default popularity 0 a new product lands on page 2+ with display:none, so
+        // toBeVisible() correctly fails. High popularity puts it on page 1 — the test's
+        // purpose is DB→storefront sync, not pagination.
+        popularity: 9999,
       },
     });
     expect(create.status(), 'create product').toBe(201);
@@ -64,7 +69,9 @@ test.describe.serial('admin → DB → storefront round-trip', () => {
     await page.goto(`${SHOP}/shop`);
     const card = page.locator('a.product-card-link', { hasText: NAME });
     await expect(card).toBeVisible({ timeout: 20000 });
-    await expect(card.locator('img[src*="/api/uploads/"]')).toHaveCount(1);
+    // The card renders the uploaded photo twice by design (main + hover-swap alt
+    // image), so assert presence, not an exact count of 1.
+    await expect(card.locator('img[src*="/api/uploads/"]').first()).toBeAttached();
   });
 
   test('visible on its collection page', async ({ page }) => {

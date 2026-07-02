@@ -20,6 +20,8 @@ const { pool }                           = require('../db');
 const { requireCustomer, requireAdmin, optionalCustomer } = require('../middleware/auth');
 const { sendOrderConfirmation, sendShippingConfirmation } = require('../email');
 const { awardPurchasePoints } = require('../loyalty');
+const { validateBody, createOrderSchema } = require('../validation');
+const { logAdminAction } = require('../audit');
 
 /* ── enum whitelists (mirror schema.sql ENUM definitions) ── */
 const PAYMENT_STATUSES = ['in_attesa', 'pagato', 'rimborsato', 'fallito'];
@@ -46,7 +48,7 @@ async function nextOrderNumber(conn) {
    - When Stripe is configured, we verify the PaymentIntent succeeded AND that its amount
      (and currency) match the server-computed total, then mark the order 'pagato'.
    - The PaymentIntent id is stored UNIQUE, so it can't be replayed across orders.        */
-router.post('/', optionalCustomer, async (req, res) => {
+router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, res) => {
   const {
     nome, cognome, email, telefono,
     indirizzo, citta, cap, paese = 'Italia',
@@ -124,6 +126,17 @@ router.post('/', optionalCustomer, async (req, res) => {
         [discount_code.toUpperCase(), subtotal]
       );
       if (!dc) return res.status(400).json({ error: 'Codice sconto non valido o scaduto' });
+
+      // Per-customer-email limit: one redemption of a given code per email, on top of
+      // the code's own global max_utilizzi. Closes the "register with 10 emails, reuse
+      // the same code 10x" gap — max_utilizzi alone doesn't stop repeat use by one email.
+      const [[alreadyUsed]] = await pool.execute(
+        'SELECT id FROM discount_usage WHERE code_id = ? AND customer_email = ? LIMIT 1',
+        [dc.id, email]
+      );
+      if (alreadyUsed)
+        return res.status(400).json({ error: 'Hai già utilizzato questo codice sconto' });
+
       discountCode = dc;
       const dcValore = Number(dc.valore);
       if (dc.tipo === 'percentuale')      discountAmount = subtotal * (dcValore / 100);
@@ -166,12 +179,15 @@ router.post('/', optionalCustomer, async (req, res) => {
           return res.status(402).json({ error: 'Pagamento non completato. Riprova.' });
         const expected = Math.round(total * 100);
         if (pi.currency !== 'eur' || Number(pi.amount) !== expected) {
-          console.error(`Stripe amount mismatch: pi=${pi.amount}${pi.currency} expected=${expected}eur`);
+          (req.log || console).error(
+            { paymentIntentId: payment_intent_id, piAmount: pi.amount, piCurrency: pi.currency, expectedCents: expected },
+            'Stripe amount mismatch — possible tampering attempt'
+          );
           return res.status(402).json({ error: 'Importo del pagamento non corrisponde. Riprova.' });
         }
         paymentStatus = 'pagato';
       } catch (stripeErr) {
-        console.error('Stripe verify error:', stripeErr.message);
+        (req.log || console).error({ err: stripeErr, paymentIntentId: payment_intent_id }, 'Stripe verify error');
         return res.status(402).json({ error: 'Impossibile verificare il pagamento. Riprova.' });
       }
     }
@@ -263,7 +279,7 @@ router.post('/', optionalCustomer, async (req, res) => {
   } catch (err) {
     if (err && err.code === 'ER_DUP_ENTRY')
       return res.status(409).json({ error: 'Pagamento già registrato per un altro ordine.' });
-    console.error('place order error', err);
+    (req.log || console).error({ err }, 'place order error');
     return res.status(500).json({ error: 'Errore nel processare l\'ordine' });
   }
 });
@@ -462,7 +478,7 @@ router.post('/admin', requireAdmin, async (req, res) => {
     return res.status(201).json({ ok: true, id: orderId, order_number: orderNumber, total });
   } catch (err) {
     await conn.rollback();
-    console.error('admin create order error', err);
+    (req.log || console).error({ err }, 'admin create order error');
     return res.status(500).json({ error: 'Errore nella creazione ordine' });
   } finally {
     conn.release();
@@ -499,9 +515,13 @@ router.put('/admin/:id/status', requireAdmin, async (req, res) => {
 
     vals.push(req.params.id);
     await pool.execute(`UPDATE orders SET ${fields.join(', ')} WHERE id = ?`, vals);
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'order.status_update',
+      entityType: 'order', entityId: req.params.id, details: { order_status, payment_status },
+    }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
-    console.error('update order status error', err);
+    (req.log || console).error({ err }, 'update order status error');
     return res.status(500).json({ error: 'Errore server' });
   }
 });
@@ -533,6 +553,11 @@ router.put('/admin/:id/ship', requireAdmin, async (req, res) => {
 
     await conn.commit();
 
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'order.ship',
+      entityType: 'order', entityId: req.params.id, details: { courier_code, tracking_number, eta, destinazione },
+    }).catch(() => {});
+
     // Fetch order for email (non-blocking)
     pool.execute('SELECT order_number, customer_nome AS nome, customer_email AS email FROM orders WHERE id = ?', [req.params.id])
       .then(([[o]]) => {
@@ -547,7 +572,7 @@ router.put('/admin/:id/ship', requireAdmin, async (req, res) => {
     return res.json({ ok: true });
   } catch (err) {
     await conn.rollback();
-    console.error('ship order error', err);
+    (req.log || console).error({ err }, 'ship order error');
     return res.status(500).json({ error: 'Errore server' });
   } finally {
     conn.release();
@@ -572,10 +597,14 @@ router.delete('/admin/:id', requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Ordine non trovato' });
     }
     await conn.commit();
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'order.delete',
+      entityType: 'order', entityId: req.params.id, details: {},
+    }).catch(() => {});
     return res.json({ ok: true, message: 'Ordine eliminato' });
   } catch (err) {
     await conn.rollback();
-    console.error('delete order error', err);
+    (req.log || console).error({ err }, 'delete order error');
     return res.status(500).json({ error: 'Errore server' });
   } finally {
     conn.release();
@@ -584,7 +613,7 @@ router.delete('/admin/:id', requireAdmin, async (req, res) => {
 
 /* ── POST /api/orders/validate-discount ── */
 router.post('/validate-discount', async (req, res) => {
-  const { code, subtotal = 0 } = req.body;
+  const { code, subtotal = 0, email } = req.body;
   if (!code) return res.status(400).json({ error: 'Codice mancante' });
 
   try {
@@ -598,6 +627,17 @@ router.post('/validate-discount', async (req, res) => {
     );
 
     if (!dc) return res.status(404).json({ error: 'Codice non valido o scaduto' });
+
+    // Optional: if the caller already knows the customer's email at preview time, give
+    // an accurate preview of the per-email limit enforced for real in POST /api/orders.
+    if (email) {
+      const [[alreadyUsed]] = await pool.execute(
+        'SELECT id FROM discount_usage WHERE code_id = ? AND customer_email = ? LIMIT 1',
+        [dc.id, String(email).toLowerCase().trim()]
+      );
+      if (alreadyUsed) return res.status(400).json({ error: 'Hai già utilizzato questo codice sconto' });
+    }
+
     const dcValore   = Number(dc.valore);
     const dcMinOrder = Number(dc.min_order) || 0;
     const sub        = Number(subtotal) || 0;

@@ -6,6 +6,7 @@
 #   4. Order-flow simulation (mock DB pool + mock Stripe)
 #   5. Stripe webhook simulation (mock DB pool + mock Stripe)
 #   6. Gift-card redemption simulation (mock DB pool + mock Stripe)
+#   7. Input-validation (zod) schema tests
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -50,6 +51,9 @@ NODE_PATH="$NP" node MEMI-Backend/test/webhook-logic.test.cjs || FAIL=1
 
 sec "6. Gift-card redemption simulation"
 NODE_PATH="$NP" node MEMI-Backend/test/giftcard-logic.test.cjs || FAIL=1
+
+sec "7. Input-validation (zod) schema tests"
+NODE_PATH="$NP" node MEMI-Backend/test/validation.test.cjs || FAIL=1
 
 echo
 if [ "$FAIL" -eq 0 ]; then echo "✅  ALL VERIFICATION PASSED"; else echo "❌  VERIFICATION FAILED"; fi

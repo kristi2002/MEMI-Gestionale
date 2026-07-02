@@ -23,13 +23,20 @@ function makeConn() {
   };
 }
 const PRODUCTS = { 'vestito-lino-cannes': { id:'vestito-lino-cannes', name:'Vestito Lino Cannes', price:89, status:'attivo' } };
+// Controllable per-test: a discount code row (or null) and which emails already used it.
+let DISCOUNT_ROW = null;
+let usedByEmail = new Set();
 const mockPool = {
   getConnection: async () => makeConn(),
   execute: async (sql, params) => {
     sqlLog.push({ sql, params });
     if (/FROM products WHERE id/i.test(sql)) { const p = PRODUCTS[params[0]]; return [ p ? [p] : [] ]; }
     if (/FROM product_sizes/i.test(sql)) return [[{ stock: 100 }]];
-    if (/FROM discount_codes/i.test(sql)) return [[]];
+    if (/FROM discount_usage WHERE code_id/i.test(sql)) {
+      const [, email] = params;
+      return [ usedByEmail.has(email) ? [{ id: 1 }] : [] ];
+    }
+    if (/FROM discount_codes/i.test(sql)) return [ DISCOUNT_ROW ? [DISCOUNT_ROW] : [] ];
     return [[]];
   },
 };
@@ -39,6 +46,10 @@ Module._load = function (request) {
   if (request === '../db')      return { pool: mockPool, testConnection: async () => {} };
   if (request === '../email')   return { sendOrderConfirmation: async()=>{}, sendShippingConfirmation: async()=>{} };
   if (request === '../loyalty') return { awardPurchasePoints: async()=>{} };
+  // audit.js requires db as './db' (relative to src/, not src/routes/) — a different
+  // string than the '../db' intercepted above, so without this it would fall through
+  // to a REAL, unmocked mysql2 pool. Mock the whole module, same as email/loyalty.
+  if (request === '../audit')   return { logAdminAction: async () => {} };
   if (request === 'stripe')     return function(){ return { paymentIntents: { retrieve: async(id)=> stripeBehavior(id) } }; };
   return origLoad.apply(this, arguments);
 };
@@ -105,6 +116,26 @@ function mockRes(){ return { code:200, body:null, status(c){this.code=c;return t
   await putStatus({ admin:{}, params:{id:'1'}, body:{ order_status:'teleported' } }, res);
   assert.strictEqual(res.code, 400, 'T6 expected 400');
   n++; console.log('  ✓ T6 invalid order_status enum -> 400');
+
+  // T7: first use of a discount code by an email succeeds
+  delete process.env.STRIPE_SECRET_KEY;
+  DISCOUNT_ROW = { id: 9, code: 'WELCOME10', tipo: 'fisso', valore: 10, min_order: 0 };
+  usedByEmail = new Set();
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'first@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:1 }], payment_method:'carta', discount_code:'welcome10' }}, res);
+  assert.strictEqual(res.code, 201, 'T7 code '+res.code+' '+JSON.stringify(res.body));
+  n++; console.log('  ✓ T7 discount code first use by an email -> accepted');
+
+  // T8: same email trying the same code again -> rejected (closes the multi-account abuse gap)
+  usedByEmail.add('second@b.it');
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'second@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:1 }], payment_method:'carta', discount_code:'welcome10' }}, res);
+  assert.strictEqual(res.code, 400, 'T8 expected 400 (already used)');
+  assert.ok(!sqlLog.some(e=>/INSERT INTO orders/i.test(e.sql)), 'T8 no order written on reuse');
+  n++; console.log('  ✓ T8 same email reusing a discount code -> 400, no order written');
+  DISCOUNT_ROW = null; usedByEmail = new Set();
 
   console.log(`\nALL ${n} order-logic tests passed.`);
 })().catch(e => { console.error('TEST FAILED:', e.stack || e.message); process.exit(1); });

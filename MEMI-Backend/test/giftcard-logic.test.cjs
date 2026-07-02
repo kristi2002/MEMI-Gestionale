@@ -57,6 +57,9 @@ Module._load = function (request) {
   if (request === '../db')      return { pool: mockPool, testConnection: async () => {} };
   if (request === '../email')   return { sendOrderConfirmation: async()=>{}, sendShippingConfirmation: async()=>{} };
   if (request === '../loyalty') return { awardPurchasePoints: async()=>{} };
+  // audit.js requires db as './db' (relative to src/), a different string than '../db'
+  // above — without this it would fall through to a REAL, unmocked mysql2 pool.
+  if (request === '../audit')   return { logAdminAction: async () => {} };
   if (request === 'stripe')     return function(){ return { paymentIntents: { retrieve: async(id)=> stripeBehavior(id) } }; };
   return origLoad.apply(this, arguments);
 };

@@ -13,6 +13,7 @@ const router           = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const bcrypt           = require('bcryptjs');
+const { logAdminAction } = require('../audit');
 
 /* ── GET /api/admin/staff ── */
 router.get('/', requireAdmin, async (req, res) => {
@@ -48,6 +49,10 @@ router.post('/', requireAdmin, async (req, res) => {
       'SELECT id, email, nome, role, created_at FROM admin_users WHERE id = ?',
       [result.insertId]
     );
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'staff.create',
+      entityType: 'admin_user', entityId: result.insertId, details: { email, role: role === 'admin' ? 'admin' : 'staff' },
+    }).catch(() => {});
     return res.status(201).json({ user });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')
@@ -88,6 +93,12 @@ router.put('/:id', requireAdmin, async (req, res) => {
       [req.params.id]
     );
     if (!user) return res.status(404).json({ error: 'Utente non trovato' });
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'staff.update',
+      entityType: 'admin_user', entityId: req.params.id,
+      // Never log the password itself — only whether it was rotated.
+      details: { nome, email, role, password_changed: !!password },
+    }).catch(() => {});
     return res.json({ user });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')
@@ -112,6 +123,10 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     );
     if (result.affectedRows === 0)
       return res.status(404).json({ error: 'Utente non trovato' });
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'staff.delete',
+      entityType: 'admin_user', entityId: req.params.id, details: {},
+    }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     console.error('delete staff error', err);

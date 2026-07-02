@@ -10,6 +10,7 @@
 const router       = require('express').Router();
 const { pool }     = require('../db');
 const { requireAdmin, requireRole } = require('../middleware/auth');
+const { logAdminAction } = require('../audit');
 
 /* ── GET /api/admin/settings ── */
 router.get('/', requireAdmin, async (req, res) => {
@@ -40,6 +41,11 @@ router.put('/', requireAdmin, requireRole('admin'), async (req, res) => {
       );
     }
     await conn.commit();
+
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'settings.update',
+      entityType: 'store_settings', entityId: 'store', details: { keys: Object.keys(updates) },
+    }).catch(() => {});
 
     const [rows] = await pool.execute('SELECT `key`, `value` FROM store_settings');
     const settings = {};
