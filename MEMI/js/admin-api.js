@@ -225,6 +225,7 @@
     get:    function(id)     { return get('/admin/resi/' + id); },
     create: function(d)      { return post('/admin/resi', d); },
     update: function(id, d)  { return put('/admin/resi/' + id, d); },
+    refund: function(id, amount) { return post('/admin/resi/' + id + '/refund', amount !== undefined ? { amount: amount } : {}); },
     delete: function(id)     { return del('/admin/resi/' + id); },
   };
 

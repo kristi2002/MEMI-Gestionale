@@ -81,11 +81,28 @@ router.post('/', optionalCustomer, async (req, res) => {
       );
       if (!prod || prod.status === 'bozza')
         return res.status(400).json({ error: `Prodotto non disponibile: ${it.product_id}` });
+
+      const qty = parseInt(it.qty, 10);
+
+      /* 1a. Stock check — reject if insufficient stock for the requested size */
+      if (it.taglia) {
+        const [[sizeRow]] = await pool.execute(
+          'SELECT stock FROM product_sizes WHERE product_id = ? AND taglia = ?',
+          [it.product_id, it.taglia]
+        );
+        if (!sizeRow || Number(sizeRow.stock) < qty) {
+          const available = sizeRow ? Number(sizeRow.stock) : 0;
+          return res.status(400).json({
+            error: `Taglia ${it.taglia} di "${prod.name}" non disponibile (disponibili: ${available}).`,
+          });
+        }
+      }
+
       resolved.push({
         product_id:   prod.id,
         product_name: prod.name,
         price:        Number(prod.price) || 0,
-        qty:          parseInt(it.qty, 10),
+        qty,
         taglia:       it.taglia || null,
         colore:       it.colore || null,
       });
@@ -247,9 +264,51 @@ router.get('/my/:id', requireCustomer, async (req, res) => {
   }
 });
 
-/* ═══════════════════════════════════════════════════════════════
+/* ── GET /api/orders/track ── guest order lookup (no auth required) ──
+   Public endpoint so customers can track without an account.
+   Requires BOTH order_number and email to avoid enumeration attacks.    */
+router.get('/track', async (req, res) => {
+  const { number, email } = req.query;
+  if (!number || !email)
+    return res.status(400).json({ error: 'Inserisci numero ordine ed email.' });
+
+  try {
+    const [[order]] = await pool.execute(
+      `SELECT order_number, order_status, payment_status,
+              tracking_number, courier_code, shipping_citta, shipping_paese,
+              subtotal, shipping_cost, discount_amount, total,
+              created_at, updated_at
+       FROM orders
+       WHERE order_number = ? AND LOWER(customer_email) = LOWER(?)`,
+      [number.trim(), email.trim()]
+    );
+
+    if (!order) return res.status(404).json({ error: 'Ordine non trovato. Verifica numero ordine e indirizzo email.' });
+
+    /* Build courier tracking URL if available */
+    let tracking_url = null;
+    if (order.courier_code && order.tracking_number) {
+      const [[courier]] = await pool.execute(
+        'SELECT tracking_url_template FROM couriers WHERE code = ?',
+        [order.courier_code]
+      );
+      if (courier && courier.tracking_url_template) {
+        tracking_url = courier.tracking_url_template.replace(
+          /\{tracking\}/gi, encodeURIComponent(order.tracking_number)
+        );
+      }
+    }
+
+    return res.json({ ...order, tracking_url });
+  } catch (err) {
+    console.error('track order error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ══════════════════════════════════════════════════════════════
    ADMIN ROUTES
-   ═══════════════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════════════════ */
 
 /* ── GET /api/admin/orders ── */
 router.get('/admin/list', requireAdmin, async (req, res) => {

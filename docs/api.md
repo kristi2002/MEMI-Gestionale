@@ -1,5 +1,5 @@
 # MEMI API Reference
-**Base URL (production):** `https://api.memi.testdemo.it/api`  
+**Base URL (production):** `https://api.memiabbigliamento.it/api`  
 **Base URL (local container / nginx proxy):** `/api`  
 Both nginx configs (ecommerce + admin) proxy `/api/*` to `http://backend:3000`.
 
@@ -70,15 +70,17 @@ Default admin credentials: `admin@memi.it` / `memi2026admin`
 
 | Method | Path | Auth | Body / Query | Returns |
 |--------|------|------|------|---------|
-| POST | `/orders` | Optional | `{nome, cognome, email, telefono, indirizzo, citta, cap, paese?, items:[{product_id,product_name,taglia,colore,price,qty}], discount_code?, payment_method?}` | `{order_number, order}` |
-| GET | `/orders/my` | Customer | — | `{orders:[...]}` |
-| GET | `/orders/my/:id` | Customer | — | `{order:{...}, items:[...]}` |
-| POST | `/orders/validate-discount` | None | `{code, subtotal}` | `{valid:true, tipo, valore, discount_amount}` |
-| GET | `/orders/admin/list` | Admin | `?status=&page=1&limit=20` | `{orders:[...], total, pages}` |
-| GET | `/orders/admin/:id` | Admin | — | `{order, items}` |
+| POST | `/orders` | Optional | `{nome, cognome, email, telefono, indirizzo, citta, cap, paese?, items:[{product_id,taglia,colore,qty}], discount_code?, payment_method?, payment_intent_id?}` | `{ok:true, order_number, total}` — line prices re-resolved from DB |
+| GET | `/orders/my` | Customer | — | `[{id, order_number, total, payment_status, order_status, tracking_number, courier_code, created_at}]` |
+| GET | `/orders/my/:id` | Customer | — | `{...order, items:[...]}` |
+| POST | `/orders/validate-discount` | None | `{code, subtotal}` | `{ok:true, code, tipo, valore, discount_amount, free_shipping, label}` |
+| GET | `/orders/track` | None | `?number=XXX&email=YYY` | `{order_number, order_status, payment_status, tracking_number, courier_code, tracking_url?, shipping_citta, shipping_paese, subtotal, shipping_cost, discount_amount, total, created_at}` |
+| GET | `/orders/admin/list` | Admin | `?stato=&pagamento=&q=&limit=50&offset=0` | `{orders:[...], total}` |
+| GET | `/orders/admin/:id` | Admin | — | `{...order, items:[...]}` |
 | PUT | `/orders/admin/:id/status` | Admin | `{order_status?, payment_status?, notes?}` | `{message, order}` |
-| PUT | `/orders/admin/:id/ship` | Admin | `{courier_code, tracking_number, eta?, destinazione?}` | `{ok:true}` |
-| DELETE | `/orders/admin/:id` | Admin | — | `{ok:true, message}` — cascades to order_items, shipments, discount_usage, resi, invoices |
+| PUT | `/orders/admin/:id/ship` | Admin | `{courier_code, tracking_number, eta?, destinazione?}` | `{ok:true}` — marks order spedito + creates shipment + sends tracking email |
+| POST | `/orders/admin` | Admin | `{nome, email, items:[{product_id,qty,taglia?}], ...}` | `{ok:true, order_number, total}` — prezzi risolti da DB |
+| DELETE | `/orders/admin/:id` | Admin | — | `{ok:true, message}` |
 
 ---
 
@@ -183,6 +185,14 @@ Used by `checkout.html`: call this first, then `stripe.confirmCardPayment(client
 | POST | `/resi/request` | None (verified by order_number+email) | `{order_number, email, motivo, descrizione?}` | `{ok:true, rma_number, message}` |
 
 Validation: order must be `spedito` or `consegnato`; no existing open reso for the same order.
+
+### Stripe refund — `/api/admin/resi` (Luglio 2026)
+
+| Method | Path | Auth | Body | Returns |
+|--------|------|------|------|---------|
+| POST | `/admin/resi/:id/refund` | Admin | `{amount?}` (EUR float; omit = full order total) | `{ok:true, refund_id, amount, reso}` |
+
+Amount priority: `body.amount` → stored `rimborso_amount` → full `order.total`. On success marks reso `rimborsato` + order `payment_status='rimborsato'`. Error codes: 503 (Stripe not configured), 400 (non-card order, guide manual refund), 409 (already refunded), 502 (Stripe error).
 
 ---
 

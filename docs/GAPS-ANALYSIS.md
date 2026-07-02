@@ -1,294 +1,303 @@
 # MEMI — Gap Analysis Completo
-*Aggiornato: Giugno 2026 (post sprint 2 — email, catalogo dinamico, account tracking, newsletter, SEO, admin mobile)*
+*Aggiornato: Luglio 2026 — Sprint 2 (feature-completeness + hardening)*
 
 ---
 
 ## Riepilogo esecutivo
 
-Il progetto MEMI Abbigliamento è composto da tre layer distinti: il **frontend e-commerce** (`Memi Abbigliamento/`), il **pannello admin** (`MEMI/`), e il **backend Node.js** (`MEMI-Backend/`). Dopo il sprint completo di Giugno 2026: il frontend ha pagamenti Stripe reali, filtri multi-selezione, mega-menu Editoriali, e view-toggle; il backend ha tutti i route implementati inclusi pagamenti ed email; il pannello admin carica dati reali dal backend tramite il pattern `_origRenderView` override.
+Il progetto MEMI Abbigliamento è composto da tre layer: **frontend e-commerce** (`Memi Abbigliamento/`), **pannello admin** (`MEMI/`), **backend Node.js** (`MEMI-Backend/`). Tutti i componenti principali sono implementati e funzionanti. Questo documento descrive lo stato attuale (luglio 2026) e i gap rimanenti verso una piattaforma completamente pronta per il deploy su Hetzner/Coolify.
 
 ---
 
-## 1. Pagamenti — ✅ Implementato con Stripe
+## 1. Pagamenti — ✅ Completo
 
-**Stato:** ✅ Risolto (Giugno 2026)
+**Stato:** ✅ Stripe Elements con PaymentIntent verificato server-side.
 
-Il checkout usa **Stripe Elements** con il flusso PaymentIntent:
-- `checkout.html` monta un `CardElement` Stripe; al submit chiama `POST /api/payments/create-intent`
-- Ottiene `client_secret`, poi `stripe.confirmCardPayment()` — carta addebitata lato Stripe
-- Solo dopo successo Stripe chiama `MemiAPI.orders.place()` con `payment_intent_id`
-- `orders.js` verifica il PaymentIntent tramite Stripe SDK prima di salvare l'ordine nel DB
-- Errori Stripe (carta rifiutata, fondi insufficienti) mostrati all'utente in italiano
-- Backend risponde 503 se `STRIPE_SECRET_KEY` non è impostata (nessun crash)
+- Checkout con `CardElement` Stripe → `POST /api/payments/create-intent` → `stripe.confirmCardPayment()`
+- Solo dopo Stripe successo: `MemiAPI.orders.place()` con `payment_intent_id`
+- Backend verifica PaymentIntent (status + amount + currency) prima di salvare l'ordine
+- `payment_intent_id` UNIQUE in DB → nessun replay possibile
+- `payment_status='pagato'` impostato dopo verifica Stripe riuscita
+- Errori Stripe mostrati in italiano al cliente
+- Degradazione graziosa: senza `STRIPE_SECRET_KEY` → `/api/payments/create-intent` ritorna 503
 
-**Env vars richiesti:** `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`
+**Endpoint:** `POST /api/payments/create-intent`, `GET /api/payments/config`
 
 ---
 
-## 2. Pannello Admin — ✅ Dati reali integrati
+## 2. Pannello Admin — ✅ 22+ viste con dati reali
 
-**Stato:** ✅ Risolto (Giugno 2026)
+**Stato:** ✅ Tutte le sezioni principali leggono dall'API. Viste "fantasma" nascoste.
 
-Il file `MEMI/js/app.js` usa il pattern `_origRenderView` override: intercetta ogni `renderView(name)` e carica prima i dati reali dal backend, poi popola il `DATA` object e chiama il render originale. Su errore API, cade sul render con mock data come fallback.
+Pattern `_origRenderView`: intercetta ogni `renderView(name)`, carica dati dall'API, aggiorna `DATA`, chiama il renderer originale. Su errore API → stato vuoto onesto (non mock data).
 
-### 2.1 Sezioni del pannello e loro stato
+### Stato viste per sezione
 
-| Sezione sidebar | Stato attuale |
+| Sezione | Stato |
 |---|---|
-| Dashboard (KPI, grafico vendite) | ✅ Reale — `AdminAPI.dashboard.kpis()` + `recentOrders()` |
-| Ordini | ✅ Reale — `AdminAPI.orders.list()` con trasformazione campi DB |
-| Ordini bozze / abbandonati | ✅ Reale — filtro per `order_status` |
-| Prodotti | ✅ Reale — `AdminAPI.products.listAll()` (status=all) |
-| Inventario | ✅ Reale — stessa API, vista filtrata |
-| Clienti | ✅ Reale — `AdminAPI.customers.list()`, VIP calcolato (spent > 300) |
-| Sconti & Coupon | ✅ Reale — `AdminAPI.discounts.list()` |
-| Spedizioni / Zone / Corrieri | ✅ Reale — `AdminAPI.shipping.zones()` + `.couriers()` + `.shipments()` |
-| Marketing/Newsletter | ⚠️ Mock (non prioritario) |
-| Chat / Messaggi | ⚠️ Mock (non implementato) |
-| Analytics | ⚠️ Grafici SVG statici |
-| Finanza, CMS, Canali | ⚠️ Non implementati |
-
-### 2.2 Pattern implementato
-
-`_origRenderView = renderView` salva il renderer originale. L'override intercetta ogni chiamata a `renderView(name)`, chiama l'API appropriata, aggiorna `DATA`, poi chiama `_origRenderView(name)`. Su `.fail()` cade sul render con mock data come fallback sicuro.
+| Dashboard (KPI + grafico) | ✅ Reale — dashboard/kpis + chart + top-products |
+| Ordini | ✅ Reale — lista + dettaglio + ship + status update |
+| Resi | ✅ Reale — lista + dettaglio + rimborso Stripe in-app |
+| Fatture | ✅ Reale — generazione + F-YYYY-NNNN numerazione |
+| Prodotti | ✅ Reale — CRUD + upload immagini (sharp → WebP) |
+| Inventario | ✅ Reale — stock per taglia, aggiornabile |
+| Clienti | ✅ Reale — lista + storico ordini, VIP calcolato |
+| Sconti & Coupon | ✅ Reale — CRUD (%, fisso, spedizione gratuita) |
+| Spedizioni / Zone / Corrieri | ✅ Reale — zone + corrieri + statistiche da shipments |
+| Loyalty | ✅ Reale — punti + ledger + riscatto → codice sconto |
+| Reviews | ✅ Reale — lista + pubblica/rifiuta/risposta admin |
+| Campagne marketing | ✅ Reale — CRUD campagne + metriche |
+| Newsletter | ✅ Reale — lista iscritti |
+| CMS pages + Blog | ✅ Reale — editor CRUD |
+| Gift Cards | ✅ Reale — CRUD saldi |
+| Impostazioni store | ✅ Reale — nome, email, IVA, policy resi |
+| Staff | ✅ Reale — gestione account admin |
+| Bozze (= ordini in_attesa) | ✅ Parziale — visualizzazione solo |
+| Collections / Categorie | ✅ Parziale — conteggi live, read-only |
+| Analytics | ⚠️ Parziale — KPIs reali; sorgenti traffico richiedono GA4 |
+| Tracking spedizioni | ⚠️ Parziale — ricerca nelle proprie spedizioni; nessuna API corriere esterna |
+| Chat clienti | ❌ Nascosta — nessun backend |
+| Automazioni / Pop-up | ❌ Nascosta — nessun backend |
 
 ---
 
-## 3. Backend — ✅ Tutti i route implementati
+## 3. Backend — ✅ Tutte le route implementate
 
-**Stato:** ✅ Completo (Giugno 2026)
-
-Tutti i route che il frontend richiede sono implementati:
+**Stato:** ✅ Completo (Luglio 2026, Sprint 2)
 
 | Route | File | Stato |
 |---|---|---|
-| `POST /api/auth/register` | `auth.js` | ✅ |
-| `POST /api/auth/login` | `auth.js` | ✅ |
-| `GET /api/auth/me` | `auth.js` | ✅ |
-| `GET /api/products` | `products.js` | ✅ |
-| `POST /api/orders` | `orders.js` | ✅ + Stripe verify + inventory deduct + email |
-| `GET /api/orders/my` | `orders.js` | ✅ |
-| `GET /api/admin/customers` | `customers.js` | ✅ |
-| `GET /api/shipping/zones` | `shipping.js` | ✅ |
-| `POST /api/payments/create-intent` | `payments.js` | ✅ (nuovo) |
-| `GET /api/admin/dashboard/kpis` | `dashboard.js` | ✅ |
-| `GET /api/admin/dashboard/recent-orders` | `dashboard.js` | ✅ |
+| `POST /api/auth/register` | auth.js | ✅ |
+| `POST /api/auth/login` | auth.js | ✅ |
+| `GET /api/auth/me` | auth.js | ✅ |
+| `PUT /api/auth/me` | auth.js | ✅ |
+| `POST /api/auth/forgot-password` | auth.js | ✅ |
+| `POST /api/auth/reset-password` | auth.js | ✅ |
+| `GET /api/auth/loyalty` | auth.js | ✅ |
+| `POST /api/auth/loyalty/redeem` | auth.js | ✅ |
+| `GET /api/products` | products.js | ✅ filtri: categoria/colore/saldi/novita/collection |
+| `GET /api/products/:id` | products.js | ✅ con taglie + stock |
+| `POST /api/orders` | orders.js | ✅ Stripe verify + stock check + stock deduct + email |
+| `POST /api/orders/validate-discount` | orders.js | ✅ preview codice sconto |
+| `GET /api/orders/my` | orders.js | ✅ richiede login |
+| `GET /api/orders/my/:id` | orders.js | ✅ dettaglio ordine cliente |
+| `GET /api/orders/track` | orders.js | ✅ lookup pubblico per numero + email (guest) |
+| `POST /api/payments/create-intent` | payments.js | ✅ |
+| `GET /api/payments/config` | payments.js | ✅ pk Stripe |
+| `GET /api/shipping/zones` | shipping.js | ✅ |
+| `GET /api/shipping/couriers` | shipping.js | ✅ |
+| `GET /api/reviews/product/:id` | reviews.js | ✅ recensioni pubblicate |
+| `POST /api/reviews` | reviews.js | ✅ submit recensione |
+| `POST /api/resi/request` | resi-public.js | ✅ richiesta reso self-service |
+| `POST /api/newsletter/subscribe` | newsletter.js | ✅ |
+| `/api/cms/published/*` | cms.js | ✅ pagine pubbliche CMS |
+| Tutti gli endpoint `/api/admin/*` | vari | ✅ 50+ endpoint admin |
+
+**Gap backend:** nessuno.
 
 ---
 
-## 4. Catalogo prodotti — ✅ Completamente dinamico (Giugno 2026)
+## 4. Catalogo prodotti — ✅ Completamente dinamico
 
-**Stato:** ✅ **Ogni superficie del catalogo legge live dal database via API. Niente è più hardcoded.**
+**Stato:** ✅ Tutte le superfici leggono dall'API.
 
-`shop.html` carica i prodotti via `GET /api/products` (`initShopCatalog()`). `index.html` ("Nuovi Arrivi") via `?novita=1`. `search.html` via `MemiAPI.products.list()`. `product.html` via `GET /api/products/:id`.
-
-**Risolto il gap delle pagine statiche** — introdotto `catalog-loader.js`, un loader condiviso (strategia 2 sotto) usato da:
-
-| Pagina | Prima | Ora |
-|---|---|---|
-| `collections/{slug}/index.html` (15) | card + `resultCount` hardcoded | `GET /api/products?collection={slug}`, card + conteggi reali |
-| `estate-2025.html` | 12 card statiche | `?collection=estate-2025`, filtro per categoria live |
-| `best-seller.html` | 11 card statiche | `GET /api/products` ordinati per popolarità (top‑3 + resto) |
-| `products/{slug}/index.html` (23) | dettaglio pre‑renderizzato da `productsData.js` | **redirect** a `/product?id={slug}` (URL invariato, `rel=canonical`, `noindex`) |
-
-Per le pagine prodotto si è scelta la **strategia 1 (redirect alla PDP dinamica canonica)** — più sicura e senza dettagli che si possano sclerotizzare; per le collezioni la **strategia 2 (loader dinamico)**, che mantiene gli URL `/collections/…` e l'esperienza editoriale.
-
-**`productsData.js` non è più una fonte di verità a runtime:** non è caricato da nessuna pagina cliente. `catalog-loader.js` ri-pubblica `window.PRODUCTS` dall'API, così nessun consumatore legacy può divergere dal DB.
-
-**Aggiornamento automatico:** un prodotto creato/modificato/eliminato dall'admin (con immagini) appare/cambia/sparisce su shop, collezione, ricerca e PDP al refresh — senza passaggi manuali.
-
-**Verifica:** vedi `MEMI-Backend/test/` (integrazione + immagini) e `e2e/` (Playwright, round‑trip end‑to‑end); più la sezione [7] del `smoke-test.sh`.
+- `shop.html` → `GET /api/products` (filtri multipli)
+- `product.html` → `GET /api/products/:id` (con taglie + stock)
+- `collections/{slug}/` → `GET /api/products?collection={slug}` via `catalog-loader.js`
+- `best-seller.html` → `GET /api/products` ordinati per popolarità
+- Immagini: upload admin → sharp → WebP → `/api/uploads/` → mostrate su shop, PDP, ricerca, drawer
+- `productsData.js` non è più caricato da nessuna pagina cliente
 
 ---
 
 ## 5. Gestione ordini — ✅ Ciclo di vita completo
 
-**Stato:** ✅ Implementato (Giugno 2026)
+**Stato:** ✅ Implementato
 
-Flusso completo quando un cliente fa un ordine:
-1. Stripe addebita la carta tramite PaymentIntent
-2. `MemiAPI.orders.place()` → `POST /api/orders` verifica il PaymentIntent
-3. Ordine salvato in DB (`orders` + `order_items`)
-4. Inventario scalato per ogni variante ordinata (`UPDATE product_sizes SET stock = stock - qty`)
-5. Email di conferma inviata al cliente (`email.js` + nodemailer)
-6. L'admin vede il nuovo ordine nella vista Ordini (dati reali)
+1. Stripe addebita la carta → verifica server-side
+2. Stock verificato per taglia prima di accettare l'ordine (400 se insufficiente)
+3. `POST /api/orders` → DB: orders + order_items + discount_usage
+4. Stock scalato per ogni variante (`GREATEST(0, stock - qty)`)
+5. Email conferma ordine inviata al cliente
+6. Admin vede l'ordine in tempo reale
+7. Admin spedisce → email tracking al cliente con link corriere
+8. Rimborso: admin clicca "Rimborsa via Stripe" → `POST /api/admin/resi/:id/refund`
 
----
-
-## 6. Email e notifiche — ✅ Implementato completamente
-
-**Stato:** ✅ Tutte le email implementate (Giugno 2026)
-
-| Funzione | Trigger | Stato |
-|---|---|---|
-| Conferma ordine | `POST /api/orders` (dopo acquisto) | ✅ |
-| Spedizione + tracking | `PUT /api/orders/admin/:id/ship` | ✅ |
-| Benvenuto alla registrazione | `POST /api/auth/register` | ✅ |
-| Reset password | `POST /api/auth/forgot-password` | ✅ |
-
-- Tutte le funzioni sono in `src/email.js` — esportate singolarmente
-- Silenziosamente non-operative se `SMTP_USER` non impostato
-- Flusso reset password: JWT a 1 ora → `reset-password.html` frontend → `POST /api/auth/reset-password`
-- Newsletter: `POST /api/newsletter/subscribe` salva in tabella `newsletter_subscribers`
-
-**Env vars richiesti:** `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`
+**Gap:** nessuno.
 
 ---
 
-## 7. Autenticazione cliente — ✅ Completo
+## 6. Email — ✅ Completamente implementate
 
-**Stato:** ✅ Implementato (Giugno 2026)
+**Stato:** ✅ Tutte le email implementate in `src/email.js`
 
-- Register, login, me, updateMe — tutti funzionanti con JWT
-- Email di benvenuto inviata alla registrazione
-- Recupero password: `POST /api/auth/forgot-password` → JWT 1h → `reset-password.html` → `POST /api/auth/reset-password`
+| Trigger | Email |
+|---|---|
+| `POST /api/orders` (pagato) | Conferma ordine al cliente |
+| `PUT /api/admin/orders/:id/ship` o `POST /api/shipping/shipments` | Tracking + link corriere |
+| `POST /api/auth/register` | Benvenuto cliente |
+| `POST /api/auth/forgot-password` | Reset password (JWT 1h) |
 
----
-
-## 8. Tracking ordini — ✅ Parzialmente implementato
-
-**Stato:** ✅ Tracking in account.html (Giugno 2026)
-
-- `account.html` mostra i propri ordini con status badge
-- Quando `order_status = 'spedito'` e `tracking_number` esiste, appare il row tracking con corriere + numero
-- API `/api/orders/my` già restituisce `tracking_number` e `courier_code`
-- Email di spedizione inviata automaticamente quando admin clicca "Spedisci" nel pannello
-
-**Ancora mancanti:**
-- Pagina tracking pubblica (senza login) per guest orders
-- Timeline visiva dello stato (In attesa → In preparazione → Spedito → Consegnato)
-- Gestione resi self-service
+- Silent no-op se `SMTP_USER` non impostato
+- `FRONTEND_URL` usato nei link email (reset password, conferma ordine)
 
 ---
 
-## 9. Inventario — ✅ Deducibile su acquisto
+## 7. Autenticazione — ✅ Completa
 
-**Stato:** ✅ Parzialmente implementato (Giugno 2026)
+**Stato:** ✅ JWT per clienti + admin separati.
 
-- `product_sizes` table contiene `stock` per variante taglia
-- `POST /api/orders` deduce stock per ogni item ordinato: `UPDATE product_sizes SET stock = stock - qty WHERE product_id=? AND taglia=?`
-- Ancora mancanti: alert "esaurito" automatico nella UI, blocco acquisto se stock = 0
-
----
-
-## 10. Upload immagini admin — ✅ Implementato (correzione: la nota precedente era errata)
-
-**Stato:** ✅ Implementato e verificato.
-
-> Questa sezione affermava per errore "Assente". Il codice dice il contrario (vedi `DEPLOYMENT.md` Phase 6). Pipeline reale:
-
-- **Ricezione:** `multer` (memory storage), campo `images`, limite `MAX_UPLOAD_MB` (default 8 MB), max 10 file, solo `image/*` → `MEMI-Backend/src/routes/products.js`.
-- **Elaborazione:** `sharp` genera varianti WebP responsive `thumb`/`card`/`full`, auto‑orienta da EXIF, nomi con hash del contenuto (idempotente) → `MEMI-Backend/src/images.js`.
-- **Storage:** volume Docker `uploads_data` montato su `UPLOADS_DIR` (`/app/uploads`).
-- **Serving:** `express.static` su `GET /api/uploads/<file>` (passa dal proxy nginx `/api`, niente CORS).
-- **Endpoint:** `POST /api/products/:id/images` (upload), `DELETE /api/products/:id/images` (rimuove URL + file). Il `images` JSON del prodotto referenzia gli URL.
-- **Admin UI:** `AdminAPI.products.uploadImages()` (FormData) in `MEMI/js/admin-api.js`.
-- **Verifica:** test immagini in `MEMI-Backend/test/catalog.test.mjs` (upload → 200 + `content-type: image/webp` → referenziato nel JSON) e sezione [7] di `smoke-test.sh`.
+- Clienti: `memi_token` in localStorage, `requireCustomer` middleware
+- Admin: `memi_admin_token` in localStorage, `requireAdmin` middleware
+- Admin bootstrap da env (`ADMIN_EMAIL`/`ADMIN_PASSWORD`) con warning se default attive
+- Reset password: JWT 1h → `reset-password.html` → `POST /api/auth/reset-password`
 
 ---
 
-## 11. Pagine orfane o incomplete
+## 8. Tracking ordini — ✅ Completo
 
-| Pagina | Problema | Stato |
-|---|---|---|
-| `campagne.html` | Orfa​na | ✅ Redirect a editoriali.html via meta-refresh |
-| `account.html` | Esisteva senza tracking | ✅ Ora mostra tracking spedizione |
-| `size-guide.html` | Non esisteva | ✅ Creata con tabelle IT/EU/FR/UK/US |
-| `reset-password.html` | Non esisteva | ✅ Creata (flusso reset password) |
-| `order-tracking.html` | Non esiste (guest tracking) | ❌ Ancora mancante |
-| `returns.html` | Non esiste | ❌ Ancora mancante |
-| `product.html` (root) | Orfa​no, query param ?id= | ❌ Ancora orfano |
+**Stato:** ✅ Sia per clienti loggati che per guest.
 
----
-
-## 12. Recensioni prodotto — Assenti
-
-**Stato:** ❌ Non implementato
-
-Nessuna sezione recensioni nelle schede prodotto. Mancano:
-- UI per lasciare recensione
-- Backend per salvarle
-- Moderazione admin
+**Funzionante:**
+- `GET /api/orders/my` restituisce `tracking_number` + `courier_code` per ogni ordine
+- `account.html` mostra il badge tracking con link corriere
+- Email spedizione inviata automaticamente con tracking
+- `GET /api/orders/track?number=XXX&email=YYY` — lookup pubblico senza login; include `tracking_url` costruita dal template corriere
+- `order-tracking.html` — pagina pubblica con form numero+email, timeline visiva 4 stati, sezione tracking corriere con link, griglia info ordine
 
 ---
 
-## 13. Sincronizzazione `productsData.js`
+## 9. Inventario — ✅ Completo
 
-**Stato:** ⚠️ Rischio
+**Stato:** ✅ Stock enforced sia lato acquisto che lato UI.
 
-✅ **Risolto (Giugno 2026).** `productsData.js` è stato **abbandonato come fonte di verità a runtime**: nessuna pagina cliente lo carica. Tutte le superfici leggono dall'API e `catalog-loader.js` ri-pubblica `window.PRODUCTS` dal DB, eliminando ogni possibilità di drift. Il file resta solo come input opzionale per gli script di build `scripts/generate-*.js` (ora superflui).
-
----
-
-## 14. Problemi tecnici minori
-
-- **`app.js` versioning:** `?v=9` nei file HTML — aggiornare se si modifica app.js. Il catalogo dinamico è in `catalog-loader.js?v=1` (file separato), quindi non ha richiesto modifiche a `app.js`.
-- **Immagini:** upload admin implementato (sharp→WebP, `/api/uploads/…`); i prodotti seed usano ancora placeholder Unsplash finché non si caricano immagini reali.
-- **SEO:** ✅ index.html e shop.html hanno og:tags + JSON-LD; le PDP statiche `products/{slug}/` ora reindirizzano alla PDP dinamica (`noindex` + `canonical`).
-- **Performance:** tutte le superfici catalogo caricano da API; `productsData.js` non più caricato a runtime da nessuna pagina.
-- **Admin mobile:** ✅ `MEMI/css/style.css` ha breakpoint 600px (bottom nav) + 600–920px (collapsed sidebar)
-- **Newsletter:** ✅ `POST /api/newsletter/subscribe` + tabella DB; il form footer di shop.html è cablato; altri footer (iniettati da app.js) ancora non cablati
+- `product_sizes` table: stock per variante taglia
+- Admin può aggiornare stock per taglia
+- `POST /api/orders` controlla `stock >= qty` per taglia prima di accettare (→ 400 se insufficiente)
+- `POST /api/orders` scala lo stock: `UPDATE product_sizes SET stock = GREATEST(0, stock - qty)`
+- `GET /api/products/:id` restituisce le taglie con il relativo stock
+- `product.html` già renderizza taglie con `stock <= 0` come pulsante `oos` (disabilitato, barrato) nella funzione `hydrate()`
 
 ---
 
-## Priorità suggerite
+## 10. Upload immagini admin — ✅ Completo
 
-### ✅ Sprint 1 — Risolto (Giugno 2026)
-1. ~~Pagamenti reali (Stripe)~~ → **✅ Stripe Elements + PaymentIntent**
-2. ~~Salvataggio ordini nel backend~~ → **✅ orders.js completo**
-3. ~~Email conferma ordine~~ → **✅ nodemailer in email.js**
-4. ~~Autenticazione cliente~~ → **✅ JWT implementato**
-5. ~~Admin dati reali~~ → **✅ _origRenderView pattern**
-6. ~~Inventario deducibile~~ → **✅ stock decrementato su acquisto**
+**Stato:** ✅ Implementato e funzionante.
 
-### ✅ Sprint 2 — Risolto (Giugno 2026)
-7. ~~Catalogo dinamico shop.html~~ → **✅ API-driven con initShopCatalog()**
-8. ~~Email spedizione con tracking~~ → **✅ sendShippingConfirmation()**
-9. ~~Recupero password~~ → **✅ forgot/reset con JWT 1h + reset-password.html**
-10. ~~Email di benvenuto~~ → **✅ sendWelcomeEmail() su register**
-11. ~~Tracking ordini in account~~ → **✅ courier + tracking_number visualizzati**
-12. ~~Newsletter backend~~ → **✅ POST /api/newsletter/subscribe + tabella DB**
-13. ~~Guida taglie~~ → **✅ size-guide.html creata**
-14. ~~SEO meta tags~~ → **✅ og:tags + JSON-LD su index/shop/PDP**
-15. ~~Admin mobile~~ → **✅ breakpoint 600px bottom nav in style.css**
-
-### 🟠 Prossimo sprint — ancora mancanti
-- Catalogo dinamico per le 15 collections/ (ancora statiche)
-- Upload immagini nel pannello admin (campo `images` JSON va impostato manualmente)
-- Tracking pubblico guest (senza login) — `order-tracking.html`
-- Gestione resi self-service
-- Recensioni prodotto (UI + backend + moderazione)
-- SEO per i rimanenti 22 PDP (copiare template da vestito-lino-cannes)
-- Newsletter nell'header/footer iniettato da app.js (ora solo shop.html è cablato)
+- **Ricezione:** `multer` (memory), campo `images`, max `MAX_UPLOAD_MB` (default 8 MB), max 10 file
+- **Elaborazione:** `sharp` → WebP responsive (`thumb`/`card`/`full`), auto-orienta da EXIF, nomi hash-content
+- **Storage:** volume Docker `uploads_data` montato su `UPLOADS_DIR` (`/app/uploads`)
+- **Serving:** `express.static` su `GET /api/uploads/<file>` (immutable, 365d cache)
+- **Admin UI:** `AdminAPI.products.uploadImages()` (FormData) in `admin-api.js`
+- Immagini mostrate su: shop grid, PDP, ricerca, cart drawer, wishlist drawer
 
 ---
 
-## Aggiornamento Luglio 2026 — Sprint deploy-readiness
+## 11. Pagine storefront — ✅ Tutte le pagine complete
 
-> Correzioni di correttezza e sicurezza prima del deploy su Hetzner. Dettaglio completo in
-> `CHANGES-DEPLOY-READY.md`; verifica con `bash verify/run.sh` (36/36 JS ok, 14/14 contract,
-> 6/6 simulazioni ordine).
+| Pagina | Stato |
+|---|---|
+| `index.html` | ✅ Completa con SEO JSON-LD |
+| `shop.html` | ✅ Catalogo dinamico con filtri |
+| `product.html` | ✅ PDP completa + sezione recensioni (display + form submit) |
+| `checkout.html` | ✅ Stripe Elements + discount code + order |
+| `account.html` | ✅ Storico ordini + tracking |
+| `returns.html` | ✅ Policy + form self-service (chiama `/api/resi/request`) |
+| `order-tracking.html` | ✅ Ricerca ordine per numero + email + timeline stati + link corriere |
+| `forgot-password.html` | ✅ Completa |
+| `reset-password.html` | ✅ Completa |
+| `size-guide.html` | ✅ Guida taglie IT/EU/FR/UK/US |
+| `about.html` | ✅ Pagina chi siamo |
+| `privacy.html` | ✅ Privacy policy |
+| `blog.html` | ✅ Lista articoli blog (CMS) |
+| `articolo.html` | ✅ Dettaglio articolo blog |
+| `404.html` | ✅ Pagina 404 |
+| `editoriali.html` + 3 editoriali | ✅ Redesign luglio 2026 |
+| `collections/` (15 pagine) | ✅ Dinamiche via catalog-loader.js |
+| `best-seller.html` | ✅ Dinamica |
+| `estate-2025.html` | ✅ Dinamica |
 
-**Corretto il motivo per cui il pannello admin sembrava rotto:** gli ordini pagati restavano
-`payment_status='in_attesa'` anche dopo Stripe, e dashboard/finanza/top-products filtrano `pagato`
-→ fatturato a ~zero. Ora un PaymentIntent verificato imposta `payment_status='pagato'`.
+---
 
-**Corretta la connessione e-commerce↔backend:** `api-client.js` chiamava percorsi errati
-(`/orders`, `/reviews?product_id=`, `/resi`) → storico ordini, recensioni PDP e resi non
-funzionavano. Ora `/orders/my`, `/reviews/product/:id`, `/resi/request`.
+## 12. Recensioni prodotto — ✅ Completo
 
-**Sicurezza checkout:** i prezzi delle righe sono ri-risolti dal DB (niente prezzi falsificabili) e
-l'importo dello Stripe PaymentIntent è verificato contro il totale server; `payment_intent_id` è
-UNIQUE (niente replay).
+**Stato:** ✅ Backend + UI sulla PDP.
 
-**Admin:** pulsante "Invia tracking" ora visibile (`openModal` con footer); rami `renderView`
-duplicati rimossi (analytics si aggiorna, stati di caricamento CMS corretti); "Nuovo reso"
-funziona anche su navigazione diretta; `statusLabel` completo (resi/fatture/recensioni).
+- `POST /api/reviews` — submit recensione (pubblica, opzionalmente autenticata)
+- `GET /api/reviews/product/:id` — recensioni pubblicate per un prodotto
+- `MemiAPI.reviews.forProduct(id)` e `MemiAPI.reviews.submit(data)` in `api-client.js`
+- Admin: lista + pubblica/rifiuta + risposta admin
+- `product.html`: sezione `#reviews` con riepilogo (rating medio + conteggio), elenco recensioni con stelle, eventuali risposte admin, form submit (stelle, nome, email, titolo, testo); recensioni caricate dopo `hydrate(p)` via `loadReviews(p.id)`
 
-**Validazione input:** ordini, `PUT /auth/me`, sconti PUT restituiscono 4xx invece di 500.
+**Ancora mancante:**
+- ⚠️ Rating medio non mostrato nella card prodotto nelle griglie (richiederebbe un secondo campo nel `GET /api/products` o un join aggregato)
 
-**Deploy:** bootstrap admin via `ADMIN_EMAIL`/`ADMIN_PASSWORD` con avviso di sicurezza se restano
-le credenziali di default; `invoices.order_id` UNIQUE.
+---
 
-**Ancora aperto (fuori scope):** immagini reali su ricerca/drawer (cosmetico), chat backend,
-analytics reali, riscatto gift card al checkout, resi self-service, UI recensioni.
+## 13. Newsletter — ✅ Cablata su tutte le pagine
+
+**Stato:** ✅ Form presente e wired in tutte le pagine tramite il footer iniettato.
+
+- `POST /api/newsletter/subscribe` — salva in `newsletter_subscribers`
+- `app.js` `injectFooter()` ora include un form `.newsletter-form` nella sezione `.sf2-brand`
+- `wireNewsletterForms()` (già esistente in `app.js`) si aggancia automaticamente al form iniettato
+- Admin lista iscritti
+
+---
+
+## 14. Gift cards — ⚠️ Solo admin CRUD
+
+**Stato:** ⚠️ Admin può creare/gestire gift card, ma non sono riscattabili al checkout.
+
+- `gift_cards` table: `code`, `balance`, `stato`
+- `GET/POST/PUT/DELETE /api/admin/giftcards` — admin CRUD
+- ❌ Nessun endpoint di validazione pubblica (`GET /api/giftcards/validate/:code`)
+- ❌ Checkout non supporta riscatto gift card
+- ❌ Nessuna email di consegna gift card
+
+---
+
+## 15. Infrastruttura & Hetzner — ✅ Pronta per il deploy
+
+**Stato:** ✅ Hardened e verificata.
+
+**Implementato:**
+- `docker-compose.yml`: 4 servizi (mysql, backend, ecommerce, admin), health-check, restart policies, volumi persistenti
+- Traefik TLS (Let's Encrypt) via Coolify — HSTS gestito da Traefik a livello proxy
+- Backend: helmet, CORS, rate-limiting Express, graceful shutdown SIGTERM
+- Schema self-heal a ogni boot (`db/migrations.js`)
+- Admin bootstrap da env con warning default credentials
+- `uploads_data` volume separato per immagini prodotto
+- `verify/run.sh` per verifica sintassi + contract + ordine simulato
+- `nginx.conf` storefront: `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, gzip
+- `nginx.conf` admin: stessi header corretti in ogni location block (fix: nginx ignora header a livello server se il location block ne definisce di propri)
+
+**Da fare prima del go-live (operativo, non codice):**
+- ⚠️ `ADMIN_EMAIL`/`ADMIN_PASSWORD` da impostare in Coolify
+- ⚠️ `FRONTEND_URL` da impostare per link corretti nelle email
+- ⚠️ Script backup DB (crontab) — template documentato in `docs/PRODUCTION-READINESS.md §6`
+
+---
+
+## Stato sprint Luglio 2026 — tutto completato
+
+### ✅ Sprint 1 (deploy-readiness)
+- Stripe payment → `pagato`, prezzo re-risolto da DB, replay protection
+- Input validation 4xx, admin bootstrap, loyalty ledger
+- API path fix (ordini/recensioni/resi)
+- Design footer, editoriali, SEO JSON-LD, robots.txt, sitemap.xml
+
+### ✅ Sprint 2 (feature-completeness + hardening)
+- `GET /api/orders/track` + `order-tracking.html` con timeline visiva
+- Stock check pre-ordine in `POST /api/orders`
+- Sezione recensioni completa su `product.html`
+- Newsletter form nel footer iniettato (tutte le pagine)
+- Link "Traccia il tuo ordine" nel footer
+- Nginx: `Referrer-Policy` + `Permissions-Policy` in entrambi i config
+
+### 🟡 Nice to have (future sprint)
+1. Gift card riscatto al checkout + email invio
+2. GA4 integration per analytics traffico
+3. Timeline visiva stati ordine in `account.html`
+4. Rating medio prodotto nelle card griglia
+5. Courier API esterna per tracking real-time

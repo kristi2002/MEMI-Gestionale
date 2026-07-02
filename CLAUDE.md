@@ -51,8 +51,8 @@ So Stripe/SMTP can stay unset for most work; don't add fake keys to make them "w
 - **Cache busting:** `app.js` is referenced with `?v=N`. Storefront: ~56 HTML files;
   admin: `dashboard.html`. nginx serves JS as `immutable`. **If you edit `app.js`,
   bump `?v=N` everywhere it's referenced or changes won't show.** Then hard-refresh.
-- **`productsData.js` is a static source of truth** for search/cart/wishlist and is
-  NOT auto-synced with the DB. Editing the catalog in admin does not update it.
+- **`productsData.js` is no longer used at runtime** — all catalog pages read from the API via
+  `catalog-loader.js`. The file remains in the repo but is not loaded by any customer-facing page.
 - **Static `collections/` pages** (and `best-seller.html`, `estate-2025.html`,
   `products/{slug}/`) have hardcoded card counts that drift from the real catalog.
   `scripts/generate-collections.js` / `generate-products.js` regenerate them from
@@ -85,30 +85,27 @@ trust a single doc.
 
 ---
 
-## Update Luglio 2026 (deploy-readiness sprint)
+## Update Luglio 2026 — Sprint 2 (feature-completeness + hardening)
 
-Current cache-bust versions: storefront `app.js?v=11`, `api-client.js?v=3`; admin `app.js?v=22`,
-`admin-api.js?v=15`. If you touch these files, bump the version everywhere they're referenced and
-run `bash verify/run.sh`.
+**Cache-bust versions (verified):** storefront `app.js?v=13`, `api-client.js?v=3`; admin
+`app.js?v=23`, `admin-api.js?v=15`. Bump the version when editing these files and run
+`bash verify/run.sh`.
 
-Key correctness facts now true in the code (were bugs before — see `CHANGES-DEPLOY-READY.md`):
-- A verified Stripe payment sets `orders.payment_status='pagato'`; the admin dashboard reads only
-  `pagato` rows, so this is what makes revenue show up.
-- Checkout re-resolves line prices from `products` and verifies the Stripe amount vs the total;
-  `orders.payment_intent_id` is UNIQUE.
-- Storefront API paths: order history `/orders/my`, reviews `/reviews/product/:id`, returns
-  `/resi/request`.
-- Admin bootstrap via `ADMIN_EMAIL`/`ADMIN_PASSWORD`; default credentials trigger a startup warning.
+Key facts now true in the code (both sprints combined):
+- A verified Stripe payment sets `orders.payment_status='pagato'`; dashboard/finance filter `pagato`.
+- Checkout re-resolves line prices from `products`; Stripe amount verified vs server total; `payment_intent_id` UNIQUE.
+- Storefront API paths: order history `/orders/my`, reviews `/reviews/product/:id`, returns `/resi/request`.
+- Admin bootstrap via `ADMIN_EMAIL`/`ADMIN_PASSWORD`; red security warning if default credentials active.
+- `GET /api/orders/track?number=XXX&email=YYY` — public guest order tracking endpoint (no login needed).
+- `order-tracking.html` — public page for guests to look up any order by number + email.
+- `product.html` — reviews section with star display + submit form; loads `GET /reviews/product/:id`.
+- `app.js` footer now includes a newsletter form (`.newsletter-form`) auto-wired by `wireNewsletterForms()`.
+- `app.js` Supporto footer column now links to `/order-tracking`.
+- `POST /api/orders` checks stock before accepting (rejects with 400 if taglia unavailable).
+- Both `nginx.conf` files: `Referrer-Policy` + `Permissions-Policy` added; `X-Frame-Options`, gzip already present.
+- `product.html` already renders OOS sizes with class `oos` (disabled, strikethrough) via `hydrate()`.
 
-**Verification:** `bash verify/run.sh` (syntax + version + route contract + mock-pool order-flow
-simulation). `run-live.sh` hits a running stack.
+**Verification:** `bash verify/run.sh` exits 0 — 36/36 JS syntax, version consistency, 14 route-contract checks, 6/6 order-flow simulations.
 
-**Environment gotcha (this sandbox):** host↔sandbox file sync lags; files changed by the host-side
-editor can read truncated/stale in the Linux sandbox and to `git`, and a whole-file `sed -i` over
-such a file can write the truncation back. Safe pattern: `git show HEAD:<path>` → edit in `/tmp` →
-copy back. Appends and `git show` are safe.
-
-**Storefront design + SEO (Luglio 2026):** footer spacing, editoriali light redesign, SEO
-(`robots.txt`, `sitemap.xml`, homepage `WebSite`/`SearchAction` + dynamic `Product` JSON-LD in
-`product.html`), and the added `--space-7` token — recorded in `CHANGES-DESIGN-SEO.md`.
-Cache reminder: the footer fix needs `app.js?v=11` → `?v=12` bumped across the storefront HTML.
+**productsData.js** is no longer a runtime source of truth — all catalog surfaces read from the API.
+The file still exists for reference but is not loaded by any customer-facing page.

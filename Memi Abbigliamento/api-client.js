@@ -168,6 +168,11 @@
 
     /** Single order detail for the logged-in customer. */
     myOrder: function(id) { return get('/orders/my/' + encodeURIComponent(id)); },
+
+    /** Public order lookup — no login required. Needs order number + email. */
+    track: function(orderNumber, email) {
+      return get('/orders/track?number=' + encodeURIComponent(orderNumber) + '&email=' + encodeURIComponent(email));
+    },
   };
 
   /* ═══════════════════════════════════════════════════════

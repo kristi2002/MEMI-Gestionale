@@ -542,6 +542,94 @@
     </div><!-- /pdp-grid -->
   </main>
 
+  <!-- ── Reviews ── -->
+  <section class="pdp-reviews" id="reviews" aria-label="Recensioni del prodotto">
+    <div class="pdp-reviews-inner">
+      <div class="rev-header">
+        <h2 class="rev-title">Recensioni</h2>
+        <div id="revSummary" class="rev-summary"></div>
+      </div>
+
+      <div id="revList" class="rev-list" aria-live="polite"></div>
+
+      <div class="rev-form-wrap">
+        <h3 class="rev-form-title">Lascia una recensione</h3>
+        <form id="revForm" class="rev-form" novalidate>
+          <div class="rev-field">
+            <label class="rev-label">Valutazione <span class="rev-req">*</span></label>
+            <div class="rev-stars-input" id="revStarsInput" role="radiogroup" aria-label="Seleziona valutazione">
+              <button type="button" class="rev-star-btn" data-v="1" aria-label="1 stella">★</button>
+              <button type="button" class="rev-star-btn" data-v="2" aria-label="2 stelle">★</button>
+              <button type="button" class="rev-star-btn" data-v="3" aria-label="3 stelle">★</button>
+              <button type="button" class="rev-star-btn" data-v="4" aria-label="4 stelle">★</button>
+              <button type="button" class="rev-star-btn" data-v="5" aria-label="5 stelle">★</button>
+            </div>
+            <input type="hidden" id="revRating" value="" />
+          </div>
+          <div class="rev-field">
+            <label for="revNome" class="rev-label">Nome <span class="rev-req">*</span></label>
+            <input type="text" id="revNome" class="rev-input" placeholder="Il tuo nome" autocomplete="name" required />
+          </div>
+          <div class="rev-field">
+            <label for="revEmail" class="rev-label">Email <span class="rev-req">*</span></label>
+            <input type="email" id="revEmail" class="rev-input" placeholder="La tua email (non pubblicata)" autocomplete="email" required />
+          </div>
+          <div class="rev-field">
+            <label for="revTitolo" class="rev-label">Titolo</label>
+            <input type="text" id="revTitolo" class="rev-input" placeholder="es. Qualità eccellente" maxlength="120" />
+          </div>
+          <div class="rev-field">
+            <label for="revTesto" class="rev-label">Recensione</label>
+            <textarea id="revTesto" class="rev-textarea" placeholder="Descrivi la tua esperienza con questo prodotto…" rows="4" maxlength="1500"></textarea>
+          </div>
+          <div id="revFormMsg" class="rev-form-msg" role="alert" aria-live="polite"></div>
+          <button type="submit" class="rev-submit-btn" id="revSubmitBtn">Invia recensione</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .pdp-reviews{background:var(--cream,#FAF8F4);border-top:1px solid var(--beige,#E8E4DC);padding:4rem 0 4.5rem;}
+    .pdp-reviews-inner{max-width:1280px;margin:0 auto;padding:0 var(--space-6,2rem);display:grid;grid-template-columns:1fr 400px;gap:4rem;align-items:start;}
+    @media(max-width:900px){.pdp-reviews-inner{grid-template-columns:1fr;gap:2.5rem;}}
+    .rev-header{grid-column:1/-1;}
+    .rev-title{font-family:var(--font-serif,'Cormorant Garamond',serif);font-size:clamp(1.6rem,3vw,2.2rem);font-weight:300;color:var(--espresso,#3B2B2B);margin-bottom:.5rem;}
+    .rev-summary{font-size:.85rem;color:var(--brown-mid,#7A6B6B);}
+    .rev-list{display:flex;flex-direction:column;gap:1.5rem;min-height:60px;}
+    .rev-empty{font-size:.88rem;color:var(--brown-light,#9e8a8a);font-style:italic;padding:.5rem 0;}
+    .rev-item{border-bottom:1px solid var(--beige,#E8E4DC);padding-bottom:1.5rem;}
+    .rev-item:last-child{border-bottom:none;}
+    .rev-item-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.4rem;flex-wrap:wrap;}
+    .rev-author{font-size:.83rem;font-weight:600;color:var(--espresso,#3B2B2B);}
+    .rev-date{font-size:.75rem;color:var(--brown-light,#9e8a8a);}
+    .rev-stars{color:var(--blush-dark,#C48991);letter-spacing:2px;font-size:.95rem;}
+    .rev-star-empty{opacity:.25;}
+    .rev-item-title{font-size:.9rem;font-weight:600;color:var(--espresso,#3B2B2B);margin-bottom:.3rem;}
+    .rev-item-text{font-size:.85rem;color:var(--brown-mid,#7A6B6B);line-height:1.6;}
+    .rev-admin-reply{background:var(--lavender-light,#EAE7F4);border-left:3px solid var(--blush-dark,#C48991);margin-top:.75rem;padding:.6rem .9rem;border-radius:0 4px 4px 0;}
+    .rev-admin-reply-label{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--blush-dark,#C48991);font-weight:600;margin-bottom:.2rem;}
+    .rev-admin-reply-text{font-size:.82rem;color:var(--espresso,#3B2B2B);line-height:1.5;}
+    .rev-form-wrap{background:#fff;border:1px solid var(--beige,#E8E4DC);border-radius:8px;padding:2rem;}
+    .rev-form-title{font-family:var(--font-serif,'Cormorant Garamond',serif);font-size:1.3rem;font-weight:300;color:var(--espresso,#3B2B2B);margin-bottom:1.5rem;}
+    .rev-form{display:flex;flex-direction:column;gap:1.1rem;}
+    .rev-field{display:flex;flex-direction:column;gap:.35rem;}
+    .rev-label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid,#7A6B6B);font-weight:500;}
+    .rev-req{color:var(--blush-dark,#C48991);}
+    .rev-input,.rev-textarea{border:1px solid var(--border,#DDD9D0);border-radius:4px;padding:.6rem .85rem;font-size:.88rem;font-family:var(--font-sans,'DM Sans',sans-serif);color:var(--espresso,#3B2B2B);background:var(--cream,#FAF8F4);outline:none;transition:border-color .2s;}
+    .rev-input:focus,.rev-textarea:focus{border-color:var(--espresso,#3B2B2B);}
+    .rev-textarea{resize:vertical;min-height:90px;}
+    .rev-stars-input{display:flex;gap:.1rem;}
+    .rev-star-btn{background:none;border:none;font-size:1.6rem;cursor:pointer;color:var(--beige-dark,#C0B9D9);line-height:1;padding:0 .1rem;transition:color .15s;}
+    .rev-star-btn.active,.rev-star-btn:hover,.rev-star-btn.hovered{color:var(--blush-dark,#C48991);}
+    .rev-form-msg{font-size:.83rem;border-radius:4px;padding:.6rem .85rem;display:none;}
+    .rev-form-msg.ok{display:block;background:#e8f8ee;color:#1a6a38;border:1px solid #b3e0c0;}
+    .rev-form-msg.err{display:block;background:#fdf0f0;color:#a94442;border:1px solid #f5c6c6;}
+    .rev-submit-btn{align-self:flex-start;padding:.7rem 2rem;background:var(--espresso,#3B2B2B);color:#fff;border:none;border-radius:99px;font-family:var(--font-sans,'DM Sans',sans-serif);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s;}
+    .rev-submit-btn:hover{background:var(--blush-dark,#C48991);}
+    .rev-submit-btn:disabled{opacity:.5;cursor:not-allowed;}
+  </style>
+
   <!-- ── Related Products ── -->
   <section class="related">
     <h2 class="related-title">Ti potrebbe <em>piacere</em></h2>
@@ -818,13 +906,183 @@
         if (!id) { notFound(); return; }
         fetch('/api/products/' + encodeURIComponent(id))
           .then(function (r) { if (!r.ok) throw new Error('not found'); return r.json(); })
-          .then(function (p) { if (!p || !p.id) { notFound(); return; } hydrate(p); injectSeo(p); })
+          .then(function (p) { if (!p || !p.id) { notFound(); return; } hydrate(p); injectSeo(p); loadReviews(p.id); })
           .catch(function () { notFound(); });
       });
+    })();
+
+    /* ── Reviews ── */
+    (function () {
+      'use strict';
+      var currentProductId = null;
+      var selectedRating = 0;
+
+      function starsHtml(rating, empty) {
+        var out = '';
+        for (var i = 1; i <= 5; i++) {
+          out += i <= rating
+            ? '<span class="rev-star">★</span>'
+            : '<span class="rev-star rev-star-empty">★</span>';
+        }
+        return '<span class="rev-stars">' + out + '</span>';
+      }
+
+      function formatDate(d) {
+        return new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+      }
+
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      function renderReviews(reviews) {
+        var list = document.getElementById('revList');
+        var summary = document.getElementById('revSummary');
+        if (!list) return;
+
+        if (!reviews || reviews.length === 0) {
+          list.innerHTML = '<p class="rev-empty">Nessuna recensione ancora. Sii la prima a condividere la tua esperienza!</p>';
+          if (summary) summary.textContent = '';
+          return;
+        }
+
+        var total = reviews.reduce(function (s, r) { return s + (Number(r.rating) || 0); }, 0);
+        var avg = (total / reviews.length).toFixed(1);
+        if (summary) summary.innerHTML = starsHtml(Math.round(avg)) + ' <strong>' + avg + '</strong> su 5 &nbsp;·&nbsp; ' + reviews.length + ' ' + (reviews.length === 1 ? 'recensione' : 'recensioni');
+
+        list.innerHTML = reviews.map(function (r) {
+          var html = '<article class="rev-item">';
+          html += '<div class="rev-item-header">';
+          html += '<span class="rev-author">' + esc(r.customer_nome || 'Anonimo') + '</span>';
+          html += '<span class="rev-date">' + formatDate(r.created_at) + '</span>';
+          html += '</div>';
+          html += starsHtml(Number(r.rating) || 0);
+          if (r.titolo) html += '<p class="rev-item-title">' + esc(r.titolo) + '</p>';
+          if (r.testo) html += '<p class="rev-item-text">' + esc(r.testo) + '</p>';
+          if (r.risposta_admin) {
+            html += '<div class="rev-admin-reply"><div class="rev-admin-reply-label">Risposta di Memi</div>';
+            html += '<div class="rev-admin-reply-text">' + esc(r.risposta_admin) + '</div></div>';
+          }
+          html += '</article>';
+          return html;
+        }).join('');
+      }
+
+      function loadReviews(productId) {
+        currentProductId = productId;
+        var list = document.getElementById('revList');
+        if (list) list.innerHTML = '<p class="rev-empty" style="opacity:.5;">Caricamento recensioni…</p>';
+
+        if (typeof MemiAPI !== 'undefined') {
+          MemiAPI.reviews.forProduct(productId)
+            .then(function (data) { renderReviews(Array.isArray(data) ? data : (data.reviews || [])); })
+            .catch(function () { renderReviews([]); });
+        } else {
+          fetch('/api/reviews/product/' + encodeURIComponent(productId))
+            .then(function (r) { return r.json(); })
+            .then(function (data) { renderReviews(Array.isArray(data) ? data : (data.reviews || [])); })
+            .catch(function () { renderReviews([]); });
+        }
+      }
+
+      window.loadReviews = loadReviews;
+
+      /* ── Star input ── */
+      var starBtns = document.querySelectorAll('.rev-star-btn');
+      starBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          selectedRating = parseInt(this.dataset.v, 10);
+          var ratingInput = document.getElementById('revRating');
+          if (ratingInput) ratingInput.value = selectedRating;
+          starBtns.forEach(function (b) {
+            b.classList.toggle('active', parseInt(b.dataset.v, 10) <= selectedRating);
+          });
+        });
+        btn.addEventListener('mouseenter', function () {
+          var v = parseInt(this.dataset.v, 10);
+          starBtns.forEach(function (b) {
+            b.classList.toggle('hovered', parseInt(b.dataset.v, 10) <= v);
+          });
+        });
+      });
+      var starsWrap = document.getElementById('revStarsInput');
+      if (starsWrap) {
+        starsWrap.addEventListener('mouseleave', function () {
+          starBtns.forEach(function (b) { b.classList.remove('hovered'); });
+        });
+      }
+
+      /* ── Form submit ── */
+      var form = document.getElementById('revForm');
+      if (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var msg = document.getElementById('revFormMsg');
+          var btn = document.getElementById('revSubmitBtn');
+          if (!msg || !btn) return;
+
+          var rating = parseInt(document.getElementById('revRating').value, 10);
+          var nome   = (document.getElementById('revNome').value || '').trim();
+          var email  = (document.getElementById('revEmail').value || '').trim();
+          var titolo = (document.getElementById('revTitolo').value || '').trim();
+          var testo  = (document.getElementById('revTesto').value || '').trim();
+
+          msg.className = 'rev-form-msg';
+          msg.textContent = '';
+
+          if (!rating || rating < 1 || rating > 5) {
+            msg.className = 'rev-form-msg err'; msg.textContent = 'Seleziona una valutazione prima di inviare.'; return;
+          }
+          if (!nome) {
+            msg.className = 'rev-form-msg err'; msg.textContent = 'Inserisci il tuo nome.'; return;
+          }
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            msg.className = 'rev-form-msg err'; msg.textContent = 'Inserisci un indirizzo email valido.'; return;
+          }
+          if (!currentProductId) {
+            msg.className = 'rev-form-msg err'; msg.textContent = 'Errore: prodotto non identificato. Ricarica la pagina.'; return;
+          }
+
+          btn.disabled = true;
+          btn.textContent = 'Invio in corso…';
+
+          var payload = {
+            product_id:    currentProductId,
+            rating:        rating,
+            customer_nome: nome,
+            customer_email: email,
+            titolo:        titolo || undefined,
+            testo:         testo || undefined,
+          };
+
+          var submitFn = typeof MemiAPI !== 'undefined'
+            ? MemiAPI.reviews.submit(payload)
+            : fetch('/api/reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(function (r) { return r.ok ? r.json() : r.json().then(function (d) { throw d; }); });
+
+          submitFn
+            .then(function () {
+              msg.className = 'rev-form-msg ok';
+              msg.textContent = 'Grazie! La tua recensione è stata inviata e sarà pubblicata dopo approvazione.';
+              form.reset();
+              selectedRating = 0;
+              document.getElementById('revRating').value = '';
+              starBtns.forEach(function (b) { b.classList.remove('active', 'hovered'); });
+            })
+            .catch(function (err) {
+              msg.className = 'rev-form-msg err';
+              msg.textContent = (err && err.error) ? err.error : 'Errore durante l\'invio. Riprova più tardi.';
+            })
+            .finally(function () {
+              btn.disabled = false;
+              btn.textContent = 'Invia recensione';
+            });
+        });
+      }
     })();
   </script>
 
   <script src="api-client.js?v=3"></script>
-  <script src="app.js?v=12"></script>
+  <script src="app.js?v=13"></script>
 </body>
 </html>

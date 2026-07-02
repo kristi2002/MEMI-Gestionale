@@ -2941,6 +2941,7 @@ $(function(){
         (items?'<div style="margin-top:12px"><table class="data" style="width:100%"><thead><tr><th>Prodotto</th><th>Taglia</th><th>Qty</th><th>Prezzo</th></tr></thead><tbody>'+items+'</tbody></table></div>':'')+
         '<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">'+
         '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Chiudi</button>'+
+        ((r.payment_intent_id && r.stato !== 'rimborsato') ? '<button class="btn btn-soft btn-sm js-refund-reso" data-id="'+r.id+'" data-total="'+(r.order_total||0)+'">💳 Rimborsa via Stripe</button>' : '')+
         '<button class="btn btn-primary btn-sm js-save-reso" data-id="'+r.id+'">Aggiorna reso</button></div>'
       );
     }).fail(function(){ toast('Errore caricamento reso','error'); });
@@ -2955,6 +2956,20 @@ $(function(){
     AdminAPI.resi.update(id,{stato:stato,rimborso_amount:rimborso?parseFloat(rimborso):null})
       .done(function(){ toast('Reso aggiornato','success'); closeModal(); renderView('returns'); })
       .fail(function(){ toast('Errore','error'); $btn.prop('disabled',false).text('Aggiorna reso'); });
+  });
+
+  $(document).on('click','.js-refund-reso', function(){
+    var id=$(this).data('id');
+    var total=parseFloat($(this).data('total'))||0;
+    var input=$('#resoRimborso').val();
+    var amount = input ? parseFloat(input) : total;
+    if (!(amount > 0)) amount = total;
+    if (!confirm('Emettere un rimborso Stripe di EUR '+amount.toFixed(2)+'? Operazione irreversibile.')) return;
+    var $btn=$(this);
+    $btn.prop('disabled',true).text('Rimborso...');
+    AdminAPI.resi.refund(id, amount)
+      .done(function(res){ toast('Rimborso eseguito'+((res&&res.warning)?': '+res.warning:''),'success'); closeModal(); renderView('returns'); })
+      .fail(function(xhr){ var m=(xhr.responseJSON&&xhr.responseJSON.error)||'Errore rimborso'; toast(m,'error'); $btn.prop('disabled',false).text('💳 Rimborsa via Stripe'); });
   });
 
   $(document).on('click','.js-del-reso', function(){

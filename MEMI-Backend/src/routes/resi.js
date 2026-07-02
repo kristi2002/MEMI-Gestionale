@@ -14,6 +14,11 @@ const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) return null;
+  return require('stripe')(process.env.STRIPE_SECRET_KEY);
+}
+
 /* ── GET /api/admin/resi ── */
 router.get('/', requireAdmin, async (req, res) => {
   try {
@@ -55,7 +60,8 @@ router.get('/', requireAdmin, async (req, res) => {
 router.get('/:id', requireAdmin, async (req, res) => {
   try {
     const [[reso]] = await pool.execute(
-      `SELECT r.*, o.customer_nome, o.customer_email, o.total as order_total
+      `SELECT r.*, o.customer_nome, o.customer_email, o.total as order_total,
+              o.payment_intent_id, o.payment_status
        FROM resi r LEFT JOIN orders o ON o.id = r.order_id WHERE r.id = ?`,
       [req.params.id]
     );
@@ -126,6 +132,64 @@ router.put('/:id', requireAdmin, async (req, res) => {
     return res.json({ reso });
   } catch (err) {
     console.error('update reso error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── POST /api/admin/resi/:id/refund ── issue a REAL Stripe refund for a return ──
+   Amount priority: body.amount > stored rimborso_amount > full order total (capped at total).
+   On success: marks the return 'rimborsato' and the order payment_status 'rimborsato'. */
+router.post('/:id/refund', requireAdmin, async (req, res) => {
+  const stripe = getStripe();
+  if (!stripe) return res.status(503).json({ error: 'Stripe non configurato sul server.' });
+
+  try {
+    const [[row]] = await pool.execute(
+      `SELECT r.id, r.stato, r.rimborso_amount, r.order_id,
+              o.payment_intent_id, o.total
+       FROM resi r LEFT JOIN orders o ON o.id = r.order_id WHERE r.id = ?`,
+      [req.params.id]
+    );
+    if (!row) return res.status(404).json({ error: 'Reso non trovato' });
+    if (row.stato === 'rimborsato') return res.status(409).json({ error: 'Reso già rimborsato' });
+    if (!row.payment_intent_id)
+      return res.status(400).json({ error: 'Ordine senza pagamento Stripe: rimborsa manualmente e imposta lo stato a "rimborsato".' });
+
+    const orderTotal = Number(row.total) || 0;
+    let amount = (req.body && req.body.amount !== undefined) ? Number(req.body.amount)
+               : (row.rimborso_amount != null ? Number(row.rimborso_amount) : orderTotal);
+    if (!Number.isFinite(amount) || amount <= 0) amount = orderTotal;
+    amount = Math.min(amount, orderTotal);
+    const amountCents = Math.round(amount * 100);
+    if (amountCents < 1) return res.status(400).json({ error: 'Importo rimborso non valido' });
+
+    let refund;
+    try {
+      refund = await stripe.refunds.create({ payment_intent: row.payment_intent_id, amount: amountCents });
+    } catch (stripeErr) {
+      console.error('[Stripe] refund error:', stripeErr.message);
+      return res.status(502).json({ error: 'Errore Stripe: ' + (stripeErr.message || 'sconosciuto') });
+    }
+
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      await conn.execute("UPDATE resi SET stato = 'rimborsato', rimborso_amount = ? WHERE id = ?", [amount, req.params.id]);
+      await conn.execute("UPDATE orders SET payment_status = 'rimborsato' WHERE id = ?", [row.order_id]);
+      await conn.commit();
+    } catch (dbErr) {
+      await conn.rollback();
+      console.error('refund persist error (Stripe refund DID succeed):', dbErr.message);
+      return res.status(200).json({ ok: true, refund_id: refund.id, amount,
+        warning: 'Rimborso Stripe eseguito ma aggiornamento DB fallito — verifica lo stato manualmente.' });
+    } finally {
+      conn.release();
+    }
+
+    const [[reso]] = await pool.execute('SELECT * FROM resi WHERE id = ?', [req.params.id]);
+    return res.json({ ok: true, refund_id: refund.id, amount, reso });
+  } catch (err) {
+    console.error('refund reso error', err);
     return res.status(500).json({ error: 'Errore server' });
   }
 });

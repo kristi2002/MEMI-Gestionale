@@ -345,6 +345,13 @@
           <svg viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.27 6.27 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.76a4.85 4.85 0 0 1-1.01-.07z" stroke="none" fill="currentColor" opacity=".7"/></svg>
         </a>
       </div>
+      <div class="sf2-newsletter">
+        <p class="sf2-nl-label">Iscriviti alle novità</p>
+        <form class="newsletter-form sf2-nl-form">
+          <input type="email" placeholder="La tua email" aria-label="Email newsletter" required />
+          <button type="submit" aria-label="Iscriviti">→</button>
+        </form>
+      </div>
     </div>
     <div class="sf2-nav">
       <div class="sf2-col">
@@ -371,6 +378,7 @@
         <ul>
           <li><a href="mailto:info@memiabbigliamento.it">Contattaci</a></li>
           <li><a href="/returns">Spedizioni &amp; Resi</a></li>
+          <li><a href="/order-tracking">Traccia il tuo ordine</a></li>
           <li><a href="/privacy">Privacy Policy</a></li>
         </ul>
       </div>
@@ -418,6 +426,13 @@
         .sf2-legal a{color:var(--brown-light,#9e8a8a);text-decoration:none;transition:color .2s;}
         .sf2-legal a:hover{color:var(--espresso,#3B2B2B);}
         .sf2-made{color:var(--brown-light,#9e8a8a);letter-spacing:.04em;}
+        .sf2-newsletter{margin-top:1.75rem;}
+        .sf2-nl-label{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light,#9e8a8a);margin-bottom:.65rem;}
+        .sf2-nl-form{display:flex;border:1px solid var(--beige-dark,#C0B9D9);border-radius:4px;overflow:hidden;max-width:260px;}
+        .sf2-nl-form input{flex:1;border:none;background:transparent;padding:.5rem .75rem;font-size:.8rem;color:var(--espresso,#3B2B2B);outline:none;min-width:0;}
+        .sf2-nl-form input::placeholder{color:var(--brown-light,#9e8a8a);}
+        .sf2-nl-form button{border:none;background:var(--espresso,#3B2B2B);color:#fff;padding:.5rem .85rem;cursor:pointer;font-size:.85rem;transition:background .2s;flex-shrink:0;}
+        .sf2-nl-form button:hover{background:var(--blush-dark,#C48991);}
       `;
       document.head.appendChild(s);
     }

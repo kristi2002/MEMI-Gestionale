@@ -117,7 +117,63 @@ the admin so they appear everywhere.
 
 ---
 
-# Part 3 — Admin → React migration (roadmap, not yet done)
+# Part 3 — Feature-completeness & hardening sprint (Luglio 2026)
+
+Goal: close the remaining user-facing gaps identified in `docs/GAPS-ANALYSIS.md`. All items below
+are coded, committed, and pass `bash verify/run.sh` (36/36 syntax, version consistency, route
+contracts, 6/6 order simulations).
+
+## Guest order tracking (end-to-end)
+- **Backend:** `GET /api/orders/track?number=XXX&email=YYY` added to `routes/orders.js`.
+  Two-field security (order number + email match). Returns full order row + `tracking_url` resolved
+  from the courier's `tracking_url_template`. No auth required.
+- **Storefront API client:** `MemiAPI.orders.track(orderNumber, email)` added to `api-client.js`.
+- **Page:** new `order-tracking.html` — header, lookup form (order number + email), 4-step visual
+  timeline (In attesa → In preparazione → Spedito → Consegnato), tracking link section, info grid
+  (città, paese, subtotale, spedizione, sconto), total, "new search" reset.
+
+## Stock enforcement pre-order
+`POST /api/orders` now queries `product_sizes` before processing each item. If `stock < qty`
+for the requested `taglia`, returns **400** with an Italian error message (e.g. "Taglia M di
+"Vestito Lino Cannes" non disponibile (disponibili: 3)."). The test mock in
+`test/orders-logic.test.cjs` updated to stub `product_sizes` with stock=100 so existing tests pass.
+
+## Product reviews UI on PDP
+`product.html` now includes a `<section id="reviews">` inserted between `</main>` and the Related
+Products section. It has two columns (desktop: list left / form right):
+- **List:** loaded after `hydrate(p)` via `loadReviews(p.id)` → `GET /reviews/product/:id`.
+  Shows rating summary (average stars + count), then each review: author, date, star rating, title,
+  body, and admin reply (highlighted block if present).
+- **Form:** interactive star picker (hover + click), nome, email (required, not shown publicly),
+  titolo, testo → `POST /api/reviews`. Success message informs the user the review is pending
+  approval; form resets. Stars reset on new search/submit.
+- Fully self-contained inline `<style>` block; no new CSS files.
+
+## Footer newsletter form (all pages)
+`app.js` `injectFooter()` now appends a `.sf2-newsletter` div with `.newsletter-form` class after
+the social icons inside `.sf2-brand`. The existing `wireNewsletterForms()` function (called in
+`init()` after footer injection) automatically binds submit → `POST /api/newsletter/subscribe`.
+CSS added to the `sf2-styles` injected block: pill input+button, hover transitions.
+
+## Footer order-tracking link
+Supporto column in `app.js` footer now includes `<a href="/order-tracking">Traccia il tuo ordine</a>`.
+
+## `app.js` version bump
+All 38 storefront HTML files updated from `?v=12` → `?v=13`. Confirmed uniform by `verify/run.sh §2`.
+
+## Nginx security headers
+Both `Memi Abbigliamento/nginx.conf` and `MEMI/nginx.conf` now emit:
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+
+In both files the headers are placed inside each `location {}` block (not at server level) because
+nginx drops server-level `add_header` entries when any location block defines its own headers.
+`X-Frame-Options` and `X-Content-Type-Options` were already present; gzip was already on.
+HSTS is intentionally omitted — handled by Traefik/Coolify at the TLS termination layer.
+
+---
+
+# Part 4 — Admin → React migration (roadmap, not yet done)
 
 Replace the ~2,180-line jQuery admin (`MEMI/`) with a maintainable React app; **keep the
 Express/MySQL backend untouched** (same `/api`). Do it in your VS Code, one slice at a time.
@@ -147,7 +203,7 @@ Express/MySQL backend untouched** (same `/api`). Do it in your VS Code, one slic
 
 ---
 
-# Part 4 — Admin sidebar audit (Luglio 2026)
+# Part 5 — Admin sidebar audit (Luglio 2026)
 
 Audited every sidebar tab against the backend. **The admin is far more real than the docs implied:
 22 of 39 views are genuinely data-backed with working CRUD** (dashboard, orders, resi, invoices,
@@ -164,6 +220,14 @@ report, segmenti, automazioni). This pass fixed the remaining honesty gaps in *v
   (Reduced-rate 10% and the €10.000 EU OSS threshold shown are factual regulatory references.)
 - **`couriers` per-card stats** (spedizioni / consegnati / ritardi) now compute from the real
   `shipments` table per courier, instead of the hardcoded `0/0/0`.
+- **Stripe refunds wired to returns (NEW):** `POST /api/admin/resi/:id/refund` issues a real
+  `stripe.refunds.create` against the order's stored PaymentIntent, then marks the return and the
+  order `rimborsato`. The reso detail modal shows a **"💳 Rimborsa via Stripe"** button — only when
+  the order was paid by card (`payment_intent_id` present) and not already refunded. Amount priority:
+  entered value → stored `rimborso_amount` → full order total (capped at total). Handles: Stripe not
+  configured (503), non-card order (400 with guidance to refund manually), already refunded (409),
+  Stripe error (502), and — importantly — a DB-write failure *after* a successful refund (200 + a
+  warning so the operator knows the money moved). `admin-api.js` gains `resi.refund(id, amount)`.
 - Admin cache bumped: `dashboard.html` → `app.js?v=23`.
 
 **Still PARTIAL / display-only (real data, no CRUD — acceptable):** collections & categories (live
@@ -176,6 +240,6 @@ in `in_attesa`, not true draft orders).
 churn in the 2,200-line file — they don't render anywhere).
 
 **Genuinely missing (needs new backend — roadmap, not built):** abandoned-cart capture, real
-courier-tracking API integration, Stripe refund action wired to resi, richer tax/VAT config,
+courier-tracking API integration, richer tax/VAT config,
 store-expenses/payouts reconciliation, web-analytics (GA4) for traffic sources, suppliers/purchase
 orders. These are new features, not fixes — best tackled during/after the React migration (Part 3).

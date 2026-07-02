@@ -28,6 +28,7 @@ const mockPool = {
   execute: async (sql, params) => {
     sqlLog.push({ sql, params });
     if (/FROM products WHERE id/i.test(sql)) { const p = PRODUCTS[params[0]]; return [ p ? [p] : [] ]; }
+    if (/FROM product_sizes/i.test(sql)) return [[{ stock: 100 }]];
     if (/FROM discount_codes/i.test(sql)) return [[]];
     return [[]];
   },
