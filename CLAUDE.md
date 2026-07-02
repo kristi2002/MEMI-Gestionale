@@ -23,8 +23,10 @@ E-commerce platform, three apps in one repo, Italian-language product/UI.
 - Backend logs: `docker compose logs -f backend`
 - Re-init DB inside container: `docker exec <backend-container> node src/db/init.js`
 - Backend only, no Docker: `cd MEMI-Backend && npm install && npm run db:init && npm start`
-- **Smoke test (verification loop): `./scripts/smoke-test.sh`** — must pass before
-  anything is considered done. See "Definition of done".
+- **Smoke test (verification loop): `./smoke-test.sh`** (repo root, not under `scripts/`)
+  — must pass before anything is considered done. See "Definition of done".
+  There's also `./run-live.sh` (hits a running stack) and `bash verify/run.sh` (no live
+  DB needed: JS syntax, cache-version consistency, route contracts, mocked order-flow sims).
 
 ## Local URLs & credentials
 - Shop: http://localhost:8080 — Admin: http://localhost:8081 — API: http://localhost:3000
@@ -36,7 +38,8 @@ E-commerce platform, three apps in one repo, Italian-language product/UI.
 - Frontend resolves API base from `<meta name="memi-api" content="/api">`. nginx
   proxies `/api/*` to `backend:3000`, so it's same-origin (no CORS in prod).
   Running raw files without Docker: set meta to `http://localhost:3000/api`.
-- Storefront search uses `window.PRODUCTS` from `productsData.js`. Cart/wishlist
+- Storefront search uses `window.PRODUCTS`, populated at runtime by `catalog-loader.js`
+  from `GET /api/products` (NOT from `productsData.js` — see gotcha below). Cart/wishlist
   live in localStorage (`memi_cart`, `memi_wishlist`, `memi_token`, `memi_session`).
 - Admin token in localStorage as `memi_admin_token`.
 
@@ -55,8 +58,10 @@ So Stripe/SMTP can stay unset for most work; don't add fake keys to make them "w
   `catalog-loader.js`. The file remains in the repo but is not loaded by any customer-facing page.
 - **Static `collections/` pages** (and `best-seller.html`, `estate-2025.html`,
   `products/{slug}/`) have hardcoded card counts that drift from the real catalog.
-  `scripts/generate-collections.js` / `generate-products.js` regenerate them from
-  `productsData.js`. The mega-menu *Shop* links go to dynamic `/shop?categoria=…`;
+  `Memi Abbigliamento/scripts/generate-collections.js` / `generate-products.js` regenerate
+  them, but **still read from the stale `productsData.js`**, not the live API — so counts
+  drift again as soon as products are added/edited only through the admin (tracked in
+  `docs/PRODUCTION-ROADMAP.md`). The mega-menu *Shop* links go to dynamic `/shop?categoria=…`;
   many other links still go to static `/collections/…` — hence inconsistent counts.
 - **Schema self-heals on boot** via `db/migrations.js → ensureSchema()`
   (`CREATE TABLE IF NOT EXISTS`, structural only). **Seed data** only loads on a
@@ -65,9 +70,9 @@ So Stripe/SMTP can stay unset for most work; don't add fake keys to make them "w
 
 ## Definition of done
 1. `docker compose ... up --build` comes up with no errors in backend logs.
-2. `./scripts/smoke-test.sh` exits 0.
-3. New backend route → add an assertion to `scripts/smoke-test.sh` AND a row to
-   `integrations.md` route map.
+2. `./smoke-test.sh` exits 0 (and `bash verify/run.sh` for the no-DB-needed checks).
+3. New backend route → add an assertion to `smoke-test.sh` AND a row to
+   `docs/integrations.md` route map.
 4. Touched `app.js` → bump `?v=N` everywhere.
 5. Summarize what changed, what was tested, and any assumption made.
 

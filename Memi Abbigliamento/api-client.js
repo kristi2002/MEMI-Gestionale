@@ -184,6 +184,14 @@
   };
 
   /* ═══════════════════════════════════════════════════════
+     GIFT CARDS (customer-facing)
+     ═══════════════════════════════════════════════════════ */
+  var giftcards = {
+    /** Pre-checkout preview — actual redemption happens in orders.place() via gift_card_code. */
+    validate: function(code) { return get('/giftcards/validate/' + encodeURIComponent(code)); },
+  };
+
+  /* ═══════════════════════════════════════════════════════
      REVIEWS
      ═══════════════════════════════════════════════════════ */
   var reviews = {
@@ -205,12 +213,13 @@
 
   /* ── Expose public API ──────────────────────────────────── */
   root.MemiAPI = {
-    auth:     auth,
-    products: products,
-    orders:   orders,
-    shipping: shipping,
-    reviews:  reviews,
-    resi:     resi,
+    auth:      auth,
+    products:  products,
+    orders:    orders,
+    shipping:  shipping,
+    giftcards: giftcards,
+    reviews:   reviews,
+    resi:      resi,
 
     // Expose low-level request for custom calls
     _request: request,

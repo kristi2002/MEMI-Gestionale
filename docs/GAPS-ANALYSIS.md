@@ -1,5 +1,6 @@
 # MEMI — Gap Analysis Completo
-*Aggiornato: Luglio 2026 — Sprint 2 (feature-completeness + hardening)*
+*Aggiornato: Agosto 2026 — audit di documentazione + piano pre-produzione. Vedi anche
+`docs/PRODUCTION-ROADMAP.md` per il piano a fasi verso il deploy Hetzner.*
 
 ---
 
@@ -245,15 +246,56 @@ Pattern `_origRenderView`: intercetta ogni `renderView(name)`, carica dati dall'
 
 ---
 
-## 14. Gift cards — ⚠️ Solo admin CRUD
+## 14. Gift cards — ✅ Riscattabili al checkout (Agosto 2026, Fase 3)
 
-**Stato:** ⚠️ Admin può creare/gestire gift card, ma non sono riscattabili al checkout.
+**Stato:** ✅ Admin crea/gestisce gift card; il cliente può riscattarle al checkout.
 
 - `gift_cards` table: `code`, `balance`, `stato`
 - `GET/POST/PUT/DELETE /api/admin/giftcards` — admin CRUD
-- ❌ Nessun endpoint di validazione pubblica (`GET /api/giftcards/validate/:code`)
-- ❌ Checkout non supporta riscatto gift card
-- ❌ Nessuna email di consegna gift card
+- ✅ `GET /api/giftcards/validate/:code` — validazione pubblica pre-checkout (`giftcards-public.js`)
+- ✅ Checkout (`POST /api/orders`, campo `gift_card_code`) applica il saldo dopo lo sconto, capped al
+  saldo disponibile; deduzione transazionale con `UPDATE ... WHERE balance >= ?` (nessuna corsa
+  possibile tra ordini concorrenti — se un'altra richiesta ha già speso il saldo, l'ordine
+  fallisce con 409 invece di andare in negativo). Se il saldo copre l'intero totale, l'ordine
+  è marcato `pagato` senza bisogno di verifica Stripe, qualunque sia il `payment_method`.
+- ✅ Email di consegna (`sendGiftCardDelivery`) inviata se `recipient_email` è impostato alla
+  creazione della carta.
+- Checkout UI: campo "Gift card" nel riepilogo ordine (mirror del campo codice sconto), con
+  riga "Gift card −€X" nei totali; la PaymentIntent Stripe viene ricostruita quando cambia
+  l'importo dovuto (stesso pattern già usato per i codici sconto).
+- Test: `MEMI-Backend/test/giftcard-logic.test.cjs` (5 casi, mock DB+Stripe) — copertura
+  completa e riscatto parziale/totale, codice non valido, saldo esaurito, race condition.
+
+---
+
+## 15bis. Bug scoperti nell'audit di documentazione (Agosto 2026) — non ancora corretti
+
+Trovati leggendo direttamente il codice (non dai documenti esistenti, che non li menzionano):
+
+| # | Bug | Dettaglio |
+|---|-----|-----------|
+| B1 | Modale "Spedisci ordine" promette un effetto collaterale che il backend non fa | `MEMI/js/app.js` (~riga 3040) mostra: *"Lo stato ordine sarà impostato a Spedito e il pagamento a Pagato."* Ma `PUT /api/orders/admin/:id/ship` (`orders.js` ~riga 471) imposta **solo** `order_status='spedito'` — `payment_status` non viene mai toccato. Per ordini `bonifico`/`paypal`/`klarna` non ancora confermati, l'admin crede (a torto) che il pagamento sia stato marcato pagato. |
+| B2 | Toast "copiato" fasullo | Il pulsante "Invia tracking al cliente" (`MEMI/js/app.js` ~riga 2278) mostra *"Tracking XXX copiato — invia manualmente a…"* ma non chiama mai `navigator.clipboard`. Nulla viene copiato. |
+
+Entrambi corretti nel Piano di produzione (`docs/PRODUCTION-ROADMAP.md`, Fase 2).
+
+## 15ter. Gap di produzione non tracciati altrove
+
+Questi non sono "funzionalità mancanti" nel senso delle sezioni precedenti (il prodotto funziona),
+ma mancano per un **deploy production-grade** con un cliente reale:
+
+| Area | Stato | Nota |
+|---|---|---|
+| Stripe webhook | ❌ Assente | Nessun `POST /api/payments/webhook`. Se il browser del cliente muore dopo che Stripe ha addebitato ma prima di `POST /api/orders`, l'ordine non viene mai creato e nessuno se ne accorge automaticamente. |
+| Logging strutturato | ❌ Assente | Solo `console.log`/`console.error`, nessun request-id, nessun livello. |
+| Validazione input formale | ⚠️ Parziale | Sprint Luglio ha aggiunto enum/tipo checks manuali (4xx non 500) sui campi critici, ma non c'è una libreria di schema (zod/joi) — validazione ad-hoc per ogni endpoint. |
+| Audit log azioni admin | ❌ Assente | Nessuna tabella che registri chi ha cambiato stato ordine, emesso un rimborso, creato/eliminato uno sconto. |
+| Abuso codici sconto | ⚠️ Parziale | Solo `max_utilizzi` globale e `scadenza`; nessun limite per-cliente/email (un cliente può registrarsi con email diverse e riusare lo stesso codice). |
+| Pagine legali storefront | ❌ Assenti | Nessuna Cookie Policy, Termini e Condizioni, Diritto di Recesso; `privacy.html` esiste ma è incompleta. Nessun cookie-consent banner. Rischio legale reale per un e-commerce italiano. |
+| IVA in evidenza sullo storefront | ⚠️ Da verificare | L'admin (`taxes`) mostra l'aliquota reale; da verificare se il checkout/PDP mostrano "IVA inclusa" al cliente. |
+| Backup/monitoring | ⚠️ Solo documentati | Template cron in `docs/PRODUCTION-READINESS.md §6-7`, ma nessuno script pronto da installare, nessun monitoraggio automatico configurato. |
+
+Vedi `docs/PRODUCTION-ROADMAP.md` per il piano a fasi che chiude questi gap.
 
 ---
 
@@ -296,8 +338,13 @@ Pattern `_origRenderView`: intercetta ogni `renderView(name)`, carica dati dall'
 - Nginx: `Referrer-Policy` + `Permissions-Policy` in entrambi i config
 
 ### 🟡 Nice to have (future sprint)
-1. Gift card riscatto al checkout + email invio
+1. ~~Gift card riscatto al checkout + email invio~~ — ✅ fatto, vedi §14 (Agosto 2026)
 2. GA4 integration per analytics traffico
 3. Timeline visiva stati ordine in `account.html`
 4. Rating medio prodotto nelle card griglia
 5. Courier API esterna per tracking real-time
+
+### 🔴 Da fare prima di un go-live cliente reale (Agosto 2026)
+Vedi §15bis/15ter sopra e `docs/PRODUCTION-ROADMAP.md` per il dettaglio a fasi:
+bug spedizione/pagamento, bug clipboard, Stripe webhook, pagine legali + cookie banner,
+gift card al checkout, logging strutturato, audit log admin, limite sconti per-cliente.

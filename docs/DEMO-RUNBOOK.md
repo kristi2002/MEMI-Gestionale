@@ -23,7 +23,7 @@ backup video, walk in with the stack already running.
 
 - [ ] **2. Run the smoke test, get it green:**
   ```bash
-  chmod +x scripts/smoke-test.sh && ./scripts/smoke-test.sh
+  chmod +x smoke-test.sh && ./smoke-test.sh
   ```
   If anything is red, fix it (or use the overnight prompt below).
 

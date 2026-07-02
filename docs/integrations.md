@@ -49,13 +49,15 @@ The e-commerce site (`Memi Abbigliamento/`) is HTML/CSS/JS served by nginx. **Th
 HTML page loads
   → tokens.css, shop.css, app.css (styles)
   → api-client.js (sets window.MemiAPI)
-  → app.js?v=9 (init() → injectMarkup → bindEvents → updateAuthUI)
-  → [catalog-loader.js?v=1] (collection-style pages: fetch GET /api/products?collection=<slug>,
+  → app.js?v=13 (init() → injectMarkup → bindEvents → updateAuthUI)
+  → [catalog-loader.js?v=2] (collection-style pages: fetch GET /api/products?collection=<slug>,
        render real cards, set counts, re-publish window.PRODUCTS)
 ```
 
 > Note: `app.js` is cache-busted with `?v=N`; the catalog loader is a **separate** file
-> (`catalog-loader.js?v=1`), so making the catalog dynamic did not require touching `app.js`.
+> (`catalog-loader.js?v=N`), so making the catalog dynamic did not require touching `app.js`.
+> Check `bash verify/run.sh` §2 for the current authoritative version numbers rather than
+> trusting hardcoded values in prose docs like this one.
 
 ### Stripe checkout flow
 

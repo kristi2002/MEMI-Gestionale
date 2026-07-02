@@ -598,6 +598,18 @@
         </div>
         <p id="promoFeedback" style="display:none;font-size:var(--text-xs);padding:0 0 var(--space-2);"></p>
 
+        <!-- Gift card -->
+        <div class="promo-row">
+          <input type="text" id="giftCardInput" class="promo-input" placeholder="Gift card" />
+          <button id="giftCardApplyBtn" class="btn-promo" onclick="applyGiftCard()">Applica</button>
+          <button id="removeGiftCardBtn" onclick="removeGiftCard()" style="display:none;align-items:center;gap:4px;
+              padding:var(--space-3) var(--space-4);border:1.5px solid var(--beige-dark);border-radius:var(--radius-full);
+              font-size:var(--text-xs);font-weight:600;letter-spacing:var(--tracking-wide);color:var(--brown-mid);">
+            ✕ Rimuovi
+          </button>
+        </div>
+        <p id="giftCardFeedback" style="display:none;font-size:var(--text-xs);padding:0 0 var(--space-2);"></p>
+
         <!-- Totals -->
         <div class="totals">
           <div class="total-row">
@@ -612,10 +624,15 @@
             <span>Spedizione</span>
             <span id="shippingEl" style="color:var(--sage-dark);">Gratis</span>
           </div>
+          <div class="total-row discount" id="giftCardRow" style="display:none;">
+            <span>Gift card</span>
+            <span id="giftCardAmountEl">−€0,00</span>
+          </div>
           <div class="total-row grand">
             <span>Totale</span>
             <span class="amount" id="totalEl">€0,00</span>
           </div>
+          <p style="font-size:var(--text-xs);color:var(--brown-light);margin:0;padding-top:var(--space-2);">IVA inclusa, calcolata sul totale</p>
         </div>
 
       </div><!-- /summary-body -->
@@ -630,11 +647,12 @@
     var DISCOUNT_CODES = {};   // empty — real validation is API-backed
 
     // ── State ─────────────────────────────────────────────────────────────────
-    var currentStep  = 1;
-    var cartItems    = [];
-    var subtotal     = 0;
-    var appliedCode  = null;
-    var shippingCost = 0;
+    var currentStep     = 1;
+    var cartItems       = [];
+    var subtotal        = 0;
+    var appliedCode     = null;
+    var appliedGiftCard = null;   // { code, balance } — amount actually applied is capped live in updateTotals()
+    var shippingCost    = 0;
 
     // ── Utilities ─────────────────────────────────────────────────────────────
     function formatPrice(n) {
@@ -695,6 +713,8 @@
       updateTotals();
     }
 
+    var appliedGiftCardAmount = 0; // recomputed here every call — authoritative amount actually applied
+
     function updateTotals() {
       var discountAmt = 0;
       if (appliedCode && appliedCode.type === 'percent') {
@@ -702,8 +722,11 @@
       } else if (appliedCode && appliedCode.type === 'fixed') {
         discountAmt = Math.min(appliedCode.value, subtotal);
       }
-      var shipping = (appliedCode && appliedCode.type === 'shipping') ? 0 : shippingCost;
-      var total    = Math.max(0, subtotal - discountAmt + shipping);
+      var shipping     = (appliedCode && appliedCode.type === 'shipping') ? 0 : shippingCost;
+      var preGiftTotal = Math.max(0, subtotal - discountAmt + shipping);
+
+      appliedGiftCardAmount = appliedGiftCard ? Math.min(appliedGiftCard.balance, preGiftTotal) : 0;
+      var total = Math.max(0, preGiftTotal - appliedGiftCardAmount);
 
       if (el('subtotalEl'))      el('subtotalEl').textContent      = formatPrice(subtotal);
       if (el('totalEl'))         el('totalEl').textContent         = formatPrice(total);
@@ -724,6 +747,16 @@
             appliedCode.type === 'shipping' ? '−' + formatPrice(8.9) : '−' + formatPrice(discountAmt);
         } else {
           discountRow.style.display = 'none';
+        }
+      }
+
+      var giftCardRow = el('giftCardRow');
+      if (giftCardRow) {
+        if (appliedGiftCard && appliedGiftCardAmount > 0) {
+          giftCardRow.style.display = 'flex';
+          if (el('giftCardAmountEl')) el('giftCardAmountEl').textContent = '−' + formatPrice(appliedGiftCardAmount);
+        } else {
+          giftCardRow.style.display = 'none';
         }
       }
 
@@ -881,6 +914,58 @@
       if (stripeCardEl) fetchPaymentIntent();
     }
 
+    // ── Gift Card ─────────────────────────────────────────────────────────────
+    function applyGiftCard() {
+      var input    = el('giftCardInput');
+      var feedEl   = el('giftCardFeedback');
+      var rmBtn    = el('removeGiftCardBtn');
+      var applyBtn = el('giftCardApplyBtn');
+      if (!input) return;
+      var code = input.value.trim().toUpperCase();
+      if (!code) {
+        if (feedEl) { feedEl.textContent = 'Inserisci un codice.'; feedEl.style.color = 'var(--blush-dark)'; feedEl.style.display = 'block'; }
+        return;
+      }
+
+      if (applyBtn) { applyBtn.textContent = '…'; applyBtn.disabled = true; }
+      if (feedEl)   { feedEl.textContent = ''; feedEl.style.display = 'none'; }
+
+      if (window.MemiAPI && window.MemiAPI.giftcards) {
+        window.MemiAPI.giftcards.validate(code)
+          .then(function(data) {
+            appliedGiftCard = { code: data.code, balance: data.balance };
+            if (feedEl)   { feedEl.textContent = 'Gift card "' + data.code + '" applicata ✓ (saldo €' + data.balance.toFixed(2).replace('.', ',') + ')'; feedEl.style.color = 'var(--sage-dark)'; feedEl.style.display = 'block'; }
+            if (rmBtn)    rmBtn.style.display    = 'inline-flex';
+            if (applyBtn) applyBtn.style.display = 'none';
+            input.disabled = true;
+            updateTotals();
+            // Total changed — rebuild the PaymentIntent so the card is charged the reduced amount.
+            if (stripeCardEl) fetchPaymentIntent();
+          })
+          .catch(function(err) {
+            if (feedEl) { feedEl.textContent = (err && err.error) || 'Gift card non valida.'; feedEl.style.color = 'var(--blush-dark)'; feedEl.style.display = 'block'; }
+            if (applyBtn) { applyBtn.textContent = 'Applica'; applyBtn.disabled = false; }
+          });
+      } else {
+        if (feedEl) { feedEl.textContent = 'Servizio non disponibile. Riprova.'; feedEl.style.color = 'var(--blush-dark)'; feedEl.style.display = 'block'; }
+        if (applyBtn) { applyBtn.textContent = 'Applica'; applyBtn.disabled = false; }
+      }
+    }
+
+    function removeGiftCard() {
+      appliedGiftCard = null;
+      var input    = el('giftCardInput');
+      var feedEl   = el('giftCardFeedback');
+      var rmBtn    = el('removeGiftCardBtn');
+      var applyBtn = el('giftCardApplyBtn');
+      if (input)   { input.value = ''; input.disabled = false; }
+      if (feedEl)  { feedEl.textContent = ''; feedEl.style.display = 'none'; }
+      if (rmBtn)   rmBtn.style.display    = 'none';
+      if (applyBtn) { applyBtn.style.display = 'inline-flex'; applyBtn.textContent = 'Applica'; applyBtn.disabled = false; }
+      updateTotals();
+      if (stripeCardEl) fetchPaymentIntent();
+    }
+
     // ── Stripe Elements ───────────────────────────────────────────────────────
     var stripeInstance  = null;
     var stripeCardEl    = null;
@@ -937,7 +1022,9 @@
         discountAmt = Math.min(appliedCode.value, subtotal);
       }
       var effectiveShipping = (appliedCode && appliedCode.type === 'shipping') ? 0 : shippingCost;
-      return Math.round(Math.max(0, subtotal - discountAmt + effectiveShipping) * 100);
+      var preGiftTotal = Math.max(0, subtotal - discountAmt + effectiveShipping);
+      var giftAmt = appliedGiftCard ? Math.min(appliedGiftCard.balance, preGiftTotal) : 0;
+      return Math.round(Math.max(0, preGiftTotal - giftAmt) * 100);
     }
 
     // Create/refresh a PaymentIntent for the CURRENT total. Returns a promise that
@@ -1021,6 +1108,7 @@
         paese:          paese,
         items:          orderItems,
         discount_code:  appliedCode ? appliedCode.code : undefined,
+        gift_card_code: appliedGiftCard ? appliedGiftCard.code : undefined,
         payment_method: payMethod,
       };
 
@@ -1057,6 +1145,14 @@
       }
 
       setLoading(true);
+
+      // A gift card (or a 100% discount) can bring the amount due to zero — nothing to
+      // charge through any payment method, so place the order directly. The backend applies
+      // the same rule server-side (never trusts this client-side zero on its own).
+      if (currentAmountCents() === 0 && (appliedGiftCard || appliedCode)) {
+        placeOrder(null);
+        return;
+      }
 
       // Card payment: go through Stripe.
       if (activeIdx === 0) {
@@ -1242,6 +1338,9 @@
       // Enter key in promo input
       var promoIn = el('promoInput');
       if (promoIn) promoIn.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyPromo(); });
+      // Enter key in gift card input
+      var giftCardIn = el('giftCardInput');
+      if (giftCardIn) giftCardIn.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyGiftCard(); });
 
       // Prefetch Stripe publishable key so it is ready when the user reaches step 3.
       // Uses the same API base detection as api-client.js.
@@ -1258,7 +1357,7 @@
       })();
     });
   </script>
-  <script src="api-client.js?v=3"></script>
+  <script src="api-client.js?v=4"></script>
   <script src="app.js?v=13"></script>
 </body>
 </html>

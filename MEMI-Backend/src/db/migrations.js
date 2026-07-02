@@ -234,6 +234,9 @@ async function runMigrations(pool) {
     await ensureColumn(pool, 'couriers', 'tracking_url_template', 'tracking_url_template VARCHAR(255) NULL');
     // Store the Stripe PaymentIntent id per order and prevent it being replayed across orders.
     await ensureColumn(pool, 'orders', 'payment_intent_id', 'payment_intent_id VARCHAR(255) NULL');
+    // Gift-card redemption at checkout (Phase 3 of docs/PRODUCTION-ROADMAP.md).
+    await ensureColumn(pool, 'orders', 'gift_card_code', 'gift_card_code VARCHAR(40) NULL');
+    await ensureColumn(pool, 'orders', 'gift_card_amount', 'gift_card_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00');
     try {
       await ensureUniqueIndex(pool, 'orders', 'uq_orders_payment_intent', 'payment_intent_id');
     } catch (e) { console.error('   ! uq_orders_payment_intent skipped:', e.message); }

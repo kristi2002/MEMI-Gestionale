@@ -12,6 +12,7 @@
 const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { sendGiftCardDelivery } = require('../email');
 
 function genCode() {
   // e.g. MEMI-7F3A-9K2C
@@ -53,6 +54,9 @@ router.post('/', requireAdmin, async (req, res) => {
            VALUES (?, ?, ?, ?, ?)`,
           [code, amount, amount, recipient_email || null, note || null]
         );
+        if (recipient_email) {
+          sendGiftCardDelivery({ code, initial_amount: amount, recipient_email, note }).catch(() => {});
+        }
         return res.status(201).json({ ok: true, id: result.insertId, code });
       } catch (e) {
         if (e.code === 'ER_DUP_ENTRY') continue;

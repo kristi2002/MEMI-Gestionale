@@ -25,7 +25,7 @@ const express     = require('express');
 const helmet      = require('helmet');
 const cors        = require('cors');
 const rateLimit   = require('express-rate-limit');
-const { testConnection } = require('./db');
+const { pool, testConnection } = require('./db');
 
 // ── Route modules ──────────────────────────────────────────────
 const authRoutes       = require('./routes/auth');
@@ -45,6 +45,7 @@ const reviewsRoutes       = require('./routes/reviews');
 const settingsRoutes      = require('./routes/settings');
 const staffRoutes         = require('./routes/staff');
 const giftcardsRoutes     = require('./routes/giftcards');
+const giftcardsPublicRoutes = require('./routes/giftcards-public');
 const campaignsRoutes     = require('./routes/campaigns');
 const cmsRoutes           = require('./routes/cms');
 const loyaltyRoutes       = require('./routes/loyalty');
@@ -62,6 +63,22 @@ if (missingSecrets.length) {
   console.error(`❌  Missing required environment variables: ${missingSecrets.join(', ')}`);
   console.error('    Set them in your .env / deployment config before starting.');
   process.exit(1);
+}
+
+// ── Loud (not silent) warnings in production for optional-but-important config ──
+// These features degrade gracefully (503 / no-op) rather than crashing, which is right for
+// local dev — but in production a misconfigured deploy should be obvious at boot, not
+// discovered when a customer's checkout or a password reset silently fails.
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PUBLISHABLE_KEY) {
+    console.error('🔴  WARNING: STRIPE_SECRET_KEY/STRIPE_PUBLISHABLE_KEY not set — card checkout is disabled.');
+  }
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error('🔴  WARNING: STRIPE_WEBHOOK_SECRET not set — /api/payments/webhook will reject all events (503).');
+  }
+  if (!process.env.SMTP_USER) {
+    console.error('🔴  WARNING: SMTP_USER not set — all transactional emails (order confirmation, shipping, welcome, password reset) are silent no-ops.');
+  }
 }
 
 // ── Trust proxy (required behind Traefik / nginx / Coolify) ───
@@ -91,6 +108,11 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// ── Stripe webhook (needs the RAW body for signature verification) ────────────
+// Must be registered before the global express.json() below, or the body would already
+// be parsed/consumed by the time it reaches the handler and signature checks would fail.
+app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), paymentsRoutes.stripeWebhookHandler);
 
 // ── Body parsing ───────────────────────────────────────────────
 app.use(express.json({ limit: '2mb' }));
@@ -128,7 +150,19 @@ app.use('/api/auth/reset-password',  authLimiter);
 app.use('/api/admin/auth/login',     authLimiter);
 
 // ── Health check ───────────────────────────────────────────────
-app.get('/health', (req, res) => res.json({ status: 'ok', ts: new Date().toISOString() }));
+// Checks DB connectivity, not just "the process is alive" — a Docker/Coolify healthcheck
+// that only pings this endpoint should actually catch a dead DB connection.
+app.get('/health', async (req, res) => {
+  try {
+    const conn = await pool.getConnection();
+    await conn.ping();
+    conn.release();
+    return res.json({ status: 'ok', db: 'ok', ts: new Date().toISOString() });
+  } catch (err) {
+    console.error('[health] DB check failed:', err.message);
+    return res.status(503).json({ status: 'degraded', db: 'unreachable', ts: new Date().toISOString() });
+  }
+});
 
 // ── API routes ─────────────────────────────────────────────────
 app.use('/api/auth',              authRoutes);
@@ -148,6 +182,7 @@ app.use('/api/reviews',           reviewsRoutes);
 app.use('/api/admin/settings',    settingsRoutes);
 app.use('/api/admin/staff',       staffRoutes);
 app.use('/api/admin/giftcards',   giftcardsRoutes);
+app.use('/api/giftcards',         giftcardsPublicRoutes);   // public validate for checkout
 app.use('/api/admin/campaigns',   campaignsRoutes);
 app.use('/api/admin/cms',         cmsRoutes);
 app.use('/api/cms',               cmsRoutes);   // public /published/* routes for the storefront
@@ -168,7 +203,6 @@ app.use((err, req, res, _next) => {
     await testConnection();
     // Ensure feature tables added after the initial schema exist (idempotent)
     try {
-      const { pool } = require('./db');
       const { runMigrations } = require('./db/migrations');
       await runMigrations(pool);
     } catch (mErr) {
@@ -181,7 +215,6 @@ app.use((err, req, res, _next) => {
 
     // ── Graceful shutdown on SIGTERM (Coolify rolling deploys) ──
     // Give in-flight requests up to 10s to complete before the process exits.
-    const { pool } = require('./db');
     process.on('SIGTERM', () => {
       console.log('SIGTERM received — closing HTTP server...');
       server.close(() => {

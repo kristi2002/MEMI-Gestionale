@@ -52,6 +52,7 @@ router.post('/', optionalCustomer, async (req, res) => {
     indirizzo, citta, cap, paese = 'Italia',
     items,          // [{product_id, taglia, colore, qty}] — price/name resolved server-side
     discount_code,
+    gift_card_code, // optional — redeemed against the total, see step 2b below
     payment_method = 'carta',
     payment_intent_id,      // Stripe PaymentIntent ID (if card payment)
   } = req.body;
@@ -130,11 +131,32 @@ router.post('/', optionalCustomer, async (req, res) => {
       else if (dc.tipo === 'spedizione')  shippingCost = 0;
     }
 
-    const total = Math.round(Math.max(0, subtotal - discountAmount + shippingCost) * 100) / 100;
+    const preGiftTotal = Math.round(Math.max(0, subtotal - discountAmount + shippingCost) * 100) / 100;
 
-    /* 3. Verify payment BEFORE writing anything. Card + Stripe configured ⇒ must match. */
+    /* 2b. Gift card — read-only check here (mirrors the discount-code pattern above); the
+       actual balance deduction happens transactionally in step 4, with a conditional UPDATE
+       (`WHERE balance >= ?`) so a race between two concurrent orders can't overdraw it. */
+    let giftCard       = null;
+    let giftCardAmount = 0;
+    if (gift_card_code) {
+      const [[gc]] = await pool.execute(
+        "SELECT * FROM gift_cards WHERE code = ? AND stato = 'attiva'",
+        [String(gift_card_code).trim().toUpperCase()]
+      );
+      if (!gc || Number(gc.balance) <= 0)
+        return res.status(400).json({ error: 'Gift card non valida o esaurita' });
+      giftCard = gc;
+      giftCardAmount = Math.round(Math.min(Number(gc.balance), preGiftTotal) * 100) / 100;
+    }
+
+    const total = Math.round(Math.max(0, preGiftTotal - giftCardAmount) * 100) / 100;
+
+    /* 3. Verify payment BEFORE writing anything. Card + Stripe configured ⇒ must match.
+       Skipped entirely when the gift card already covers the full total — nothing to charge. */
     let paymentStatus = 'in_attesa';
-    if (payment_method === 'carta' && process.env.STRIPE_SECRET_KEY) {
+    if (total === 0 && (giftCard || discountCode)) {
+      paymentStatus = 'pagato';
+    } else if (payment_method === 'carta' && process.env.STRIPE_SECRET_KEY) {
       if (!payment_intent_id)
         return res.status(402).json({ error: 'Dati di pagamento mancanti. Riprova.' });
       try {
@@ -159,19 +181,36 @@ router.post('/', optionalCustomer, async (req, res) => {
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
+
+      // Deduct the gift card balance first — if a concurrent order already spent it below
+      // what we planned to use, this conditional UPDATE's WHERE clause makes affectedRows=0
+      // and we roll back cleanly before writing anything else.
+      if (giftCard && giftCardAmount > 0) {
+        const [gcResult] = await conn.execute(
+          `UPDATE gift_cards SET balance = balance - ?, stato = IF(balance - ? <= 0, 'utilizzata', stato)
+           WHERE code = ? AND balance >= ?`,
+          [giftCardAmount, giftCardAmount, giftCard.code, giftCardAmount]
+        );
+        if (gcResult.affectedRows === 0) {
+          await conn.rollback();
+          return res.status(409).json({ error: 'Gift card non più disponibile, riprova.' });
+        }
+      }
+
       const orderNumber = await nextOrderNumber(conn);
 
       const [result] = await conn.execute(
         `INSERT INTO orders
            (order_number, customer_id, customer_nome, customer_cognome, customer_email,
             customer_telefono, shipping_address, shipping_citta, shipping_cap, shipping_paese,
-            subtotal, shipping_cost, discount_amount, total, discount_code, payment_method,
-            payment_status, payment_intent_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            subtotal, shipping_cost, discount_amount, total, discount_code, gift_card_code,
+            gift_card_amount, payment_method, payment_status, payment_intent_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [orderNumber, customerId, nome, cognome, email, telefono || null,
          indirizzo, citta, cap, paese,
          subtotal, shippingCost, discountAmount, total,
-         discountCode ? discountCode.code : null, payment_method,
+         discountCode ? discountCode.code : null, giftCard ? giftCard.code : null,
+         giftCardAmount, payment_method,
          paymentStatus, payment_intent_id || null]
       );
       const orderId = result.insertId;

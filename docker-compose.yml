@@ -72,6 +72,9 @@ services:
       # Stripe — set real keys in Coolify env vars
       STRIPE_SECRET_KEY:     ${STRIPE_SECRET_KEY:-}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      # Stripe webhook signing secret — from the Stripe dashboard webhook endpoint
+      # (https://dashboard.stripe.com/webhooks) pointed at https://<api-domain>/api/payments/webhook
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       # SMTP / nodemailer — set in Coolify env vars
       SMTP_HOST:             ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT:             ${SMTP_PORT:-587}

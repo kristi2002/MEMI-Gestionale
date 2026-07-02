@@ -273,4 +273,61 @@ async function sendPasswordReset(user, resetToken) {
   }
 }
 
-module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset };
+/**
+ * Send a gift card to its recipient when an admin issues one with a `recipient_email`.
+ * @param {object} card
+ * @param {string} card.code
+ * @param {number} card.initial_amount
+ * @param {string} card.recipient_email
+ * @param {string} [card.note]
+ */
+async function sendGiftCardDelivery(card) {
+  const t = getTransporter();
+  if (!t) return;
+
+  const { code, initial_amount, recipient_email, note } = card;
+  const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
+  const amount = parseFloat(initial_amount || 0).toFixed(2);
+  const noteBlock = note
+    ? `<p style="color:#7a6060;font-size:14px;font-style:italic;margin:0 0 20px;">"${note}"</p>`
+    : '';
+  const noteText = note ? `\n"${note}"\n` : '';
+
+  const html = `
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Hai ricevuto una gift card Memi!</title></head>
+<body style="margin:0;padding:0;background:#faf7f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#3B2B2B;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.06);">
+    <div style="background:#3B2B2B;padding:32px 40px;text-align:center;">
+      <h1 style="color:#fff;font-size:28px;font-weight:300;letter-spacing:.12em;margin:0;">Memi<span style="color:#c9897a;">.</span></h1>
+    </div>
+    <div style="padding:36px 40px;">
+      <p style="font-size:20px;font-weight:300;font-family:Georgia,serif;margin:0 0 8px;">Hai ricevuto una gift card!</p>
+      <p style="color:#7a6060;margin:0 0 24px;">Qualcuno ha pensato a te — ecco il tuo codice regalo Memi.</p>
+      ${noteBlock}
+      <div style="background:#ecf8f0;border-radius:8px;padding:20px 24px;margin-bottom:24px;text-align:center;">
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#2d7a4f;margin:0 0 6px;">Codice gift card</p>
+        <p style="font-size:20px;font-family:'Courier New',monospace;font-weight:600;margin:0 0 8px;color:#3B2B2B;">${code}</p>
+        <p style="font-size:24px;font-family:Georgia,serif;margin:0;color:#3B2B2B;">€ ${amount}</p>
+      </div>
+      <p style="color:#7a6060;font-size:14px;line-height:1.6;">Inseriscilo nel campo "Gift card" al checkout su memiabbigliamento.it per usarlo sul tuo prossimo ordine.</p>
+    </div>
+    <div style="background:#faf7f4;padding:20px 40px;text-align:center;font-size:12px;color:#a89090;">
+      © 2026 Memi Abbigliamento · Milano, Italia
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `Hai ricevuto una gift card Memi!\n${noteText}\nCodice: ${code}\nValore: €${amount}\n\nUsalo nel campo "Gift card" al checkout su memiabbigliamento.it.\n\nCordiali saluti,\nMemi Abbigliamento`;
+
+  try {
+    await t.sendMail({ from, to: recipient_email, subject: 'Hai ricevuto una gift card Memi! 🎁', text, html });
+    console.log(`[email] Sent gift card delivery ${code} → ${recipient_email}`);
+  } catch (err) {
+    console.error('[email] Failed to send gift card delivery:', err.message);
+  }
+}
+
+module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery };

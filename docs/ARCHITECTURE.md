@@ -156,6 +156,21 @@ Tables in `memi_db` (MySQL 8, utf8mb4):
 | `discount_codes` | Promo codes (%, fixed, free shipping) |
 | `discount_usage` | Code usage log per order |
 | `newsletter_subscribers` | Newsletter subscriptions (email, fonte, subscribed_at, unsubscribed) |
+| `invoices` | Generated invoices per order (VAT-inclusive, IVA extracted from total) |
+| `resi` | Return/refund requests (RMA number, stato, rimborso_amount) |
+| `reviews` | Product reviews (rating, stato: in_attesa/pubblicata/rifiutata, admin reply) |
+| `store_settings` | Key/value store config (store info, loyalty config, VAT rate, etc.) |
+| `gift_cards` | Gift card codes + balance (admin CRUD only — not yet redeemable at checkout) |
+| `campaigns` | Marketing campaign records (admin CRUD) |
+| `cms_pages` | CMS static pages (admin editor + public `/api/cms/published/*`) |
+| `blog_posts` | Blog articles (admin editor + public endpoints) |
+| `pickup_points` | Click-and-collect locations (admin CRUD; not wired into checkout) |
+| `loyalty_transactions` | Points ledger (delta, reason, order_id, balance_after) — append-only |
+
+*Note: the 12-table list above was stale (from an earlier sprint before gift cards, campaigns,
+CMS, pickup points, and loyalty were added via `db/migrations.js`). All tables are created
+idempotently on every boot via `ensureSchema()`; only `schema.sql`'s own tables get seed data,
+the migration-added ones start empty.*
 
 ---
 
@@ -185,9 +200,16 @@ Cache-busting uses query-param versioning:
 
 | Asset | Current Version |
 |-------|----------------|
-| `app.js` | `?v=7` (last changed: Editoriali mega-menu, view-toggle, multi-select filter, Stripe checkout, IT/EU sizing — Giugno 2026) |
-| `tokens.css` | `?v=2` |
-| `shop.css` | `?v=2` |
+| Storefront `app.js` | `?v=13` |
+| Storefront `api-client.js` | `?v=3` |
+| Storefront `catalog-loader.js` | `?v=2` |
+| Storefront `tokens.css` | `?v=2` |
+| Admin `js/app.js` | `?v=23` |
+| Admin `js/admin-api.js` | `?v=15` |
+
+*(Versions above verified Luglio/Agosto 2026 — check `bash verify/run.sh` §2 for the
+authoritative current consistency check rather than trusting this table long-term; it also
+guards that a single version is used across every HTML file.)*
 
 HTML files are served with `no-cache, must-revalidate` — always re-fetched.
 
@@ -219,6 +241,14 @@ HTML files are served with `no-cache, must-revalidate` — always re-fetched.
 | `SMTP_USER` | backend | SMTP username / email address |
 | `SMTP_PASS` | backend | SMTP password or app password |
 | `SMTP_FROM` | backend | From address in emails (e.g. `"Memi Abbigliamento <info@memi.it>"`) |
+| `ADMIN_EMAIL` | backend | If set with `ADMIN_PASSWORD`, upserts this admin account at boot |
+| `ADMIN_PASSWORD` | backend | Paired with `ADMIN_EMAIL`; logs a red security warning if the shipped default is still active |
+| `FRONTEND_URL` | backend | Used to build links in emails (password reset, etc.) |
+| `UPLOADS_DIR` | backend | Product image storage path (Docker volume mount, default `/app/uploads`) |
+| `MAX_UPLOAD_MB` | backend | Max product image upload size, default 8 |
+
+*Planned addition (Phase 2 of `docs/PRODUCTION-ROADMAP.md`): `STRIPE_WEBHOOK_SECRET` for the new
+`/api/payments/webhook` endpoint — not yet in the code as of this doc revision.*
 
 ---
 

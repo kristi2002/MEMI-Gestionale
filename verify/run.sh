@@ -4,6 +4,8 @@
 #   2. Cache-version consistency across storefront + admin HTML
 #   3. Frontend<->backend route-contract + lifecycle invariants
 #   4. Order-flow simulation (mock DB pool + mock Stripe)
+#   5. Stripe webhook simulation (mock DB pool + mock Stripe)
+#   6. Gift-card redemption simulation (mock DB pool + mock Stripe)
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -42,6 +44,12 @@ if [ ! -d MEMI-Backend/node_modules/express ]; then
   NP="$TMPD/node_modules"
 fi
 NODE_PATH="$NP" node MEMI-Backend/test/orders-logic.test.cjs || FAIL=1
+
+sec "5. Stripe webhook simulation"
+NODE_PATH="$NP" node MEMI-Backend/test/webhook-logic.test.cjs || FAIL=1
+
+sec "6. Gift-card redemption simulation"
+NODE_PATH="$NP" node MEMI-Backend/test/giftcard-logic.test.cjs || FAIL=1
 
 echo
 if [ "$FAIL" -eq 0 ]; then echo "✅  ALL VERIFICATION PASSED"; else echo "❌  VERIFICATION FAILED"; fi

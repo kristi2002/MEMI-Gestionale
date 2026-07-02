@@ -70,7 +70,7 @@ Default admin credentials: `admin@memi.it` / `memi2026admin`
 
 | Method | Path | Auth | Body / Query | Returns |
 |--------|------|------|------|---------|
-| POST | `/orders` | Optional | `{nome, cognome, email, telefono, indirizzo, citta, cap, paese?, items:[{product_id,taglia,colore,qty}], discount_code?, payment_method?, payment_intent_id?}` | `{ok:true, order_number, total}` — line prices re-resolved from DB |
+| POST | `/orders` | Optional | `{nome, cognome, email, telefono, indirizzo, citta, cap, paese?, items:[{product_id,taglia,colore,qty}], discount_code?, gift_card_code?, payment_method?, payment_intent_id?}` | `{ok:true, order_number, total}` — line prices re-resolved from DB. Gift card is applied after the discount, capped at the card's balance; if it brings the total to €0, `payment_status` is set to `pagato` immediately and no PaymentIntent/Stripe verification is required regardless of `payment_method`. |
 | GET | `/orders/my` | Customer | — | `[{id, order_number, total, payment_status, order_status, tracking_number, courier_code, created_at}]` |
 | GET | `/orders/my/:id` | Customer | — | `{...order, items:[...]}` |
 | POST | `/orders/validate-discount` | None | `{code, subtotal}` | `{ok:true, code, tipo, valore, discount_amount, free_shipping, label}` |
@@ -111,11 +111,20 @@ Default admin credentials: `admin@memi.it` / `memi2026admin`
 
 | Method | Path | Auth | Body | Returns |
 |--------|------|------|------|---------|
-| POST | `/payments/create-intent` | None | `{amount}` (cents, integer) | `{client_secret, payment_intent_id}` |
+| POST | `/payments/create-intent` | None | `{amount_cents}` (integer — was mislabeled `{amount}` in this doc) | `{client_secret, payment_intent_id}` |
+| GET | `/payments/config` | None | — | `{publishableKey}` — Stripe publishable key for the frontend |
+| POST | `/payments/webhook` | Stripe signature (`Stripe-Signature` header, verified against `STRIPE_WEBHOOK_SECRET`) | raw Stripe event JSON | `{received:true}` — mounted directly on the app (not under the `/payments` router) since it needs the raw body, registered before the global JSON parser in `server.js` |
 
-Returns **503** if `STRIPE_SECRET_KEY` environment variable is not set.
+Returns **503** if `STRIPE_SECRET_KEY` environment variable is not set (`create-intent`) or if
+`STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` aren't set (`webhook`).
 
-Used by `checkout.html`: call this first, then `stripe.confirmCardPayment(client_secret)`, then `POST /api/orders` with `payment_intent_id`.
+Used by `checkout.html`: call `create-intent` first, then `stripe.confirmCardPayment(client_secret)`,
+then `POST /api/orders` with `payment_intent_id`. The webhook is a safety net (Phase 2 of
+`docs/PRODUCTION-ROADMAP.md`) for the case where Stripe charges the card but the browser never
+completes `POST /api/orders` — it logs a warning for manual follow-up rather than auto-creating
+an order (a bare PaymentIntent doesn't carry cart/shipping data). It also logs
+`charge.dispute.created` for admin visibility. Configure the endpoint at
+https://dashboard.stripe.com/webhooks pointed at `https://<api-domain>/api/payments/webhook`.
 
 ---
 
@@ -236,9 +245,15 @@ Arbitrary keys are accepted (e.g. `theme_name`, `theme_primary`, `store_domain`,
 | Method | Path | Auth | Body | Returns |
 |--------|------|------|------|---------|
 | GET | `/admin/giftcards` | Admin | — | `{cards:[...], summary:{total, attive, balance, emesso}}` |
-| POST | `/admin/giftcards` | Admin | `{initial_amount, recipient_email?, note?}` | `{ok:true, id, code}` (code auto-generated, e.g. `MEMI-7F3A-9K2C`) |
+| POST | `/admin/giftcards` | Admin | `{initial_amount, recipient_email?, note?}` | `{ok:true, id, code}` (code auto-generated, e.g. `MEMI-7F3A-9K2C`). If `recipient_email` is set, fires a delivery email (`sendGiftCardDelivery`, best-effort). |
 | PUT | `/admin/giftcards/:id` | Admin | `{balance?, stato?, recipient_email?}` | `{ok:true}` |
 | DELETE | `/admin/giftcards/:id` | Admin | — | `{ok:true}` |
+
+**Public — `/api/giftcards`** (Phase 3 of `docs/PRODUCTION-ROADMAP.md` — checkout redemption)
+
+| Method | Path | Auth | Returns |
+|--------|------|------|---------|
+| GET | `/giftcards/validate/:code` | None | `{valid:true, code, balance}` or `{valid:false, error}` (404 unknown, 400 inactive/exhausted) — a pre-checkout preview only; actual redemption + balance deduction happens transactionally inside `POST /api/orders` via `gift_card_code`, not here. |
 
 ## Campaigns — `/api/admin/campaigns` (Phase 4)
 

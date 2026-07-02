@@ -4,6 +4,40 @@ Status key: ✅ Fixed | ⚠️ Known limitation | ❌ Missing | 🔄 Workaround 
 
 ---
 
+## Sprint Agosto 2026 — Documentation truth-pass & pre-production audit
+
+Full read of the actual codebase (storefront, backend, existing docs) to correct drift before a
+phased push toward a real Hetzner go-live. Two agent-report claims were checked against primary
+source and found **wrong** — corrected here so they don't get carried into future docs:
+- "No test suite exists" — false. `MEMI-Backend/test/orders-logic.test.cjs` (mocked order-flow:
+  price re-resolution, Stripe amount verify, stock check) and `test/catalog.test.mjs` (live-stack
+  integration: admin→DB→API round-trip, image upload, stock deduction) both exist and pass, plus
+  an `e2e/` Playwright spec and `verify/run.sh` (JS syntax + route contracts + order sims).
+- "`loyalty.redeemPoints()` is never called" — false. `POST /api/auth/loyalty/redeem` (`auth.js`
+  ~line 126) calls it and mints a single-use `PUNTI-XXXX` discount code — a real, working path.
+
+Two **new, previously undocumented** bugs found by direct code read (not by any doc or agent):
+
+| # | Issue | Detail |
+|---|-------|--------|
+| 107 | Ship modal overpromises | `MEMI/js/app.js` (~3040) tells the admin shipping an order will also mark it paid ("...il pagamento a Pagato"); `PUT /api/orders/admin/:id/ship` (`orders.js` ~471) never touches `payment_status`. Since every payment method here is prepay (no COD), auto-marking paid on ship would be wrong anyway — the fix is correcting the UI promise, not the backend. |
+| 108 | Fake "copiato" toast | "Invia tracking al cliente" button (`MEMI/js/app.js` ~2278) claims the tracking number was copied to clipboard; no `navigator.clipboard` call exists. |
+
+Also catalogued (not bugs — gaps in production-hardening that no doc tracked): Stripe webhook
+missing, logging is `console.*` only, no formal input-validation library, no admin audit-log
+table, discount-code abuse only checked at the global level (no per-customer-email limit), no
+storefront legal pages (Cookie Policy / Termini / Diritto di Recesso) or cookie-consent banner,
+backup/monitoring only exist as documentation (no installable script). Full detail and the phased
+remediation plan: `docs/GAPS-ANALYSIS.md` §15bis/§15ter and `docs/PRODUCTION-ROADMAP.md`.
+
+Docs cleanup: retired `docs/AUDIT-AND-PLAN.md`, `docs/CHANGES-DEPLOY-READY.md`,
+`docs/CHANGES-DESIGN-SEO.md` (fully consolidated into `MEMI-CHANGELOG-AND-ROADMAP.md` already;
+kept them around too long past their own "safe to delete" note). Fixed stale paths in
+`CLAUDE.md` (`smoke-test.sh` is at repo root, not `scripts/`; `generate-collections.js` /
+`generate-products.js` are under `Memi Abbigliamento/scripts/`, not root `scripts/`).
+
+---
+
 ## Sprint Giugno 2026 — Phase 6 (self-hosted product image pipeline)
 
 | # | Item | Detail |
