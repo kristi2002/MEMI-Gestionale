@@ -2,8 +2,52 @@
 var fs = require('fs');
 var path = require('path');
 
-var PRODUCTS = require('../productsData.js');
 var ROOT = path.join(__dirname, '..');
+
+// Live catalog now lives in MySQL, served via the backend API — no more reading
+// the stale local productsData.js. Override the base URL with MEMI_API_BASE to
+// point this at a deployed backend (e.g. MEMI_API_BASE=https://api.memiabbigliamento.it/api).
+var API_BASE = process.env.MEMI_API_BASE || 'http://localhost:3000/api';
+
+async function fetchProducts() {
+  var url = API_BASE + '/products?limit=1000';
+  var res;
+  try {
+    res = await fetch(url);
+  } catch (err) {
+    throw new Error('Impossibile contattare il backend API (' + url + '): ' + err.message);
+  }
+  if (!res.ok) {
+    throw new Error('Il backend API ha risposto con errore ' + res.status + ' ' + res.statusText + ' (' + url + ')');
+  }
+  var data = await res.json();
+  if (!Array.isArray(data)) {
+    throw new Error('Risposta inattesa da ' + url + ': atteso un array di prodotti');
+  }
+  return data;
+}
+
+// The API returns DB column shapes (snake_case, DECIMAL-as-string, collections
+// already parsed to an array). Normalize to the shape the renderers below expect
+// (the same shape the old productsData.js used).
+function normalizeProduct(r) {
+  return {
+    id: r.id,
+    name: r.name,
+    categoria: r.categoria,
+    colore: r.colore,
+    colorLabel: r.color_label,
+    price: Number(r.price),
+    originalPrice: r.original_price != null ? Number(r.original_price) : null,
+    discountPct: r.discount_pct != null ? Number(r.discount_pct) : 0,
+    isNew: !!r.is_new,
+    icon: r.icon,
+    altColor: r.alt_color,
+    popularity: r.popularity != null ? Number(r.popularity) : 0,
+    collections: Array.isArray(r.collections) ? r.collections : [],
+    taglie: Array.isArray(r.taglie) ? r.taglie.map(function (t) { return typeof t === 'string' ? t : t.taglia; }) : [],
+  };
+}
 
 var BG_DEFAULT = 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1920&q=85';
 var BG = {
@@ -188,20 +232,46 @@ renderFilterPanel(productsInCollection, !!meta.includeCategoryFilter) + '\n\n' +
 '    <div class="product-grid view-4col" id="productGrid">\n      ' + cardsHtml + '\n    </div>\n' +
 '  </main>\n' +
 '</div>\n\n' +
-'<script src="../../productsData.js"></script>\n' +
-'<script src="../../app.js"></script>\n' +
+// Cards are rendered at RUNTIME by catalog-loader.js (GET /api/products?collection=<slug>),
+// not pre-baked into this static shell — must match the pattern already live on
+// collections/<slug>/index.html, or regenerating a page would silently break it (no
+// catalog-loader.js -> empty product grid forever). Keep the app.js?v= in sync with
+// CLAUDE.md's current cache-bust version when that changes.
+'<script src="../../app.js?v=14"></script>\n' +
 '<script src="../../shop-filters.js"></script>\n' +
+'<script>window.MEMI_CATALOG={collection:\'' + meta.slug + '\'};</script>\n' +
+'<script src="../../catalog-loader.js?v=2"></script>\n' +
 '</body>\n' +
 '</html>\n';
 }
 
-var outDir = path.join(ROOT, 'collections');
-COLLECTIONS.forEach(function (meta) {
-  var matches = PRODUCTS.filter(function (p) { return p.collections.indexOf(meta.slug) >= 0; });
-  matches.sort(function (a, b) { return (a.popularity || 999) - (b.popularity || 999); });
-  var html = renderPage(meta, matches);
-  var dir = path.join(outDir, meta.slug);
-  fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'index.html'), html, 'utf8');
-  console.log('Generated collections/' + meta.slug + '/index.html (' + matches.length + ' products)');
+async function main() {
+  var rawProducts;
+  try {
+    rawProducts = await fetchProducts();
+  } catch (err) {
+    console.error('ERRORE: impossibile recuperare il catalogo dal backend API.');
+    console.error(err.message);
+    console.error('Verifica che il backend sia in esecuzione e raggiungibile su ' + API_BASE + ' (override con la variabile MEMI_API_BASE).');
+    process.exit(1);
+  }
+
+  var PRODUCTS = rawProducts.map(normalizeProduct);
+
+  var outDir = path.join(ROOT, 'collections');
+  COLLECTIONS.forEach(function (meta) {
+    var matches = PRODUCTS.filter(function (p) { return p.collections.indexOf(meta.slug) >= 0; });
+    matches.sort(function (a, b) { return (a.popularity || 999) - (b.popularity || 999); });
+    var html = renderPage(meta, matches);
+    var dir = path.join(outDir, meta.slug);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'index.html'), html, 'utf8');
+    console.log('Generated collections/' + meta.slug + '/index.html (' + matches.length + ' products)');
+  });
+}
+
+main().catch(function (err) {
+  console.error('ERRORE inatteso durante la generazione delle collezioni.');
+  console.error(err && err.stack ? err.stack : err);
+  process.exit(1);
 });

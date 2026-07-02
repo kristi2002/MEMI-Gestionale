@@ -388,8 +388,10 @@
     <p>© 2025 Memi Abbigliamento · Tutti i diritti riservati</p>
     <nav class="sf2-legal" aria-label="Link legali">
       <a href="/privacy">Privacy</a>
-      <a href="#">Cookie</a>
-      <a href="#">Termini</a>
+      <a href="cookie-policy.html">Cookie</a>
+      <a href="termini.html">Termini</a>
+      <a href="diritto-recesso.html">Diritto di Recesso</a>
+      <button type="button" class="sf2-legal-link-btn" id="sf2CookiePrefsBtn">Preferenze cookie</button>
     </nav>
     <p class="sf2-made">Fatto con cura, in Italia ✦</p>
   </div>
@@ -422,9 +424,11 @@
         .sf2-col a{font-size:.82rem;color:var(--brown-mid,#7A6B6B);text-decoration:none;transition:color .2s;}
         .sf2-col a:hover{color:var(--espresso,#3B2B2B);}
         .sf2-bottom{max-width:1280px;margin:0 auto;padding:1.1rem 2rem;border-top:1px solid var(--beige,#DDD9EC);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;font-size:.7rem;color:var(--brown-light,#9e8a8a);}
-        .sf2-legal{display:flex;gap:1.2rem;}
+        .sf2-legal{display:flex;gap:1.2rem;flex-wrap:wrap;}
         .sf2-legal a{color:var(--brown-light,#9e8a8a);text-decoration:none;transition:color .2s;}
         .sf2-legal a:hover{color:var(--espresso,#3B2B2B);}
+        .sf2-legal-link-btn{background:none;border:none;padding:0;margin:0;font:inherit;font-size:.7rem;color:var(--brown-light,#9e8a8a);text-decoration:none;transition:color .2s;cursor:pointer;}
+        .sf2-legal-link-btn:hover{color:var(--espresso,#3B2B2B);}
         .sf2-made{color:var(--brown-light,#9e8a8a);letter-spacing:.04em;}
         .sf2-newsletter{margin-top:1.75rem;}
         .sf2-nl-label{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light,#9e8a8a);margin-bottom:.65rem;}
@@ -454,6 +458,16 @@
     // If no footer exists at all (pages without placeholder/inline), append to body
     if (!document.querySelector('footer.site-footer')) {
       document.body.insertAdjacentHTML('beforeend', footerHtml);
+    }
+
+    // "Preferenze cookie" footer link — re-opens the consent preferences panel
+    var cookiePrefsBtn = document.getElementById('sf2CookiePrefsBtn');
+    if (cookiePrefsBtn) {
+      cookiePrefsBtn.addEventListener('click', function () {
+        if (window.MemiConsent && typeof window.MemiConsent.openPreferences === 'function') {
+          window.MemiConsent.openPreferences();
+        }
+      });
     }
   }
 
@@ -2123,6 +2137,236 @@
     sessionStorage.setItem(PULSE_WISH_KEY, wishNow);
   }
 
+  /* ── 16b. COOKIE CONSENT BANNER ────────────────────────── */
+  /* Lightweight, self-hosted cookie consent (no third-party script).
+     Stores the visitor's choice in localStorage under memi_cookie_consent
+     as {necessary, statistics, marketing, ts}. Exposes window.MemiConsent
+     so any current/future script (e.g. an analytics loader) can check
+     consent.get().statistics before running, and so the footer's
+     "Preferenze cookie" link can re-open the panel at any time. */
+
+  const COOKIE_CONSENT_KEY = 'memi_cookie_consent';
+
+  function getConsent() {
+    try {
+      const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+  }
+
+  function saveConsent(choice) {
+    const record = {
+      necessary: true,
+      statistics: !!choice.statistics,
+      marketing: !!choice.marketing,
+      ts: new Date().toISOString()
+    };
+    try { localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(record)); } catch (_) {}
+    return record;
+  }
+
+  function injectCookieConsentStyles() {
+    if (document.getElementById('memi-consent-styles')) return;
+    const s = document.createElement('style');
+    s.id = 'memi-consent-styles';
+    s.textContent = `
+      .memi-consent-banner{position:fixed;left:0;right:0;bottom:0;z-index:9500;background:var(--white,#FFFFFF);border-top:1px solid var(--beige,#DDD9EC);box-shadow:0 -4px 32px rgba(59,43,43,.12);padding:1.1rem 1.5rem;display:flex;flex-wrap:wrap;align-items:center;gap:1rem 1.5rem;font-family:var(--font-sans,'DM Sans',sans-serif);transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);}
+      .memi-consent-banner.open{transform:translateY(0);}
+      .memi-consent-text{flex:1 1 320px;min-width:0;font-size:.82rem;line-height:1.5;color:var(--brown-mid,#7A6B6B);margin:0;}
+      .memi-consent-text a{color:var(--espresso,#3B2B2B);text-decoration:underline;text-underline-offset:2px;}
+      .memi-consent-actions{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;flex-shrink:0;}
+      .memi-consent-btn{font-family:var(--font-sans,'DM Sans',sans-serif);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:.65rem 1.1rem;border-radius:4px;cursor:pointer;transition:background .18s,color .18s,border-color .18s;white-space:nowrap;}
+      .memi-consent-btn-accept{background:var(--espresso,#3B2B2B);color:#fff;border:1px solid var(--espresso,#3B2B2B);}
+      .memi-consent-btn-accept:hover{background:var(--blush-dark,#C48991);border-color:var(--blush-dark,#C48991);}
+      .memi-consent-btn-reject{background:transparent;color:var(--brown-mid,#7A6B6B);border:1px solid var(--beige-dark,#C0B9D9);}
+      .memi-consent-btn-reject:hover{border-color:var(--espresso,#3B2B2B);color:var(--espresso,#3B2B2B);}
+      .memi-consent-btn-prefs{background:transparent;color:var(--brown-mid,#7A6B6B);border:none;text-decoration:underline;text-underline-offset:2px;padding:.65rem .2rem;}
+      .memi-consent-btn-prefs:hover{color:var(--espresso,#3B2B2B);}
+      @media(max-width:640px){.memi-consent-banner{padding:1rem;}.memi-consent-actions{width:100%;justify-content:flex-start;}}
+
+      .memi-consent-scrim{position:fixed;inset:0;background:rgba(59,43,43,.35);z-index:9499;opacity:0;visibility:hidden;transition:opacity .25s ease;}
+      .memi-consent-scrim.open{opacity:1;visibility:visible;}
+      .memi-consent-prefs{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.97);width:min(440px,92vw);max-height:86vh;overflow-y:auto;background:var(--white,#FFFFFF);border-radius:10px;box-shadow:0 20px 60px rgba(59,43,43,.22);z-index:9600;padding:1.75rem;opacity:0;visibility:hidden;transition:opacity .22s ease,transform .22s ease;font-family:var(--font-sans,'DM Sans',sans-serif);}
+      .memi-consent-prefs.open{opacity:1;visibility:visible;transform:translate(-50%,-50%) scale(1);}
+      .memi-consent-prefs h3{font-family:var(--font-serif,'Cormorant Garamond',serif);font-weight:400;font-size:1.5rem;color:var(--espresso,#3B2B2B);margin:0 0 .5rem;}
+      .memi-consent-prefs p.memi-consent-intro{font-size:.82rem;color:var(--brown-mid,#7A6B6B);line-height:1.5;margin:0 0 1.25rem;}
+      .memi-consent-row{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:.9rem 0;border-top:1px solid var(--beige,#DDD9EC);}
+      .memi-consent-row:first-of-type{border-top:1px solid var(--beige,#DDD9EC);}
+      .memi-consent-row-label{font-size:.85rem;font-weight:600;color:var(--espresso,#3B2B2B);margin:0 0 .25rem;}
+      .memi-consent-row-desc{font-size:.76rem;color:var(--brown-light,#9e8a8a);margin:0;line-height:1.4;}
+      .memi-consent-toggle{position:relative;width:42px;height:24px;flex-shrink:0;margin-top:2px;}
+      .memi-consent-toggle input{opacity:0;width:0;height:0;position:absolute;}
+      .memi-consent-toggle-track{position:absolute;inset:0;background:var(--beige-dark,#C0B9D9);border-radius:99px;cursor:pointer;transition:background .18s;}
+      .memi-consent-toggle-track::before{content:'';position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .18s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+      .memi-consent-toggle input:checked + .memi-consent-toggle-track{background:var(--espresso,#3B2B2B);}
+      .memi-consent-toggle input:checked + .memi-consent-toggle-track::before{transform:translateX(18px);}
+      .memi-consent-toggle input:disabled + .memi-consent-toggle-track{cursor:default;opacity:.55;}
+      .memi-consent-prefs-actions{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.5rem;}
+      .memi-consent-prefs-actions .memi-consent-btn{flex:1 1 auto;text-align:center;}
+      .memi-consent-close{position:absolute;top:1rem;right:1rem;background:none;border:none;cursor:pointer;color:var(--brown-light,#9e8a8a);padding:.25rem;line-height:0;transition:color .15s;}
+      .memi-consent-close:hover{color:var(--espresso,#3B2B2B);}
+      .memi-consent-close svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;}
+    `;
+    document.head.appendChild(s);
+  }
+
+  function buildCookieConsentMarkup() {
+    if (document.getElementById('memiConsentBanner')) return;
+
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="memi-consent-banner" id="memiConsentBanner" role="dialog" aria-live="polite" aria-label="Preferenze cookie">
+        <p class="memi-consent-text">
+          Usiamo cookie tecnici necessari al funzionamento del sito. Con il tuo consenso, potremmo in futuro usare
+          cookie statistici e di marketing. Leggi la <a href="cookie-policy.html">Cookie Policy</a>.
+        </p>
+        <div class="memi-consent-actions">
+          <button type="button" class="memi-consent-btn memi-consent-btn-prefs" id="memiConsentPrefsOpenBtn">Personalizza</button>
+          <button type="button" class="memi-consent-btn memi-consent-btn-reject" id="memiConsentRejectBtn">Rifiuta non necessari</button>
+          <button type="button" class="memi-consent-btn memi-consent-btn-accept" id="memiConsentAcceptBtn">Accetta tutti</button>
+        </div>
+      </div>
+
+      <div class="memi-consent-scrim" id="memiConsentScrim"></div>
+      <div class="memi-consent-prefs" id="memiConsentPrefs" role="dialog" aria-modal="true" aria-label="Personalizza preferenze cookie">
+        <button type="button" class="memi-consent-close" id="memiConsentPrefsCloseBtn" aria-label="Chiudi">
+          <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <h3>Preferenze cookie</h3>
+        <p class="memi-consent-intro">
+          Scegli quali categorie di cookie autorizzare. Puoi modificare questa scelta in qualsiasi momento dal link
+          "Preferenze cookie" nel footer.
+        </p>
+
+        <div class="memi-consent-row">
+          <div>
+            <p class="memi-consent-row-label">Necessari</p>
+            <p class="memi-consent-row-desc">Indispensabili per il funzionamento del sito (carrello, accesso, sicurezza). Sempre attivi.</p>
+          </div>
+          <label class="memi-consent-toggle">
+            <input type="checkbox" id="memiConsentToggleNecessary" checked disabled />
+            <span class="memi-consent-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="memi-consent-row">
+          <div>
+            <p class="memi-consent-row-label">Statistici</p>
+            <p class="memi-consent-row-desc">Ci aiuterebbero a capire come i visitatori usano il sito, in forma aggregata.</p>
+          </div>
+          <label class="memi-consent-toggle">
+            <input type="checkbox" id="memiConsentToggleStatistics" />
+            <span class="memi-consent-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="memi-consent-row">
+          <div>
+            <p class="memi-consent-row-label">Marketing</p>
+            <p class="memi-consent-row-desc">Utilizzati in futuro per mostrare comunicazioni ed offerte più pertinenti.</p>
+          </div>
+          <label class="memi-consent-toggle">
+            <input type="checkbox" id="memiConsentToggleMarketing" />
+            <span class="memi-consent-toggle-track"></span>
+          </label>
+        </div>
+
+        <div class="memi-consent-prefs-actions">
+          <button type="button" class="memi-consent-btn memi-consent-btn-reject" id="memiConsentPrefsRejectBtn">Rifiuta non necessari</button>
+          <button type="button" class="memi-consent-btn memi-consent-btn-accept" id="memiConsentPrefsSaveBtn">Salva preferenze</button>
+        </div>
+      </div>
+    `);
+  }
+
+  function showConsentBanner() {
+    const banner = document.getElementById('memiConsentBanner');
+    if (banner) requestAnimationFrame(function () { banner.classList.add('open'); });
+  }
+
+  function hideConsentBanner() {
+    const banner = document.getElementById('memiConsentBanner');
+    if (banner) banner.classList.remove('open');
+  }
+
+  function openConsentPreferences() {
+    const prefs  = document.getElementById('memiConsentPrefs');
+    const scrim  = document.getElementById('memiConsentScrim');
+    if (!prefs || !scrim) return;
+    const current = getConsent() || { statistics: false, marketing: false };
+    const statsToggle = document.getElementById('memiConsentToggleStatistics');
+    const mktToggle    = document.getElementById('memiConsentToggleMarketing');
+    if (statsToggle) statsToggle.checked = !!current.statistics;
+    if (mktToggle)   mktToggle.checked   = !!current.marketing;
+    prefs.classList.add('open');
+    scrim.classList.add('open');
+  }
+
+  function closeConsentPreferences() {
+    const prefs = document.getElementById('memiConsentPrefs');
+    const scrim = document.getElementById('memiConsentScrim');
+    if (prefs) prefs.classList.remove('open');
+    if (scrim) scrim.classList.remove('open');
+  }
+
+  function wireCookieConsent() {
+    injectCookieConsentStyles();
+    buildCookieConsentMarkup();
+
+    const acceptBtn      = document.getElementById('memiConsentAcceptBtn');
+    const rejectBtn      = document.getElementById('memiConsentRejectBtn');
+    const prefsOpenBtn   = document.getElementById('memiConsentPrefsOpenBtn');
+    const prefsCloseBtn  = document.getElementById('memiConsentPrefsCloseBtn');
+    const prefsSaveBtn   = document.getElementById('memiConsentPrefsSaveBtn');
+    const prefsRejectBtn = document.getElementById('memiConsentPrefsRejectBtn');
+    const scrim          = document.getElementById('memiConsentScrim');
+
+    if (acceptBtn) acceptBtn.addEventListener('click', function () {
+      saveConsent({ statistics: true, marketing: true });
+      hideConsentBanner();
+      closeConsentPreferences();
+    });
+
+    if (rejectBtn) rejectBtn.addEventListener('click', function () {
+      saveConsent({ statistics: false, marketing: false });
+      hideConsentBanner();
+      closeConsentPreferences();
+    });
+
+    if (prefsOpenBtn) prefsOpenBtn.addEventListener('click', openConsentPreferences);
+    if (prefsCloseBtn) prefsCloseBtn.addEventListener('click', closeConsentPreferences);
+    if (scrim) scrim.addEventListener('click', closeConsentPreferences);
+
+    if (prefsRejectBtn) prefsRejectBtn.addEventListener('click', function () {
+      saveConsent({ statistics: false, marketing: false });
+      hideConsentBanner();
+      closeConsentPreferences();
+    });
+
+    if (prefsSaveBtn) prefsSaveBtn.addEventListener('click', function () {
+      const statsToggle = document.getElementById('memiConsentToggleStatistics');
+      const mktToggle   = document.getElementById('memiConsentToggleMarketing');
+      saveConsent({
+        statistics: statsToggle ? statsToggle.checked : false,
+        marketing:  mktToggle ? mktToggle.checked : false
+      });
+      hideConsentBanner();
+      closeConsentPreferences();
+    });
+
+    // Show the banner only if no choice has been recorded yet
+    if (!getConsent()) showConsentBanner();
+  }
+
+  // Public API — lets other scripts (present or future) read consent state
+  // and re-open the preferences panel (e.g. footer "Preferenze cookie" link).
+  window.MemiConsent = {
+    get: getConsent,
+    openPreferences: function () {
+      buildCookieConsentMarkup();
+      openConsentPreferences();
+    }
+  };
+
   /* ── 17. INIT ──────────────────────────────────────────── */
 
   function init() {
@@ -2138,6 +2382,7 @@
     wireMagneticHover();
     wireAuth();
     wireNewsletterForms();
+    wireCookieConsent();
   }
 
 

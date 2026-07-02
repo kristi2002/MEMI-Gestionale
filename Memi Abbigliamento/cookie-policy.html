@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cookie Policy · Memi Abbigliamento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css?v=2" />
+  <link rel="stylesheet" href="app.css" />
+  <style>
+    /* Tokens now live in tokens.css (linked above), unified with the
+       rest of the site instead of this page's own drifted palette. */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:var(--font-sans);background:var(--cream);color:var(--espresso);line-height:1.65;-webkit-font-smoothing:antialiased;}
+    a{color:var(--blush-dark);}
+
+    .simple-header{background:var(--cream);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
+    .simple-header .logo{font-family:var(--font-serif);font-size:1.4rem;font-weight:400;letter-spacing:.06em;color:var(--espresso);text-decoration:none;}
+    .simple-header .logo span{color:var(--blush-dark);}
+    .simple-header .back{font-size:.8rem;color:var(--text-muted);text-decoration:underline;text-underline-offset:3px;transition:color 150ms;}
+    .simple-header .back:hover{color:var(--espresso);}
+
+    .doc-wrap{max-width:720px;margin:0 auto;padding:48px 24px 80px;}
+
+    .doc-eyebrow{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);font-weight:500;margin-bottom:.75rem;}
+    .doc-title{font-family:var(--font-serif);font-size:clamp(2rem,5vw,3rem);font-weight:300;line-height:1.1;margin-bottom:.5rem;}
+    .doc-title em{font-style:italic;}
+    .doc-updated{font-size:.8rem;color:var(--text-muted);margin-bottom:3rem;padding-bottom:2rem;border-bottom:1px solid var(--border);}
+
+    .doc-section{margin-bottom:2.5rem;}
+    .doc-section h2{font-family:var(--font-serif);font-size:1.375rem;font-weight:400;margin-bottom:.875rem;color:var(--espresso);}
+    .doc-section p{font-size:.9rem;color:var(--text-body);margin-bottom:.75rem;line-height:1.7;}
+    .doc-section ul{margin:.5rem 0 .75rem 1.25rem;font-size:.9rem;color:var(--text-body);line-height:1.8;}
+    .doc-section strong{color:var(--espresso);font-weight:600;}
+
+    .doc-highlight{background:var(--cream-warm);border-left:3px solid var(--blush-dark);padding:1rem 1.25rem;border-radius:0 8px 8px 0;margin-bottom:.75rem;font-size:.875rem;color:var(--text-body);}
+
+    .contact-box{background:var(--blush);border-radius:16px;padding:1.5rem;margin-top:3rem;text-align:center;}
+    .contact-box h3{font-family:var(--font-serif);font-size:1.25rem;font-weight:400;margin-bottom:.5rem;}
+    .contact-box p{font-size:.875rem;color:var(--text-body);margin-bottom:1rem;}
+    .contact-box a.btn{display:inline-block;padding:.75rem 1.75rem;background:var(--espresso);color:var(--cream);border-radius:9999px;font-size:.85rem;font-weight:500;text-decoration:none;transition:background 200ms;}
+    .contact-box a.btn:hover{background:var(--espresso-light);}
+
+    .simple-footer{border-top:1px solid var(--border);padding:20px 24px;text-align:center;font-size:.75rem;color:var(--text-muted);}
+    .simple-footer a{color:var(--text-muted);text-decoration:underline;text-underline-offset:3px;}
+
+    .doc-disclaimer{background:var(--cream-warm);border:1px dashed var(--border);border-radius:8px;padding:1rem 1.25rem;margin-bottom:2.5rem;font-size:.8rem;color:var(--text-muted);line-height:1.6;}
+  </style>
+</head>
+<body>
+  <header class="simple-header">
+    <a href="index.html" class="logo">Memi<span>.</span></a>
+    <a href="javascript:history.back()" class="back">← Indietro</a>
+  </header>
+
+  <div class="doc-wrap">
+    <p class="doc-eyebrow">Documenti legali</p>
+    <h1 class="doc-title">Cookie <em>Policy</em></h1>
+    <p class="doc-updated">Ultimo aggiornamento: 2 luglio 2026 · Titolare del trattamento: Memi Abbigliamento [Ragione sociale e P.IVA da completare]</p>
+
+    <div class="doc-disclaimer">
+      <strong>Nota:</strong> questo testo è stato redatto con l'assistenza dell'intelligenza artificiale sulla base di modelli standard per l'e-commerce italiano/UE e riflette lo stato attuale del sito. Prima della pubblicazione definitiva e dell'apertura a clienti reali, il contenuto deve essere revisionato e validato da un avvocato o consulente legale qualificato in materia di privacy e protezione dei dati.
+    </div>
+
+    <div class="doc-highlight">
+      Questa pagina spiega in modo chiaro quali cookie e quali tecnologie di memorizzazione locale (localStorage) usa oggi il sito <strong>memiabbigliamento.it</strong>, a cosa servono e come puoi gestire le tue preferenze.
+    </div>
+
+    <div class="doc-section">
+      <h2>1. Cosa sono i cookie e il localStorage</h2>
+      <p>I <strong>cookie</strong> sono piccoli file di testo che un sito web può inviare al browser del visitatore, che li memorizza e li ritrasmette al sito ad ogni visita successiva. Vengono tradizionalmente usati per riconoscere l'utente, ricordare le preferenze o tenere traccia della sessione.</p>
+      <p>Il nostro sito utilizza principalmente una tecnologia simile ma distinta, chiamata <strong>localStorage</strong>: è una funzione messa a disposizione dal browser stesso, che permette al sito di salvare piccole informazioni <strong>esclusivamente sul dispositivo del cliente</strong>, senza che queste vengano automaticamente inviate al server ad ogni richiesta come avviene con i cookie tradizionali. In termini pratici, per l'utente il funzionamento e le implicazioni sulla privacy sono equivalenti a quelle dei cookie tecnici, motivo per cui questa pagina li tratta con lo stesso livello di trasparenza previsto dalla normativa e dalle linee guida del Garante per la Protezione dei Dati Personali.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>2. Cookie e storage tecnici e necessari (sempre attivi)</h2>
+      <p>Questi elementi sono indispensabili per il funzionamento base del sito (carrello, accesso cliente, sicurezza) e <strong>non richiedono consenso</strong>, in conformità con la normativa vigente. Nello specifico, il sito utilizza oggi le seguenti voci di localStorage:</p>
+      <ul>
+        <li><strong>memi_cart</strong> — contiene i prodotti attualmente inseriti nel carrello dell'utente.</li>
+        <li><strong>memi_wishlist</strong> — contiene i prodotti salvati nella lista dei desideri.</li>
+        <li><strong>memi_token / memi_session</strong> — mantengono la sessione di accesso del cliente autenticato, per evitare di dover effettuare nuovamente il login ad ogni pagina.</li>
+        <li><strong>memi_admin_token</strong> — utilizzato esclusivamente nel pannello di amministrazione riservato allo staff Memi, non riguarda i clienti del negozio online.</li>
+        <li><strong>memi_cookie_consent</strong> — memorizza la scelta espressa dall'utente riguardo alle preferenze cookie descritte in questa pagina.</li>
+      </ul>
+      <p>Si tratta, come spiegato al punto 1, di voci di localStorage e non di cookie HTTP in senso stretto: i dati restano sul dispositivo del cliente e non vengono trasmessi automaticamente al server ad ogni pagina caricata.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>3. Cookie di preferenza e funzionalità</h2>
+      <p>Attualmente il sito <strong>non utilizza</strong> cookie o tecnologie di storage aggiuntive per la personalizzazione delle preferenze, oltre a quanto già descritto al punto 2 (ad esempio non salviamo oggi preferenze di lingua, valuta o layout in cookie dedicati).</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>4. Cookie statistici e analitici (richiedono consenso)</h2>
+      <p>Al momento <strong>non sono attivi strumenti di analisi statistica di terze parti</strong> (ad esempio Google Analytics o servizi equivalenti) sul sito. Non viene quindi effettuato alcun tracciamento statistico di terze parti sulla navigazione degli utenti.</p>
+      <p>Qualora in futuro venissero introdotti strumenti di questo tipo, questa pagina e il banner cookie del sito verranno aggiornati per richiedere il tuo consenso esplicito prima della loro attivazione.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>5. Cookie di profilazione e marketing (richiedono consenso)</h2>
+      <p>Al momento <strong>non è attivo alcun cookie o strumento di profilazione o marketing</strong> di terze parti (ad esempio pixel pubblicitari o remarketing). Non effettuiamo oggi alcuna attività di questo tipo tramite il sito.</p>
+      <p>Come per i cookie statistici, qualora in futuro venissero introdotti strumenti di marketing o profilazione, questa pagina e il banner cookie verranno aggiornati per richiedere il tuo consenso esplicito prima della loro attivazione.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>6. Come gestire le tue preferenze</h2>
+      <p>Al primo accesso al sito, un banner cookie ti permette di scegliere tra le categorie sopra descritte: i cookie/storage <strong>necessari</strong> sono sempre attivi e non disattivabili, mentre le categorie <strong>statistici</strong> e <strong>marketing</strong> (attualmente non in uso, come indicato ai punti 4 e 5) possono essere attivate o disattivate liberamente, e sono disattivate di default finché non presenti in modo effettivo.</p>
+      <p>Puoi rivedere e modificare la tua scelta in qualsiasi momento cliccando su <strong>"Preferenze cookie"</strong> nel footer di ogni pagina del sito. In alternativa, puoi sempre cancellare i dati salvati direttamente dalle impostazioni del tuo browser.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>7. Cookie di terze parti per servizi essenziali</h2>
+      <p>Durante il checkout, il pagamento con carta di credito/debito è elaborato tramite <strong>Stripe</strong>, il nostro fornitore di servizi di pagamento. Stripe può impostare proprie tecnologie tecniche necessarie all'elaborazione sicura della transazione (ad esempio per la prevenzione delle frodi). Queste tecnologie sono gestite direttamente da Stripe secondo la propria privacy policy e non sono sotto il controllo diretto di Memi Abbigliamento.</p>
+    </div>
+
+    <div class="doc-section">
+      <h2>8. Ulteriori informazioni</h2>
+      <p>Per maggiori dettagli su come trattiamo i dati personali raccolti tramite il sito (dati di account, ordini, recensioni, newsletter e resi), consulta la nostra <a href="privacy.html">Privacy Policy</a> completa.</p>
+    </div>
+
+    <div class="contact-box">
+      <h3>Hai domande sui cookie?</h3>
+      <p>Il nostro team è disponibile per chiarire qualsiasi dubbio.</p>
+      <a href="mailto:privacy@memiabbigliamento.it" class="btn">Scrivici</a>
+    </div>
+  </div>
+
+  <footer class="simple-footer">
+    <p>© 2026 Memi Abbigliamento · <a href="privacy.html">Privacy Policy</a> · <a href="returns.html">Politica dei resi</a> · <a href="about.html">Chi siamo</a></p>
+  </footer>
+
+  <script src="app.js?v=14"></script>
+</body>
+</html>

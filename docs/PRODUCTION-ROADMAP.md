@@ -88,19 +88,61 @@ Out of scope by design (confirmed with the project owner):
       under the checkout totals block. Kept intentionally minimal per Phase 3 scope; a fuller
       per-line-item VAT breakdown remains backlog (see Phase 5's explicit-backlog note).
 
-## Phase 4 — Legal & compliance pages + storefront SEO cleanup
-- [ ] Cookie-consent banner (self-hosted, necessary vs analytics/marketing categories).
-- [ ] New pages, drafted Italian boilerplate **flagged for lawyer review**: Cookie Policy, Termini
-      e Condizioni, Diritto di Recesso (14-day withdrawal, Codice del Consumo). Expand `privacy.html`
-      to be complete.
-- [ ] Wire dead footer links to the new pages.
-- [ ] `Product` JSON-LD on `product.html` (home already has `ClothingStore`/`WebSite`).
+## Phase 4 — Legal & compliance pages + storefront SEO cleanup ✅
+- [x] Cookie-consent banner — self-hosted, no third-party script, in `Memi Abbigliamento/app.js`
+      (`wireCookieConsent()` + friends, ~line 2140 on). Banner (necessari/statistici/marketing)
+      shown on first visit only; choice stored in `localStorage.memi_cookie_consent`; exposes
+      `window.MemiConsent.get()`/`.openPreferences()` for future scripts and the footer link.
+      Verified directly (not just via the report): correctly wired into `init()`, guards against
+      double-injection, pre-fills toggles from stored consent when reopened.
+- [x] Three new pages, drafted Italian boilerplate **flagged for lawyer review** (visible notice
+      on every page): `cookie-policy.html`, `termini.html`, `diritto-recesso.html`. Two agents
+      independently WebSearch-verified live legal facts rather than guessing: the 14-day
+      withdrawal period + EU's new mandatory "withdrawal button" requirement (in force in Italy
+      from **19 June 2026** — correctly *not* claimed as already implemented, framed as
+      "in fase di verifica legale e tecnica"), and that the classic `ec.europa.eu/consumers/odr`
+      platform was **retired 20 July 2025** (Reg. EU 2024/3228) and replaced with
+      `consumer-redress.ec.europa.eu` — both cross-checked independently and confirmed accurate,
+      not hallucinated.
+- [x] Expanded `privacy.html`: removed inaccurate claims (Google Analytics and PayPal were
+      described as active data processors — neither is true; no analytics is active, only Stripe
+      processes payments), added international-transfer and DPO sections, cross-links to the 3
+      new pages.
+- [x] Wired footer legal links (`Memi Abbigliamento/app.js`, `.sf2-legal` nav) to all 4 pages,
+      plus a "Preferenze cookie" button that reopens the consent panel.
+- [x] ~~`Product` JSON-LD on `product.html`~~ — **already existed**, verified directly:
+      `injectSeo(p)` (~line 861) injects real `Product`+`Offer` JSON-LD (price, SKU, brand,
+      availability) plus OG/Twitter meta. The original Phase-1 finding that this was missing was
+      wrong (stale research-agent claim); corrected before any work was wasted on it.
 - [x] ~~Redirect orphaned static `/products/<slug>/index.html` pages~~ — **already done**,
       verified directly: each one is a proper `location.replace()` + meta-refresh +
-      `rel=canonical` + `noindex,follow` redirect to `/product?id=<slug>`. One research agent
-      flagged these as dead; direct inspection showed that was wrong. No work needed here.
-- [ ] Fix `Memi Abbigliamento/scripts/generate-collections.js` to source counts from the live API
-      instead of stale `productsData.js`.
+      `rel=canonical` + `noindex,follow` redirect to `/product?id=<slug>`. No work needed here.
+- [x] Fixed `Memi Abbigliamento/scripts/generate-collections.js` to source counts from the live
+      API (`GET /api/products`) instead of stale `productsData.js`, with a loud failure (no silent
+      fallback) if the API is unreachable.
+
+**Issues caught in post-implementation review** (adversarial legal review + my own direct
+follow-up reads — not just trusting the implementing agents' self-reports):
+- **Critical, fixed:** `privacy.html` stated "Memi Abbigliamento **S.r.l.**" as settled fact in
+  §1, contradicting its own placeholder elsewhere in the same file and unsupported anywhere in
+  the repo — a fabricated legal-entity detail. Corrected to the same `[Ragione sociale e P.IVA
+  da completare]` placeholder used consistently elsewhere.
+- **Low, fixed:** the 4 legal pages had 3 different "last updated" dates, one of them
+  (`diritto-recesso.html`) dated in the future relative to today. Synchronized all 4 to today's
+  date.
+- **Found by me, not by the workflow's own verification, fixed:** `generate-collections.js`'s
+  *output template* (the static HTML it generates) still hardcoded a `<script
+  src="../../productsData.js">` tag and was **missing `catalog-loader.js` entirely** — comparing
+  it against a real live collection page showed the generator would have silently broken every
+  regenerated collection page (empty product grid, no dynamic rendering) despite passing its own
+  syntax check. Fixed the template to match the actual live script-tag pattern.
+- **Found by me, fixed:** `index.html`'s own static fallback footer (separate from the
+  shared JS-injected one, shown briefly before JS replaces it / to no-JS visitors and crawlers)
+  had the same dead Privacy/Cookie links *and* falsely listed PayPal/Klarna as accepted payment
+  methods (neither is live). Fixed both.
+- **Not done, explicit scope decision:** cache-bust version bump for `app.js` (touched
+  substantially by the cookie-banner work) was intentionally left out of that agent's scope and
+  done separately afterward — bumped `?v=13` → `?v=14` across all 42 referencing HTML files.
 
 ## Phase 5 — Backend production hardening
 - [ ] Structured logging (pino) + request-id middleware on the highest-value log points
