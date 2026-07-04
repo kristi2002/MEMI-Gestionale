@@ -106,6 +106,24 @@ const STATEMENTS = [
      KEY idx_audit_admin (admin_id),
      KEY idx_audit_created (created_at)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Customer shipping addresses (Area Personale · Indirizzi) ────────────────
+  //  One customer can save several addresses; exactly one is the default.
+  `CREATE TABLE IF NOT EXISTS customer_addresses (
+     id          INT AUTO_INCREMENT PRIMARY KEY,
+     customer_id INT NOT NULL,
+     label       VARCHAR(80)  NULL,
+     indirizzo   VARCHAR(255) NULL,
+     citta       VARCHAR(100) NULL,
+     cap         VARCHAR(10)  NULL,
+     paese       VARCHAR(100) DEFAULT 'Italia',
+     telefono    VARCHAR(30)  NULL,
+     is_default  TINYINT(1)   NOT NULL DEFAULT 0,
+     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     KEY idx_addr_customer (customer_id),
+     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');
@@ -243,6 +261,15 @@ async function runMigrations(pool) {
   // 3. Add columns / indexes to pre-existing tables (idempotent guards)
   try {
     await ensureColumn(pool, 'customers', 'points', 'points INT NOT NULL DEFAULT 0');
+    // ── Area Personale: per-customer JSON blobs + language (idempotent) ──
+    await ensureColumn(pool, 'customers', 'wishlist',    'wishlist JSON NULL');          // pre-existing on new schemas; guard old DBs
+    await ensureColumn(pool, 'customers', 'sizes',       'sizes JSON NULL');             // fit profile {top,bottom,dress,shoe,notes}
+    await ensureColumn(pool, 'customers', 'preferences', 'preferences JSON NULL');       // {categories[],colors[],email,sms}
+    await ensureColumn(pool, 'customers', 'lang',        "lang VARCHAR(5) NULL");        // 'it' | 'en'
+    // ── Newsletter: richer per-subscriber settings + link to a customer ──
+    await ensureColumn(pool, 'newsletter_subscribers', 'customer_id', 'customer_id INT NULL');
+    await ensureColumn(pool, 'newsletter_subscribers', 'frequenza',   "frequenza VARCHAR(20) NULL");
+    await ensureColumn(pool, 'newsletter_subscribers', 'topics',      'topics JSON NULL');
     await ensureIndex(pool, 'order_items', 'idx_oi_product', 'product_id');
     await ensureIndex(pool, 'products', 'idx_products_cat_status', 'categoria, status');
     // Per-courier tracking deep-link template ({tracking} → the tracking number)

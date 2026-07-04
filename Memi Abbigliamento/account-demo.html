@@ -6,14 +6,15 @@
   <title>DEMO Area Personale</title>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="tokens.css?v=2" />
-  <link rel="stylesheet" href="account.css?v=1" />
+  <link rel="stylesheet" href="account.css?v=2" />
   <style>
-    /* minimal header stand-in so the demo looks like the real page */
-    .demo-header{display:flex;align-items:center;justify-content:space-between;
-      padding:1rem 1.5rem;border-bottom:1px solid var(--beige);}
+    .demo-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--beige);}
     .demo-header .logo{font-family:var(--font-serif);font-size:1.6rem;letter-spacing:.05em;}
     .demo-header .logo span{color:var(--blush-dark);}
     .demo-header .acts svg{width:20px;height:20px;stroke:var(--espresso);fill:none;stroke-width:1.6;margin-left:1rem;}
+    .demo-lang{position:fixed;bottom:14px;right:14px;z-index:99;background:#fff;border:1px solid var(--beige);border-radius:999px;padding:.35rem .5rem;box-shadow:var(--shadow-sm);font-size:.72rem;}
+    .demo-lang button{padding:.3rem .7rem;border-radius:999px;color:var(--brown-mid);}
+    .demo-lang button.on{background:var(--espresso);color:#fff;}
   </style>
 </head>
 <body>
@@ -24,21 +25,32 @@
   <div class="acts">
     <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
   </div>
 </div>
 
 <main class="ap-wrap" id="accountMain"></main>
 
+<!-- Demo-only language toggle (NOT part of the production page) -->
+<div class="demo-lang">
+  <button onclick="window.MemiSetLang('it');document.querySelectorAll('.demo-lang button').forEach(function(b){b.classList.toggle('on',b.textContent==='IT')})" class="on">IT</button>
+  <button onclick="window.MemiSetLang('en');document.querySelectorAll('.demo-lang button').forEach(function(b){b.classList.toggle('on',b.textContent==='EN')})">EN</button>
+</div>
+
 <script>
 /* ==== DEMO MOCK (test harness only) ==== */
-try { localStorage.setItem('memi_token','demo-token'); } catch(e){}
-try { localStorage.setItem('memi_wishlist', JSON.stringify([
+try { localStorage.setItem('memi_token','demo-token');
+localStorage.setItem('memi_wishlist', JSON.stringify([
   {id:'top-seta-lucida-aria',productId:'top-seta-lucida-aria',name:'Top in seta lucida Aria',color:'Perla',colorKey:'ph-cream',taglia:'M'},
   {id:'gonna-plisse-nuvola',productId:'gonna-plisse-nuvola',name:'Gonna plisse Nuvola',color:'Salvia',colorKey:'ph-sage',taglia:null},
   {id:'vestito-lino-cannes',productId:'vestito-lino-cannes',name:'Vestito in lino Cannes',color:'Rosa antico',colorKey:'ph-blush',taglia:'S'},
-  {id:'blazer-sartoriale-mia',productId:'blazer-sartoriale-mia',name:'Blazer sartoriale Mia',color:'Lavanda',colorKey:'ph-lavender',taglia:'M'}
-])); } catch(e){}
+  {id:'blazer-sartoriale-mia',productId:'blazer-sartoriale-mia',name:'Blazer sartoriale Mia',color:'Lavanda',colorKey:'ph-lavender',taglia:'M'},
+  {id:'sandalo-listino-estate',productId:'sandalo-listino-estate',name:'Sandalo a listino Estate',color:'Cipria',colorKey:'ph-blush',taglia:'38'},
+  {id:'borsa-tote-lino',productId:'borsa-tote-lino',name:'Borsa tote in lino',color:'Naturale',colorKey:'ph-cream',taglia:null},
+  {id:'camicia-cotone-brisa',productId:'camicia-cotone-brisa',name:'Camicia in cotone Brisa',color:'Bianco',colorKey:'ph-cream',taglia:'S'}
+]));
+localStorage.removeItem('memi_addresses'); localStorage.removeItem('memi_sizes'); localStorage.removeItem('memi_prefs'); localStorage.removeItem('memi_news'); localStorage.setItem('memi_lang','it');
+} catch(e){}
 window.openAuthDrawer=function(){};
 var _user={id:42,nome:'Kristi',cognome:'Komini',email:'kristi.komini@gmail.com',telefono:'+39 333 1234567',indirizzo:'Via Roma 1',citta:'Milano',cap:'20100',paese:'Italia',points:340};
 var _orders=[
@@ -55,13 +67,8 @@ var _loy={points:340,config:{pointValueEur:0.01,minRedeem:100},transactions:[
 function _p(v){return Promise.resolve(v);}
 window.MemiAPI={auth:{isLoggedIn:function(){return true;},logout:function(){},me:function(){return _p({user:_user});},updateMe:function(){return _p({});},loyalty:function(){return _p(_loy);},redeemPoints:function(p){return _p({code:'MEMI-'+Math.random().toString(36).slice(2,7).toUpperCase(),value:p*0.01});}},orders:{myOrders:function(){return _p(_orders);}}};
 var _origFetch=window.fetch;
-window.fetch=function(u){ if(String(u).indexOf('/api/products')>-1){ return _p({json:function(){return _p({products:[
-  {id:'top-seta-lucida-aria',name:'Top in seta lucida Aria',images:[]},
-  {id:'gonna-plisse-nuvola',name:'Gonna plisse Nuvola',images:[]},
-  {id:'vestito-lino-cannes',name:'Vestito in lino Cannes',images:[]},
-  {id:'blazer-sartoriale-mia',name:'Blazer sartoriale Mia',images:[]}
-]});}}); } return _origFetch.apply(window,arguments); };
+window.fetch=function(u){ if(String(u).indexOf('/api/products')>-1){ return _p({json:function(){return _p({products:[]});}}); } return _origFetch.apply(window,arguments); };
 </script>
-<script src="account.js?v=1"></script>
+<script src="account-core.js?v=1"></script>
 </body>
 </html>
