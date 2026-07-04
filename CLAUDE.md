@@ -92,9 +92,11 @@ trust a single doc.
 
 ## Update Luglio 2026 — Sprint 2 (feature-completeness + hardening)
 
-**Cache-bust versions (verified):** storefront `app.js?v=13`, `api-client.js?v=3`; admin
+**Cache-bust versions (verified):** storefront `app.js?v=16`, `api-client.js?v=4`,
+`tokens.css?v=4`, `app.css?v=3`, `shop.css?v=4`, `catalog-loader.js?v=3`; admin
 `app.js?v=23`, `admin-api.js?v=15`. Bump the version when editing these files and run
-`bash verify/run.sh`.
+`bash verify/run.sh`. (`scripts/cache-bust.js` rewrites `?v=` with content hashes at
+Docker build time, so source `?v=N` only needs to be *consistent*, not sequential.)
 
 Key facts now true in the code (both sprints combined):
 - A verified Stripe payment sets `orders.payment_status='pagato'`; dashboard/finance filter `pagato`.

@@ -49,7 +49,7 @@
 
   // Consistent, honest placeholder for products that have no uploaded image
   // (no misleading stock photos). Shared visual with the PDP and shop.
-  var NO_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><rect width="600" height="800" fill="#f1ece6"/><rect x="225" y="300" width="150" height="120" rx="10" fill="none" stroke="#cbb9a8" stroke-width="6"/><circle cx="268" cy="338" r="13" fill="none" stroke="#cbb9a8" stroke-width="6"/><path d="M232 414 L300 358 L338 392 L368 366 L368 418 Z" fill="#cbb9a8"/><text x="300" y="476" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="26" fill="#a8978a">Nessuna immagine</text></svg>');
+  var NO_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><rect width="600" height="800" fill="#f1ece6"/><rect x="225" y="300" width="150" height="120" rx="10" fill="none" stroke="#BEBEDD" stroke-width="6"/><circle cx="268" cy="338" r="13" fill="none" stroke="#BEBEDD" stroke-width="6"/><path d="M232 414 L300 358 L338 392 L368 366 L368 418 Z" fill="#BEBEDD"/><text x="300" y="476" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="26" fill="#8F8FC1">Nessuna immagine</text></svg>');
   function imgFallback(seed) {
     return NO_IMAGE;
   }
@@ -70,7 +70,7 @@
     }
     var flagBadges = '';
     if (isOos) {
-      flagBadges += '<span class="badge" style="background:#9b2c2c;color:#fff;">Esaurito</span>';
+      flagBadges += '<span class="badge" style="background:#3B2B2B;color:#fff;">Esaurito</span>';
     } else {
       if (p.is_new)       flagBadges += '<span class="badge badge-new">New</span>';
       if (p.discount_pct) flagBadges += '<span class="badge badge-sale">−' + p.discount_pct + '%</span>';

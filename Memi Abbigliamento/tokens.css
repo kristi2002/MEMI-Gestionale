@@ -7,37 +7,54 @@
 
 :root {
   /* ================================================================
-     BRAND PALETTE — Memi Abbigliamento
-     Viola #C5BEE2 · Verde #CCE2CB · Rosa #F3D1D6 · Bianco #FFFFFF
-     Source of truth: client Instagram / graphic design files
+     BRAND PALETTE — Memi Abbigliamento — STRICT 2-COLOR SYSTEM
+     Viola #F1F0F8 · Verde Menta #D5E4C3 (+ neutrals only)
+     Source of truth: client social graphics. The old third brand
+     color (Rosa) has been removed; every accent must resolve to a
+     tint/shade of one of these two hues.
      ================================================================ */
+
+  /* --- Canonical brand tokens --- */
+  /* Per client request (Lug 2026): ONE violet surface shade only.
+     #C9C9E5 / #EDEDF7 / #F4F4FA were all unified to #F1F0F8.       */
+  --brand-violet:      #F1F0F8;  /* Viola — the dominant brand color        */
+  --brand-mint:        #D5E4C3;  /* Verde menta — the supporting brand color*/
+  --brand-violet-dark: #6B6BA3;  /* Same hue, dark enough for text on white
+                                    (4.9:1) and for white text on it (4.9:1)*/
+  --brand-mint-dark:   #5F7A3F;  /* Same hue, text-safe (4.8:1 on white)    */
+  /* Supporting same-hue steps (no new hues) */
+  --brand-violet-light: #F1F0F8; /* hover surfaces, light section bg        */
+  --brand-mint-light:   #EAF1E0; /* chip/pill backgrounds                   */
+  --brand-violet-mid:   #8F8FC1; /* decorative strokes/icons (not text)     */
+  --brand-mint-mid:     #9CB37F; /* decorative strokes/icons (not text)     */
+  --brand-violet-deep:  #5C5C94; /* hover state of --brand-violet-dark      */
 
   /* --- Surfaces --- */
   --bg-base:        #FFFFFF;   /* Pure white canvas — no warm tint       */
-  --bg-soft:        #F3F1F9;   /* Ultra-light viola tint — hover/subtle  */
+  --bg-soft:        #F1F0F8;   /* Ultra-light viola tint — hover/subtle  */
   --bg-card:        #FFFFFF;   /* Product card surface                   */
 
-  /* --- Rosa (Accent Pink) — #F3D1D6 --- */
-  --blush:          #F3D1D6;   /* Rosa brand accent — announcement bars  */
-  --blush-light:    #FAE8EB;   /* Light rosa — announcement bar bg       */
-  --blush-dark:     #C4A8B0;   /* Muted rosa — badge / cart dot          */
+  /* --- Legacy "Rosa" tokens — REMAPPED to Viola (rosa removed) --- */
+  --blush:          var(--brand-violet);       /* announcement bars     */
+  --blush-light:    var(--brand-violet-light); /* announcement bar bg   */
+  --blush-dark:     var(--brand-violet-dark);  /* badge / cart dot / CTA*/
 
   /* --- Bianco Caldo (Soft Off-White) — #F7F5F0 --- */
   --cream:          #F7F5F0;   /* Bianco Caldo — logo contrast, overlays */
-  --cream-dark:     #E6E2EF;   /* Viola-tinted cool divider              */
+  --cream-dark:     #E9E9F3;   /* Viola-tinted cool divider              */
 
-  /* --- Verde (Supporting Green) — #CCE2CB --- */
-  --sage:           #CCE2CB;   /* Verde brand green — tags, pills        */
-  --sage-light:     #E5F1E4;   /* Light verde — chip backgrounds         */
-  --sage-dark:      #85A884;   /* Deeper verde — icon strokes            */
+  /* --- Verde Menta (Supporting) — #D5E4C3 --- */
+  --sage:           var(--brand-mint);       /* tags, pills              */
+  --sage-light:     var(--brand-mint-light); /* chip backgrounds         */
+  --sage-dark:      var(--brand-mint-dark);  /* icon strokes, trust strip*/
 
-  /* --- Viola (Dominant) — #C5BEE2 --- */
-  --lavender:       #C5BEE2;   /* Viola — hero bg, marquee, highlights   */
-  --lavender-light: #EAE7F4;   /* Light viola — hover surfaces           */
+  /* --- Viola (Dominant) — #F1F0F8 --- */
+  --lavender:       var(--brand-violet);       /* hero bg, marquee       */
+  --lavender-light: var(--brand-violet-light); /* hover surfaces         */
 
-  /* --- Cool-toned Borders / Dividers --- */
-  --beige:          #DDD9EC;   /* Cool viola-tinted border               */
-  --beige-dark:     #C0B9D9;   /* Slightly deeper viola border           */
+  /* --- Cool-toned Borders / Dividers (viola-tinted neutrals) --- */
+  --beige:          #DBDBEE;   /* Cool viola-tinted border               */
+  --beige-dark:     #BEBEDD;   /* Slightly deeper viola border           */
 
   /* --- Typography (unchanged — works over all pastels) --- */
   --espresso:       #3B2B2B;   /* Rich dark — primary body text          */
@@ -121,19 +138,19 @@
   --text-body:      var(--brown-mid);
   --text-muted:     var(--brown-light);
   --blush-mid:      var(--blush);
-  --lavender-dark:  #A89BC4; /* no canonical dark-lavender existed; derived to match the sage-dark/blush-dark contrast pattern */
+  --lavender-dark:  var(--brand-violet-dark);
 }
 
 /* ============================================================
    Placeholder helpers — kept here so every page shares one
    definition instead of redefining .ph-* per file.
    ============================================================ */
-.ph-blush    { background: linear-gradient(145deg, #FAE8EB, #F3D1D6); }  /* Rosa */
-.ph-sage     { background: linear-gradient(145deg, #E5F1E4, #CCE2CB); }  /* Verde */
-.ph-lavender { background: linear-gradient(145deg, #EAE7F4, #C5BEE2); }  /* Viola */
-.ph-cream    { background: linear-gradient(145deg, #F7F5F0, #E6E2EF); }  /* Bianco Caldo → cool */
-.ph-peach    { background: linear-gradient(145deg, #FAE8EB, #F3D1D6); }  /* Remapped → Rosa */
-.ph-mint     { background: linear-gradient(145deg, #E5F1E4, #CCE2CB); }  /* Remapped → Verde */
+.ph-blush    { background: #F1F0F8; }  /* Remapped → Viola (single shade, flat) */
+.ph-sage     { background: linear-gradient(145deg, #EAF1E0, #D5E4C3); }  /* Verde menta */
+.ph-lavender { background: #F1F0F8; }  /* Viola (single shade, flat) */
+.ph-cream    { background: linear-gradient(145deg, #F7F5F0, #E9E9F3); }  /* Bianco Caldo → cool */
+.ph-peach    { background: #F1F0F8; }  /* Remapped → Viola (single shade, flat) */
+.ph-mint     { background: linear-gradient(145deg, #EAF1E0, #D5E4C3); }  /* Remapped → Verde menta */
 
 /* Ghost-mannequin tier: flat, neutral, no gradient */
 .ph-flat        { background: var(--bg-soft); }

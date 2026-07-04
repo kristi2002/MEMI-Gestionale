@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="tokens.css?v=2" />
-  <link rel="stylesheet" href="app.css" />
+  <link rel="stylesheet" href="tokens.css?v=4" />
+  <link rel="stylesheet" href="app.css?v=3" />
   <style>
     /* Tokens now live in tokens.css (linked above), unified with the
        rest of the site instead of this page's own drifted palette. */
@@ -288,7 +288,7 @@
     .tl-dot.active {
       background: var(--blush);
       border-color: var(--blush-dark);
-      box-shadow: 0 0 0 4px rgba(201,137,122,.18);
+      box-shadow: 0 0 0 4px rgba(107,107,163,.18);
     }
     .tl-body {
       padding-bottom: 20px;
@@ -533,7 +533,7 @@
   </footer>
 
   <script src="api-client.js?v=4"></script>
-  <script src="app.js?v=14"></script>
+  <script src="app.js?v=16"></script>
   <script>
     // ── Order number ──────────────────────────────────────
     function genOrderNum() {
@@ -664,7 +664,7 @@
       canvas.height = window.innerHeight;
 
       // Brand-aligned petal colors
-      const COLORS = ['#F3C5CC','#EAA8B2','#F7D6DA','#F9E4E7','#E8B4BB','#F2CDD2','#FDEEF0'];
+      const COLORS = ['#F1F0F8','#8F8FC1','#D5E4C3','#F1F0F8','#9CB37F','#EAF1E0','#DBDBEE'];
       const COUNT  = 38;
 
       // Draw a simple petal shape centered at (0,0)

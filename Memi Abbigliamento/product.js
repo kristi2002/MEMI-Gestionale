@@ -116,7 +116,7 @@
 
   function stars(n) {
     var s = '';
-    for (var i = 1; i <= 5; i++) s += '<span style="color:' + (i <= n ? '#c9a060' : '#e0d0c0') + ';font-size:16px">★</span>';
+    for (var i = 1; i <= 5; i++) s += '<span style="color:' + (i <= n ? '#6B6BA3' : '#DBDBEE') + ';font-size:16px">★</span>';
     return s;
   }
 
@@ -159,7 +159,7 @@
       html += '<form id="reviewForm">';
       html += '<div style="display:flex;gap:6px;margin-bottom:12px" id="starPicker">';
       for (var i = 1; i <= 5; i++) {
-        html += '<button type="button" data-star="' + i + '" style="font-size:22px;background:none;border:none;cursor:pointer;color:#e0d0c0;transition:color .15s" onmouseover="highlightStars(this)" onmouseout="resetStars()" onclick="pickStar(this)">★</button>';
+        html += '<button type="button" data-star="' + i + '" style="font-size:22px;background:none;border:none;cursor:pointer;color:#DBDBEE;transition:color .15s" onmouseover="highlightStars(this)" onmouseout="resetStars()" onclick="pickStar(this)">★</button>';
       }
       html += '</div>';
       html += '<input type="hidden" id="reviewRating" value="0"/>';
@@ -176,13 +176,13 @@
       window.highlightStars = function(btn) {
         var n = parseInt(btn.dataset.star);
         document.querySelectorAll('#starPicker button').forEach(function(b,i) {
-          b.style.color = (i < n) ? '#c9a060' : '#e0d0c0';
+          b.style.color = (i < n) ? '#6B6BA3' : '#DBDBEE';
         });
       };
       window.resetStars = function() {
         var cur = parseInt(document.getElementById('reviewRating').value) || 0;
         document.querySelectorAll('#starPicker button').forEach(function(b,i) {
-          b.style.color = (i < cur) ? '#c9a060' : '#e0d0c0';
+          b.style.color = (i < cur) ? '#6B6BA3' : '#DBDBEE';
         });
       };
       window.pickStar = function(btn) {
@@ -211,7 +211,7 @@
             testo:         testo  || null,
             customer_nome: nome   || null,
           }).then(function() {
-            msg.style.color = '#3a7a4a';
+            msg.style.color = '#5F7A3F';
             msg.textContent = 'Grazie! La tua recensione è in attesa di approvazione.';
             form.reset();
             document.getElementById('reviewRating').value = '0';

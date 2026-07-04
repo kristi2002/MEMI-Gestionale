@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="tokens.css?v=2" />
+  <link rel="stylesheet" href="tokens.css?v=4" />
   <style>
     /* Tokens now live in tokens.css (linked in <head>) */
 
@@ -25,7 +25,7 @@
     .announcement-bar{background:var(--blush-light);color:var(--brown-mid);text-align:center;
       padding:var(--space-2) var(--space-4);font-size:var(--text-xs);
       letter-spacing:var(--tracking-wider);text-transform:uppercase;font-weight:500;
-      border-bottom:1px solid var(--blush);}
+      border-bottom:1px solid var(--beige);}
 
     /* ── Header ── */
     .site-header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);
@@ -326,7 +326,7 @@
     }
     .ph-fig svg{width:55%;opacity:.22;}
   </style>
-  <link rel="stylesheet" href="app.css" />
+  <link rel="stylesheet" href="app.css?v=3" />
 </head>
 <body>
 
@@ -603,30 +603,30 @@
     .rev-item-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.4rem;flex-wrap:wrap;}
     .rev-author{font-size:.83rem;font-weight:600;color:var(--espresso,#3B2B2B);}
     .rev-date{font-size:.75rem;color:var(--brown-light,#9e8a8a);}
-    .rev-stars{color:var(--blush-dark,#C48991);letter-spacing:2px;font-size:.95rem;}
+    .rev-stars{color:var(--blush-dark,#6B6BA3);letter-spacing:2px;font-size:.95rem;}
     .rev-star-empty{opacity:.25;}
     .rev-item-title{font-size:.9rem;font-weight:600;color:var(--espresso,#3B2B2B);margin-bottom:.3rem;}
     .rev-item-text{font-size:.85rem;color:var(--brown-mid,#7A6B6B);line-height:1.6;}
-    .rev-admin-reply{background:var(--lavender-light,#EAE7F4);border-left:3px solid var(--blush-dark,#C48991);margin-top:.75rem;padding:.6rem .9rem;border-radius:0 4px 4px 0;}
-    .rev-admin-reply-label{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--blush-dark,#C48991);font-weight:600;margin-bottom:.2rem;}
+    .rev-admin-reply{background:var(--lavender-light,#F1F0F8);border-left:3px solid var(--blush-dark,#6B6BA3);margin-top:.75rem;padding:.6rem .9rem;border-radius:0 4px 4px 0;}
+    .rev-admin-reply-label{font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--blush-dark,#6B6BA3);font-weight:600;margin-bottom:.2rem;}
     .rev-admin-reply-text{font-size:.82rem;color:var(--espresso,#3B2B2B);line-height:1.5;}
     .rev-form-wrap{background:#fff;border:1px solid var(--beige,#E8E4DC);border-radius:8px;padding:2rem;}
     .rev-form-title{font-family:var(--font-serif,'Cormorant Garamond',serif);font-size:1.3rem;font-weight:300;color:var(--espresso,#3B2B2B);margin-bottom:1.5rem;}
     .rev-form{display:flex;flex-direction:column;gap:1.1rem;}
     .rev-field{display:flex;flex-direction:column;gap:.35rem;}
     .rev-label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--brown-mid,#7A6B6B);font-weight:500;}
-    .rev-req{color:var(--blush-dark,#C48991);}
+    .rev-req{color:var(--blush-dark,#6B6BA3);}
     .rev-input,.rev-textarea{border:1px solid var(--border,#DDD9D0);border-radius:4px;padding:.6rem .85rem;font-size:.88rem;font-family:var(--font-sans,'DM Sans',sans-serif);color:var(--espresso,#3B2B2B);background:var(--cream,#FAF8F4);outline:none;transition:border-color .2s;}
     .rev-input:focus,.rev-textarea:focus{border-color:var(--espresso,#3B2B2B);}
     .rev-textarea{resize:vertical;min-height:90px;}
     .rev-stars-input{display:flex;gap:.1rem;}
-    .rev-star-btn{background:none;border:none;font-size:1.6rem;cursor:pointer;color:var(--beige-dark,#C0B9D9);line-height:1;padding:0 .1rem;transition:color .15s;}
-    .rev-star-btn.active,.rev-star-btn:hover,.rev-star-btn.hovered{color:var(--blush-dark,#C48991);}
+    .rev-star-btn{background:none;border:none;font-size:1.6rem;cursor:pointer;color:var(--beige-dark,#BEBEDD);line-height:1;padding:0 .1rem;transition:color .15s;}
+    .rev-star-btn.active,.rev-star-btn:hover,.rev-star-btn.hovered{color:var(--blush-dark,#6B6BA3);}
     .rev-form-msg{font-size:.83rem;border-radius:4px;padding:.6rem .85rem;display:none;}
-    .rev-form-msg.ok{display:block;background:#e8f8ee;color:#1a6a38;border:1px solid #b3e0c0;}
+    .rev-form-msg.ok{display:block;background:#EAF1E0;color:#5F7A3F;border:1px solid #D5E4C3;}
     .rev-form-msg.err{display:block;background:#fdf0f0;color:#a94442;border:1px solid #f5c6c6;}
     .rev-submit-btn{align-self:flex-start;padding:.7rem 2rem;background:var(--espresso,#3B2B2B);color:#fff;border:none;border-radius:99px;font-family:var(--font-sans,'DM Sans',sans-serif);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:background .2s;}
-    .rev-submit-btn:hover{background:var(--blush-dark,#C48991);}
+    .rev-submit-btn:hover{background:var(--blush-dark,#6B6BA3);}
     .rev-submit-btn:disabled{opacity:.5;cursor:not-allowed;}
   </style>
 
@@ -762,7 +762,7 @@
         var imgs = Array.isArray(p.images) ? p.images : [];
         var main = document.getElementById('mainImg');
         var thumbs = document.querySelector('.gallery-thumbs');
-        var NO_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><rect width="600" height="800" fill="#f1ece6"/><rect x="225" y="300" width="150" height="120" rx="10" fill="none" stroke="#cbb9a8" stroke-width="6"/><circle cx="268" cy="338" r="13" fill="none" stroke="#cbb9a8" stroke-width="6"/><path d="M232 414 L300 358 L338 392 L368 366 L368 418 Z" fill="#cbb9a8"/><text x="300" y="476" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="26" fill="#a8978a">Nessuna immagine</text></svg>');
+        var NO_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><rect width="600" height="800" fill="#f1ece6"/><rect x="225" y="300" width="150" height="120" rx="10" fill="none" stroke="#BEBEDD" stroke-width="6"/><circle cx="268" cy="338" r="13" fill="none" stroke="#BEBEDD" stroke-width="6"/><path d="M232 414 L300 358 L338 392 L368 366 L368 418 Z" fill="#BEBEDD"/><text x="300" y="476" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="26" fill="#8F8FC1">Nessuna immagine</text></svg>');
         if (!imgs.length && main) {
           // No uploaded image → honest placeholder (not the hardcoded default photo)
           main.src = NO_IMAGE; main.alt = 'Nessuna immagine';
@@ -1083,6 +1083,6 @@
   </script>
 
   <script src="api-client.js?v=4"></script>
-  <script src="app.js?v=14"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>

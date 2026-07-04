@@ -9,8 +9,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="tokens.css?v=2" />
-  <link rel="stylesheet" href="app.css" />
+  <link rel="stylesheet" href="tokens.css?v=4" />
+  <link rel="stylesheet" href="app.css?v=3" />
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:var(--font-sans);background:var(--cream);color:var(--espresso);line-height:1.65;-webkit-font-smoothing:antialiased;}
@@ -45,15 +45,15 @@
     #trackResult.visible{display:block;}
 
     .order-card{background:#fff;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-    .order-card-header{background:var(--lavender-light,#EAE7F4);padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
+    .order-card-header{background:var(--lavender-light,#F1F0F8);padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;}
     .order-card-header .order-num{font-family:var(--font-serif);font-size:1.2rem;font-weight:400;color:var(--espresso);}
     .order-card-header .order-date{font-size:.78rem;color:var(--text-muted);}
 
     .order-status-badge{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .85rem;border-radius:99px;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;font-weight:600;}
-    .status-in_attesa   {background:#fef9e7;color:#856404;}
-    .status-in_preparazione{background:#e8f4f8;color:#155566;}
-    .status-spedito     {background:#e8f8ee;color:#1a6a38;}
-    .status-consegnato  {background:#d4edda;color:#155724;}
+    .status-in_attesa   {background:#F7F5F0;color:#6B5050;}
+    .status-in_preparazione{background:#F1F0F8;color:#6B6BA3;}
+    .status-spedito     {background:#EAF1E0;color:#5F7A3F;}
+    .status-consegnato  {background:#EAF1E0;color:#5F7A3F;}
     .status-annullato   {background:#f8d7da;color:#721c24;}
 
     .order-body{padding:1.5rem;}
@@ -161,7 +161,7 @@
   <div data-include="site-footer"></div>
 
   <script src="api-client.js?v=4"></script>
-  <script src="app.js?v=14"></script>
+  <script src="app.js?v=16"></script>
   <script>
   (function () {
     const form      = document.getElementById('trackForm');

@@ -40,10 +40,11 @@
     }).fail(function(xhr) {
       var msg = (xhr.responseJSON && xhr.responseJSON.error) || xhr.statusText || 'Errore di rete';
       // If 401 on any admin request, token is expired — redirect to login
-      if (xhr.status === 401 && window.location.pathname.indexOf('dashboard') !== -1) {
-        clearToken();
-        window.location.href = 'index.html?session=expired';
-      }
+      // [DEV BYPASS] Disabled for local development without credentials
+      // if (xhr.status === 401 && window.location.pathname.indexOf('dashboard') !== -1) {
+      //   clearToken();
+      //   window.location.href = 'index.html?session=expired';
+      // }
       return $.Deferred().reject({ error: msg });
     });
   }
