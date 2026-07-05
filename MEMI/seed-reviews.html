@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="memi-api" content="/api">
+  <title>Seed recensioni demo — MEMI Gestionale</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #f4f5f9; color: #1e2233; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .card { background: #fff; border-radius: 14px; box-shadow: 0 8px 30px rgba(30,34,51,.08); max-width: 560px; width: 100%; padding: 32px; }
+    h1 { font-size: 20px; margin-bottom: 8px; }
+    p.desc { color: #5a6072; font-size: 14px; line-height: 1.6; margin-bottom: 20px; }
+    button { background: #4f6df5; color: #fff; border: 0; border-radius: 8px; padding: 12px 24px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; }
+    button:hover { background: #3d58d8; }
+    button:disabled { background: #a9b4d0; cursor: wait; }
+    #log { margin-top: 20px; background: #1e1e2e; color: #e8e8f0; border-radius: 8px; padding: 14px; font: 13px/1.6 Consolas, monospace; white-space: pre-wrap; display: none; max-height: 300px; overflow-y: auto; }
+    .ok   { color: #6bdc8c; }
+    .warn { color: #f5c542; }
+    .err  { color: #ff6b6b; }
+    a { color: #4f6df5; }
+    .back { display: inline-block; margin-top: 16px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Seed recensioni demo</h1>
+    <p class="desc">
+      Inserisce le <strong>20 recensioni demo</strong> (già pubblicate, con risposte admin e date
+      originali) eseguendo <code>seed-reviews.sql</code> direttamente sul database del backend.
+      È <strong>idempotente</strong>: le recensioni demo precedenti (email <code>@demo.memi.it</code>)
+      vengono rimosse prima dell'inserimento, quindi puoi rieseguirlo senza creare duplicati.
+      Richiede il login admin e che il catalogo prodotti sia già importato.
+    </p>
+    <button id="run">Inserisci recensioni demo</button>
+    <div id="log"></div>
+    <a class="back" href="dashboard.html">← Torna alla dashboard</a>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+      var metaEl = document.querySelector('meta[name="memi-api"]');
+      var API = (metaEl && metaEl.content) || '/api';
+      var btn = document.getElementById('run');
+      var logEl = document.getElementById('log');
+
+      function log(msg, cls) {
+        logEl.style.display = 'block';
+        var line = document.createElement('div');
+        if (cls) line.className = cls;
+        line.textContent = msg;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+        console.log('[seed-reviews] ' + msg);
+      }
+
+      btn.addEventListener('click', function () {
+        logEl.innerHTML = '';
+        var token = null;
+        try { token = localStorage.getItem('memi_admin_token'); } catch (_) {}
+        if (!token) {
+          log('❌ Nessun token admin trovato: fai prima il login dal pannello admin, poi torna su questa pagina.', 'err');
+          log('   → Vai alla pagina di login: ' + location.origin + '/index.html', 'warn');
+          return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = 'Inserimento in corso…';
+        log('Chiamo POST ' + API + '/reviews/admin/seed-demo …');
+
+        fetch(API + '/reviews/admin/seed-demo', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token }
+        })
+        .then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (data) {
+            log('HTTP ' + res.status);
+            if (res.ok && data.ok) {
+              log('✅ ' + data.message, 'ok');
+              log('   Inserite: ' + data.inserted + ' — Rimosse (vecchie demo): ' + data.deleted, 'ok');
+              log('   Verifica: pannello admin → Recensioni, oppure una pagina prodotto sul sito.', 'ok');
+            } else if (res.status === 401) {
+              log('❌ Non autorizzato: sessione admin scaduta. Rifai il login e riprova.', 'err');
+            } else if (res.status === 409) {
+              log('⚠️ ' + (data.error || 'Catalogo mancante'), 'warn');
+            } else {
+              log('❌ Errore: ' + (data.error || res.statusText || 'sconosciuto'), 'err');
+            }
+          });
+        })
+        .catch(function (err) {
+          log('❌ Errore di rete: ' + err.message, 'err');
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = 'Inserisci recensioni demo';
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -11,6 +11,9 @@
  */
 
 const router = require('express').Router();
+const fs    = require('fs');
+const path  = require('path');
+const mysql = require('mysql2/promise');
 const { pool }                     = require('../db');
 const { requireAdmin, optionalCustomer } = require('../middleware/auth');
 const { logAdminAction } = require('../audit');
@@ -113,6 +116,45 @@ router.put('/admin/:id', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('update review error', err);
     return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── POST /api/reviews/admin/seed-demo ── esegue db/seed-reviews.sql ──
+   Inserisce le 20 recensioni demo (stato pubblicata, date originali).
+   Idempotente: il file SQL cancella prima le righe @demo.memi.it.
+   Il pool condiviso non ha multipleStatements, quindi si apre una
+   connessione dedicata solo per questa esecuzione. */
+router.post('/admin/seed-demo', requireAdmin, async (req, res) => {
+  let conn;
+  try {
+    let sql = fs.readFileSync(path.join(__dirname, '../db/seed-reviews.sql'), 'utf8');
+    // Il database arriva dall'env (in prod può non chiamarsi memi_db)
+    sql = sql.replace(/^USE\s+[^;]+;\s*$/m, '');
+
+    conn = await mysql.createConnection({
+      host:     process.env.DB_HOST     || 'localhost',
+      port:     parseInt(process.env.DB_PORT || '3306', 10),
+      user:     process.env.DB_USER     || 'memi_user',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME     || 'memi_db',
+      charset:  'utf8mb4',
+      multipleStatements: true,
+    });
+
+    const [results] = await conn.query(sql);
+    const sets     = Array.isArray(results) ? results : [results];
+    const deleted  = (sets[0] && sets[0].affectedRows) || 0;
+    const inserted = (sets[sets.length - 1] && sets[sets.length - 1].affectedRows) || 0;
+
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'review.seed_demo', entityType: 'review', entityId: 'seed-demo', details: { deleted, inserted } }).catch(() => {});
+    return res.json({ ok: true, deleted, inserted, message: `Seed completato: ${inserted} recensioni demo inserite (${deleted} precedenti rimosse)` });
+  } catch (err) {
+    console.error('seed demo reviews error', err);
+    if (err && err.errno === 1452) // FK products fallita
+      return res.status(409).json({ error: 'Prodotti del catalogo demo mancanti: importa prima memi-products-seed.csv (Prodotti → Importa CSV), poi riesegui il seed.' });
+    return res.status(500).json({ error: 'Errore durante il seed: ' + err.message });
+  } finally {
+    if (conn) await conn.end().catch(() => {});
   }
 });
 

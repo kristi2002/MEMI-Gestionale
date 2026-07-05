@@ -118,6 +118,7 @@ dashboard.html loads
 | `orders.sendTracking()` | `POST /api/orders/admin/:id/send-tracking` |
 | `dashboard.catalogKpis()` | `GET /api/admin/dashboard/catalog-kpis` |
 | `auth.changePassword()` | `PUT /api/admin/auth/password` |
+| (pagina `seed-reviews.html`) | `POST /api/reviews/admin/seed-demo` (esegue `db/seed-reviews.sql`: 20 recensioni demo pubblicate, idempotente) |
 | `customers.list()` | `GET /api/admin/customers` |
 | `customers.get()` | `GET /api/admin/customers/:id` |
 | `customers.update()` | `PUT /api/admin/customers/:id` |

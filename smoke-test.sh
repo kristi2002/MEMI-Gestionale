@@ -67,6 +67,10 @@ if [ -n "$ADMIN_TOKEN" ]; then
   # Bulk photo import (ZIP): route exists + validates — no file should be 400, not 404
   C="$(code -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/products/bulk-images")"
   [ "$C" = "400" ] && ok "POST /api/admin/products/bulk-images (no zip) -> 400" || ko "bulk-images route -> HTTP $C (expected 400)"
+  # Demo-reviews seed: route exists + is admin-protected (non lo eseguiamo:
+  # inserirebbe dati e richiede il catalogo demo importato)
+  C="$(code -X POST "$BASE/api/reviews/admin/seed-demo")"
+  [ "$C" = "401" ] && ok "POST /api/reviews/admin/seed-demo without token -> 401" || ko "seed-demo unauth -> HTTP $C (expected 401)"
 else
   ko "skipped — no admin token"
 fi
