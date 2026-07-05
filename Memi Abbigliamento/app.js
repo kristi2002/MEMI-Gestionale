@@ -492,7 +492,7 @@
       s.id = 'sf2-styles';
       s.textContent = `
         footer.sf2{background:var(--lavender-light,#F1F0F8);color:var(--espresso,#3B2B2B);padding:0;margin-top:auto;}
-        .sf2-trust{border-bottom:1px solid var(--beige,#DBDBEE);padding:.9rem 2rem;}
+        .sf2-trust{background:#d9e6c5;border-bottom:1px solid var(--beige,#DBDBEE);padding:.9rem 2rem;}
         .sf2-trust-inner{max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1rem 2.5rem;justify-content:center;}
         .sf2-trust-item{display:flex;align-items:center;gap:.5rem;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--brown-mid,#7A6B6B);}
         .sf2-trust-item svg{width:14px;height:14px;stroke:var(--brown-mid,#7A6B6B);fill:none;stroke-width:1.6;flex-shrink:0;}
