@@ -8,8 +8,10 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.34.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/style.css?v=5">
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 </head>
 
@@ -23,18 +25,18 @@
           <strong>Memi<span style="color:var(--muted)">.</span></strong>
           <small>Gestionale</small>
         </div>
-        <button class="icon-btn collapse-btn" title="Comprimi">‹</button>
+        <button class="icon-btn collapse-btn" title="Comprimi"><i class="ti ti-chevron-left"></i></button>
       </div>
 
       <nav class="side-nav">
         <a href="#" class="nav-item active" data-view="dashboard">
-          <span class="ic">🏠</span> <span class="lbl">Home</span>
+          <span class="ic"><i class="ti ti-layout-dashboard"></i></span> <span class="lbl">Home</span>
         </a>
 
         <!-- ORDINI -->
         <div class="nav-parent" data-group="orders">
           <a href="#" class="nav-item" data-view="orders">
-            <span class="ic">🧾</span> <span class="lbl">Ordini</span>
+            <span class="ic"><i class="ti ti-shopping-bag"></i></span> <span class="lbl">Ordini</span>
             <span class="badge badge-pink" id="badgeOrders" style="display:none"></span>
             <span class="chev">▾</span>
           </a>
@@ -51,7 +53,7 @@
         <!-- PRODOTTI -->
         <div class="nav-parent" data-group="products">
           <a href="#" class="nav-item" data-view="products">
-            <span class="ic">👕</span> <span class="lbl">Prodotti</span>
+            <span class="ic"><i class="ti ti-tag"></i></span> <span class="lbl">Prodotti</span>
             <span class="chev">▾</span>
           </a>
           <div class="nav-children">
@@ -66,7 +68,7 @@
         <!-- CLIENTI -->
         <div class="nav-parent" data-group="customers">
           <a href="#" class="nav-item" data-view="customers">
-            <span class="ic">👥</span> <span class="lbl">Clienti</span>
+            <span class="ic"><i class="ti ti-users"></i></span> <span class="lbl">Clienti</span>
             <span class="chev">▾</span>
           </a>
           <div class="nav-children">
@@ -80,7 +82,7 @@
         <!-- MARKETING -->
         <div class="nav-parent" data-group="marketing">
           <a href="#" class="nav-item" data-view="marketing">
-            <span class="ic">📣</span> <span class="lbl">Marketing</span>
+            <span class="ic"><i class="ti ti-speakerphone"></i></span> <span class="lbl">Marketing</span>
             <span class="chev">▾</span>
           </a>
           <div class="nav-children">
@@ -92,13 +94,13 @@
         </div>
 
         <a href="#" class="nav-item" data-view="discounts">
-          <span class="ic">🏷</span> <span class="lbl">Sconti</span>
+          <span class="ic"><i class="ti ti-discount-2"></i></span> <span class="lbl">Sconti</span>
           <span class="badge badge-green" id="badgeDiscounts" style="display:none"></span>
         </a>
 
         <!-- Chat clienti — hidden until a real messaging backend exists (was a front-end mock).
       <a href="#" class="nav-item" data-view="chat">
-        <span class="ic">💬</span> <span class="lbl">Chat clienti</span>
+        <span class="ic"><i class="ti ti-message"></i></span> <span class="lbl">Chat clienti</span>
         <span class="badge badge-pink" id="badgeChat" style="display:none"></span>
       </a>
       -->
@@ -106,7 +108,7 @@
         <!-- ANALYTICS -->
         <div class="nav-parent" data-group="analytics">
           <a href="#" class="nav-item" data-view="analytics">
-            <span class="ic">📊</span> <span class="lbl">Statistiche</span>
+            <span class="ic"><i class="ti ti-chart-bar"></i></span> <span class="lbl">Statistiche</span>
             <span class="chev">▾</span>
           </a>
           <div class="nav-children">
@@ -119,7 +121,7 @@
         <!-- CONTENUTI -->
         <div class="nav-parent" data-group="content">
           <a href="#" class="nav-item" data-view="content">
-            <span class="ic">📝</span> <span class="lbl">Contenuti</span>
+            <span class="ic"><i class="ti ti-file-text"></i></span> <span class="lbl">Contenuti</span>
             <span class="chev">▾</span>
           </a>
           <div class="nav-children">
@@ -133,7 +135,7 @@
         <!-- SPEDIZIONI -->
         <div class="nav-parent open" data-group="shipping">
           <a href="#" class="nav-item" data-view="couriers">
-            <span class="ic">🚚</span> <span class="lbl">Spedizioni</span>
+            <span class="ic"><i class="ti ti-truck"></i></span> <span class="lbl">Spedizioni</span>
             <span class="badge badge-green">SDA</span>
             <span class="chev">▾</span>
           </a>
@@ -149,7 +151,7 @@
         <!-- FINANZE -->
         <div class="nav-parent" data-group="finance">
           <a href="#" class="nav-item" data-view="finance">
-            <span class="ic">💳</span> <span class="lbl">Finanza</span>
+            <span class="ic"><i class="ti ti-credit-card"></i></span> <span class="lbl">Finanza</span>
             <span class="chev">▾</span>
           </a>
           <div class="nav-children">
@@ -164,13 +166,13 @@
         <div class="nav-group-title">Strumenti</div>
 
         <a href="#" class="nav-item" data-view="integrations">
-          <span class="ic">🔌</span> <span class="lbl">Integrazioni</span>
+          <span class="ic"><i class="ti ti-plug"></i></span> <span class="lbl">Integrazioni</span>
         </a>
         <a href="#" class="nav-item" data-view="staff">
-          <span class="ic">👤</span> <span class="lbl">Staff & Permessi</span>
+          <span class="ic"><i class="ti ti-user-shield"></i></span> <span class="lbl">Staff & Permessi</span>
         </a>
         <a href="#" class="nav-item" data-view="settings">
-          <span class="ic">⚙</span> <span class="lbl">Impostazioni</span>
+          <span class="ic"><i class="ti ti-settings"></i></span> <span class="lbl">Impostazioni</span>
         </a>
       </nav>
 
@@ -182,22 +184,23 @@
             <small>admin@memi.it</small>
           </div>
         </div>
-        <button class="logout-btn js-change-password" title="Cambia password" type="button">🔑</button>
-        <a href="index.html" class="logout-btn" title="Esci">⎋</a>
+        <button class="logout-btn js-change-password" title="Cambia password" type="button"><i class="ti ti-key"></i></button>
+        <a href="index.html" class="logout-btn" title="Esci"><i class="ti ti-logout"></i></a>
       </div>
     </aside>
 
     <!-- MAIN -->
     <main class="main">
       <header class="topbar">
-        <button class="icon-btn mobile-menu" id="mobileMenu">☰</button>
+        <button class="icon-btn mobile-menu" id="mobileMenu"><i class="ti ti-menu-2"></i></button>
         <div class="search">
+          <i class="ti ti-search search-ic"></i>
           <input type="text" id="topSearch" placeholder="Cerca prodotti, ordini, clienti, articoli del blog...">
         </div>
         <div class="top-actions">
-          <button class="icon-btn" title="Aiuto">?</button>
-          <button class="icon-btn" title="Notifiche">🔔<span class="dot"></span></button>
-          <button class="icon-btn" title="Messaggi">💬</button>
+          <button class="icon-btn" title="Aiuto"><i class="ti ti-help-circle"></i></button>
+          <button class="icon-btn" title="Notifiche"><i class="ti ti-bell"></i><span class="dot"></span></button>
+          <button class="icon-btn" title="Messaggi"><i class="ti ti-message"></i></button>
           <div class="divider"></div>
           <div class="user-mini compact">
             <div class="avatar small">A</div>
@@ -228,7 +231,7 @@
 
   <!-- Admin API client — must load before app.js -->
   <script src="js/admin-api.js?v=16"></script>
-  <script src="js/app.js?v=26"></script>
+  <script src="js/app.js?v=27"></script>
 </body>
 
 </html>

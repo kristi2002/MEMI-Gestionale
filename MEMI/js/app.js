@@ -140,25 +140,25 @@ VIEWS.dashboard = function(){
   const k = DATA.kpi;
   return `
     ${pageHead("Buongiorno, Admin 👋","Ecco cosa è successo oggi nel tuo store.",`
-      <button class="btn btn-soft btn-sm js-export-orders">📤 Esporta</button>
+      <button class="btn btn-soft btn-sm js-export-orders"><i class="ti ti-file-export"></i> Esporta</button>
     `)}
     <div class="grid grid-4">
-      <div class="card kpi green"><div class="icon-wrap">💰</div>
+      <div class="card kpi green"><div class="icon-wrap"><i class="ti ti-coin-euro"></i></div>
         <span class="label">Fatturato (oggi)</span>
         <span class="value">${k.revenue.value}</span>
         <span class="delta ${k.revenue.up?'up':'down'}">${k.revenue.delta} vs ieri</span>
       </div>
-      <div class="card kpi pink"><div class="icon-wrap">🧾</div>
+      <div class="card kpi pink"><div class="icon-wrap"><i class="ti ti-shopping-bag"></i></div>
         <span class="label">Ordini</span>
         <span class="value">${k.orders.value}</span>
         <span class="delta ${k.orders.up?'up':'down'}">${k.orders.delta}</span>
       </div>
-      <div class="card kpi soft"><div class="icon-wrap">👁</div>
+      <div class="card kpi soft"><div class="icon-wrap"><i class="ti ti-eye"></i></div>
         <span class="label">Visitatori</span>
         <span class="value">${k.visitors.value}</span>
         <span class="delta ${k.visitors.up?'up':'down'}">${k.visitors.delta}</span>
       </div>
-      <div class="card kpi green"><div class="icon-wrap">📈</div>
+      <div class="card kpi green"><div class="icon-wrap"><i class="ti ti-chart-line"></i></div>
         <span class="label">AOV</span>
         <span class="value">${k.aov.value}</span>
         <span class="delta ${k.aov.up?'up':'down'}">${k.aov.delta}</span>
@@ -166,22 +166,22 @@ VIEWS.dashboard = function(){
     </div>
 
     <div class="grid grid-4" style="margin-top:16px">
-      <div class="card kpi pink"><div class="icon-wrap">🏷</div>
+      <div class="card kpi pink"><div class="icon-wrap"><i class="ti ti-tag"></i></div>
         <span class="label">Prodotti attivi</span>
         <span class="value">${DATA.catalogKpi.products}</span>
         <span class="delta up">a catalogo</span>
       </div>
-      <div class="card kpi warn"><div class="icon-wrap">⚠️</div>
+      <div class="card kpi warn"><div class="icon-wrap"><i class="ti ti-alert-triangle"></i></div>
         <span class="label">Scorte basse</span>
         <span class="value">${DATA.catalogKpi.low}</span>
         <span class="delta down">da riordinare</span>
       </div>
-      <div class="card kpi danger"><div class="icon-wrap">⛔</div>
+      <div class="card kpi danger"><div class="icon-wrap"><i class="ti ti-circle-x"></i></div>
         <span class="label">Esauriti</span>
         <span class="value">${DATA.catalogKpi.out}</span>
         <span class="delta down">non vendibili</span>
       </div>
-      <div class="card kpi soft"><div class="icon-wrap">🛍</div>
+      <div class="card kpi soft"><div class="icon-wrap"><i class="ti ti-shopping-cart"></i></div>
         <span class="label">Ordini oggi</span>
         <span class="value">${DATA.catalogKpi.ordersToday}</span>
         <span class="delta up">pagati</span>
@@ -259,7 +259,7 @@ VIEWS.orders = function(filter){
   if(filter==="abandoned") rows = []; // simulato
   return `
     ${pageHead("Ordini","Gestisci tutti gli ordini ricevuti dallo store.",`
-      <button class="btn btn-ghost btn-sm js-export-orders">📤 Esporta CSV</button>
+      <button class="btn btn-ghost btn-sm js-export-orders"><i class="ti ti-file-export"></i> Esporta CSV</button>
       <button class="btn btn-primary btn-sm js-new-order">+ Nuovo ordine</button>
     `)}
     <div class="table-card">
@@ -297,9 +297,9 @@ VIEWS.orders = function(filter){
                 <td>${statusPill(o.stato)}</td>
                 <td>${o.corriere}</td>
                 <td class="row-actions">
-                  <button title="Visualizza" class="js-view-order">👁</button>
-                  <button title="Stampa" class="js-print-order-row">🖨</button>
-                  <button title="Elimina" class="js-del-order" data-id="${o._db_id||''}" data-order="${o.id}">🗑</button>
+                  <button title="Visualizza" class="js-view-order"><i class="ti ti-eye"></i></button>
+                  <button title="Stampa" class="js-print-order-row"><i class="ti ti-printer"></i></button>
+                  <button title="Elimina" class="js-del-order" data-id="${o._db_id||''}" data-order="${o.id}"><i class="ti ti-trash"></i></button>
                 </td>
               </tr>
             `).join('')}
@@ -320,7 +320,7 @@ VIEWS.invoices = function(){
   const pagate = invs.filter(i=>i.stato==='pagata').length;
   return `
     ${pageHead("Fatture","Documenti fiscali emessi.",`
-      <button class="btn btn-soft btn-sm js-export-invoices">📤 Esporta CSV</button>
+      <button class="btn btn-soft btn-sm js-export-invoices"><i class="ti ti-file-export"></i> Esporta CSV</button>
       <button class="btn btn-primary btn-sm js-new-invoice">+ Nuova fattura</button>
     `)}
     <div class="grid grid-3" style="margin-bottom:16px">
@@ -346,9 +346,9 @@ VIEWS.invoices = function(){
               <td><strong>€ ${parseFloat(inv.total||0).toFixed(2).replace('.',',')}</strong></td>
               <td>${statusPill(AdminAPI?AdminAPI.statusLabel(inv.stato):inv.stato)}</td>
               <td class="row-actions">
-                <button class="js-view-invoice" data-id="${inv.id}" title="Visualizza">👁</button>
+                <button class="js-view-invoice" data-id="${inv.id}" title="Visualizza"><i class="ti ti-eye"></i></button>
                 <button class="js-inv-stato" data-id="${inv.id}" data-stato="inviata" title="Segna inviata">✉</button>
-                <button class="js-del-invoice" data-id="${inv.id}" title="Elimina">🗑</button>
+                <button class="js-del-invoice" data-id="${inv.id}" title="Elimina"><i class="ti ti-trash"></i></button>
               </td>
             </tr>
           `).join('') : `<tr><td colspan="7" class="empty">${DATA.invoices===null?'Caricamento…':'Nessuna fattura emessa'}</td></tr>`}
@@ -368,9 +368,9 @@ VIEWS.returns = function(){
       <button class="btn btn-primary btn-sm js-new-reso">+ Nuovo reso</button>
     `)}
     <div class="grid grid-3" style="margin-bottom:16px">
-      <div class="card kpi pink"><div class="icon-wrap">↩</div><span class="label">Aperti</span><span class="value">${aperti}</span></div>
-      <div class="card kpi soft"><div class="icon-wrap">⏳</div><span class="label">In analisi</span><span class="value">${inAnalisi}</span></div>
-      <div class="card kpi green"><div class="icon-wrap">✅</div><span class="label">Rimborsati</span><span class="value">${rimborsati}</span></div>
+      <div class="card kpi pink"><div class="icon-wrap"><i class="ti ti-arrow-back-up"></i></div><span class="label">Aperti</span><span class="value">${aperti}</span></div>
+      <div class="card kpi soft"><div class="icon-wrap"><i class="ti ti-clock"></i></div><span class="label">In analisi</span><span class="value">${inAnalisi}</span></div>
+      <div class="card kpi green"><div class="icon-wrap"><i class="ti ti-check"></i></div><span class="label">Rimborsati</span><span class="value">${rimborsati}</span></div>
     </div>
     <div class="table-card"><div class="table-wrap"><table class="data" id="resiTable">
       <thead><tr><th>RMA</th><th>Ordine</th><th>Cliente</th><th>Motivo</th><th>Data</th><th>Stato</th><th></th></tr></thead>
@@ -384,8 +384,8 @@ VIEWS.returns = function(){
             <td style="color:var(--muted)">${new Date(r.created_at).toLocaleDateString('it-IT')}</td>
             <td>${statusPill(AdminAPI?AdminAPI.statusLabel(r.stato):r.stato)}</td>
             <td class="row-actions">
-              <button class="js-view-reso" data-id="${r.id}" title="Gestisci reso">👁</button>
-              <button class="js-del-reso" data-id="${r.id}" data-rma="${r.rma_number}" title="Elimina">🗑</button>
+              <button class="js-view-reso" data-id="${r.id}" title="Gestisci reso"><i class="ti ti-eye"></i></button>
+              <button class="js-del-reso" data-id="${r.id}" data-rma="${r.rma_number}" title="Elimina"><i class="ti ti-trash"></i></button>
             </td>
           </tr>
         `).join('') : `<tr><td colspan="7" class="empty">${DATA.resi===null?'Caricamento…':'Nessun reso registrato'}</td></tr>`}
@@ -398,8 +398,8 @@ VIEWS.returns = function(){
 VIEWS.products = function(){
   return `
     ${pageHead("Prodotti","Gestisci catalogo, varianti, prezzi e magazzino.",`
-      <button class="btn btn-ghost btn-sm js-export-products">📤 Esporta CSV</button>
-      <button class="btn btn-soft btn-sm js-import-products">📥 Importa CSV</button>
+      <button class="btn btn-ghost btn-sm js-export-products"><i class="ti ti-file-export"></i> Esporta CSV</button>
+      <button class="btn btn-soft btn-sm js-import-products"><i class="ti ti-file-import"></i> Importa CSV</button>
       <button class="btn btn-primary btn-sm js-new-product">+ Nuovo prodotto</button>
     `)}
     <div class="card" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
@@ -436,7 +436,7 @@ VIEWS.inventory = function(){
           <td><strong>${p.stock}</strong></td>
           <td>${statusPill(p.stock===0?'Esaurito':p.stock<10?'Scorta bassa':'OK')}</td>
           <td class="row-actions">
-            <button class="btn btn-soft btn-sm js-update-stock" data-id="${p.id}" data-nome="${p.nome}" title="Aggiorna stock">✏ Stock</button>
+            <button class="btn btn-soft btn-sm js-update-stock" data-id="${p.id}" data-nome="${p.nome}" title="Aggiorna stock"><i class="ti ti-pencil"></i> Stock</button>
           </td>
         </tr>`).join('')}
       </tbody>
@@ -524,7 +524,7 @@ VIEWS.giftcards = function(){
             <td class="row-actions">
               <button class="js-copy-code" data-code="${c.code}" title="Copia codice">📋</button>
               <button class="js-toggle-giftcard" data-id="${c.id}" data-stato="${c.stato}" title="${c.stato==='disattivata'?'Riattiva':'Disattiva'}">${c.stato==='disattivata'?'✅':'🚫'}</button>
-              <button class="js-del-giftcard" data-id="${c.id}" data-code="${c.code}" title="Elimina">🗑</button>
+              <button class="js-del-giftcard" data-id="${c.id}" data-code="${c.code}" title="Elimina"><i class="ti ti-trash"></i></button>
             </td>
           </tr>
         `).join('') : `<tr><td colspan="7" class="empty">${DATA.giftcards===null?'Caricamento…':'Nessuna gift card emessa'}</td></tr>`}
@@ -537,7 +537,7 @@ VIEWS.giftcards = function(){
 VIEWS.customers = function(){
   return `
     ${pageHead("Clienti","Anagrafica e cronologia acquisti.",`
-      <button class="btn btn-soft btn-sm js-export-customers">📤 Esporta CSV</button>
+      <button class="btn btn-soft btn-sm js-export-customers"><i class="ti ti-file-export"></i> Esporta CSV</button>
       <button class="btn btn-primary btn-sm js-new-customer">+ Nuovo cliente</button>
     `)}
     <div class="grid grid-4" style="margin-bottom:16px">
@@ -555,7 +555,7 @@ VIEWS.customers = function(){
             <td>${c.email}</td><td>${c.ordini}</td><td>${c.speso}</td><td>${c.ultimo}</td>
             <td>${c.vip?'<span class="badge badge-pink">VIP</span>':'<span class="badge badge-soft">Standard</span>'}</td>
             <td class="row-actions">
-              <button class="js-view-customer" data-id="${c._db_id||c.id}" data-name="${c.nome}" title="Visualizza">👁</button>
+              <button class="js-view-customer" data-id="${c._db_id||c.id}" data-name="${c.nome}" title="Visualizza"><i class="ti ti-eye"></i></button>
               <button class="js-email-customer" data-email="${c.email}" title="Invia email">✉</button>
             </td>
           </tr>
@@ -619,7 +619,7 @@ VIEWS.reviews = function(){
             <td>${statusPill(AdminAPI?AdminAPI.statusLabel(r.stato):r.stato)}</td>
             <td class="row-actions">
               ${r.stato==='in_attesa'?`<button class="js-approve-review" data-id="${r.id}" title="Pubblica" style="color:var(--green)">✓</button><button class="js-reject-review" data-id="${r.id}" title="Rifiuta" style="color:var(--pink)">✗</button>`:''}
-              <button class="js-del-review" data-id="${r.id}" title="Elimina">🗑</button>
+              <button class="js-del-review" data-id="${r.id}" title="Elimina"><i class="ti ti-trash"></i></button>
             </td>
           </tr>
         `).join('') : `<tr><td colspan="7" class="empty">${DATA.reviews===null?'Caricamento…':'Nessuna recensione'}</td></tr>`}
@@ -703,8 +703,8 @@ VIEWS.marketing = function(){
             <div><strong>${eur(c.revenue)}</strong><small style="display:block;color:var(--muted)">Generati</small></div>
           </div>
           <div style="margin-top:12px;display:flex;gap:6px">
-            <button class="btn btn-soft btn-sm js-edit-campaign" data-id="${c.id}" data-nome="${(c.nome||'').replace(/"/g,'&quot;')}" data-stato="${c.stato}">✏ Modifica</button>
-            <button class="btn btn-ghost btn-sm js-del-campaign" data-id="${c.id}" data-nome="${(c.nome||'').replace(/"/g,'&quot;')}">🗑</button>
+            <button class="btn btn-soft btn-sm js-edit-campaign" data-id="${c.id}" data-nome="${(c.nome||'').replace(/"/g,'&quot;')}" data-stato="${c.stato}"><i class="ti ti-pencil"></i> Modifica</button>
+            <button class="btn btn-ghost btn-sm js-del-campaign" data-id="${c.id}" data-nome="${(c.nome||'').replace(/"/g,'&quot;')}"><i class="ti ti-trash"></i></button>
           </div>
         </div>
       `).join('')}
@@ -721,19 +721,19 @@ VIEWS.newsletter = function(){
     ${pageHead("Newsletter","Iscritti e contatti email.",`<button class="btn btn-primary btn-sm js-nl-export" title="Esporta CSV">⬇ Esporta</button>`)}
     <div class="grid grid-3">
       <div class="card kpi green">
-        <div class="icon-wrap">📧</div>
+        <div class="icon-wrap"><i class="ti ti-mail"></i></div>
         <span class="label">Iscritti attivi</span>
         <span class="value">${total}</span>
         <span class="delta up">in database</span>
       </div>
       <div class="card kpi pink">
-        <div class="icon-wrap">🚫</div>
+        <div class="icon-wrap"><i class="ti ti-ban"></i></div>
         <span class="label">Disiscritti</span>
         <span class="value">${unsubscribed}</span>
         <span class="delta">totali</span>
       </div>
       <div class="card kpi soft">
-        <div class="icon-wrap">📈</div>
+        <div class="icon-wrap"><i class="ti ti-chart-line"></i></div>
         <span class="label">Tasso iscrizione</span>
         <span class="value">${nl && nl.total > 0 ? Math.round(nl.total / (nl.total + nl.unsubscribed) * 100) + '%' : '—'}</span>
         <span class="delta">attivi sul totale</span>
@@ -780,7 +780,7 @@ VIEWS.discounts = function(){
             <td>${statusPill(d.stato)}</td>
             <td class="row-actions">
               <button class="js-copy-code" data-code="${d.code}" title="Copia codice">📋</button>
-              <button class="js-del-discount" data-id="${d._db_id||''}" data-code="${d.code}" title="Elimina">🗑</button>
+              <button class="js-del-discount" data-id="${d._db_id||''}" data-code="${d.code}" title="Elimina"><i class="ti ti-trash"></i></button>
             </td>
           </tr>
         `).join('')}
@@ -849,8 +849,8 @@ VIEWS.content = function(){
             <td>${statusPill(p.stato==='pubblicata'?'Pubblicata':'Bozza')}</td>
             <td style="color:var(--muted)">${new Date(p.updated_at||p.created_at).toLocaleDateString('it-IT')}</td>
             <td class="row-actions">
-              <button class="js-edit-page" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}" data-stato="${p.stato}" data-slug="${p.slug}" title="Modifica">✏</button>
-              <button class="js-del-page" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}" title="Elimina">🗑</button>
+              <button class="js-edit-page" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}" data-stato="${p.stato}" data-slug="${p.slug}" title="Modifica"><i class="ti ti-pencil"></i></button>
+              <button class="js-del-page" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}" title="Elimina"><i class="ti ti-trash"></i></button>
             </td>
           </tr>
         `).join('') : `<tr><td colspan="5" class="empty">${DATA.pages===null?'Caricamento…':'Nessuna pagina. Creane una con “+ Nuova pagina”.'}</td></tr>`}
@@ -871,8 +871,8 @@ VIEWS.blog = function(){
           </div>
           <p style="color:var(--muted);font-size:12px;margin-top:4px">${p.published_at?('Pubblicato il '+new Date(p.published_at).toLocaleDateString('it-IT')):'Bozza'}</p>
           <div style="margin-top:10px;display:flex;gap:6px">
-            <button class="btn btn-soft btn-sm js-edit-blog" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}" data-estratto="${(p.estratto||'').replace(/"/g,'&quot;')}" data-stato="${p.stato}" data-slug="${p.slug}">✏ Modifica</button>
-            <button class="btn btn-ghost btn-sm js-del-blog" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}">🗑</button>
+            <button class="btn btn-soft btn-sm js-edit-blog" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}" data-estratto="${(p.estratto||'').replace(/"/g,'&quot;')}" data-stato="${p.stato}" data-slug="${p.slug}"><i class="ti ti-pencil"></i> Modifica</button>
+            <button class="btn btn-ghost btn-sm js-del-blog" data-id="${p.id}" data-titolo="${(p.titolo||'').replace(/"/g,'&quot;')}"><i class="ti ti-trash"></i></button>
           </div>
         </div>
       `).join('')}
@@ -889,7 +889,7 @@ VIEWS.files = function(){
       ${media.map((m,i)=>`<div class="card" style="text-align:center">
         <div style="height:90px;background:var(--line-2) center/cover no-repeat;${m.url?`background-image:url('${m.url.replace(/'/g,'')}')`:''};border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:28px">${m.url?'':'🖼'}</div>
         <small style="display:block;margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.nome||('file-'+(i+1))}</small>
-        <button class="btn btn-ghost btn-sm js-del-file" data-idx="${i}" style="margin-top:4px">🗑</button>
+        <button class="btn btn-ghost btn-sm js-del-file" data-idx="${i}" style="margin-top:4px"><i class="ti ti-trash"></i></button>
       </div>`).join('')}
     </div>`}`;
 };
@@ -912,15 +912,15 @@ VIEWS.menus = function(){
 VIEWS.couriers = function(){
   return `
     ${pageHead("Corrieri","Gestisci i partner di spedizione integrati con il tuo store.",`
-      <button class="btn btn-ghost btn-sm js-import-rates">📥 Importa tariffe</button>
+      <button class="btn btn-ghost btn-sm js-import-rates"><i class="ti ti-file-import"></i> Importa tariffe</button>
       <button class="btn btn-primary btn-sm js-new-courier">+ Aggiungi corriere</button>
     `)}
 
     <div class="grid grid-4" style="margin-bottom:16px">
-      <div class="card kpi green"><div class="icon-wrap">📦</div><span class="label">Corrieri attivi</span><span class="value">${DATA.couriers.filter(c=>c.attivo).length}</span></div>
-      <div class="card kpi pink"><div class="icon-wrap">⏱</div><span class="label">Corrieri totali</span><span class="value">${DATA.couriers.length}</span></div>
-      <div class="card kpi soft"><div class="icon-wrap">⚠</div><span class="label">Spedizioni in corso</span><span class="value">${(DATA.shipments&&DATA.shipments.length)?DATA.shipments.length:'—'}</span></div>
-      <div class="card kpi green"><div class="icon-wrap">✓</div><span class="label">Tariffa media</span><span class="value">${(()=>{const r=DATA.couriers.map(c=>parseFloat(String(c.rate||'').replace(/[^0-9.,]/g,'').replace(',','.'))||0).filter(x=>x>0);return r.length?'€ '+(r.reduce((a,b)=>a+b,0)/r.length).toFixed(2):'—';})()}</span></div>
+      <div class="card kpi green"><div class="icon-wrap"><i class="ti ti-package"></i></div><span class="label">Corrieri attivi</span><span class="value">${DATA.couriers.filter(c=>c.attivo).length}</span></div>
+      <div class="card kpi pink"><div class="icon-wrap"><i class="ti ti-truck"></i></div><span class="label">Corrieri totali</span><span class="value">${DATA.couriers.length}</span></div>
+      <div class="card kpi soft"><div class="icon-wrap"><i class="ti ti-alert-triangle"></i></div><span class="label">Spedizioni in corso</span><span class="value">${(DATA.shipments&&DATA.shipments.length)?DATA.shipments.length:'—'}</span></div>
+      <div class="card kpi green"><div class="icon-wrap"><i class="ti ti-cash"></i></div><span class="label">Tariffa media</span><span class="value">${(()=>{const r=DATA.couriers.map(c=>parseFloat(String(c.rate||'').replace(/[^0-9.,]/g,'').replace(',','.'))||0).filter(x=>x>0);return r.length?'€ '+(r.reduce((a,b)=>a+b,0)/r.length).toFixed(2):'—';})()}</span></div>
     </div>
 
     <div class="courier-list">
@@ -946,7 +946,7 @@ VIEWS.couriers = function(){
             <button class="btn btn-soft btn-sm js-courier-config" data-courier="${c.code}">⚙ Configura</button>
             <button class="btn btn-ghost btn-sm js-courier-track" data-courier="${c.code}">📍 Tracking</button>
             <button class="btn btn-ghost btn-sm js-courier-rates" data-courier="${c.code}">💶 Tariffe</button>
-            <button class="btn btn-ghost btn-sm js-del-courier" data-courier="${c.code}" data-nome="${(c.nome||'').replace(/"/g,'&quot;')}" title="Rimuovi corriere">🗑</button>
+            <button class="btn btn-ghost btn-sm js-del-courier" data-courier="${c.code}" data-nome="${(c.nome||'').replace(/"/g,'&quot;')}" title="Rimuovi corriere"><i class="ti ti-trash"></i></button>
           </div>
         </div>
       `).join('')}
@@ -981,7 +981,7 @@ function courierTrackingUrl(code, tn){
 VIEWS.shipments = function(){
   return `
     ${pageHead("Spedizioni in corso","Monitora ogni pacco in tempo reale.",`
-      <button class="btn btn-ghost btn-sm js-export-shipments">📤 Esporta CSV</button>
+      <button class="btn btn-ghost btn-sm js-export-shipments"><i class="ti ti-file-export"></i> Esporta CSV</button>
       <button class="btn btn-primary btn-sm js-new-shipment">+ Nuova spedizione</button>
     `)}
 
@@ -1051,8 +1051,8 @@ VIEWS["shipping-zones"] = function(){
             <td>${z.prezzo}</td>
             <td>${z.grat==='—'||z.grat==='-'?'<span class="badge badge-soft">no</span>':'<span class="badge badge-green">da '+z.grat+'</span>'}</td>
             <td class="row-actions">
-              <button class="js-edit-zone" data-id="${z._db_id||''}" title="Modifica">✏</button>
-              <button class="js-del-zone" data-id="${z._db_id||''}" data-nome="${z.nome}" title="Elimina">🗑</button>
+              <button class="js-edit-zone" data-id="${z._db_id||''}" title="Modifica"><i class="ti ti-pencil"></i></button>
+              <button class="js-del-zone" data-id="${z._db_id||''}" data-nome="${z.nome}" title="Elimina"><i class="ti ti-trash"></i></button>
             </td>
           </tr>
         `).join('')}
@@ -1090,8 +1090,8 @@ VIEWS.pickup = function(){
             <td><span class="badge badge-green">${p.corriere||'-'}</span></td>
             <td>${p.orari||'-'}</td>
             <td class="row-actions">
-              <button class="js-edit-pickup" data-id="${p._db_id||''}" data-nome="${(p.nome||'').replace(/"/g,'&quot;')}" data-indirizzo="${(p.indirizzo||'').replace(/"/g,'&quot;')}" data-corriere="${p.corriere||''}" data-orari="${(p.orari||'').replace(/"/g,'&quot;')}" title="Modifica">✏</button>
-              <button class="js-del-pickup" data-id="${p._db_id||''}" data-nome="${(p.nome||'').replace(/"/g,'&quot;')}" title="Elimina">🗑</button>
+              <button class="js-edit-pickup" data-id="${p._db_id||''}" data-nome="${(p.nome||'').replace(/"/g,'&quot;')}" data-indirizzo="${(p.indirizzo||'').replace(/"/g,'&quot;')}" data-corriere="${p.corriere||''}" data-orari="${(p.orari||'').replace(/"/g,'&quot;')}" title="Modifica"><i class="ti ti-pencil"></i></button>
+              <button class="js-del-pickup" data-id="${p._db_id||''}" data-nome="${(p.nome||'').replace(/"/g,'&quot;')}" title="Elimina"><i class="ti ti-trash"></i></button>
             </td>
           </tr>
         `).join('')}
@@ -1492,8 +1492,8 @@ VIEWS.staff = function(){
           <td>${roleB(u.role)}</td>
           <td style="color:var(--muted);font-size:12px">${new Date(u.created_at).toLocaleDateString('it-IT')}</td>
           <td style="text-align:right">
-            <button class="btn btn-ghost btn-sm js-edit-staff" data-id="${u.id}" data-nome="${u.nome||''}" data-email="${u.email}" data-role="${u.role}" title="Modifica">✏️</button>
-            <button class="btn btn-ghost btn-sm js-del-staff" data-id="${u.id}" data-nome="${u.nome||u.email}" style="color:var(--red)" title="Elimina">🗑</button>
+            <button class="btn btn-ghost btn-sm js-edit-staff" data-id="${u.id}" data-nome="${u.nome||''}" data-email="${u.email}" data-role="${u.role}" title="Modifica"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-ghost btn-sm js-del-staff" data-id="${u.id}" data-nome="${u.nome||u.email}" style="color:var(--red)" title="Elimina"><i class="ti ti-trash"></i></button>
           </td>
         </tr>`).join('') : `<tr><td colspan="5" class="empty">${DATA.staff===null?'Caricamento…':'Nessun account staff'}</td></tr>`}
       </tbody>
@@ -1948,7 +1948,7 @@ $(function(){
         </div>
         ${itemsSection}
         <div style="margin-top:18px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-          <button class="btn btn-ghost btn-sm js-print-order">🖨 Stampa</button>
+          <button class="btn btn-ghost btn-sm js-print-order"><i class="ti ti-printer"></i> Stampa</button>
           ${dbId ? `<button class="btn btn-soft btn-sm js-open-ship-modal" data-id="${dbId}" data-order="${o.id}" data-payment="${o.pagamento}">🚚 Spedisci</button>` : ''}
           ${dbId ? `<button class="btn btn-primary btn-sm js-save-order-status" data-id="${dbId}">💾 Salva stato</button>` : ''}
         </div>
@@ -2002,8 +2002,8 @@ $(function(){
         </div>
       </div>
       <div style="margin-top:18px;display:flex;gap:8px;justify-content:flex-end">
-        <button class="btn btn-ghost btn-sm js-del-product" data-id="${p.id}" data-nome="${p.nome}">🗑 Elimina</button>
-        <button class="btn btn-soft btn-sm js-edit-product" data-id="${p.id}">✏ Modifica</button>
+        <button class="btn btn-ghost btn-sm js-del-product" data-id="${p.id}" data-nome="${p.nome}"><i class="ti ti-trash"></i> Elimina</button>
+        <button class="btn btn-soft btn-sm js-edit-product" data-id="${p.id}"><i class="ti ti-pencil"></i> Modifica</button>
       </div>
     `);
   });
