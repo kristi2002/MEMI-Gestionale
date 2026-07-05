@@ -67,8 +67,6 @@
     // heavier than the left, keeping Memi. visually centered)
     const desktopNavLeft =
       '<nav class="desktop-nav desktop-nav-left" aria-label="Navigazione principale">' +
-        '<a href="/shop?categoria=novita"' + ac('shop?categoria=novita') + '>Novità</a>' +
-        '<a href="/shop?saldi=1" class="nav-saldi' + (cur === 'shop?saldi=1' ? ' active' : '') + '">Saldi</a>' +
         '<div class="mega-trigger" data-mega="shop">' +
           '<span class="mega-label' + shopActive + '">' +
             'Shop' +
@@ -111,10 +109,10 @@
             '</div>' +
           '</div>' +
         '</div>' +
-        '<a href="/look"' + ac('look') + '>Look</a>' +
       '</nav>';
 
-    // RIGHT group — Look, Editoriali, Chi Siamo mega-trigger (sits right of the centered logo)
+    // These two (Editoriali, Chi Siamo) now render in the LEFT group next to Shop
+    // so the nav weight sits left and the logo reads centered.
     const desktopNavRight =
       '<nav class="desktop-nav desktop-nav-right" aria-label="Altri link">' +
         '<div class="mega-trigger" data-mega="editoriali">' +
@@ -159,11 +157,11 @@
       '<header class="site-header" id="siteHeader">' +
         '<div class="header-inner">' +
           '<button class="burger" aria-label="Apri menu" aria-expanded="false"><span></span><span></span><span></span></button>' +
-          desktopNavLeft +
+          '<div class="nav-left-group">' + desktopNavLeft + desktopNavRight + '</div>' +
           '<a href="/" class="logo" aria-label="Memi Abbigliamento — Home">' +
             '<img src="/logo.svg" alt="Memì" class="logo-img" />' +
           '</a>' +
-          '<div class="nav-right-group">' + desktopNavRight + headerActions + '</div>' +
+          '<div class="nav-right-group">' + headerActions + '</div>' +
         '</div>' +
       '</header>';
 
@@ -640,7 +638,7 @@
     document.body.insertAdjacentHTML('beforeend', `
       <nav class="mobile-nav-drawer" id="mobileNavDrawer" role="navigation" aria-label="Menu principale">
         <div class="mobile-nav-header">
-          <a href="/" class="mobile-nav-logo">Memi<span>.</span></a>
+          <a href="/" class="mobile-nav-logo"><img src="/logo.svg" alt="Memì" class="mobile-nav-logo-img" /></a>
           <button class="mobile-nav-close" id="mobileNavClose" aria-label="Chiudi menu">
             <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -660,6 +658,11 @@
           }).join('')}
         </div>
         <div class="mobile-nav-footer">
+          <div class="mobile-nav-lang lang-switch" role="group" aria-label="Lingua del sito">
+            <button type="button" class="lang-opt" data-lang="it">IT</button>
+            <span class="lang-sep" aria-hidden="true">/</span>
+            <button type="button" class="lang-opt" data-lang="en">EN</button>
+          </div>
           <div class="mobile-nav-social">
             <a href="https://instagram.com/memiabbigliamento" aria-label="Instagram" target="_blank" rel="noopener">
               <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
@@ -1132,6 +1135,8 @@
       }
       .logo:hover .logo-img { transform: scale(1.04); opacity: .85; }
       @media (min-width: 900px) { .logo-img { height: 56px; } }
+      /* Mobile: wrapper is transparent so the burger layout is unchanged */
+      .nav-left-group { display: contents; }
 
       /* --- PREVIOUS badge + word-mark lockup (kept for easy revert) ---
       .logo { display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; line-height: 1; }
@@ -1152,13 +1157,16 @@
         letter-spacing: .04em; color: var(--brown-light,#9e8a8a); padding: 4px 3px; transition: color .15s; }
       .lang-opt:hover, .lang-opt.is-active { color: var(--espresso,#3B2B2B); }
       .lang-sep { color: var(--brown-light,#c9bfb5); font-size: 12px; }
-      /* Phone: keep the logo + actions + language switch from crowding */
-      @media (max-width: 480px) {
+      /* On the burger (mobile) layout the top-bar switch is hidden — it lives
+         in the mobile menu instead (.mobile-nav-lang), so the header bar stays
+         uncrowded on phones. */
+      @media (max-width: 899px) {
+        .header-actions .lang-switch { display: none; }
         .logo-img { height: 40px; }
-        .header-actions { gap: 3px; }
-        .lang-switch { margin-left: 2px; }
-        .lang-opt { padding: 4px 2px; }
       }
+      .mobile-nav-lang.lang-switch { margin: 4px 0 16px; }
+      .mobile-nav-lang .lang-opt { font-size: 14px; padding: 6px 6px; }
+      .mobile-nav-logo-img { height: 36px; width: auto; display: block; }
 
       /* ── Centered word-mark header (Toteme-style) ───────────────
          3-column grid: equal-width flexible side columns keep the
@@ -1174,8 +1182,16 @@
           column-gap: var(--space-4, 1rem);
         }
         .burger { display: none; }
-        .desktop-nav-left {
+        /* Left group holds Shop + Editoriali + Chi Siamo; logo stays centered
+           by the grid, actions sit right. */
+        .nav-left-group {
           grid-column: 1;
+          display: flex;
+          align-items: center;
+          gap: var(--space-6, 1.5rem);
+          min-width: 0;
+        }
+        .desktop-nav-left, .nav-left-group .desktop-nav-right {
           flex: 0 0 auto;
           justify-content: flex-start;
           min-width: 0;
