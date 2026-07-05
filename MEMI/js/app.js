@@ -1572,12 +1572,19 @@ function renderView(name){
   if(name==='chat'){ renderConvList('all'); renderActiveChat(); }
 }
 
+// Set when the user clicks an already-open parent header to collapse it, so
+// the route that fires right after (hashchange → setActiveNav) doesn't
+// immediately re-expand the group. Reset on every setActiveNav call.
+let navCollapseIntent = false;
+
 function setActiveNav(name){
   $('.nav-item').removeClass('active');
   $(`.nav-item[data-view="${name}"]`).addClass('active');
-  // espandi parent se necessario
+  // Auto-expand the active item's group so deep-links / refresh reveal where
+  // you are — unless the user just clicked the parent header to collapse it.
   const $parent = $(`.nav-item[data-view="${name}"]`).closest('.nav-parent');
-  if($parent.length){ $parent.addClass('open'); }
+  if($parent.length && !navCollapseIntent){ $parent.addClass('open'); }
+  navCollapseIntent = false;
 }
 
 /* ----------------- PRODUCT GRID/LIST ----------------- */
@@ -1732,12 +1739,15 @@ $(function(){
     // Toggle parent senza vista (chevron)
     if(!view && $this.hasClass('nav-item')) return;
 
-    // Se è un parent con view, espandi anche
+    // Se è un parent con view, apri/chiudi (toggle) il gruppo
     if($this.parent().hasClass('nav-parent')){
       const $p = $this.parent();
       // chiudi gli altri
       $('.nav-parent').not($p).removeClass('open');
       $p.toggleClass('open');
+      // Se abbiamo appena chiuso il gruppo, impedisci a setActiveNav (chiamato
+      // dal routing subito dopo) di riaprirlo.
+      navCollapseIntent = !$p.hasClass('open');
     } else if($this.hasClass('child')){
       // mantieni il parent aperto
     } else {
