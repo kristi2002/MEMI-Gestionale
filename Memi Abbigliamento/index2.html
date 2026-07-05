@@ -484,6 +484,14 @@
       gap: var(--space-4);
     }
     .section-header-row .section-title { text-align: left; }
+    #novita .section-title {
+      display: inline-block;
+      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 42%;
+      background-position: 0% 68%;
+      padding: 0 .1em;
+    }
     .link-see-all {
       font-size: var(--text-xs);
       letter-spacing: var(--tracking-wider);
@@ -499,7 +507,7 @@
     /* ============================================================
        5. PRODUCT GRID
        ============================================================ */
-    .products-section { background: #d9e6c5; }
+    .products-section { background: var(--bg-base); }
     .product-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
