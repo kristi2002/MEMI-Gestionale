@@ -114,6 +114,7 @@ dashboard.html loads
 | `orders.get()` | `GET /api/orders/admin/:id` |
 | `orders.updateStatus()` | `PUT /api/orders/admin/:id/status` |
 | `orders.ship()` | `PUT /api/orders/admin/:id/ship` |
+| `orders.sendTracking()` | `POST /api/orders/admin/:id/send-tracking` |
 | `customers.list()` | `GET /api/admin/customers` |
 | `customers.get()` | `GET /api/admin/customers/:id` |
 | `customers.update()` | `PUT /api/admin/customers/:id` |

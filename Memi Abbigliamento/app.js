@@ -31,10 +31,10 @@
   }
 
   const NAV_ITEMS = [
-    { collection: 'novita',    label: 'Novità' },
-    { collection: 'shop-all',  label: 'Abbigliamento' },
-    { collection: 'accessori', label: 'Accessori' },
-    { collection: 'saldi',     label: 'Saldi' },
+    { href: 'shop?categoria=novita',    label: 'Novità' },
+    { href: 'shop',                     label: 'Abbigliamento' },
+    { href: 'shop?categoria=accessori', label: 'Accessori' },
+    { href: 'shop?saldi=1',             label: 'Saldi' },
     { href: 'look',        label: 'Shop the Look' },
     { href: 'editoriali/primavera-estate-2026/', label: 'Editoriali' },
     { href: 'about',       label: 'Chi Siamo' },

@@ -63,4 +63,8 @@
           '<h1 class="article-title">' + esc(p.titolo) + '</h1>' +
           '<div class="prose">' + (p.contenuto || ('<p>' + esc(p.estratto || '') + '</p>')) + '</div>';
       })
-      .catch(function()
+      .catch(function(){ root.innerHTML = '<p class="article-state">Articolo non trovato. <a href="/blog" style="text-decoration:underline">Torna al blog</a></p>'; });
+  })();
+  </script>
+</body>
+</html>

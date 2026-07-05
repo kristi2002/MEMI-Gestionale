@@ -1,286 +1,56 @@
-# MEMI — Deployment Guide (Coolify on Hetzner)
-
-## Architecture overview
-
-```
-Internet
-   │
-   ▼
-Hetzner VPS (Coolify + Traefik)
-   │
-   ├─ api.memi.it  ──▶  MEMI-Backend  (Node.js :3000)
-   │                          │
-   ├─ memi.it       ──▶  E-commerce   (nginx :80)
-   │                          │
-   └─ admin.memi.it ──▶  Admin panel  (nginx :80)
-                               │
-                        MySQL 8 (internal, port 3306)
-```
-
-All three apps live on the same server. Coolify manages TLS (Let's Encrypt) via Traefik. MySQL is only reachable internally — never exposed to the internet in production.
-
----
-
-## 1. Prerequisites
-
-- Hetzner VPS (CX21 or higher — 2 vCPU / 4 GB RAM is comfortable)
-- Coolify installed on the VPS (see https://coolify.io/docs/installation)
-- A domain (e.g. `memi.it`) with DNS managed via your registrar
-- GitHub account (or any git host) with push access to this repo
-
----
-
-## 2. DNS setup
-
-Add these A records pointing to your Hetzner server IP:
-
-| Record         | Type | Value          |
-|----------------|------|----------------|
-| `memi.it`      | A    | `<server-ip>`  |
-| `www.memi.it`  | A    | `<server-ip>`  |
-| `api.memi.it`  | A    | `<server-ip>`  |
-| `admin.memi.it`| A    | `<server-ip>`  |
-
-DNS changes can take up to 24 hours but usually propagate in minutes.
-
----
-
-## 3. Prepare environment variables
-
-On your server (or in Coolify's env UI), set these secrets:
-
-```bash
-# Generate secrets with:
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-```
-
-| Variable              | Description                                     |
-|-----------------------|-------------------------------------------------|
-| `MYSQL_ROOT_PASSWORD` | MySQL root password (strong, keep safe)         |
-| `DB_USER`             | `memi_user`                                     |
-| `DB_PASSWORD`         | MySQL user password (strong)                    |
-| `DB_NAME`             | `memi_db`                                       |
-| `JWT_SECRET`          | 64-char hex secret for customer JWTs            |
-| `JWT_ADMIN_SECRET`    | 64-char hex secret for admin JWTs (different!)  |
-| `ALLOWED_ORIGINS`     | `https://memi.it,https://admin.memi.it`         |
-| `STRIPE_SECRET_KEY`   | Stripe secret key — `sk_live_...` for prod, `sk_test_...` for staging |
-| `STRIPE_PUBLISHABLE_KEY` | Stripe publishable key — `pk_live_...` or `pk_test_...` |
-| `SMTP_HOST`           | SMTP server (e.g. `smtp.gmail.com`, `smtp.sendgrid.net`) |
-| `SMTP_PORT`           | `587` (STARTTLS) or `465` (SSL)                 |
-| `SMTP_SECURE`         | `true` if port 465, `false` if port 587         |
-| `SMTP_USER`           | SMTP username / email address                   |
-| `SMTP_PASS`           | SMTP password or app-specific password          |
-| `SMTP_FROM`           | Sender name + address, e.g. `"Memi Abbigliamento <info@memi.it>"` |
-
-**Note on optional vars:** If `STRIPE_SECRET_KEY` is not set, `/api/payments/create-intent` returns 503 (checkout won't work but site won't crash). If `SMTP_USER` is not set, order confirmation emails are silently skipped (orders still save correctly).
-
----
-
-## 4. Deploy with Docker Compose on Coolify
-
-### Option A — Single docker-compose deployment (recommended)
-
-1. In Coolify: **New Resource → Docker Compose**
-2. Point it at your repository (GitHub, GitLab, or Gitea)
-3. Set **Compose file path** to `docker-compose.yml`
-4. Add all environment variables from step 3 in Coolify's **Environment Variables** tab
-5. Set the **domains** for each service:
-   - `backend`   → `api.memi.it`
-   - `ecommerce` → `memi.it`, `www.memi.it`
-   - `admin`     → `admin.memi.it`
-6. Click **Deploy**
-
-Coolify will:
-- Build all three Docker images
-- Start MySQL first (health-checked)
-- Run `schema.sql` automatically on first MySQL start
-- Start backend (waits for MySQL healthy)
-- Start both nginx static frontends
-- Provision Let's Encrypt certs automatically
-
-### Option B — Three separate Coolify resources
-
-Deploy each service as its own resource if you prefer independent redeploy:
-
-1. **MySQL** → New Resource → Database → MySQL 8
-   - Name: `memi-mysql`
-   - Set `DB_NAME`, `DB_USER`, `DB_PASSWORD`
-   - After creation: connect via Coolify's terminal and run:
-     ```bash
-     mysql -u root -p memi_db < /path/to/schema.sql
-     ```
-
-2. **Backend** → New Resource → Application → Dockerfile
-   - Dockerfile path: `MEMI-Backend/Dockerfile`
-   - Port: `3000`
-   - Domain: `api.memi.it`
-   - Add all env vars; set `DB_HOST` to the internal hostname Coolify assigns MySQL
-
-3. **E-commerce** → New Resource → Application → Dockerfile
-   - Dockerfile path: `Memi Abbigliamento/Dockerfile`
-   - Port: `80`
-   - Domain: `memi.it`, `www.memi.it`
-   - **Important**: Set the API URL in nginx or via a build arg (see §6)
-
-4. **Admin** → New Resource → Application → Dockerfile
-   - Dockerfile path: `MEMI/Dockerfile`
-   - Port: `80`
-   - Domain: `admin.memi.it`
-   - **Important**: Set the API URL (see §6)
-
----
-
-## 5. First-run: seed & verify
-
-After the first deploy, verify everything is connected:
-
-```bash
-# Health check the API
-curl https://api.memi.it/health
-# Expected: {"status":"ok","ts":"..."}
-
-# Test products endpoint
-curl https://api.memi.it/api/products | python3 -m json.tool | head -30
-# Expected: JSON array of 23 products
-
-# Test admin login
-curl -X POST https://api.memi.it/api/admin/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@memi.it","password":"memi2026admin"}'
-# Expected: {"token":"...","admin":{...}}
-```
-
-**Change the default admin password immediately** after first login:
-```sql
--- Connect to MySQL via Coolify terminal
-UPDATE admin_users
-SET password_hash = '$2b$10$...'   -- bcrypt hash of your new password
-WHERE email = 'admin@memi.it';
-```
-Or use the Coolify terminal to run:
-```bash
-node -e "require('bcryptjs').hash('your_new_password', 10, (e,h)=>console.log(h))"
-```
-
----
-
-## 6. Wiring the frontend API URL
-
-The e-commerce and admin panel need to know the API base URL. There are two approaches:
-
-### Approach A — nginx proxy_pass (simplest, no CORS)
-
-Add to the e-commerce nginx.conf:
-```nginx
-location /api/ {
-    proxy_pass http://backend:3000/api/;
-    proxy_set_header Host $host;
-}
-```
-With this, both `memi.it/api/*` and `admin.memi.it/api/*` proxy to the backend. The frontend scripts use `/api` (same origin), so CORS is never an issue.
-
-This is the **recommended setup** and is already configured in the nginx.conf files.
-
-### Approach B — Separate API subdomain
-
-Set `<meta name="memi-api" content="https://api.memi.it/api">` in each HTML file's `<head>`. The `api-client.js` and `admin-api.js` read this tag automatically.
-
----
-
-## 7. Update the nginx.conf files for API proxy (Approach A)
-
-Update `Memi Abbigliamento/nginx.conf` and `MEMI/nginx.conf` to add the proxy block:
-
-```nginx
-# Add inside the server {} block:
-location /api/ {
-    proxy_pass http://backend:3000/api/;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_read_timeout 30s;
-}
-```
-
----
-
-## 8. Auto-deploy on push
-
-In each Coolify resource → **Settings → Webhooks**, enable "Deploy on push". Coolify adds a webhook to your GitHub repo so every push to `main` triggers a rebuild and redeploy automatically.
-
----
-
-## 9. Backups
-
-MySQL data is stored in the `mysql_data` Docker volume. Set up automated backups:
-
-```bash
-# Daily backup cron (run on the Hetzner server)
-0 3 * * * docker exec $(docker ps -qf name=mysql) \
-  mysqldump -u root -p${MYSQL_ROOT_PASSWORD} memi_db \
-  | gzip > /backups/memi_$(date +%Y%m%d).sql.gz
-
-# Keep last 30 days
-find /backups -name "memi_*.sql.gz" -mtime +30 -delete
-```
-
----
-
-## 10. Troubleshooting
-
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| Backend won't start | MySQL not ready | Wait for MySQL healthcheck to pass |
-| 401 on admin login | Wrong credentials or token expired | Re-login; check JWT_ADMIN_SECRET is set |
-| CORS errors in browser | ALLOWED_ORIGINS missing frontend domain | Add domain to `ALLOWED_ORIGINS` env var |
-| Products not loading | DB not seeded | Run schema.sql manually via Coolify terminal |
-| "Token admin mancante" | admin-api.js loaded after app.js | Verify script order in dashboard.html |
-| Checkout submits but no order | API unreachable from frontend | Check nginx proxy_pass block or CORS config |
-| Checkout shows "Servizio pagamenti non disponibile" | `STRIPE_SECRET_KEY` not set | Add Stripe env vars in Coolify |
-| Order saved but no confirmation email | `SMTP_USER` not set or SMTP error | Check backend logs: `docker compose logs backend \| grep -i email`; add SMTP env vars |
-| Stripe card error in browser | Wrong `STRIPE_PUBLISHABLE_KEY` | Verify pk_ key matches sk_ key environment (test vs live) |
-| List endpoints return 500 (settings/reviews/newsletter/resi/invoices/products) | DB initialized with an older schema — tables missing (the `initdb.d` schema only runs on a fresh volume) | **Restart the backend** — `db/migrations.js → ensureSchema()` auto-creates missing tables on boot. Watch for `Core schema ensured` in logs. |
-| Backend exits immediately on boot | `JWT_SECRET` or `JWT_ADMIN_SECRET` not set | Set both in Coolify env; the startup guard fails fast by design. |
-| Admin code/UI changes not showing after deploy | Browser cached `app.js` (nginx serves JS `immutable`) | Bump the `?v=N` query on the script tags (admin: `dashboard.html`; storefront: bulk across pages) and hard-refresh. |
-
-> **Phase 4 note — DB self-heal:** the backend now applies `schema.sql`'s
-> `CREATE TABLE IF NOT EXISTS` statements (structural only, seeds skipped) on every
-> startup via `ensureSchema()`, plus ensures the Phase-4 feature tables. A drifted
-> production database is repaired automatically on the next backend restart — no
-> manual `schema.sql` run needed. First-time **seed data** still comes from the
-> `initdb.d` mount (fresh volume) or `npm run db:init`.
->
-> For running the whole stack locally, see **LOCAL-RUN.md**.
-
-> **Phase 6 note — product images (self-hosted):** uploaded images live on a
-> dedicated Docker volume **`uploads_data`** (mounted at `/app/uploads` on the
-> backend), separate from `mysql_data`. They are processed by `sharp` into WebP
-> variants and served at `/api/uploads/...`. Two operational points:
->
-> 1. **Back up `uploads_data`** alongside the DB — it holds the actual image
->    files. Example: `docker run --rm -v memi_uploads_data:/data -v $PWD:/backup alpine tar czf /backup/uploads-$(date +%F).tgz -C /data .`
-> 2. `sharp` ships prebuilt `linux-musl` binaries, so the Alpine image needs no
->    build toolchain. The backend Dockerfile uses `npm install` (not `npm ci`)
->    so the newly-added `sharp`/`multer` deps install even though the committed
->    lockfile predates them. `MAX_UPLOAD_MB` (default 8) caps upload size.
-
----
-
-## Update Luglio 2026 — admin credentials & deploy-readiness
-
-**Set the admin login via env (new).** The backend now reads `ADMIN_EMAIL` + `ADMIN_PASSWORD` at
-startup (`db/migrations.js → bootstrapAdmin`). In Coolify, set both to create/rotate the admin
-account with a securely hashed password. If left unset, `schema.sql` still seeds the default
-`admin@memi.it` / `memi2026admin`, and the backend logs a **red `🔴 SECURITY` warning** on every
-boot until you rotate it. `docker-compose.yml` already forwards these vars to the backend service.
-
-**Go-live checklist (recap):**
-1. Strong `JWT_SECRET` and `JWT_ADMIN_SECRET` (64+ hex, different values).
-2. Strong `DB_PASSWORD` and `MYSQL_ROOT_PASSWORD`.
-3. `ADMIN_EMAIL` + strong `ADMIN_PASSWORD` (no default-credential warning in logs).
-4. Real `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` and `SMTP_*`.
-5. `ALLOWED_ORIGINS` / domain vars set to your real hosts.
-6. First boot: confirm logs show `Core schema ensured`, `Migrations applied`, `MEMI API running`,
-   and **no** default-admin security warning.
-
-See `CHANGES-DEPLOY-READY.md` for everything changed this sprint.
+# MEMI — Deployment & Operations (Hetzner + Coolify)
+
+> Regenerated 2026-07-05. Verified against the live server (Coolify 4.1.2 on Hetzner, 91.99.137.240).
+
+## Topology
+One Coolify "Docker Compose" resource builds all four services from `docker-compose.yml`:
+mysql (8.0, volume `mysql_data`), backend (Node, volume `uploads_data` at /app/uploads),
+ecommerce (nginx static), admin (nginx static). Traefik (coolify-proxy) terminates TLS via
+labels: `SHOP_DOMAIN` (+www), `ADMIN_DOMAIN`, `API_DOMAIN`, all with letsencrypt + HTTP→HTTPS redirect.
+
+## Deploy flow (verified working)
+1. Push to `main` on GitHub (`kristi2002/MEMI-Gestionale`).
+2. Coolify webhook builds images tagged `<uuid>_<service>:<git-sha>` and restarts containers.
+3. Both static Dockerfiles run `scripts/cache-bust.js` at build → content-hash `?v=`; nginx serves HTML
+   `no-cache` → deploys are visible on plain refresh, no manual cache work.
+4. Confirm what's live: `docker ps --format '{{.Names}} {{.Image}}'` on the server — image tag = commit SHA.
+
+## Environment variables (set in Coolify → resource → Environment)
+Required: `DB_NAME, DB_USER, DB_PASSWORD, MYSQL_ROOT_PASSWORD, JWT_SECRET, JWT_ADMIN_SECRET,
+ALLOWED_ORIGINS, SHOP_DOMAIN, ADMIN_DOMAIN, API_DOMAIN, FRONTEND_URL`.
+Recommended: `ADMIN_EMAIL, ADMIN_PASSWORD` (bootstraps/rotates the admin login at boot; a red warning
+is logged if the seeded default admin@memi.it/memi2026admin is still active in production).
+Payments: `STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET` (webhook endpoint:
+`https://<API_DOMAIN>/api/payments/webhook`, events: payment_intent.succeeded, charge.dispute.created).
+Email: `SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, SMTP_FROM` (all emails silently skip if
+SMTP_USER unset). Uploads: `MAX_UPLOAD_MB` (default 8). Logging: `LOG_LEVEL`.
+Backend fails fast on boot without both JWT secrets (compose supplies dev defaults locally only).
+
+## Data persistence
+- `mysql_data` — the database. `uploads_data` — product images. Both survive redeploys.
+- NEVER `docker compose down -v` on the server.
+
+## Backup / restore (deploy/ scripts)
+- `deploy/backup.sh` — mysqldump + uploads tar (run via cron on the server).
+- `deploy/restore.sh` — restore from a backup file.
+- `deploy/healthcheck-monitor.sh` — polls `/health`, alerts on failure.
+Recommended cron: nightly backup + off-server copy (Hetzner Storage Box / S3).
+
+## Post-deploy verification
+1. `curl -s https://<API_DOMAIN>/health` → `{"status":"ok"}`
+2. `curl -s https://<SHOP_DOMAIN>/api/products?limit=1` → JSON product
+3. Admin login loads dashboard KPIs (real numbers, not dashes).
+4. Locally before pushing: `bash verify/run.sh` must exit 0; full-stack: `./smoke-test.sh`.
+
+## Local development
+`docker compose -f docker-compose.yml -f docker-compose.local.yml up --build`
+→ shop :8080, admin :8081, api :3000, mysql :3307. Zero secrets needed. Reset DB: `down -v` (local only).
+Backend without Docker: `cd MEMI-Backend && npm install && npm run db:init && npm start`.
+
+## Known operational cautions
+- MySQL is not exposed publicly in prod (no ports mapping in base compose) — good; keep it that way.
+- `uploads_data` grows with product images; monitor disk (Hetzner default volumes).
+- Coolify re-clones the repo per deployment — never edit files inside `/artifacts/...` on the server.
+- Development machine caveat: the repo previously suffered file truncation from a sync tool on the
+  Windows Desktop folder (see MEMI-CHANGELOG-AND-ROADMAP.md 2026-07-05). Prefer moving the repo out of
+  synced folders; `verify/run.sh` catches truncated JS.

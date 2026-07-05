@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
@@ -10,7 +10,7 @@
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="tokens.css?v=4" />
   <link rel="stylesheet" href="shop.css?v=5" />
-  <link rel="stylesheet" href="app.css?v=3" />
+  <link rel="stylesheet" href="app.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -335,4 +335,23 @@
 
     if (window.MemiAPI && window.MemiAPI.products) {
       window.MemiAPI.products.list({ limit: 300 })
-        .
+        .then(function (res) {
+          var list = Array.isArray(res) ? res : (res && res.products) || [];
+          window.PRODUCTS = list.map(mapApiToProduct);
+        })
+        .catch(function () { window.PRODUCTS = window.PRODUCTS || []; })
+        .finally(start);
+    } else {
+      start();
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

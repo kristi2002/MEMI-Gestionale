@@ -316,7 +316,7 @@
     .pg-arrow:disabled{opacity:.3;cursor:default;}
     .pg-arrow svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
   </style>
-  <link rel="stylesheet" href="app.css?v=2" />
+  <link rel="stylesheet" href="app.css" />
 </head>
 <body>
 
@@ -979,4 +979,36 @@ window.submitNewsletter = function (form) {
 
         var html = '';
         var bannerInserted = false;
-      
+        products.forEach(function (p, i) {
+          // Insert editorial banner after the 4th card (like the original)
+          if (!bannerInserted && i === 4) {
+            html += buildEditorialBanner();
+            bannerInserted = true;
+          }
+          html += buildCard(p);
+        });
+        if (!bannerInserted) html += buildEditorialBanner();
+
+        grid.innerHTML = html;
+
+        // Now that cards exist, run filter engine + pagination
+        if (typeof applyFilters   === 'function') applyFilters();
+        if (typeof initPagination === 'function') initPagination();
+      })
+      .catch(function () { showError(grid); });
+  };
+
+  // Hook into DOMContentLoaded (which is where the filter IIFE also wires up)
+  // We defer catalog load to AFTER DOMContentLoaded so applyFilters exists
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      // Small tick to ensure filter IIFE has finished its DOMContentLoaded handler
+      setTimeout(window.initShopCatalog, 0);
+    });
+  } else {
+    setTimeout(window.initShopCatalog, 0);
+  }
+})();
+</script>
+</body>
+</html>

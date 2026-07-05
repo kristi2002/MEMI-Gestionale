@@ -1,417 +1,128 @@
-# MEMI API Reference
-**Base URL (production):** `https://api.memiabbigliamento.it/api`  
-**Base URL (local container / nginx proxy):** `/api`  
-Both nginx configs (ecommerce + admin) proxy `/api/*` to `http://backend:3000`.
+# MEMI Backend — API Reference
 
----
-
-## Authentication
-
-All protected endpoints require `Authorization: Bearer <token>`.  
-Customer token → `localStorage.memi_token`  
-Admin token → `localStorage.memi_admin_token`
-
----
+> Regenerated 2026-07-05 from the actual code (source of truth: `MEMI-Backend/src/routes/`).
+> Base URL: `/api` (nginx proxies to `backend:3000`). Auth: `Authorization: Bearer <jwt>`.
+> Customer JWT (`JWT_SECRET`, 7d) and admin JWT (`JWT_ADMIN_SECRET`, 8h) are separate.
 
 ## Health
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/health` | public | DB connectivity check → `{status: ok|degraded}` (note: root path, not under /api) |
+
+## Auth — customer (`routes/auth.js`)
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/auth/register` | public | Register (zod-validated). Sends welcome email. Rate-limited 20/15min |
+| POST | `/api/auth/login` | public | Login → JWT. Rate-limited 20/15min |
+| GET | `/api/auth/me` | customer | Profile + preferences (wishlist, sizes, lang, points) |
+| PUT | `/api/auth/me` | customer | Update profile/sizes/preferences/lang |
+| POST | `/api/auth/forgot-password` | public | Password-reset email (1h JWT token link) |
+| PUT | `/api/auth/reset-password` | public | Reset with token |
+| GET | `/api/auth/loyalty` | customer | Points balance + ledger |
+| POST | `/api/auth/loyalty/redeem` | customer | Points → one-time discount code |
+
+## Account / Area personale (`routes/account.js`)
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET/PUT | `/api/auth/wishlist` | customer | Get / save wishlist (max 500 items) |
+| GET/PUT | `/api/auth/cart` | customer | Get / save cart (max 200 items) |
+| GET | `/api/auth/addresses` | customer | List addresses |
+| POST | `/api/auth/addresses` | customer | Create address |
+| PUT | `/api/auth/addresses/:id` | customer | Update address |
+| DELETE | `/api/auth/addresses/:id` | customer | Delete address |
+| PUT | `/api/auth/addresses/:id/default` | customer | Set default |
+| GET/PUT | `/api/auth/newsletter` | customer | Subscription status / settings |
+
+## Admin auth (`routes/admin-auth.js`)
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/admin/auth/login` | public | Admin login → admin JWT |
+| GET | `/api/admin/auth/me` | admin | Verify token + profile |
+
+## Products (`routes/products.js`, `routes/products-import.js`)
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| GET | `/api/products` | public | List; filters: `categoria, colore, saldi, novita, q, collection, status, limit, offset` |
+| GET | `/api/products/:id` | public | Detail + sizes + stock |
+| GET | `/api/products/:id/stock` | public | Stock per taglia |
+| POST | `/api/products` | admin | Create |
+| PUT | `/api/products/:id` | admin | Update |
+| DELETE | `/api/products/:id` | admin | Delete |
+| PUT | `/api/products/:id/stock` | admin | Update stock for a taglia |
+| POST | `/api/products/:id/images` | admin | Upload images (multipart; sharp → webp card/full/thumb) |
+| DELETE | `/api/products/:id/images` | admin | Remove image `{url}` |
+| POST | `/api/admin/products/import` | admin | CSV bulk import (`?dryRun=1` preview) |
+| GET | `/api/admin/products/import/template` | admin | CSV template download |
+
+## Orders (`routes/orders.js`)
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/orders` | public/guest | Place order. Server re-resolves prices, verifies Stripe intent (amount+currency+status), handles gift card / discount / loyalty atomically, checks stock. Rate-limited 30/15min |
+| POST | `/api/orders/validate-discount` | public | Validate code vs subtotal |
+| GET | `/api/orders/my` | customer | Own orders |
+| GET | `/api/orders/my/:id` | customer | Own order detail |
+| GET | `/api/orders/track?number=X&email=Y` | public | Guest order tracking |
+| GET | `/api/orders/admin/list` | admin | All orders (filters: payment_status, order_status, q) |
+| GET | `/api/orders/admin/:id` | admin | Detail + items |
+| POST | `/api/orders/admin` | admin | Manual order creation |
+| PUT | `/api/orders/admin/:id/status` | admin | Update payment_status / order_status (spedito → shipping email) |
+| PUT | `/api/orders/admin/:id/ship` | admin | Assign courier + tracking |
+| DELETE | `/api/orders/admin/:id` | admin | Delete |
+
+## Payments — Stripe (`routes/payments.js`)
+| Method | Path | Auth | Purpose |
+|---|---|---|---|
+| POST | `/api/payments/create-intent` | public | PaymentIntent (min €0.50) → `{client_secret, payment_intent_id}`. 503 if Stripe unconfigured |
+| GET | `/api/payments/config` | public | Publishable key |
+| POST | `/api/payments/webhook` | Stripe sig | `payment_intent.succeeded` (warns if no matching order), `charge.dispute.created` |
+
+## Customers (admin) (`routes/customers.js`)
+GET/POST `/api/admin/customers`, GET/PUT/DELETE `/api/admin/customers/:id` — list (filter q, paginated), detail (orders+addresses+newsletter), create, update, delete.
+
+## Discounts (`routes/discounts.js`)
+GET/POST `/api/admin/discounts`, PUT/DELETE `/api/admin/discounts/:id` — tipo `percentuale|fisso|spedizione`, max_utilizzi, scadenza, min_order, per-email usage tracking (`discount_usage`).
+
+## Gift cards (`routes/giftcards.js`, `giftcards-public.js`)
+GET/POST `/api/admin/giftcards`, PUT/DELETE `/api/admin/giftcards/:id`; public GET `/api/giftcards/validate/:code`. Issue emails recipient if `recipient_email` set. Redemption at checkout is atomic (balance race → 409).
+
+## Shipping (`routes/shipping.js`)
+Public: GET `/api/shipping/zones`, GET `/api/shipping/couriers`. Admin: POST/PUT/DELETE zones (`/api/shipping/zones/:id`), POST/PUT/DELETE couriers (`/api/shipping/couriers/:code`), GET/POST/PUT `/api/shipping/shipments`, GET/POST/PUT/DELETE `/api/shipping/pickup`.
+
+## Invoices / Fatture (`routes/invoices.js`)
+GET/POST `/api/admin/invoices`, GET/PUT/DELETE `/api/admin/invoices/:id` — one invoice per order (unique order_id), stato `bozza|emessa|inviata|pagata|annullata`.
+
+## Returns / Resi (`routes/resi.js`, `resi-public.js`)
+Public: POST `/api/resi/request` (order_number + email verified). Admin: GET `/api/admin/resi`, GET/PUT/DELETE `/api/admin/resi/:id`, POST `/api/admin/resi/:id/refund` (Stripe refund).
+
+## Reviews (`routes/reviews.js`)
+Public: POST `/api/reviews` (moderated), GET `/api/reviews/product/:product_id`. Admin: GET `/api/reviews/admin`, PUT/DELETE `/api/reviews/admin/:id`.
+
+## Newsletter (`routes/newsletter.js`)
+Public: POST `/api/newsletter/subscribe`. Admin: GET `/api/newsletter`.
+
+## Campaigns (`routes/campaigns.js`)
+GET/POST `/api/admin/campaigns`, PUT/DELETE `/api/admin/campaigns/:id` — tipo `email|ads|automazione|sms`.
+
+## CMS + Blog (`routes/cms.js`)
+Admin CRUD: `/api/admin/cms/pages`, `/api/admin/cms/blog`. Public: GET `/api/cms/published/:slug`.
+
+## Dashboard (admin) (`routes/dashboard.js`)
+GET `/api/admin/dashboard/kpis`, `/chart` (30d revenue), `/top-products`, `/recent-orders`, `/finance`.
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | `/health` | None | Checks DB connectivity (not just process-alive). Returns `{status:"ok", db:"ok", ts:"..."}` (200) or `{status:"degraded", db:"unreachable", ts:"..."}` (503). Used by Docker health check. |
+## Loyalty (admin) (`routes/loyalty.js`)
+GET/PUT `/api/admin/loyalty/config`; GET `/api/admin/loyalty/customers`, GET `/api/admin/loyalty/customers/:id`, POST `/api/admin/loyalty/customers/:id/adjust`.
 
----
+## Staff (`routes/staff.js`)
+GET/POST `/api/admin/staff`, PUT/DELETE `/api/admin/staff/:id` — roles `admin|staff`; cannot delete self; admin-only creation.
 
-## Customer Auth — `/api/auth`
+## Settings (`routes/settings.js`)
+GET/PUT `/api/admin/settings` (flat key/value in `store_settings`); GET `/api/admin/settings/integrations` (status readout).
 
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| POST | `/auth/register` | None | `{nome, email, password}` | `{token, user:{id,nome,email}}` |
-| POST | `/auth/login` | None | `{email, password}` | `{token, user:{id,nome,email}}` |
-| GET | `/auth/me` | Customer | — | `{id,nome,cognome,email,telefono,indirizzo,citta,cap,paese, wishlist[], sizes{}, preferences{}, lang, points, total_orders,total_spent}` |
-| PUT | `/auth/me` | Customer | `{nome?,cognome?,email?,telefono?,indirizzo?,citta?,cap?,paese?, lang?, sizes?, preferences?, wishlist?}` | `{ok:true}` |
-| POST | `/auth/logout` | None | — | `{message:"ok"}` |
-| POST | `/auth/forgot-password` | None | `{email}` | `{message}` (always 200 — silent no-op if email not found) |
-| POST | `/auth/reset-password` | None | `{token, password}` | `{message}` |
+## Audit log (`routes/audit-log.js`)
+GET `/api/admin/audit-log` — read-only, filter by entity_type, limit 1–1000.
 
-`sizes`, `preferences`, and `wishlist` are JSON columns on `customers`; pass an object/array to set, `null` to clear. `lang` is `'it' | 'en'`.
+## Rate limits (server.js)
+- General API: 300 req/15min — Auth endpoints: 20/15min — Checkout (orders + create-intent): 30/15min.
 
-Rate-limited: login + register → 20 req / 15 min.
-
-Password reset flow: `POST /auth/forgot-password` generates a JWT (1 h expiry) and emails a reset link to `reset-password.html?token=<jwt>`. `POST /auth/reset-password` verifies the token and updates the password hash.
-
-### Area Personale — customer-scoped resources (`/api/auth`, Customer token)
-
-| Method | Path | Body | Returns |
-|--------|------|------|---------|
-| GET | `/auth/wishlist` | — | `{items:[...]}` |
-| PUT | `/auth/wishlist` | `{items:[...]}` | `{ok:true, count}` |
-| GET | `/auth/addresses` | — | `{addresses:[{id,label,indirizzo,citta,cap,paese,telefono,is_default}]}` |
-| POST | `/auth/addresses` | `{label,indirizzo,citta,cap,paese,telefono,is_default?}` | `{ok:true, id}` |
-| PUT | `/auth/addresses/:id` | `{label,indirizzo,citta,cap,paese,telefono}` | `{ok:true}` |
-| DELETE | `/auth/addresses/:id` | — | `{ok:true}` |
-| PUT | `/auth/addresses/:id/default` | — | `{ok:true}` |
-| GET | `/auth/newsletter` | — | `{subscribed, frequenza, topics[]}` |
-| PUT | `/auth/newsletter` | `{subscribed, frequenza, topics[]}` | `{ok:true, ...}` |
-
-The first address a customer saves is auto-flagged default; setting a new default (or the default one being edited) mirrors `indirizzo/citta/cap/paese` back onto `customers.*` so checkout pre-fill keeps working. Deleting the default promotes the next-oldest address. `frequenza` ∈ `weekly | biweekly | monthly`. Persisted in `customer_addresses` and `newsletter_subscribers` (the latter linked by `customer_id`).
-
-Admin customer detail (`GET /api/admin/customers/:id`) now also returns `wishlist`, `sizes`, `preferences`, `lang`, `points`, `addresses[]`, and `newsletter` so staff can see this in the dashboard.
-
----
-
-## Admin Auth — `/api/admin/auth`
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| POST | `/admin/auth/login` | None | `{email, password}` | `{token, admin:{id,nome,email,role}}` |
-| GET | `/admin/auth/me` | Admin | — | `{admin:{id,nome,email,role}}` |
-
-Default admin credentials: `admin@memi.it` / `memi2026admin`
-
----
-
-## Products — `/api/products`
-
-| Method | Path | Auth | Query / Body | Returns |
-|--------|------|------|------|---------|
-| GET | `/products` | None | `?categoria=vestiti&colore=blush&saldi=1&novita=1&q=lino&collection=estate-2025&status=all` | `[...products]` (array) |
-| GET | `/products/:id` | None | — | `{...productFields, taglie:[{taglia,stock}], images:[], collections:[]}` (flat object) |
-| GET | `/products/:id/stock` | None | — | `{sizes:[{taglia,stock}]}` |
-| POST | `/products` | Admin | product object | `{product}` |
-| PUT | `/products/:id` | Admin | partial product fields | `{product}` |
-| DELETE | `/products/:id` | Admin | — | `{message}` |
-| PUT | `/products/:id/stock` | Admin | `{taglia, stock}` | `{message}` |
-
-**Product object fields:** `id, name, categoria, colore, color_label, price, original_price, discount_pct, is_new, icon, alt_color, popularity, collections (JSON array), description, images (JSON array), status (attivo|bozza|esaurito)`
-
----
-
-## Orders — `/api/orders`
-
-| Method | Path | Auth | Body / Query | Returns |
-|--------|------|------|------|---------|
-| POST | `/orders` | Optional | `{nome, cognome, email, telefono, indirizzo, citta, cap, paese?, items:[{product_id,taglia,colore,qty}], discount_code?, gift_card_code?, payment_method?, payment_intent_id?}` | `{ok:true, order_number, total}` — line prices re-resolved from DB. Gift card is applied after the discount, capped at the card's balance; if it brings the total to €0, `payment_status` is set to `pagato` immediately and no PaymentIntent/Stripe verification is required regardless of `payment_method`. Body is validated (zod) before any DB work — see `docs/PRODUCTION-ROADMAP.md` Phase 5. A `discount_code` can only be redeemed **once per customer email** (checked against `discount_usage`, on top of the code's own global `max_utilizzi`) — a second attempt by the same email returns 400 even if the code still has uses left. |
-| GET | `/orders/my` | Customer | — | `[{id, order_number, total, payment_status, order_status, tracking_number, courier_code, created_at}]` |
-| GET | `/orders/my/:id` | Customer | — | `{...order, items:[...]}` |
-| POST | `/orders/validate-discount` | None | `{code, subtotal, email?}` | `{ok:true, code, tipo, valore, discount_amount, free_shipping, label}` — if `email` is passed, previews the per-email-reuse check enforced for real in `POST /orders` (optional field; storefront doesn't send it yet). |
-| GET | `/orders/track` | None | `?number=XXX&email=YYY` | `{order_number, order_status, payment_status, tracking_number, courier_code, tracking_url?, shipping_citta, shipping_paese, subtotal, shipping_cost, discount_amount, total, created_at}` |
-| GET | `/orders/admin/list` | Admin | `?stato=&pagamento=&q=&limit=50&offset=0` | `{orders:[...], total}` |
-| GET | `/orders/admin/:id` | Admin | — | `{...order, items:[...]}` |
-| PUT | `/orders/admin/:id/status` | Admin | `{order_status?, payment_status?, notes?}` | `{message, order}` |
-| PUT | `/orders/admin/:id/ship` | Admin | `{courier_code, tracking_number, eta?, destinazione?}` | `{ok:true}` — marks order spedito + creates shipment + sends tracking email |
-| POST | `/orders/admin` | Admin | `{nome, email, items:[{product_id,qty,taglia?}], ...}` | `{ok:true, order_number, total}` — prezzi risolti da DB |
-| DELETE | `/orders/admin/:id` | Admin | — | `{ok:true, message}` |
-
----
-
-## Admin Customers — `/api/admin/customers`
-
-| Method | Path | Auth | Body / Query | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/customers` | Admin | `?q=email&page=1&limit=20` | `{customers:[...], total, pages}` |
-| GET | `/admin/customers/:id` | Admin | — | `{customer, orders}` |
-| POST | `/admin/customers` | Admin | `{nome, email, cognome?, telefono?, indirizzo?, citta?, cap?, paese?, password?}` | `{customer}` — password auto-generated if omitted |
-| PUT | `/admin/customers/:id` | Admin | partial fields | `{customer}` |
-| DELETE | `/admin/customers/:id` | Admin | — | `{message}` |
-
----
-
-## Admin Discounts — `/api/admin/discounts`
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/discounts` | Admin | — | `[...discounts]` (array) |
-| POST | `/admin/discounts` | Admin | `{code, tipo, valore, max_utilizzi?, scadenza?, min_order?}` | `{discount}` |
-| PUT | `/admin/discounts/:id` | Admin | partial fields | `{discount}` |
-| DELETE | `/admin/discounts/:id` | Admin | — | `{message}` |
-
----
-
-## Payments — `/api/payments`
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| POST | `/payments/create-intent` | None | `{amount_cents}` (integer — was mislabeled `{amount}` in this doc) | `{client_secret, payment_intent_id}` |
-| GET | `/payments/config` | None | — | `{publishableKey}` — Stripe publishable key for the frontend |
-| POST | `/payments/webhook` | Stripe signature (`Stripe-Signature` header, verified against `STRIPE_WEBHOOK_SECRET`) | raw Stripe event JSON | `{received:true}` — mounted directly on the app (not under the `/payments` router) since it needs the raw body, registered before the global JSON parser in `server.js` |
-
-Returns **503** if `STRIPE_SECRET_KEY` environment variable is not set (`create-intent`) or if
-`STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` aren't set (`webhook`).
-
-Used by `checkout.html`: call `create-intent` first, then `stripe.confirmCardPayment(client_secret)`,
-then `POST /api/orders` with `payment_intent_id`. The webhook is a safety net (Phase 2 of
-`docs/PRODUCTION-ROADMAP.md`) for the case where Stripe charges the card but the browser never
-completes `POST /api/orders` — it logs a warning for manual follow-up rather than auto-creating
-an order (a bare PaymentIntent doesn't carry cart/shipping data). It also logs
-`charge.dispute.created` for admin visibility. Configure the endpoint at
-https://dashboard.stripe.com/webhooks pointed at `https://<api-domain>/api/payments/webhook`.
-
----
-
-## Shipping — `/api/shipping`
-
-| Method | Path | Auth | Returns |
-|--------|------|------|---------|
-| GET | `/shipping/zones` | None | `[...zones]` (array) |
-| GET | `/shipping/couriers` | None | `[...couriers]` array — active only unless `?all=1` |
-| POST | `/shipping/zones` | Admin | `{zone}` |
-| PUT | `/shipping/zones/:id` | Admin | `{zone}` |
-| DELETE | `/shipping/zones/:id` | Admin | `{message}` |
-| PUT | `/shipping/couriers/:code` | Admin | `{rate?, attivo?}` | `{courier}` |
-| GET | `/shipping/shipments` | Admin | `[...shipments]` (array) |
-| PUT | `/shipping/shipments/:id` | Admin | `{stato?, eta?}` | `{shipment}` |
-
----
-
-## Admin Dashboard — `/api/admin/dashboard`
-
-| Method | Path | Auth | Returns |
-|--------|------|------|---------| GET | `/admin/dashboard/kpis` | Admin | `{revenue:{value,delta,up}, orders:{value,delta,up}, visitors:{value,delta,up}, aov:{value,delta,up}}` |
-| GET | `/admin/dashboard/chart` | Admin | `[{month, revenue, orders}]` — last 6 months |
-| GET | `/admin/dashboard/top-products` | Admin | `[{id, nome, venduti, revenue, immagine}]` — top 5 |
-| GET | `/admin/dashboard/recent-orders` | Admin | `[{id, order_number, customer_nome, total, order_status, created_at}]` — last 10 |
-
----
-
-## Newsletter — `/api/newsletter`
-
-| Method | Path | Auth | Body / Query | Returns |
-|--------|------|------|------|---------|
-| GET | `/newsletter` | Admin | `?page=1&limit=50&status=active` | `{subscribers:[...], total, pages}` |
-| POST | `/newsletter/subscribe` | None | `{email, fonte?}` | `{message}` — idempotent (re-activates if unsubscribed) |
-| POST | `/newsletter/unsubscribe` | None | `{email}` | `{message}` |
-
----
-
-## Invoices — `/api/admin/invoices`
-
-| Method | Path | Auth | Body / Query | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/invoices` | Admin | `?page=1&limit=20&q=&stato=` | `{invoices:[...], total, pages}` |
-| GET | `/admin/invoices/:id` | Admin | — | `{invoice}` |
-| POST | `/admin/invoices` | Admin | `{order_id, numero_fattura, importo, data_emissione, stato?, note?}` | `{invoice}` |
-| PUT | `/admin/invoices/:id` | Admin | partial fields | `{invoice}` |
-| DELETE | `/admin/invoices/:id` | Admin | — | `{ok:true}` |
-
----
-
-## Returns (Resi) — `/api/admin/resi` · `/api/resi`
-
-### Admin routes — `/api/admin/resi`
-
-| Method | Path | Auth | Body / Query | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/resi` | Admin | `?page=1&limit=20&q=&stato=` | `{resi:[...], total, pages}` |
-| GET | `/admin/resi/:id` | Admin | — | `{reso}` |
-| POST | `/admin/resi` | Admin | `{order_id, order_number, customer_nome, customer_email, motivo, descrizione?, rma_number?}` | `{reso}` |
-| PUT | `/admin/resi/:id` | Admin | `{stato?, note?}` | `{reso}` |
-| DELETE | `/admin/resi/:id` | Admin | — | `{ok:true}` |
-
-### Customer-facing — `/api/resi`
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| POST | `/resi/request` | None (verified by order_number+email) | `{order_number, email, motivo, descrizione?}` | `{ok:true, rma_number, message}` |
-
-Validation: order must be `spedito` or `consegnato`; no existing open reso for the same order.
-
-### Stripe refund — `/api/admin/resi` (Luglio 2026)
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| POST | `/admin/resi/:id/refund` | Admin | `{amount?}` (EUR float; omit = full order total) | `{ok:true, refund_id, amount, reso}` |
-
-Amount priority: `body.amount` → stored `rimborso_amount` → full `order.total`. On success marks reso `rimborsato` + order `payment_status='rimborsato'`. Error codes: 503 (Stripe not configured), 400 (non-card order, guide manual refund), 409 (already refunded), 502 (Stripe error).
-
----
-
-## Reviews — `/api/reviews`
-
-| Method | Path | Auth | Body / Query | Returns |
-|--------|------|------|------|---------|
-| GET | `/reviews/product/:productId` | None | — | `[...reviews]` — published only |
-| POST | `/reviews` | None | `{product_id, rating(1-5), titolo?, testo?, customer_nome?, customer_email?}` | `{review}` — status set to `in_attesa` |
-| GET | `/reviews/admin` | Admin | `?stato=&page=1&limit=20` | `{reviews:[...], total, pages}` |
-| PUT | `/reviews/admin/:id` | Admin | `{stato?, risposta_admin?}` | `{review}` |
-| DELETE | `/reviews/admin/:id` | Admin | — | `{ok:true}` |
-
----
-
-## Staff — `/api/admin/staff`
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/staff` | Admin | — | `{staff:[...], total}` — no password_hash |
-| POST | `/admin/staff` | Admin (role=admin only) | `{email, password, nome?, role?}` | `{user}` |
-| PUT | `/admin/staff/:id` | Admin (role=admin only) | `{nome?, email?, role?, password?}` | `{user}` |
-| DELETE | `/admin/staff/:id` | Admin (role=admin only) | — | `{ok:true}` — self-deletion blocked |
-
----
-
-## Settings — `/api/admin/settings`
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/settings` | Admin | — | `{store_name, store_email, store_phone, store_address, store_city, store_country, store_vat_number, order_notification_email, shipping_default_cost, shipping_free_threshold, returns_policy_days, store_instagram, store_facebook}` |
-| PUT | `/admin/settings` | Admin | `{key: value, ...}` (any subset of keys) | `{ok:true, updated: N}` |
-
-Keys are UPSERT'd via `ON DUPLICATE KEY UPDATE`. Any key not in the payload is left unchanged.
-Arbitrary keys are accepted (e.g. `theme_name`, `theme_primary`, `store_domain`, `media_library`, `store_vat_rate`).
-
----
-
-## Gift Cards — `/api/admin/giftcards` (Phase 4)
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/giftcards` | Admin | — | `{cards:[...], summary:{total, attive, balance, emesso}}` |
-| POST | `/admin/giftcards` | Admin | `{initial_amount, recipient_email?, note?}` | `{ok:true, id, code}` (code auto-generated, e.g. `MEMI-7F3A-9K2C`). If `recipient_email` is set, fires a delivery email (`sendGiftCardDelivery`, best-effort). |
-| PUT | `/admin/giftcards/:id` | Admin | `{balance?, stato?, recipient_email?}` | `{ok:true}` |
-| DELETE | `/admin/giftcards/:id` | Admin | — | `{ok:true}` |
-
-**Public — `/api/giftcards`** (Phase 3 of `docs/PRODUCTION-ROADMAP.md` — checkout redemption)
-
-| Method | Path | Auth | Returns |
-|--------|------|------|---------|
-| GET | `/giftcards/validate/:code` | None | `{valid:true, code, balance}` or `{valid:false, error}` (404 unknown, 400 inactive/exhausted) — a pre-checkout preview only; actual redemption + balance deduction happens transactionally inside `POST /api/orders` via `gift_card_code`, not here. |
-
-## Campaigns — `/api/admin/campaigns` (Phase 4)
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/campaigns` | Admin | — | `[{id, nome, tipo, canale, budget, destinatari, stato, open_rate, click_rate, revenue}]` |
-| POST | `/admin/campaigns` | Admin | `{nome, tipo?, canale?, budget?, destinatari?, stato?}` | `{ok:true, id}` |
-| PUT | `/admin/campaigns/:id` | Admin | any subset of fields | `{ok:true}` |
-| DELETE | `/admin/campaigns/:id` | Admin | — | `{ok:true}` |
-
-`tipo` ∈ {email, ads, automazione, sms}; `stato` ∈ {bozza, attiva, pianificata, conclusa}.
-
-## CMS — `/api/admin/cms` (Phase 4)
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| GET | `/admin/cms/pages` | Admin | — | `[{id, titolo, slug, contenuto, stato, created_at, updated_at}]` |
-| POST | `/admin/cms/pages` | Admin | `{titolo, contenuto?, stato?, slug?}` | `{ok:true, id, slug}` |
-| PUT | `/admin/cms/pages/:id` | Admin | any subset | `{ok:true}` |
-| DELETE | `/admin/cms/pages/:id` | Admin | — | `{ok:true}` |
-| GET | `/admin/cms/blog` | Admin | — | `[{id, titolo, slug, estratto, contenuto, cover_color, stato, published_at}]` |
-| POST | `/admin/cms/blog` | Admin | `{titolo, estratto?, contenuto?, cover_color?, stato?, slug?}` | `{ok:true, id, slug}` |
-| PUT | `/admin/cms/blog/:id` | Admin | any subset | `{ok:true}` |
-| DELETE | `/admin/cms/blog/:id` | Admin | — | `{ok:true}` |
-
-Slugs are auto-generated from the title (accent-stripped) when not provided.
-
-## Shipping additions — `/api/shipping` (Phase 4)
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| POST | `/shipping/couriers` | Admin | `{code, nome, slug?, rate?, attivo?}` | `{ok:true, code}` |
-| DELETE | `/shipping/couriers/:code` | Admin | — | `{ok:true}` |
-| POST | `/shipping/shipments` | Admin | `{order_id, courier_code, tracking_number, destinazione?, eta?, stato?}` | `{ok:true, id}` (sets order → spedito) |
-| GET | `/shipping/pickup` | Admin | — | `[{id, nome, indirizzo, corriere, orari, attivo}]` |
-| POST | `/shipping/pickup` | Admin | `{nome, indirizzo, corriere?, orari?, attivo?}` | `{ok:true, id}` |
-| PUT | `/shipping/pickup/:id` | Admin | any subset | `{ok:true}` |
-| DELETE | `/shipping/pickup/:id` | Admin | — | `{ok:true}` |
-
-## Orders addition — `/api/orders` (Phase 4)
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| POST | `/orders/admin` | Admin | `{nome, email, cognome?, items:[{product_name, price, qty}], shipping_cost?, payment_status?}` | `{ok:true, id, order_number, total}` (manual order, status → in_preparazione) |
-
----
-
-## Auto-migration note
-
-On startup the backend runs `db/migrations.js → runMigrations()`, which (1) re-applies the
-`CREATE TABLE` statements from `schema.sql` (structural only, seed `INSERT`s skipped) to heal any
-missing tables, and (2) ensures the Phase-4 feature tables (`gift_cards`, `campaigns`,
-`cms_pages`, `blog_posts`, `pickup_points`). This makes already-deployed databases self-heal
-without a manual `npm run db:init`. It also adds the `customers.points` column,
-the `loyalty_transactions` table, and indexes `order_items(product_id)` /
-`products(categoria,status)` via guarded `ensureColumn`/`ensureIndex`.
-
----
-
-## Loyalty / Punti fedeltà — (Phase 5)
-
-**Admin** (`/api/admin/loyalty`, requires admin):
-
-| Method | Path | Body | Returns |
-|--------|------|------|---------|
-| GET | `/admin/loyalty/config` | — | `{enabled, signupBonus, pointsPerEuro, pointValueEur, minRedeem}` |
-| PUT | `/admin/loyalty/config` | any subset of `loyalty_*` keys | updated config |
-| GET | `/admin/loyalty/customers` | `?limit` | `{customers:[{id,nome,email,points,…}], summary:{total_points,members}}` |
-| GET | `/admin/loyalty/customers/:id` | — | customer + `transactions[]` ledger |
-| POST | `/admin/loyalty/customers/:id/adjust` | `{delta, reason?}` | `{ok, points}` |
-
-**Customer** (`/api/auth`, requires customer token):
-
-| Method | Path | Body | Returns |
-|--------|------|------|---------|
-| GET | `/auth/me` | — | now includes `points` |
-| GET | `/auth/loyalty` | — | `{points, transactions[], config}` |
-| POST | `/auth/loyalty/redeem` | `{points}` | `{ok, code, value, points}` — issues a single-use `PUNTI-XXXX` fixed discount code |
-
-Points are awarded automatically: a signup bonus on `POST /api/auth/register`, and
-`floor(total × points_per_euro)` on every order (`POST /api/orders` and
-`POST /api/orders/admin`). Config lives in `store_settings` under `loyalty_*` keys.
-
----
-
-## Product images — self-hosted pipeline (Phase 6)
-
-Uploads are processed by **sharp** into responsive WebP variants (thumb 400w /
-card 800w / full 1600w), EXIF-stripped and auto-oriented, stored with
-content-hashed filenames on a persistent Docker volume, and served at
-`/api/uploads/<file>` (rides the existing nginx `/api` proxy on both domains).
-
-| Method | Path | Auth | Body | Returns |
-|--------|------|------|------|---------|
-| POST | `/api/products/:id/images` | Admin | multipart `images` (1–10 files, ≤ `MAX_UPLOAD_MB`) | `{ok, images}` — appends `{full,card,thumb,width,height}` to the product |
-| DELETE | `/api/products/:id/images` | Admin | `{url}` (the `full` url) | `{ok, images}` — removes the entry + deletes its files |
-| GET | `/api/uploads/<file>` | public | — | the image (cached `immutable`, 1 year) |
-
-`products.images` is a JSON array; each item is a `{full,card,thumb,width,height}`
-object (legacy plain-URL strings are still tolerated by the storefront/admin).
-Reorder / set-primary is done by `PUT /api/products/:id` with the reordered
-`images` array. Env: `UPLOADS_DIR` (default `<repo>/uploads`, `/app/uploads` in
-Docker) and `MAX_UPLOAD_MB` (default 8).
-
----
-
-## Admin audit log — `/api/admin/audit-log` (added `docs/PRODUCTION-ROADMAP.md` Phase 5)
-
-Read-only view of sensitive admin actions, written by `src/audit.js` (`logAdminAction`,
-best-effort — a logging failure never blocks the action it's recording). Current call
-sites: order status update, order ship, order delete, discount create/update/delete,
-gift card create/update/delete, resi refund.
-
-| Method | Path | Auth | Query | Returns |
-|--------|------|------|-------|---------|
-| GET | `/admin/audit-log` | Admin | `?limit=200&entity_type=order` | `[{id, admin_id, admin_email, action, entity_type, entity_id, details, created_at}]`, newest first |
-
-`action` values follow a `<entity>.<verb>` convention, e.g. `order.status_update`,
-`order.ship`, `order.delete`, `discount.create`, `discount.update`, `discount.delete`,
-`giftcard.create`, `giftcard.update`, `giftcard.delete`, `resi.refund`. `details` is
-free-form JSON with whatever context that action captured (old/new values, amounts, etc.).
-
----
-
-## Rate limiting (server.js)
-
-| Scope | Limit | Notes |
-|-------|-------|-------|
-| `/api/*` (global) | 300 / 15 min | `apiLimiter` |
-| Auth endpoints (login/register/forgot-password/reset-password, admin login) | 20 / 15 min | `authLimiter` |
-| `POST /api/orders`, `POST /api/payments/create-intent` | 30 / 15 min | `checkoutLimiter` — added `docs/PRODUCTION-ROADMAP.md` Phase 5; layered on top of the global limiter via bare `app.post(path, checkoutLimiter)` registrations before the routers mount, so it doesn't touch `orders.js`/`payments.js` themselves |
-
-## Input validation (server-side, zod)
-
-`POST /auth/register`, `POST /auth/login`, `POST /orders`, `POST /admin/discounts`,
-`POST /admin/giftcards`, and `POST /payments/create-intent` validate `req.body` against
-a zod schema (`src/validation.js`) before the handler runs — malformed/oversized input
-gets a 400 with a specific field-level message, and unrecognized extra fields are
-silently stripped from `req.body` (e.g. a client-sent fake `price`/`total` on an order
-never reaches the handler). This is layered on top of the business-rule checks already
-inline in each route (stock, enum membership, etc.), not a replacement for them.
+## Error conventions
+- 404 JSON `{error:'Endpoint non trovato'}`; 500 generic; login errors non-enumerating; Stripe mismatch → 402; unconfigured Stripe → 503; emails/audit best-effort (never block).

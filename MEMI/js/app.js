@@ -2269,7 +2269,7 @@ $(function(){
           '<div class="k">Tracking</div><div class="v" style="font-family:monospace">' + tracking + '</div>' +
         '</div>',
         '<button class="btn btn-primary btn-sm" id="confirmSendTracking" ' +
-          'data-email="' + email + '" data-tracking="' + tracking + '" data-courier="' + courier + '" data-nome="' + nome + '">' +
+          'data-id="' + orderId + '" data-email="' + email + '" data-tracking="' + tracking + '" data-courier="' + courier + '" data-nome="' + nome + '">' +
           '📧 Invia email' +
         '</button>'
       );
@@ -2278,30 +2278,17 @@ $(function(){
 
   $(document).on('click','#confirmSendTracking', function(){
     var $btn    = $(this);
+    var orderId = $btn.data('id');
     var email   = $btn.data('email');
-    var tracking = $btn.data('tracking');
-    var courier  = $btn.data('courier');
-    closeModal();
-    // No dedicated send-email endpoint exists — copy the tracking number to the clipboard
-    // so the admin can paste it manually, and be honest in the toast about what happened.
-    function afterCopy(copied){
-      toast(
-        (copied ? 'Tracking ' + tracking + ' copiato negli appunti' : 'Tracking: ' + tracking)
-        + ' — invia manualmente a ' + email,
-        copied ? 'success' : 'info'
-      );
-    }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(tracking).then(function(){ afterCopy(true); }, function(){ afterCopy(false); });
-    } else {
-      // Fallback for non-secure contexts / older browsers without the async Clipboard API.
-      var $tmp = $('<textarea readonly style="position:fixed;opacity:0">').val(tracking).appendTo('body');
-      $tmp.trigger('select');
-      var copied = false;
-      try { copied = document.execCommand('copy'); } catch (e) { copied = false; }
-      $tmp.remove();
-      afterCopy(copied);
-    }
+    $btn.prop('disabled', true).text('Invio…');
+    AdminAPI.orders.sendTracking(orderId).done(function(res){
+      closeModal();
+      toast('Email di tracking inviata a ' + (res.sent_to || email), 'success');
+    }).fail(function(xhr){
+      $btn.prop('disabled', false).text('\ud83d\udce7 Invia email');
+      var msg = (xhr.responseJSON && xhr.responseJSON.error) || 'Errore invio email';
+      toast(msg, 'error');
+    });
   });
 
   // Sidebar mobile menu

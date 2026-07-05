@@ -579,6 +579,45 @@ router.put('/admin/:id/ship', requireAdmin, async (req, res) => {
   }
 });
 
+/* ── POST /api/orders/admin/:id/send-tracking ──
+   Re-send the shipping/tracking email to the customer (admin action). */
+router.post('/admin/:id/send-tracking', requireAdmin, async (req, res) => {
+  try {
+    const [[o]] = await pool.execute(
+      `SELECT o.order_number, o.customer_nome AS nome, o.customer_email AS email,
+              o.courier_code, o.tracking_number, s.eta, c.tracking_url_template
+         FROM orders o
+         LEFT JOIN shipments s ON s.order_id = o.id
+         LEFT JOIN couriers  c ON c.code = o.courier_code
+        WHERE o.id = ?`,
+      [req.params.id]
+    );
+    if (!o) return res.status(404).json({ error: 'Ordine non trovato' });
+    if (!o.tracking_number)
+      return res.status(400).json({ error: "Ordine senza tracking: spedisci prima l'ordine" });
+
+    const tracking_url = o.tracking_url_template
+      ? o.tracking_url_template.replace('{tracking}', encodeURIComponent(o.tracking_number))
+      : null;
+
+    await sendShippingConfirmation({
+      order_number: o.order_number, nome: o.nome, email: o.email,
+      courier_code: o.courier_code, tracking_number: o.tracking_number,
+      eta: o.eta, tracking_url,
+    });
+
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'order.send_tracking',
+      entityType: 'order', entityId: req.params.id, details: { tracking_number: o.tracking_number },
+    }).catch(() => {});
+
+    return res.json({ ok: true, sent_to: o.email });
+  } catch (err) {
+    (req.log || console).error({ err }, 'send-tracking error');
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 /* ── DELETE /api/orders/admin/:id ── */
 router.delete('/admin/:id', requireAdmin, async (req, res) => {
   const conn = await pool.getConnection();

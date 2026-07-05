@@ -73,4 +73,11 @@
             '<h2 class="blog-title">' + esc(p.titolo) + '</h2>' +
             (p.estratto ? '<p class="blog-excerpt">' + esc(p.estratto) + '</p>' : '') +
             (p.published_at ? '<p class="blog-date">' + fmtDate(p.published_at) + '</p>' : '') +
-       
+          '</a>';
+        }).join('');
+      })
+      .catch(function(){ grid.innerHTML = '<div class="blog-empty">Impossibile caricare gli articoli.</div>'; });
+  })();
+  </script>
+</body>
+</html>

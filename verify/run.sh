@@ -55,6 +55,15 @@ NODE_PATH="$NP" node MEMI-Backend/test/giftcard-logic.test.cjs || FAIL=1
 sec "7. Input-validation (zod) schema tests"
 NODE_PATH="$NP" node MEMI-Backend/test/validation.test.cjs || FAIL=1
 
+sec "8. File-integrity (anti-truncation) checks"
+# Every HTML file must end with </html> — catches the silent file-truncation
+# corruption this repo has suffered (files cut mid-write by a sync tool).
+BAD=0
+while IFS= read -r -d '' f; do
+  if ! tail -c 40 "$f" | grep -q "</html>"; then echo "  ✗ truncated HTML: $f"; BAD=1; fi
+done < <(find "Memi Abbigliamento" MEMI -name "*.html" -not -path "*/node_modules/*" -print0)
+if [ "$BAD" -eq 0 ]; then echo "  ✓ all HTML files end with </html>"; else FAIL=1; fi
+
 echo
 if [ "$FAIL" -eq 0 ]; then echo "✅  ALL VERIFICATION PASSED"; else echo "❌  VERIFICATION FAILED"; fi
 exit $FAIL

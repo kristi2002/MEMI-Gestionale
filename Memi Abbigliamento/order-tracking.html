@@ -289,4 +289,20 @@
       } catch (err) {
         const msg = (err && err.error) ? err.error : 'Ordine non trovato. Verifica il numero ordine e l\'email.';
         showError(msg);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Cerca ordine';
       }
+    });
+
+    document.getElementById('newSearchBtn').addEventListener('click', function () {
+      resultBox.classList.remove('visible');
+      resultBox.style.display = 'none';
+      clearError();
+      form.reset();
+      document.getElementById('orderNumber').focus();
+    });
+  })();
+  </script>
+</body>
+</html>

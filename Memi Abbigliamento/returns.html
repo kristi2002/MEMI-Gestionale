@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
@@ -327,4 +327,16 @@
         msgEl.style.background = '#EAF1E0';
         msgEl.style.color = '#5F7A3F';
         msgEl.innerHTML = '<strong>Richiesta ricevuta</strong><br>Numero RMA: <strong>' + res.rma_number + '</strong><br>' + res.message;
-        document.getElementById('returnForm').reset(
+        document.getElementById('returnForm').reset();
+        btn.disabled = false; btn.textContent = 'Invia richiesta di reso';
+      }).catch(function(err) {
+        msgEl.style.display = 'block';
+        msgEl.style.background = '#fef2f2';
+        msgEl.style.color = '#b91c1c';
+        msgEl.textContent = (err && err.error) || 'Errore. Riprova o contattaci via email.';
+        btn.disabled = false; btn.textContent = 'Invia richiesta di reso';
+      });
+    });
+  </script>
+</body>
+</html>

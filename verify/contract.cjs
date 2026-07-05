@@ -32,6 +32,22 @@ console.log('Admin api-client -> backend contract:');
 ok(adminApi.includes("/orders/admin/list"),             "admin orders.list() -> /orders/admin/list");
 ok(orders.includes("router.get('/admin/list'"),         "backend defines GET /orders/admin/list");
 
+ok(adminApi.includes("/send-tracking"),                 "admin orders.sendTracking() -> /orders/admin/:id/send-tracking");
+ok(orders.includes("router.post('/admin/:id/send-tracking'"), "backend defines POST /orders/admin/:id/send-tracking");
+
+const cms      = read('MEMI-Backend/src/routes/cms.js');
+const blogHtml = read('Memi Abbigliamento/blog.html');
+const artHtml  = read('Memi Abbigliamento/articolo.html');
+const pagHtml  = read('Memi Abbigliamento/pagina.html');
+console.log('Storefront CMS/blog contract:');
+ok(blogHtml.includes("/api/cms/published/blog"),        "blog.html fetches /api/cms/published/blog");
+ok(cms.includes("router.get('/published/blog'"),         "backend defines GET /cms/published/blog");
+ok(artHtml.includes("/api/cms/published/blog/"),         "articolo.html fetches /api/cms/published/blog/:slug");
+ok(cms.includes("router.get('/published/blog/:slug'"),   "backend defines GET /cms/published/blog/:slug");
+ok(pagHtml.includes("/api/cms/published/pages/"),        "pagina.html fetches /api/cms/published/pages/:slug");
+ok(cms.includes("router.get('/published/pages/:slug'"),  "backend defines GET /cms/published/pages/:slug");
+ok(/<\/html>\s*$/.test(blogHtml) && /<\/html>\s*$/.test(artHtml), "blog + articolo are complete files (anti-truncation)");
+
 console.log('Order-lifecycle correctness invariants:');
 ok(orders.includes("paymentStatus = 'pagato'"),         "verified Stripe payment sets payment_status=pagato");
 ok(orders.includes("Number(pi.amount) !== expected"),   "Stripe amount is verified against the order total");

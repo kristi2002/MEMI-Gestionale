@@ -275,3 +275,44 @@ churn in the 2,200-line file — they don't render anywhere).
 courier-tracking API integration, richer tax/VAT config,
 store-expenses/payouts reconciliation, web-analytics (GA4) for traffic sources, suppliers/purchase
 orders. These are new features, not fixes — best tackled during/after the React migration (Part 3).
+
+---
+
+## 2026-07-05 — Corruption rescue + Sprint 3 (Phases A/B of docs/GAPS-AND-PLAN.md)
+
+### File-corruption rescue (critical)
+- Working tree: ~45 files found truncated (Jul 1–5) — all were byte-exact prefixes of HEAD; restored.
+- **Committed corruption**: 25 storefront HTML files were truncated mid-script AT HEAD (incl. shop.html,
+  search.html, order-tracking.html, order-confirm.html, returns.html, blog.html, articolo.html, pagina.html,
+  account-demo.html, estate-2025.html and all 15 collections pages) plus unresolved merge-conflict markers
+  from merge 56617a7. All restored from the newest intact commit per file, conflict blocks resolved to match
+  HEAD's resolution, newer HEAD improvements re-ported (shop.html hero contrast + NO_IMAGE placeholders,
+  search.html image cards), versions normalized, saldi `.saldi-pct` clip fix preserved.
+- `account.html` was 95% NUL bytes (committed) — rebuilt from intact content.
+- Root cause: files written to the Windows Desktop repo get clamped to their previous byte length when they
+  grow (sync-tool interference). Mitigations: `verify/run.sh` section 8 now fails on any truncated HTML;
+  recommendation stands to move the repo out of synced folders.
+
+### New features / hardening
+- `POST /api/orders/admin/:id/send-tracking` — re-sends the shipping/tracking email; admin
+  "Invia tracking al cliente" button now actually emails (was clipboard-only). Contract-checked.
+- HSTS header added to both nginx configs (HTML + asset locations).
+- Admin cache-busting automated: `MEMI/scripts/cache-bust.js` + build stage in `MEMI/Dockerfile`
+  (content-hash `?v=`, auto-discovery); storefront `cache-bust.js` upgraded to auto-discovery too
+  (covers account.css etc.). Admin nginx now sends `no-cache` on HTML. Manual `?v=N` bumps obsolete.
+- Admin sidebar rebranded to "Memi. / Gestionale" (fake myshop.it/Piano Pro branding removed).
+- Storefront nav unified onto dynamic `/shop?…` URLs (mobile drawer no longer points at drift-prone
+  static collections pages).
+- verify/contract.cjs: + send-tracking pair, + storefront CMS/blog contract (blog list, article slug,
+  page slug), + blog/articolo completeness guard.
+
+### Documentation
+- Rewritten from code audit: docs/ARCHITECTURE.md, docs/api.md (full route reference), docs/DEPLOYMENT.md,
+  new docs/STATUS.md (honest feature matrix), new docs/GAPS-AND-PLAN.md (gap analysis + phases),
+  new docs/README.md (index; marks superseded docs).
+
+### Still open (next phases, see docs/GAPS-AND-PLAN.md)
+- Phase C: rate limits on reviews/newsletter/giftcard-validate/forgot-password; zod on remaining admin
+  mutations; audit-log coverage; staff self password change.
+- Phase D: Product JSON-LD, collection canonicals, client-side filter recounts.
+- Phase E: catalog KPI row on the admin dashboard (cockpit preview parity).

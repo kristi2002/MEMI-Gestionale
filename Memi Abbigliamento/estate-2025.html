@@ -301,4 +301,14 @@
     document.querySelectorAll('#collCatChips .ec-chip').forEach(function(btn){
       btn.addEventListener('click', function(){
         document.querySelectorAll('#collCatChips .ec-chip').forEach(function(b){ b.classList.remove('active'); });
-        this.cl
+        this.classList.add('active'); activeCat = this.dataset.cat || ''; window.applyFilters();
+      });
+    });
+    var sortEl = document.getElementById('collSort');
+    if (sortEl) sortEl.addEventListener('change', function(){ activeSort = this.value; window.applyFilters(); });
+  })();
+  </script>
+  <script>window.MEMI_CATALOG={collection:'estate-2025'};</script>
+  <script src="catalog-loader.js?v=3"></script>
+</body>
+</html>

@@ -62,4 +62,8 @@
         hero.style.display = '';
         content.innerHTML = '<div class="prose">' + (p.contenuto || '') + '</div>';
       })
-      .catch(functio
+      .catch(function(){ content.innerHTML = '<p class="page-state">Pagina non trovata. <a href="/" style="text-decoration:underline">Torna alla home</a></p>'; });
+  })();
+  </script>
+</body>
+</html>
