@@ -263,6 +263,7 @@ async function runMigrations(pool) {
     await ensureColumn(pool, 'customers', 'points', 'points INT NOT NULL DEFAULT 0');
     // ── Area Personale: per-customer JSON blobs + language (idempotent) ──
     await ensureColumn(pool, 'customers', 'wishlist',    'wishlist JSON NULL');          // pre-existing on new schemas; guard old DBs
+    await ensureColumn(pool, 'customers', 'cart',        'cart JSON NULL');              // per-customer basket, restored on login
     await ensureColumn(pool, 'customers', 'sizes',       'sizes JSON NULL');             // fit profile {top,bottom,dress,shoe,notes}
     await ensureColumn(pool, 'customers', 'preferences', 'preferences JSON NULL');       // {categories[],colors[],email,sms}
     await ensureColumn(pool, 'customers', 'lang',        "lang VARCHAR(5) NULL");        // 'it' | 'en'

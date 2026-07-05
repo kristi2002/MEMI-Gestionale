@@ -186,10 +186,43 @@
 
   function saveCart() {
     try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (_) {}
+    pushCartToBackend();
   }
 
   function cartTotal() { return cart.reduce((s, i) => s + i.price * i.qty, 0); }
   function cartCount() { return cart.reduce((s, i) => s + i.qty, 0); }
+
+  // Persist the basket to the logged-in customer's account (customers.cart) so it
+  // survives logout→login and follows them across devices. Debounced + best-effort;
+  // guests keep working purely via localStorage.
+  var _cartPushTimer = null;
+  function pushCartToBackend() {
+    try {
+      var A = window.MemiAPI && window.MemiAPI.auth;
+      if (!A || !A.isLoggedIn() || !A.cart) return;
+      clearTimeout(_cartPushTimer);
+      var snapshot = cart.slice();
+      _cartPushTimer = setTimeout(function(){ A.cart.save(snapshot).catch(function(){}); }, 400);
+    } catch (_) {}
+  }
+
+  // On login / page load, pull the account basket and merge it with whatever the
+  // guest built locally (union by id; the merged set is saved back).
+  function syncCartFromBackend() {
+    try {
+      var A = window.MemiAPI && window.MemiAPI.auth;
+      if (!A || !A.isLoggedIn() || !A.cart) return;
+      A.cart.get().then(function(res){
+        var server = (res && res.items) || [];
+        if (!Array.isArray(server)) return;
+        var byId = {};
+        server.forEach(function(i){ if (i && i.id) byId[i.id] = i; });
+        cart.forEach(function(i){ if (i && i.id) byId[i.id] = i; });
+        cart = Object.keys(byId).map(function(k){ return byId[k]; });
+        saveCart(); updateCartBadges(); renderCartItems();
+      }).catch(function(){});
+    } catch (_) {}
+  }
 
   function addToCart(item) {
     const { silent, noIncrement, ...data } = item;
@@ -1910,6 +1943,7 @@
         updateAuthUI();
         renderWishlistItems();
         syncWishlistFromBackend();
+        syncCartFromBackend();
         var displayName = (res.user && (res.user.nome || res.user.name)) || email;
         showAuthToast('Bentornata, ' + displayName + '!');
       });
@@ -1941,6 +1975,7 @@
         closeAuthDrawer();
         updateAuthUI();
         syncWishlistFromBackend();
+        syncCartFromBackend();
         showAuthToast('Benvenuta, ' + name + '! Account creato ✦');
       });
     });
@@ -1969,8 +2004,9 @@
     updateAuthUI();
 
     // If the visitor is already logged in on page load, reconcile their
-    // wishlist with the account copy so it follows them across devices.
+    // wishlist + cart with the account copy so they follow across devices.
     syncWishlistFromBackend();
+    syncCartFromBackend();
   }
 
   /* ── 15b. SCROLL STAGGER — product cards ──────────────── */

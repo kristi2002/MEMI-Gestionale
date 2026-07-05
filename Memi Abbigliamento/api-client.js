@@ -128,6 +128,12 @@
       save: function(items) { return put('/auth/wishlist', { items: items }); },
     },
 
+    /** Cart (customers.cart JSON) — restores the basket after logout/login. */
+    cart: {
+      get:  function()      { return get('/auth/cart'); },
+      save: function(items) { return put('/auth/cart', { items: items }); },
+    },
+
     /** Saved shipping addresses (customer_addresses table). */
     addresses: {
       list:       function()        { return get('/auth/addresses'); },

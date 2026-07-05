@@ -56,6 +56,34 @@ router.put('/wishlist', requireCustomer, async (req, res) => {
   }
 });
 
+/* ═══════════════════ CART ═══════════════════ */
+/* Same shape as the wishlist: a JSON array of line items on customers.cart.
+   Lets the basket survive logout→login and follow the customer across devices. */
+
+router.get('/cart', requireCustomer, async (req, res) => {
+  try {
+    const [[row]] = await pool.execute('SELECT cart FROM customers WHERE id = ?', [req.customer.id]);
+    return res.json({ items: (row && row.cart) || [] });
+  } catch (err) {
+    console.error('cart get error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+router.put('/cart', requireCustomer, async (req, res) => {
+  const items = req.body && req.body.items;
+  if (!Array.isArray(items))
+    return res.status(400).json({ error: 'items deve essere un array' });
+  const safe = items.slice(0, 200);
+  try {
+    await pool.execute('UPDATE customers SET cart = ? WHERE id = ?', [JSON.stringify(safe), req.customer.id]);
+    return res.json({ ok: true, count: safe.length });
+  } catch (err) {
+    console.error('cart put error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 /* ═══════════════════ ADDRESSES ═══════════════════ */
 
 function cleanAddr(b) {

@@ -69,9 +69,9 @@ input[type=range]{-webkit-appearance:none;appearance:none;}
 
 /* SALDI: bold typographic split */
 .shop-hero.hero--saldi{height:clamp(420px,62vh,700px);display:flex;}
-.hero-saldi-text{flex:0 0 42%;background:#FFFFFF;display:flex;flex-direction:column;justify-content:center;padding:clamp(var(--space-8),6vw,var(--space-20)) clamp(var(--space-6),4vw,var(--space-14));}
+.hero-saldi-text{flex:0 0 42%;background:linear-gradient(155deg,#F1F0F8 0%,#FBFAFF 48%,#EAF1E0 100%);display:flex;flex-direction:column;justify-content:center;padding:clamp(var(--space-8),6vw,var(--space-20)) clamp(var(--space-6),4vw,var(--space-14));}
 .saldi-eyebrow{font-size:9px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--lavender-dark,#6B6BA3);margin-bottom:var(--space-3);}
-.saldi-pct{font-family:var(--font-serif);font-size:clamp(4.5rem,10vw,8.5rem);font-weight:300;color:var(--lavender);line-height:.9;letter-spacing:-.05em;margin-bottom:var(--space-5);}
+.saldi-pct{font-family:var(--font-serif);font-size:clamp(4.5rem,10vw,8.5rem);font-weight:300;color:#565690;background:linear-gradient(125deg,#8F8FC1 0%,#565690 58%,#6E8A57 132%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:.9;letter-spacing:-.05em;margin-bottom:var(--space-5);}
 .saldi-pct span{font-size:.42em;font-weight:400;vertical-align:top;margin-top:.2em;display:inline-block;}
 .hero-saldi-img{flex:1;position:relative;overflow:hidden;}
 .hero-saldi-img img{position:absolute;inset:0;height:100%;object-position:center 20%;}

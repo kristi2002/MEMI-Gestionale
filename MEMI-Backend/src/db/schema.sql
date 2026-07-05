@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS customers (
   cap           VARCHAR(10),
   paese         VARCHAR(100) DEFAULT 'Italia',
   wishlist      JSON,
+  cart          JSON,
   sizes         JSON,
   preferences   JSON,
   lang          VARCHAR(5) NULL,
