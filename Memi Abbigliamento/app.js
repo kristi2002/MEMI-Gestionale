@@ -148,6 +148,11 @@
       '<div class="header-actions">' +
         '<button class="icon-btn" aria-label="Cerca"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>' +
         '<button class="icon-btn" aria-label="Carrello"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg><span class="cart-badge" style="display:none">0</span></button>' +
+        '<div class="lang-switch" role="group" aria-label="Lingua del sito">' +
+          '<button type="button" class="lang-opt" data-lang="it">IT</button>' +
+          '<span class="lang-sep" aria-hidden="true">/</span>' +
+          '<button type="button" class="lang-opt" data-lang="en">EN</button>' +
+        '</div>' +
       '</div>';
 
     const headerHtml =
@@ -156,8 +161,7 @@
           '<button class="burger" aria-label="Apri menu" aria-expanded="false"><span></span><span></span><span></span></button>' +
           desktopNavLeft +
           '<a href="/" class="logo" aria-label="Memi Abbigliamento — Home">' +
-            '<img src="/favicon.svg" alt="" class="logo-badge" width="38" height="38" />' +
-            '<span class="logo-word">Memi<span>.</span></span>' +
+            '<img src="/logo.svg" alt="Memì" class="logo-img" />' +
           '</a>' +
           '<div class="nav-right-group">' + desktopNavRight + headerActions + '</div>' +
         '</div>' +
@@ -402,7 +406,7 @@
   </div>
   <div class="sf2-inner">
     <div class="sf2-brand">
-      <a href="/" class="sf2-logo" aria-label="Memi Abbigliamento — Home"><img src="/favicon.svg" alt="" class="sf2-logo-badge" width="40" height="40" /><span class="sf2-logo-word">Memi<em>.</em></span></a>
+      <a href="/" class="sf2-logo" aria-label="Memi Abbigliamento — Home"><img src="/logo.svg" alt="Memì" class="sf2-logo-img" /></a>
       <p class="sf2-tagline">Moda femminile curata, italiana.</p>
       <div class="sf2-social">
         <a href="https://instagram.com/memiabbigliamento" aria-label="Instagram" target="_blank" rel="noopener">
@@ -479,8 +483,9 @@
         .sf2-trust-item svg{width:14px;height:14px;stroke:var(--brown-mid,#7A6B6B);fill:none;stroke-width:1.6;flex-shrink:0;}
         .sf2-inner{max-width:1280px;margin:0 auto;padding:3.25rem 2rem 3.5rem;display:grid;grid-template-columns:1fr 2fr;gap:4rem;align-items:start;}
         @media(max-width:800px){.sf2-inner{grid-template-columns:1fr;gap:2.5rem;}}
-        .sf2-logo{font-family:var(--font-serif,'Cormorant Garamond',serif);font-size:2rem;font-weight:300;color:var(--espresso,#3B2B2B);letter-spacing:.06em;text-decoration:none;display:inline-flex;align-items:center;gap:.55rem;margin-bottom:.55rem;}
-        .sf2-logo-badge{width:40px;height:40px;border-radius:11px;box-shadow:0 2px 10px rgba(107,107,163,.2);flex-shrink:0;display:block;}
+        .sf2-logo{display:inline-block;margin-bottom:.55rem;line-height:0;text-decoration:none;}
+        .sf2-logo-img{height:58px;width:auto;display:block;}
+        /* prev footer lockup (revert): .sf2-logo{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:#3B2B2B;letter-spacing:.06em;display:inline-flex;align-items:center;gap:.55rem} .sf2-logo-badge{width:40px;height:40px;border-radius:11px;box-shadow:0 2px 10px rgba(107,107,163,.2)} */
         .sf2-logo em{color:var(--blush-dark,#6B6BA3);font-style:normal;}
         .sf2-tagline{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light,#9e8a8a);margin-bottom:1.75rem;}
         .sf2-social{display:flex;gap:.6rem;}
@@ -1117,23 +1122,43 @@
       }
       .mega-editorial-cta:hover { border-color: #fff; }
 
-      /* ── Brand lockup: logomark badge + word-mark ──────────────
-         The lilac square logo (favicon.svg) sits as a rounded badge
-         beside the serif "Memi." word-mark; playful tilt on hover. */
+      /* ── Brand logo: the actual "memì" word-mark (logo.svg) ─────
+         Word-mark image, centered, no text lockup — reads as the real
+         logo at any size. Gentle lift on hover. */
+      .logo { display: inline-flex; align-items: center; text-decoration: none; line-height: 0; }
+      .logo-img {
+        height: 46px; width: auto; display: block;
+        transition: transform 300ms cubic-bezier(.34,1.56,.64,1), opacity 200ms ease;
+      }
+      .logo:hover .logo-img { transform: scale(1.04); opacity: .85; }
+      @media (min-width: 900px) { .logo-img { height: 56px; } }
+
+      /* --- PREVIOUS badge + word-mark lockup (kept for easy revert) ---
       .logo { display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none; line-height: 1; }
-      .logo-badge {
-        width: 38px; height: 38px; border-radius: 10px; display: block; flex-shrink: 0;
+      .logo-badge { width: 38px; height: 38px; border-radius: 10px; display: block; flex-shrink: 0;
         box-shadow: 0 2px 10px rgba(107,107,163,.22);
-        transition: transform 300ms cubic-bezier(.34,1.56,.64,1), box-shadow 300ms ease;
-      }
+        transition: transform 300ms cubic-bezier(.34,1.56,.64,1), box-shadow 300ms ease; }
       .logo:hover .logo-badge { transform: rotate(-5deg) scale(1.06); box-shadow: 0 4px 16px rgba(107,107,163,.32); }
-      .logo-word {
-        font-family: var(--font-serif,'Cormorant Garamond',Georgia,serif);
-        font-size: 1.55rem; font-weight: 300; letter-spacing: .05em;
-        color: var(--espresso,#3B2B2B); line-height: 1;
-      }
+      .logo-word { font-family: var(--font-serif,'Cormorant Garamond',Georgia,serif);
+        font-size: 1.55rem; font-weight: 300; letter-spacing: .05em; color: var(--espresso,#3B2B2B); line-height: 1; }
       .logo-word span { color: var(--blush-dark,#6B6BA3); }
       @media (max-width: 380px) { .logo-word { display: none; } }
+      --- end previous lockup --- */
+
+      /* ── Language switch (EN / IT) ── */
+      .lang-switch { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px;
+        font-family: var(--font-sans,'DM Sans',system-ui,sans-serif); }
+      .lang-opt { background: none; border: none; cursor: pointer; font-size: 12px; font-weight: 600;
+        letter-spacing: .04em; color: var(--brown-light,#9e8a8a); padding: 4px 3px; transition: color .15s; }
+      .lang-opt:hover, .lang-opt.is-active { color: var(--espresso,#3B2B2B); }
+      .lang-sep { color: var(--brown-light,#c9bfb5); font-size: 12px; }
+      /* Phone: keep the logo + actions + language switch from crowding */
+      @media (max-width: 480px) {
+        .logo-img { height: 40px; }
+        .header-actions { gap: 3px; }
+        .lang-switch { margin-left: 2px; }
+        .lang-opt { padding: 4px 2px; }
+      }
 
       /* ── Centered word-mark header (Toteme-style) ───────────────
          3-column grid: equal-width flexible side columns keep the
@@ -2513,6 +2538,34 @@
     wireNewsletterForms();
     wireCookieConsent();
     handleAuthUrlParam();
+    wireLangSwitch();
+  }
+
+  // Header EN/IT switch. Remembers the choice (localStorage) and reflects the
+  // active state. NOTE: the storefront pages are authored in Italian; this
+  // stores the preference + drives the account area's i18n where available.
+  // Full page translation would be a separate effort.
+  var _langWired = false;
+  function wireLangSwitch() {
+    var lang = 'it';
+    try { lang = localStorage.getItem('memi_lang') || 'it'; } catch (_) {}
+    function paint(l) {
+      document.querySelectorAll('.lang-opt').forEach(function (b) {
+        b.classList.toggle('is-active', b.getAttribute('data-lang') === l);
+      });
+      document.documentElement.setAttribute('lang', l);
+    }
+    paint(lang);
+    if (_langWired) return;
+    _langWired = true;
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('.lang-opt');
+      if (!b) return;
+      var l = b.getAttribute('data-lang');
+      try { localStorage.setItem('memi_lang', l); } catch (_) {}
+      paint(l);
+      if (window.MemiI18n && typeof window.MemiI18n.setLang === 'function') window.MemiI18n.setLang(l);
+    });
   }
 
   // Open the auth drawer from a URL param (e.g. index.html?auth=register), and
