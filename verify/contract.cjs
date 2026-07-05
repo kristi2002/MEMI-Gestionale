@@ -37,5 +37,27 @@ ok(orders.includes("paymentStatus = 'pagato'"),         "verified Stripe payment
 ok(orders.includes("Number(pi.amount) !== expected"),   "Stripe amount is verified against the order total");
 ok(orders.includes('FROM products WHERE id = ?'),       "line prices are re-resolved from the catalog");
 
+console.log('Area Personale (account) contract:');
+const account = read('MEMI-Backend/src/routes/account.js');
+const server  = read('MEMI-Backend/src/server.js');
+const authRt  = read('MEMI-Backend/src/routes/auth.js');
+const custRt  = read('MEMI-Backend/src/routes/customers.js');
+ok(server.includes("require('./routes/account')"),      "server requires account routes");
+ok(/app\.use\('\/api\/auth',\s*accountRoutes\)/.test(server), "account routes mounted at /api/auth");
+ok(apiClient.includes("get('/auth/wishlist')"),         "wishlist.get() -> GET /auth/wishlist");
+ok(account.includes("router.get('/wishlist'"),          "backend defines GET /auth/wishlist");
+ok(account.includes("router.put('/wishlist'"),          "backend defines PUT /auth/wishlist");
+ok(apiClient.includes("get('/auth/addresses')"),        "addresses.list() -> GET /auth/addresses");
+ok(account.includes("router.get('/addresses'"),         "backend defines GET /auth/addresses");
+ok(account.includes("router.post('/addresses'"),        "backend defines POST /auth/addresses");
+ok(account.includes("router.put('/addresses/:id/default'"), "backend defines PUT /auth/addresses/:id/default");
+ok(account.includes("router.delete('/addresses/:id'"),  "backend defines DELETE /auth/addresses/:id");
+ok(apiClient.includes("get('/auth/newsletter')"),       "newsletter.get() -> GET /auth/newsletter");
+ok(account.includes("router.get('/newsletter'"),        "backend defines GET /auth/newsletter");
+ok(account.includes("router.put('/newsletter'"),        "backend defines PUT /auth/newsletter");
+ok(/wishlist,\s*sizes,\s*preferences,\s*lang/.test(authRt), "GET /auth/me returns wishlist/sizes/preferences/lang");
+ok(authRt.includes("addJson('sizes'"),                  "PUT /auth/me accepts sizes JSON");
+ok(custRt.includes('addresses') && custRt.includes('newsletter'), "admin customer detail returns addresses + newsletter");
+
 if (fail) { console.error(`\n${fail} contract check(s) FAILED`); process.exit(1); }
 console.log('\nAll contract checks passed.');

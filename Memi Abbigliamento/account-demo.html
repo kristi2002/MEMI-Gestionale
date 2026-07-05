@@ -58,17 +58,4 @@ var _orders=[
  {id:2,order_number:'MEMI-1021',created_at:'2026-06-10',total:64.00,order_status:'consegnato',payment_status:'pagato',courier_code:'GLS',tracking_number:'GLS223344',items:[{product_name:'Top bustier Perla',taglia:'M',qty:1,price:64.00}]},
  {id:3,order_number:'MEMI-1007',created_at:'2026-05-22',total:210.00,order_status:'in_preparazione',payment_status:'pagato',items:[{product_name:'Blazer sartoriale Mia',taglia:'M',qty:1,price:210.00}]}
 ];
-var _loy={points:340,config:{pointValueEur:0.01,minRedeem:100},transactions:[
-  {reason:'Acquisto ordine MEMI-1042',delta:130,created_at:'2026-06-28'},
-  {reason:'Acquisto ordine MEMI-1021',delta:64,created_at:'2026-06-10'},
-  {reason:'Riscatto buono sconto',delta:-100,created_at:'2026-06-01'},
-  {reason:'Bonus benvenuto',delta:50,created_at:'2026-05-01'}
-]};
-function _p(v){return Promise.resolve(v);}
-window.MemiAPI={auth:{isLoggedIn:function(){return true;},logout:function(){},me:function(){return _p({user:_user});},updateMe:function(){return _p({});},loyalty:function(){return _p(_loy);},redeemPoints:function(p){return _p({code:'MEMI-'+Math.random().toString(36).slice(2,7).toUpperCase(),value:p*0.01});}},orders:{myOrders:function(){return _p(_orders);}}};
-var _origFetch=window.fetch;
-window.fetch=function(u){ if(String(u).indexOf('/api/products')>-1){ return _p({json:function(){return _p({products:[]});}}); } return _origFetch.apply(window,arguments); };
-</script>
-<script src="account-core.js?v=1"></script>
-</body>
-</html>
+var _

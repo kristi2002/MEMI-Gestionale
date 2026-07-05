@@ -27,15 +27,35 @@ Admin token → `localStorage.memi_admin_token`
 |--------|------|------|------|---------|
 | POST | `/auth/register` | None | `{nome, email, password}` | `{token, user:{id,nome,email}}` |
 | POST | `/auth/login` | None | `{email, password}` | `{token, user:{id,nome,email}}` |
-| GET | `/auth/me` | Customer | — | `{user:{id,nome,cognome,email,telefono,indirizzo,citta,cap,total_orders,total_spent}}` |
-| PUT | `/auth/me` | Customer | `{nome?,cognome?,email?,telefono?,indirizzo?,citta?,cap?,paese?}` | `{message, user}` |
+| GET | `/auth/me` | Customer | — | `{id,nome,cognome,email,telefono,indirizzo,citta,cap,paese, wishlist[], sizes{}, preferences{}, lang, points, total_orders,total_spent}` |
+| PUT | `/auth/me` | Customer | `{nome?,cognome?,email?,telefono?,indirizzo?,citta?,cap?,paese?, lang?, sizes?, preferences?, wishlist?}` | `{ok:true}` |
 | POST | `/auth/logout` | None | — | `{message:"ok"}` |
 | POST | `/auth/forgot-password` | None | `{email}` | `{message}` (always 200 — silent no-op if email not found) |
 | POST | `/auth/reset-password` | None | `{token, password}` | `{message}` |
 
+`sizes`, `preferences`, and `wishlist` are JSON columns on `customers`; pass an object/array to set, `null` to clear. `lang` is `'it' | 'en'`.
+
 Rate-limited: login + register → 20 req / 15 min.
 
 Password reset flow: `POST /auth/forgot-password` generates a JWT (1 h expiry) and emails a reset link to `reset-password.html?token=<jwt>`. `POST /auth/reset-password` verifies the token and updates the password hash.
+
+### Area Personale — customer-scoped resources (`/api/auth`, Customer token)
+
+| Method | Path | Body | Returns |
+|--------|------|------|---------|
+| GET | `/auth/wishlist` | — | `{items:[...]}` |
+| PUT | `/auth/wishlist` | `{items:[...]}` | `{ok:true, count}` |
+| GET | `/auth/addresses` | — | `{addresses:[{id,label,indirizzo,citta,cap,paese,telefono,is_default}]}` |
+| POST | `/auth/addresses` | `{label,indirizzo,citta,cap,paese,telefono,is_default?}` | `{ok:true, id}` |
+| PUT | `/auth/addresses/:id` | `{label,indirizzo,citta,cap,paese,telefono}` | `{ok:true}` |
+| DELETE | `/auth/addresses/:id` | — | `{ok:true}` |
+| PUT | `/auth/addresses/:id/default` | — | `{ok:true}` |
+| GET | `/auth/newsletter` | — | `{subscribed, frequenza, topics[]}` |
+| PUT | `/auth/newsletter` | `{subscribed, frequenza, topics[]}` | `{ok:true, ...}` |
+
+The first address a customer saves is auto-flagged default; setting a new default (or the default one being edited) mirrors `indirizzo/citta/cap/paese` back onto `customers.*` so checkout pre-fill keeps working. Deleting the default promotes the next-oldest address. `frequenza` ∈ `weekly | biweekly | monthly`. Persisted in `customer_addresses` and `newsletter_subscribers` (the latter linked by `customer_id`).
+
+Admin customer detail (`GET /api/admin/customers/:id`) now also returns `wishlist`, `sizes`, `preferences`, `lang`, `points`, `addresses[]`, and `newsletter` so staff can see this in the dashboard.
 
 ---
 

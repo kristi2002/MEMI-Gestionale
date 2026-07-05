@@ -51,6 +51,7 @@ router.get('/:id', requireAdmin, async (req, res) => {
   try {
     const [[customer]] = await pool.execute(
       `SELECT id, email, nome, cognome, telefono, indirizzo, citta, cap, paese,
+              wishlist, sizes, preferences, lang, COALESCE(points,0) AS points,
               total_orders, total_spent, created_at, last_login
        FROM customers WHERE id = ?`,
       [req.params.id]
@@ -63,7 +64,29 @@ router.get('/:id', requireAdmin, async (req, res) => {
       [customer.id]
     );
 
-    return res.json({ ...customer, orders });
+    // Area Personale data: saved addresses + newsletter subscription.
+    let addresses = [];
+    let newsletter = null;
+    try {
+      const [addr] = await pool.execute(
+        `SELECT id, label, indirizzo, citta, cap, paese, telefono, is_default
+         FROM customer_addresses WHERE customer_id = ? ORDER BY is_default DESC, id ASC`,
+        [customer.id]
+      );
+      addresses = addr;
+      const [[nl]] = await pool.execute(
+        'SELECT frequenza, topics, unsubscribed FROM newsletter_subscribers WHERE email = ?',
+        [customer.email]
+      );
+      if (nl) newsletter = { subscribed: nl.unsubscribed === 0, frequenza: nl.frequenza, topics: nl.topics || [] };
+    } catch (_) { /* tables may not exist on a very old DB — non-fatal */ }
+
+    // mysql2 returns JSON columns parsed; normalise NULL → sensible empties.
+    customer.wishlist    = customer.wishlist    || [];
+    customer.sizes       = customer.sizes       || {};
+    customer.preferences = customer.preferences || {};
+
+    return res.json({ ...customer, orders, addresses, newsletter });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });
   }

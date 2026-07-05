@@ -2598,6 +2598,38 @@ $(function(){
           '</tr>';
       }).join('');
       const addr = [c.indirizzo, c.citta, c.cap, c.paese].filter(Boolean).join(', ') || '-';
+
+      // ── Area Personale data (addresses, sizes, preferences, wishlist, newsletter) ──
+      const esc = function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch];}); };
+      const chip = function(txt){ return '<span style="display:inline-block;background:var(--soft,#f3f1f9);border:1px solid var(--line,#e5e2ef);border-radius:999px;padding:2px 10px;font-size:12px;margin:2px 4px 2px 0">'+esc(txt)+'</span>'; };
+      const sizes = c.sizes || {};
+      const sizeBits = [
+        sizes.top?('Top '+esc(sizes.top)):'', sizes.bottom?('Pantaloni '+esc(sizes.bottom)):'',
+        sizes.dress?('Vestiti '+esc(sizes.dress)):'', sizes.shoe?('Scarpe '+esc(sizes.shoe)):''
+      ].filter(Boolean);
+      const addrList = (c.addresses||[]).map(function(a){
+        return '<div style="border:1px solid var(--line,#e5e2ef);border-radius:8px;padding:8px 10px;margin-bottom:6px">'+
+          '<strong>'+esc(a.label||'Indirizzo')+'</strong>'+(a.is_default?' <span style="color:var(--green,#3a7a55);font-size:11px">• predefinito</span>':'')+
+          '<div style="color:var(--muted);font-size:13px">'+[a.indirizzo,(a.cap||'')+' '+(a.citta||''),a.paese].filter(function(x){return x&&x.trim();}).map(esc).join(' · ')+(a.telefono?' · '+esc(a.telefono):'')+'</div></div>';
+      }).join('');
+      const prefs   = c.preferences || {};
+      const wl      = Array.isArray(c.wishlist) ? c.wishlist : [];
+      const nl      = c.newsletter;
+      const section = function(title, inner){ return inner ? '<h4 style="margin:16px 0 8px">'+title+'</h4>'+inner : ''; };
+      const extra =
+        section('Punti fedeltà', '<p style="margin-bottom:4px"><strong>'+(c.points||0)+'</strong> punti</p>') +
+        section('Indirizzi salvati ('+((c.addresses||[]).length)+')', addrList || '<p style="color:var(--muted)">Nessun indirizzo salvato.</p>') +
+        section('Taglie', sizeBits.length ? '<div>'+sizeBits.map(chip).join('')+'</div>'+(sizes.notes?'<div style="color:var(--muted);font-size:13px;margin-top:4px">'+esc(sizes.notes)+'</div>':'') : '<p style="color:var(--muted)">Non impostate.</p>') +
+        section('Preferenze',
+          ((prefs.categories&&prefs.categories.length)||(prefs.colors&&prefs.colors.length)||prefs.email||prefs.sms) ?
+          ('<div>'+((prefs.categories||[]).concat(prefs.colors||[]).map(chip).join(''))+'</div>'+
+           '<div style="color:var(--muted);font-size:13px;margin-top:4px">Contatto: '+([prefs.email?'Email':'',prefs.sms?'SMS':''].filter(Boolean).join(', ')||'—')+'</div>')
+          : '<p style="color:var(--muted)">Nessuna preferenza.</p>') +
+        section('Lista desideri ('+wl.length+')',
+          wl.length ? '<div>'+wl.slice(0,40).map(function(i){return chip(i.name||i.id);}).join('')+'</div>' : '<p style="color:var(--muted)">Vuota.</p>') +
+        section('Newsletter',
+          nl ? ('<p>'+(nl.subscribed?'Iscritta ✓':'Non iscritta')+(nl.frequenza?(' · '+esc(nl.frequenza)):'')+'</p>'+((nl.topics&&nl.topics.length)?'<div>'+nl.topics.map(chip).join('')+'</div>':'')) : '<p style="color:var(--muted)">Non iscritta.</p>');
+
       $('#modalBody').html(
         '<div class="kv" style="grid-template-columns:120px 1fr;gap:8px;margin-bottom:16px">' +
           '<div class="k">Nome</div><div class="v"><strong>' + (c.nome||'') + ' ' + (c.cognome||'') + '</strong></div>' +
@@ -2616,6 +2648,7 @@ $(function(){
           '<tbody>' + orders + '</tbody>' +
           '</table></div>'
           : '<p style="color:var(--muted)">Nessun ordine.</p>') +
+        extra +
         '<div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">' +
           '<button class="btn btn-ghost btn-sm js-del-customer" data-id="' + numId + '" data-name="' + (c.nome||'') + '">Elimina account</button>' +
         '</div>'

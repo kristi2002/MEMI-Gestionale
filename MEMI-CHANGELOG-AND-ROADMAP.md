@@ -8,6 +8,38 @@ design & SEO sprint (storefront), **(3)** the admin → React roadmap. Verify ba
 
 ---
 
+# Part 0 — Area Personale (customer account) sprint (Luglio 2026)
+
+Goal: turn the thin customer account page into a full **Area Personale** and persist all of it
+in the database (nothing was left as browser-only localStorage that shouldn't be).
+
+## Storefront (`Memi Abbigliamento/`)
+- Rebuilt `account.html` into a sidebar/section dashboard: **Panoramica, I miei dati, Indirizzi,
+  Le mie taglie, Le mie preferenze, Ordini, Effettua un reso, Punti fedeltà, Carta fedeltà, Lista
+  desideri, Newsletter, Aiuto** — logic in `account-core.js`, styling in `account.css`.
+- Cute extras: flower-themed loyalty tiers (Petalo → Fiore → Giardino) with progress + per-tier
+  benefits, a bank-card-style fidelity card with generated barcode, greeting, quick-stat cards.
+- Bilingual **IT/EN** framework (`window.MemiSetLang`), Italian default, no visible toggle yet.
+- Account drawer (`app.js`) reworked: Il mio profilo · Ordini · Lista desideri · Effettua un reso ·
+  La tua taglia · Carta fedeltà · Aiuto; footer "Non sei <nome>? Disconnetti".
+- Wishlist now syncs to the account (pull+merge on login, debounced push on change).
+
+## Backend (`MEMI-Backend/`)
+- **Schema:** `customers` +`sizes`,`preferences`,`lang` (JSON/varchar; `wishlist` already existed);
+  new `customer_addresses` table; `newsletter_subscribers` +`customer_id`,`frequenza`,`topics`.
+  All idempotent in `db/migrations.js` (self-heals on boot) and in `schema.sql` for fresh installs.
+- **Endpoints** (`routes/account.js`, customer token): `GET/PUT /auth/wishlist`,
+  `GET/POST/PUT/DELETE /auth/addresses` + `/auth/addresses/:id/default`, `GET/PUT /auth/newsletter`;
+  `GET/PUT /auth/me` extended with `sizes/preferences/lang/wishlist`. Default address mirrors back
+  onto `customers.*` for checkout pre-fill.
+- **Admin:** `GET /api/admin/customers/:id` now returns `wishlist/sizes/preferences/lang/points/
+  addresses/newsletter`, and the dashboard customer modal (`MEMI/js/app.js`) shows them.
+- **Verification:** existing 4 logic test suites still green; new mock-DB integration test covers
+  wishlist, address rules (auto-default, set-default, update, delete-promotes-next), newsletter.
+  Docs updated in `docs/api.md`.
+
+---
+
 # Part 1 — Deploy-readiness sprint (Luglio 2026)
 
 Goal: make the platform correct and deployable on Hetzner/Coolify without new features. The backend
