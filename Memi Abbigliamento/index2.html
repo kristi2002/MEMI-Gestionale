@@ -602,6 +602,104 @@
     .placeholder-figure { width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
     .placeholder-figure svg { width: 55%; opacity: .22; }
 
+    /* ── Nuovi Arrivi — carosello ── */
+    .na-controls { display: flex; align-items: center; gap: var(--space-5); flex-shrink: 0; }
+    .na-arrows { display: none; gap: var(--space-2); }
+    @media (min-width: 768px) { .na-arrows { display: flex; } }
+    .na-arrow {
+      width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--beige-dark); border-radius: var(--radius-full);
+      background: var(--bg-card); color: var(--espresso);
+      transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast), opacity var(--dur-fast);
+    }
+    .na-arrow svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+    .na-arrow:hover:not(:disabled) { background: var(--espresso); border-color: var(--espresso); color: var(--white); }
+    .na-arrow:disabled { opacity: .3; cursor: default; }
+
+    .na-carousel {
+      display: flex;
+      gap: var(--space-3);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-bottom: var(--space-2); /* room for card hover shadow */
+      /* full-bleed on mobile: cards peek from the screen edge */
+      margin-inline: calc(-1 * var(--space-4));
+      padding-inline: var(--space-4);
+      scroll-padding-inline: var(--space-4);
+    }
+    .na-carousel::-webkit-scrollbar { display: none; }
+    .na-carousel:focus-visible { outline: 2px solid var(--beige-dark); outline-offset: 4px; border-radius: var(--radius-lg); }
+    @media (min-width: 768px) {
+      .na-carousel {
+        margin-inline: 0;
+        padding-inline: 0;
+        scroll-padding-inline: 0;
+        gap: var(--space-4);
+      }
+    }
+    @media (min-width: 1024px) { .na-carousel { gap: var(--space-6); } }
+
+    .na-carousel > .product-card,
+    .na-carousel > .na-skel {
+      flex: 0 0 min(70vw, 300px);
+      scroll-snap-align: start;
+    }
+    @media (min-width: 640px) {
+      .na-carousel > .product-card,
+      .na-carousel > .na-skel { flex-basis: calc(45% - var(--space-3)); }
+    }
+    @media (min-width: 768px) {
+      .na-carousel > .product-card,
+      .na-carousel > .na-skel { flex-basis: calc((100% - 2 * var(--space-4)) / 3); }
+    }
+    @media (min-width: 1024px) {
+      .na-carousel > .product-card,
+      .na-carousel > .na-skel { flex-basis: calc((100% - 3 * var(--space-6)) / 4); }
+    }
+
+    /* staggered entrance (backwards fill so hover transforms keep working after) */
+    @media (prefers-reduced-motion: no-preference) {
+      .na-carousel > .product-card {
+        animation: naIn .55s var(--ease-out) backwards;
+        animation-delay: calc(var(--i, 0) * 70ms);
+      }
+    }
+    @keyframes naIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* skeleton (shown while the API loads) */
+    .na-skel {
+      background: var(--bg-card);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-xs);
+    }
+    .na-skel-img { aspect-ratio: 3/4; }
+    .na-skel-body { padding: var(--space-3) var(--space-3) var(--space-4); }
+    .na-skel-line { height: 12px; border-radius: 6px; margin-bottom: var(--space-2); }
+    .na-skel-line.w60 { width: 60%; }
+    .na-skel-line.w35 { width: 35%; margin-bottom: 0; }
+
+    .na-empty { flex: 1 0 100%; text-align: center; padding: 3rem 1rem; color: var(--brown-light); font-size: .9rem; }
+
+    /* scroll progress */
+    .na-progress {
+      height: 2px; margin-top: var(--space-5);
+      background: var(--beige); border-radius: 2px;
+      position: relative; overflow: hidden;
+    }
+    .na-progress-fill {
+      position: absolute; inset: 0 auto 0 0;
+      width: 25%;
+      background: var(--espresso); border-radius: 2px;
+      transition: width .18s var(--ease-out);
+    }
+
     /* ============================================================
        6. MANIFESTO SECTION
        ============================================================ */
@@ -1147,13 +1245,25 @@
           <span class="section-eyebrow">Collezione Estate 2025</span>
           <h2 class="section-title">Nuovi <em>Arrivi</em></h2>
         </div>
-        <a href="shop?categoria=novita" class="link-see-all">Vedi tutto →</a>
+        <div class="na-controls">
+          <a href="shop?categoria=novita" class="link-see-all">Vedi tutto →</a>
+          <div class="na-arrows">
+            <button class="na-arrow" id="naPrev" aria-label="Prodotti precedenti" disabled>
+              <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <button class="na-arrow" id="naNext" aria-label="Prodotti successivi">
+              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div class="product-grid" role="list" id="homeProductGrid"></div><!-- /product-grid -->
+      <div class="na-carousel" role="list" id="homeProductGrid" tabindex="0" aria-label="Nuovi arrivi — scorri per vedere altri prodotti"></div><!-- /na-carousel -->
+
+      <div class="na-progress" id="naProgress" aria-hidden="true"><span class="na-progress-fill" id="naProgressFill"></span></div>
 
       <div class="reveal reveal-delay-1" style="text-align:center;margin-top:var(--space-10);">
-        <a href="collections/shop-all/index.html" class="btn-primary" style="background:#d9e6c5;color:var(--espresso);">
+        <a href="shop" class="btn-primary" style="background:#d9e6c5;color:var(--espresso);">
           Vedi tutta la collezione
         </a>
       </div>
@@ -1466,7 +1576,7 @@
       return '<div class="' + cls + '"><svg viewBox="0 0 120 200" fill="none">' + (ICONS[icon] || ICONS.dress) + '</svg></div>';
     }
 
-    function buildCard(p) {
+    function buildCard(p, idx) {
       var name = p.name || '';
       var isOos = p.status === 'esaurito';
       var badges = '';
@@ -1491,7 +1601,7 @@
       var main = '<img class="product-img-main" src="' + esc(img1f) + '" alt="' + esc(name) + '" loading="lazy" style="' + imgStyle + '">';
       var alt = '<img class="product-img-alt" src="' + esc(img2f) + '" alt="" loading="lazy" style="' + imgStyle + '">';
 
-      return '<article class="product-card in-view" data-id="' + esc(p.id) + '" role="listitem" tabindex="0">' +
+      return '<article class="product-card in-view" data-id="' + esc(p.id) + '" role="listitem" tabindex="0" style="--i:' + (idx || 0) + '">' +
           '<div class="product-img-wrap">' + main + alt +
             (badges ? '<div class="product-badges">' + badges + '</div>' : '') +
             '<button class="product-wishlist" aria-label="Aggiungi ai preferiti"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>' +
@@ -1505,23 +1615,74 @@
         '</article>';
     }
 
+    /* ── carousel chrome (arrows + progress) ── */
+    var prevBtn = document.getElementById('naPrev');
+    var nextBtn = document.getElementById('naNext');
+    var progress = document.getElementById('naProgress');
+    var progressFill = document.getElementById('naProgressFill');
+
+    function hideChrome() {
+      if (prevBtn) prevBtn.parentNode.style.display = 'none';
+      if (progress) progress.style.display = 'none';
+    }
+    function updateChrome() {
+      var max = grid.scrollWidth - grid.clientWidth;
+      if (max <= 4) { hideChrome(); return; }
+      if (prevBtn) { prevBtn.parentNode.style.display = ''; prevBtn.disabled = grid.scrollLeft <= 2; }
+      if (nextBtn) nextBtn.disabled = grid.scrollLeft >= max - 2;
+      if (progress) {
+        progress.style.display = '';
+        progressFill.style.width = (((grid.scrollLeft + grid.clientWidth) / grid.scrollWidth) * 100) + '%';
+      }
+    }
+    function scrollByPage(dir) {
+      grid.scrollBy({ left: dir * grid.clientWidth * 0.9, behavior: 'smooth' });
+    }
+    if (prevBtn) prevBtn.addEventListener('click', function () { scrollByPage(-1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { scrollByPage(1); });
+    grid.addEventListener('scroll', updateChrome, { passive: true });
+    window.addEventListener('resize', updateChrome);
+
+    /* ── skeleton (immediate, replaced once the API answers) ── */
+    function skelCard() {
+      return '<div class="na-skel" aria-hidden="true">' +
+          '<div class="na-skel-img ph-shimmer"></div>' +
+          '<div class="na-skel-body">' +
+            '<div class="na-skel-line ph-shimmer"></div>' +
+            '<div class="na-skel-line w60 ph-shimmer"></div>' +
+            '<div class="na-skel-line w35 ph-shimmer"></div>' +
+          '</div>' +
+        '</div>';
+    }
+    function showSkeleton() {
+      var out = '';
+      for (var i = 0; i < 4; i++) out += skelCard();
+      grid.innerHTML = out;
+      hideChrome();
+    }
+
     function showEmpty() {
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--brown-light);font-size:.9rem;">Nessun prodotto disponibile al momento.</div>';
+      grid.innerHTML = '<div class="na-empty">Nessun prodotto disponibile al momento.</div>';
+      hideChrome();
     }
     function showError() {
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--brown-light);font-size:.9rem;">Impossibile caricare i prodotti. <a href="" style="color:var(--espresso);text-decoration:underline;" onclick="location.reload();return false;">Riprova</a></div>';
+      grid.innerHTML = '<div class="na-empty">Impossibile caricare i prodotti. <a href="" style="color:var(--espresso);text-decoration:underline;" onclick="location.reload();return false;">Riprova</a></div>';
+      hideChrome();
     }
 
     function render(list) {
       list = Array.isArray(list) ? list : [];
       if (!list.length) { showEmpty(); return; }
       var nuovi = list.filter(function (p) { return p.is_new; });
-      var pick = (nuovi.length ? nuovi : list).slice(0, 8);
+      var pick = (nuovi.length ? nuovi : list).slice(0, 10);
       grid.innerHTML = pick.map(buildCard).join('');
       if (typeof window.wireProductCards === 'function') window.wireProductCards();
+      grid.scrollLeft = 0;
+      updateChrome();
     }
 
     function load() {
+      showSkeleton();
       if (window.MemiAPI && window.MemiAPI.products) {
         window.MemiAPI.products.list({ limit: 24 })
           .then(function (res) { render(Array.isArray(res) ? res : (res && res.products) || []); })
