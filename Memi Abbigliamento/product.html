@@ -362,21 +362,8 @@
           </div>
         </div>
 
-        <!-- Thumbnails -->
-        <div class="gallery-thumbs" role="list" aria-label="Viste prodotto">
-          <button class="thumb active" onclick="selectThumb(this,'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=960&q=85')" aria-label="Vista frontale">
-            <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=120&h=160&q=80" alt="Vista frontale" style="width:100%;height:100%;object-fit:cover;">
-          </button>
-          <button class="thumb" onclick="selectThumb(this,'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=960&q=85')" aria-label="Vista posteriore">
-            <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=120&h=160&q=80" alt="Vista posteriore" style="width:100%;height:100%;object-fit:cover;">
-          </button>
-          <button class="thumb" onclick="selectThumb(this,'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=960&q=85')" aria-label="Dettaglio tessuto">
-            <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=120&h=160&q=80" alt="Dettaglio" style="width:100%;height:100%;object-fit:cover;">
-          </button>
-          <button class="thumb" onclick="selectThumb(this,'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=960&q=85')" aria-label="Vista laterale">
-            <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=120&h=160&q=80" alt="Vista laterale" style="width:100%;height:100%;object-fit:cover;">
-          </button>
-        </div>
+        <!-- Thumbnails (populated by hydrate() from the product's real images) -->
+        <div class="gallery-thumbs" role="list" aria-label="Viste prodotto"></div>
 
       </div><!-- /gallery -->
 
@@ -386,13 +373,9 @@
         <p class="product-brand">Memi Abbigliamento</p>
         <h1 class="product-title">Vestito Lino Cannes</h1>
 
-        <!-- Rating -->
-        <div class="product-rating">
-          <div class="stars" aria-label="4.8 su 5">
-            <span class="star">★</span><span class="star">★</span><span class="star">★</span>
-            <span class="star">★</span><span class="star" style="color:var(--beige-dark);">★</span>
-          </div>
-          <span class="rating-count"><a href="#reviews">4.8 (32 recensioni)</a></span>
+        <!-- Rating (synced with real reviews by renderReviews) -->
+        <div class="product-rating" id="pdpRating">
+          <span class="rating-count"><a href="#reviews">Recensioni</a></span>
         </div>
 
         <!-- Price -->
@@ -446,7 +429,7 @@
 
         <!-- Klarna -->
         <p class="klarna-note">
-          oppure 3 rate da <strong>€29,67</strong> con Klarna. <a href="#" style="text-decoration:underline;">Scopri di più</a>
+          oppure 3 rate da <strong id="klarnaRate">—</strong> con Klarna. <a href="#" style="text-decoration:underline;">Scopri di più</a>
         </p>
 
         <!-- Mini perks -->
@@ -474,22 +457,11 @@
               <svg class="accordion-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="accordion-body">
+              <p id="descText" style="margin-bottom:var(--space-4);"></p>
               <p style="margin-bottom:var(--space-4);">
-                Il Vestito Lino Cannes è la definizione di eleganza estiva. Realizzato in puro lino
-                italiano al 100%, questo abito coniuga il comfort di un tessuto naturale con
-                la silhouette sciolta e femminile che ha reso Memi famosa.
+                <strong style="color:var(--espresso);font-size:var(--text-xs);letter-spacing:var(--tracking-wide);text-transform:uppercase;">Cura del capo:</strong>
               </p>
-              <p style="margin-bottom:var(--space-4);">
-                <strong style="color:var(--espresso);font-size:var(--text-xs);letter-spacing:var(--tracking-wide);text-transform:uppercase;">Composizione:</strong><br>
-                100% Lino — Prodotto in Italia
-              </p>
-              <ul>
-                <li>Lavare a mano o in lavatrice a 30°C</li>
-                <li>Non centrifugare</li>
-                <li>Stirare a temperatura media con panno umido</li>
-                <li>Non asciugare in asciugatrice</li>
-                <li>Non candeggiare</li>
-              </ul>
+              <ul id="careList"></ul>
             </div>
           </div>
 
@@ -509,31 +481,12 @@
             </div>
           </div>
 
-          <div class="accordion-item">
+          <div class="accordion-item" id="sizeGuideItem">
             <button class="accordion-header" onclick="toggleAccordion(this)">
               Guida alle Taglie
               <svg class="accordion-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="accordion-body">
-              <p style="margin-bottom:var(--space-4);">Il modello in foto indossa la taglia S e misura 174 cm.</p>
-              <table style="width:100%;border-collapse:collapse;font-size:var(--text-xs);">
-                <thead>
-                  <tr style="background:var(--bg-soft);">
-                    <th style="padding:var(--space-2) var(--space-3);text-align:left;color:var(--espresso);font-weight:600;">Taglia</th>
-                    <th style="padding:var(--space-2) var(--space-3);text-align:left;color:var(--espresso);font-weight:600;">Busto (cm)</th>
-                    <th style="padding:var(--space-2) var(--space-3);text-align:left;color:var(--espresso);font-weight:600;">Vita (cm)</th>
-                    <th style="padding:var(--space-2) var(--space-3);text-align:left;color:var(--espresso);font-weight:600;">Fianchi (cm)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style="border-top:1px solid var(--beige);"><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">XS</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">80–83</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">62–65</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">87–90</td></tr>
-                  <tr style="border-top:1px solid var(--beige);"><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">S</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">84–87</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">66–69</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">91–94</td></tr>
-                  <tr style="border-top:1px solid var(--beige);"><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">M</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">88–93</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">70–75</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">95–100</td></tr>
-                  <tr style="border-top:1px solid var(--beige);"><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">L</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">94–99</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">76–81</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">101–106</td></tr>
-                  <tr style="border-top:1px solid var(--beige);"><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">XL</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">100–105</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">82–87</td><td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">107–112</td></tr>
-                </tbody>
-              </table>
-            </div>
+            <div class="accordion-body" id="sizeGuideBody"></div>
           </div>
 
         </div><!-- /accordions -->
@@ -630,32 +583,10 @@
     .rev-submit-btn:disabled{opacity:.5;cursor:not-allowed;}
   </style>
 
-  <!-- ── Related Products ── -->
-  <section class="related">
-    <h2 class="related-title">Ti potrebbe <em>piacere</em></h2>
-    <div class="related-grid">
-
-      <article class="product-card">
-        <div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&h=800&q=80" alt="Blazer Sartoriale Mia" loading="lazy"></div>
-        <div class="product-info"><p class="product-name">Blazer Sartoriale Mia</p><p class="product-color">Verde salvia</p><div class="product-pricing"><span class="price-current">€105,00</span></div></div>
-      </article>
-
-      <article class="product-card">
-        <div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&h=800&q=80" alt="Top Seta Lucida Aria" loading="lazy"></div>
-        <div class="product-info"><p class="product-name">Top Seta Lucida Aria</p><p class="product-color">Lavanda</p><div class="product-pricing"><span class="price-current">€65,00</span></div></div>
-      </article>
-
-      <article class="product-card">
-        <div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&h=800&q=80" alt="Gonna Plissé Nuvola" loading="lazy"></div>
-        <div class="product-info"><p class="product-name">Gonna Plissé Nuvola</p><p class="product-color">Avorio naturale</p><div class="product-pricing"><span class="price-current">€79,00</span></div></div>
-      </article>
-
-      <article class="product-card">
-        <div class="product-img-wrap"><img class="product-img-main" src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&h=800&q=80" alt="Camicia Cotone Brisa" loading="lazy"></div>
-        <div class="product-info"><p class="product-name">Camicia Cotone Brisa</p><p class="product-color">Corallo pastello</p><div class="product-pricing"><span class="price-current">€55,00</span></div></div>
-      </article>
-
-    </div>
+  <!-- ── Completa il look (dynamic — complementary products from the live API) ── -->
+  <section class="related" id="relatedSection" style="display:none;">
+    <h2 class="related-title">Completa il <em>look</em></h2>
+    <div class="related-grid" id="relatedGrid"></div>
   </section>
 
     <script>
@@ -732,8 +663,75 @@
           swatches.innerHTML = '<button class="color-swatch active" style="background:' + hex + ';" aria-label="' + esc(selectedColor) + '"></button>';
         }
 
-        // Description (first description accordion body)
-        var descP = document.querySelector('.accordion-body p'); if (descP && p.description) descP.textContent = p.description;
+        // Description accordion — text + per-category care instructions
+        var descP = document.getElementById('descText');
+        if (descP) descP.textContent = p.description || (name + ' — un capo essenziale della collezione Memi Abbigliamento, selezionato con cura per qualità dei materiali e vestibilità.');
+        var CARE = {
+          vestiti:   ['Lavare a mano o in lavatrice a 30°C con capi simili', 'Non centrifugare', 'Stirare a temperatura media', 'Non asciugare in asciugatrice', 'Non candeggiare'],
+          top:       ['Lavare a mano o in lavatrice a 30°C, ciclo delicati', 'Asciugare in piano all\'ombra', 'Stirare a bassa temperatura al rovescio', 'Non candeggiare'],
+          gonne:     ['Lavare in lavatrice a 30°C, ciclo delicati', 'Non centrifugare', 'Appendere subito dopo il lavaggio', 'Stirare a bassa temperatura se necessario'],
+          pantaloni: ['Lavare in lavatrice a 30°C al rovescio', 'Non candeggiare', 'Stirare a temperatura media', 'Asciugare appeso'],
+          set:       ['Lavare i due pezzi insieme a 30°C, ciclo delicati', 'Non centrifugare', 'Stirare a bassa temperatura', 'Non candeggiare'],
+          blazer:    ['Lavaggio a secco consigliato', 'Appendere su gruccia sagomata', 'Vaporizzare per rinfrescare tra un utilizzo e l\'altro', 'Non stirare direttamente sui revers'],
+          borse:     ['Pulire con panno morbido e asciutto', 'Nutrire la pelle con crema neutra 2 volte l\'anno', 'Riporre nel sacchetto antipolvere', 'Evitare pioggia intensa e fonti di calore'],
+          cinture:   ['Pulire con panno morbido', 'Nutrire il cuoio con crema neutra', 'Riporre distesa o appesa, mai arrotolata stretta'],
+          gioielli:  ['Riporre nell\'astuccio, lontano da umidità', 'Evitare contatto con profumi e creme', 'Pulire con il panno in dotazione', 'Togliere prima di doccia e piscina'],
+          scarpe:    ['Pulire con panno umido o spazzola morbida', 'Utilizzare forme tendiscarpe', 'Far riposare 24h tra un utilizzo e l\'altro', 'Trattare la pelle con prodotti specifici']
+        };
+        var careUl = document.getElementById('careList');
+        if (careUl) careUl.innerHTML = (CARE[p.categoria] || CARE.vestiti).map(function (c) { return '<li>' + c + '</li>'; }).join('');
+
+        // Klarna: 3 instalments computed from the real price
+        var kl = document.getElementById('klarnaRate');
+        if (kl) kl.textContent = eur((Number(p.price) || 0) / 3);
+
+        // Size guide accordion — table matched to the product's category
+        var sgItem = document.getElementById('sizeGuideItem');
+        var sgBody = document.getElementById('sizeGuideBody');
+        if (sgItem && sgBody) {
+          function sgTable(headers, rows) {
+            var th = headers.map(function (h) { return '<th style="padding:var(--space-2) var(--space-3);text-align:left;color:var(--espresso);font-weight:600;">' + h + '</th>'; }).join('');
+            var trs = rows.map(function (r) {
+              return '<tr style="border-top:1px solid var(--beige);">' + r.map(function (c) { return '<td style="padding:var(--space-2) var(--space-3);color:var(--brown-mid);">' + c + '</td>'; }).join('') + '</tr>';
+            }).join('');
+            return '<table style="width:100%;border-collapse:collapse;font-size:var(--text-xs);"><thead><tr style="background:var(--bg-soft);">' + th + '</tr></thead><tbody>' + trs + '</tbody></table>' +
+              '<p style="margin-top:var(--space-4);"><a href="/size-guide" target="_blank" rel="noopener" style="text-decoration:underline;color:var(--brown-mid);">Guida completa alle taglie e come misurarsi →</a></p>';
+          }
+          var CLOTHING = ['vestiti', 'top', 'gonne', 'set', 'blazer'];
+          if (CLOTHING.indexOf(p.categoria) !== -1) {
+            sgItem.style.display = '';
+            sgBody.innerHTML = '<p style="margin-bottom:var(--space-4);">La modella in foto indossa la taglia S e misura 174 cm.</p>' +
+              sgTable(['Taglia', 'IT', 'Busto (cm)', 'Vita (cm)', 'Fianchi (cm)'], [
+                ['XS', '36–38', '80–83', '62–65', '87–90'],
+                ['S',  '40',    '84–87', '66–69', '91–94'],
+                ['M',  '42',    '88–93', '70–75', '95–100'],
+                ['L',  '44',    '94–99', '76–81', '101–106'],
+                ['XL', '46',    '100–105', '82–87', '107–112']
+              ]);
+          } else if (p.categoria === 'pantaloni') {
+            sgItem.style.display = '';
+            sgBody.innerHTML = '<p style="margin-bottom:var(--space-4);">Taglie italiane. In caso di dubbio tra due taglie, consigliamo la più grande.</p>' +
+              sgTable(['Taglia IT', 'Vita (cm)', 'Fianchi (cm)'], [
+                ['38', '62–65', '87–90'],
+                ['40', '66–69', '91–94'],
+                ['42', '70–73', '95–98'],
+                ['44', '74–78', '99–103'],
+                ['46', '79–83', '104–108'],
+                ['48', '84–88', '109–113']
+              ]);
+          } else if (p.categoria === 'scarpe') {
+            sgItem.style.display = '';
+            sgBody.innerHTML = '<p style="margin-bottom:var(--space-4);">Calzata regolare: prendi il tuo numero abituale.</p>' +
+              sgTable(['EU', 'Lunghezza piede (cm)'], [
+                ['37', '23,5'], ['38', '24,1'], ['39', '24,8'], ['40', '25,4'], ['41', '26,0'], ['42', '26,7']
+              ]);
+          } else {
+            // Accessories (bags, jewellery, belts): a size table makes no sense
+            sgItem.style.display = 'none';
+            var sgLink = document.querySelector('.size-guide-link');
+            if (sgLink) sgLink.style.display = 'none';
+          }
+        }
 
         // Sizes from DB (stock-aware)
         var sizes = Array.isArray(p.taglie) ? p.taglie : [];
@@ -782,6 +780,61 @@
 
         window.__PDP = { id: p.id, name: name, price: Number(p.price) || 0, colorKey: selectedColorKey };
         if (window.__pdpSyncWish) window.__pdpSyncWish();
+      }
+
+      /* ── "Completa il look" — complementary products from the live catalog ── */
+      var OUTFIT_MAP = {
+        vestiti:   ['scarpe', 'borse', 'gioielli', 'cinture'],
+        top:       ['gonne', 'pantaloni', 'scarpe', 'borse'],
+        gonne:     ['top', 'scarpe', 'borse', 'gioielli'],
+        pantaloni: ['top', 'blazer', 'scarpe', 'borse'],
+        blazer:    ['top', 'pantaloni', 'scarpe', 'borse'],
+        set:       ['scarpe', 'borse', 'gioielli', 'blazer'],
+        scarpe:    ['vestiti', 'borse', 'gonne', 'gioielli'],
+        borse:     ['vestiti', 'scarpe', 'gioielli', 'blazer'],
+        gioielli:  ['vestiti', 'top', 'borse', 'scarpe'],
+        cinture:   ['vestiti', 'pantaloni', 'blazer', 'borse']
+      };
+      function loadRelated(current) {
+        var section = document.getElementById('relatedSection');
+        var grid = document.getElementById('relatedGrid');
+        if (!section || !grid) return;
+        fetch('/api/products?limit=200')
+          .then(function (r) { return r.json(); })
+          .then(function (res) {
+            var all = (Array.isArray(res) ? res : (res && res.products) || [])
+              .filter(function (x) { return x.id !== current.id && x.status === 'attivo'; });
+            if (!all.length) return;
+            var wanted = OUTFIT_MAP[current.categoria] || [];
+            var picks = [], used = {};
+            // one product per complementary category, most popular first
+            wanted.forEach(function (cat) {
+              if (picks.length >= 4) return;
+              var best = all.filter(function (x) { return x.categoria === cat && !used[x.id]; })
+                            .sort(function (a, b) { return (a.popularity || 999) - (b.popularity || 999); })[0];
+              if (best) { picks.push(best); used[best.id] = 1; }
+            });
+            // pad with same-category alternatives
+            all.filter(function (x) { return x.categoria === current.categoria && !used[x.id]; })
+               .sort(function (a, b) { return (a.popularity || 999) - (b.popularity || 999); })
+               .forEach(function (x) { if (picks.length < 4) { picks.push(x); used[x.id] = 1; } });
+            if (!picks.length) return;
+            grid.innerHTML = picks.map(function (x) {
+              var img = pickImg((x.images || [])[0], 'card');
+              var imgTag = img ? '<img class="product-img-main" src="' + img + '" alt="' + esc(x.name) + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;">' : '';
+              var price = '<span class="price-current">' + eur(x.price) + '</span>';
+              if (x.original_price && x.discount_pct) price += ' <span class="price-original">' + eur(x.original_price) + '</span>';
+              return '<a href="/product?id=' + encodeURIComponent(x.id) + '" style="text-decoration:none;color:inherit;">' +
+                '<article class="product-card">' +
+                  '<div class="product-img-wrap">' + imgTag + '</div>' +
+                  '<div class="product-info"><p class="product-name">' + esc(x.name) + '</p>' +
+                  '<p class="product-color">' + esc(x.color_label || '') + '</p>' +
+                  '<div class="product-pricing">' + price + '</div></div>' +
+                '</article></a>';
+            }).join('');
+            section.style.display = '';
+          })
+          .catch(function () { /* section stays hidden */ });
       }
 
       function notFound() {
@@ -906,7 +959,7 @@
         if (!id) { notFound(); return; }
         fetch('/api/products/' + encodeURIComponent(id))
           .then(function (r) { if (!r.ok) throw new Error('not found'); return r.json(); })
-          .then(function (p) { if (!p || !p.id) { notFound(); return; } hydrate(p); injectSeo(p); loadReviews(p.id); })
+          .then(function (p) { if (!p || !p.id) { notFound(); return; } hydrate(p); injectSeo(p); loadReviews(p.id); loadRelated(p); })
           .catch(function () { notFound(); });
       });
     })();
@@ -936,6 +989,23 @@
           .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       }
 
+      // Keeps the header rating (next to the title) honest: real average or a
+      // "first review" invite — never a hardcoded score.
+      function syncHeaderRating(avg, count) {
+        var head = document.getElementById('pdpRating');
+        if (!head) return;
+        if (!count) {
+          head.innerHTML = '<span class="rating-count"><a href="#reviews">Nessuna recensione — scrivi la prima</a></span>';
+          return;
+        }
+        var stars = '';
+        for (var i = 1; i <= 5; i++) {
+          stars += '<span class="star"' + (i > Math.round(avg) ? ' style="color:var(--beige-dark);"' : '') + '>★</span>';
+        }
+        head.innerHTML = '<div class="stars" aria-label="' + avg + ' su 5">' + stars + '</div>' +
+          '<span class="rating-count"><a href="#reviews">' + avg + ' (' + count + ' ' + (count === 1 ? 'recensione' : 'recensioni') + ')</a></span>';
+      }
+
       function renderReviews(reviews) {
         var list = document.getElementById('revList');
         var summary = document.getElementById('revSummary');
@@ -944,12 +1014,14 @@
         if (!reviews || reviews.length === 0) {
           list.innerHTML = '<p class="rev-empty">Nessuna recensione ancora. Sii la prima a condividere la tua esperienza!</p>';
           if (summary) summary.textContent = '';
+          syncHeaderRating(0, 0);
           return;
         }
 
         var total = reviews.reduce(function (s, r) { return s + (Number(r.rating) || 0); }, 0);
         var avg = (total / reviews.length).toFixed(1);
         if (summary) summary.innerHTML = starsHtml(Math.round(avg)) + ' <strong>' + avg + '</strong> su 5 &nbsp;·&nbsp; ' + reviews.length + ' ' + (reviews.length === 1 ? 'recensione' : 'recensioni');
+        syncHeaderRating(avg, reviews.length);
 
         list.innerHTML = reviews.map(function (r) {
           var html = '<article class="rev-item">';

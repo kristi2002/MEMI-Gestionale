@@ -329,7 +329,7 @@
 (function(){
   var TITLE_MAP={novita:'<em>Novità</em>',accessori:'I nostri <em>Accessori</em>',vestiti:'I nostri <em>Vestiti</em>',top:'Top <em>&amp; Bluse</em>',pantaloni:'I nostri <em>Pantaloni</em>',gonne:'Le nostre <em>Gonne</em>',blazer:'Blazer <em>&amp; Giacche</em>',set:'Set <em>Coordinati</em>',borse:'Le nostre <em>Borse</em>',gioielli:'I nostri <em>Gioielli</em>',scarpe:'Le nostre <em>Scarpe</em>',cinture:'Cinture <em>&amp; Bijoux</em>'};
   var EYE_MAP={novita:'Nuovi arrivi · Estate 2025',accessori:'Collezione accessori',vestiti:'Abbigliamento',top:'Abbigliamento',pantaloni:'Abbigliamento',gonne:'Abbigliamento',blazer:'Abbigliamento',set:'Coordinati',borse:'Accessori',gioielli:'Accessori',scarpe:'Accessori',cinture:'Accessori'};
-  var BG_MAP={default:'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1920&q=85',vestiti:'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1920&q=85',gonne:'https://images.unsplash.com/photo-1583496661160-fb5218f5a9c4?auto=format&fit=crop&w=1920&q=85',top:'https://images.unsplash.com/photo-1596783074918-c84cb06531ca?auto=format&fit=crop&w=1920&q=85',pantaloni:'https://images.unsplash.com/photo-1594938298603-c8148c4b5a3a?auto=format&fit=crop&w=1920&q=85',blazer:'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=1920&q=85',set:'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=85'};
+  var BG_MAP={default:'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1920&q=85',vestiti:'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1920&q=85',gonne:'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=1920&q=85',top:'https://images.unsplash.com/photo-1596783074918-c84cb06531ca?auto=format&fit=crop&w=1920&q=85',pantaloni:'https://images.unsplash.com/photo-1509551388413-e18d0ac5d495?auto=format&fit=crop&w=1920&q=85',blazer:'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=1920&q=85',set:'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=85'};
   var p=new URLSearchParams(location.search),cat=p.get('categoria'),sal=p.get('saldi'),h=document.getElementById('shopHero');
   if(!h)return;
   if(cat==='novita'){
@@ -746,6 +746,13 @@
       document.querySelectorAll('.size-chip-lg').forEach(function(b){ b.classList.remove('active'); });
       document.querySelectorAll('.filter-swatch').forEach(function(b){ b.classList.remove('active'); });
       document.querySelectorAll('input[data-cat]').forEach(function(cb){ cb.checked = false; });
+      var prr = document.getElementById('priceRange');
+      if (prr) {
+        prr.value = prr.max || 300;
+        prr.style.background = 'linear-gradient(to right,var(--lavender) 0%,var(--lavender) 100%,var(--beige) 100%)';
+        var pvv = document.getElementById('priceVal');
+        if (pvv) pvv.textContent = '€' + prr.value;
+      }
       applyFilters();
       initPagination();
     });
@@ -782,14 +789,17 @@
       });
     });
 
-    // Price range slider
+    // Price range slider - update state + live count only; the drawer stays
+    // open and filters apply via the "Mostra risultati" button (same pattern
+    // as the category checkboxes, size chips and colour swatches).
     var pr = document.getElementById('priceRange');
     if (pr) {
       pr.addEventListener('input', function(){
         var pv = document.getElementById('priceVal');
         if (pv) pv.textContent = '\u20ac' + pr.value;
+        var el = document.getElementById('filterResultCount');
+        if (el) el.textContent = countVisible();
       });
-      pr.addEventListener('change', function(){ applyFilters(); });
     }
 
     // Apply filters button (inside drawer)
