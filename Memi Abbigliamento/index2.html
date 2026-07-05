@@ -820,72 +820,80 @@
     @media (min-width: 1024px) { .trio-grid { grid-template-columns: repeat(3, 1fr); } }
 
     .trio-item {
-      position: relative;
-      aspect-ratio: 3/4;
+      display: flex;
+      flex-direction: column;
       overflow: hidden;
-      cursor: pointer;
     }
-    .trio-item::after {
-      content: "";
-      position: absolute;
-      left: 0; right: 0; bottom: 0;
-      height: 4px;
-      background: var(--trio-accent, var(--brand-mint-mid, #9CB37F));
-      z-index: 3;
-      transition: height var(--dur-med, 0.3s);
+    /* Split card: photo on top, solid brand-color panel below */
+    .trio-verde {
+      --trio-panel: var(--brand-mint, #D5E4C3);
+      --trio-panel-hover: #C9DCB3;
+      --trio-ink: var(--brand-mint-dark, #5F7A3F);
     }
-    .trio-item:hover::after { height: 7px; }
-    .trio-grid .trio-item:nth-child(2) { --trio-accent: var(--brand-violet-mid, #8F8FC1); }
-    .trio-item img { transition: transform 1.1s var(--ease-out); }
-    .trio-item:hover img { transform: scale(1.07); }
-    .trio-item-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to top, rgba(10,4,4,.7) 0%, rgba(10,4,4,.1) 50%, transparent 100%);
-      z-index: 1;
+    .trio-viola {
+      --trio-panel: #E6E4F4; /* un passo più saturo di --brand-violet, altrimenti legge bianco */
+      --trio-panel-hover: #DBD8EE;
+      --trio-ink: var(--brand-violet-dark, #6B6BA3);
+    }
+    .trio-item-media {
+      position: relative;
+      display: block;
+      aspect-ratio: 3/3.4;
+      overflow: hidden;
+    }
+    .trio-item-media img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 1.1s var(--ease-out);
+    }
+    .trio-item:hover .trio-item-media img { transform: scale(1.06); }
+    .trio-item-panel {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding: var(--space-4) var(--space-6);
+      min-height: 104px;
+      background: var(--trio-panel);
       transition: background var(--dur-med);
     }
-    .trio-item:hover .trio-item-overlay {
-      background: linear-gradient(to top, rgba(10,4,4,.82) 0%, rgba(10,4,4,.25) 50%, transparent 100%);
-    }
-    .trio-item-content {
-      position: absolute;
-      z-index: 2;
-      bottom: var(--space-6);
-      left: var(--space-6);
-      right: var(--space-6);
-    }
+    .trio-item:hover .trio-item-panel { background: var(--trio-panel-hover); }
     .trio-item-tag {
       font-size: 9px;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.55);
-      font-weight: 500;
+      color: var(--trio-ink);
+      font-weight: 600;
       margin-bottom: var(--space-2);
       display: block;
     }
     .trio-item-name {
       font-family: var(--font-serif);
-      font-size: clamp(1.4rem, 2.5vw, 2rem);
-      font-weight: 300;
-      color: var(--white);
-      line-height: 1.1;
-      margin-bottom: var(--space-4);
+      font-size: clamp(1.25rem, 1.8vw, 1.6rem);
+      font-weight: 400;
+      color: var(--espresso);
+      line-height: 1.15;
+      margin: 0;
     }
     .trio-item-cta {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: var(--text-xs); letter-spacing: var(--tracking-wider);
-      text-transform: uppercase; font-weight: 600;
-      color: rgba(255,255,255,.0);
-      border-bottom: 1px solid rgba(255,255,255,.0);
-      padding-bottom: 1px;
-      transition: color 0.3s, border-color 0.3s;
+      flex: 0 0 auto;
+      width: 46px; height: 46px;
+      border-radius: 50%;
+      border: 1.5px solid var(--trio-ink);
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--trio-ink);
+      transition: background 0.35s, color 0.35s;
     }
     .trio-item:hover .trio-item-cta {
-      color: rgba(255,255,255,.85);
-      border-color: rgba(255,255,255,.4);
+      background: var(--trio-ink);
+      color: var(--trio-panel);
     }
-    .trio-item-cta svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+    .trio-item-cta svg {
+      width: 17px; height: 17px;
+      stroke: currentColor; fill: none; stroke-width: 2;
+      transform: rotate(-45deg); /* ↗ a riposo, → su hover */
+      transition: transform 0.35s var(--ease-out);
+    }
+    .trio-item:hover .trio-item-cta svg { transform: rotate(0deg); }
 
     /* ============================================================
        7.5 VIDEO MOMENT (full-bleed autoplay video, Mansur Gavriel-style)
@@ -1326,52 +1334,58 @@
 
     <div class="trio-grid">
 
-      <div class="trio-item">
-        <img
-          src="/media/home-5.jpg"
-          alt="Vestiti"
-          loading="lazy"
-        />
-        <div class="trio-item-overlay"></div>
-        <div class="trio-item-content">
-          <span class="trio-item-tag">Collezione</span>
-          <h3 class="trio-item-name">Vestiti &<br>Gonne</h3>
-          <a href="shop?categoria=vestiti" class="trio-item-cta">
-            Scopri
+      <div class="trio-item trio-verde">
+        <a href="shop?categoria=vestiti" class="trio-item-media" aria-label="Scopri Vestiti e Gonne">
+          <img
+            src="/media/home-5.jpg"
+            alt="Vestiti"
+            loading="lazy"
+          />
+        </a>
+        <div class="trio-item-panel">
+          <div>
+            <span class="trio-item-tag">Collezione</span>
+            <h3 class="trio-item-name">Vestiti & Gonne</h3>
+          </div>
+          <a href="shop?categoria=vestiti" class="trio-item-cta" aria-label="Scopri Vestiti e Gonne">
             <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
         </div>
       </div>
 
-      <div class="trio-item">
-        <img
-          src="/media/home-1.jpg"
-          alt="Top e Camicie"
-          loading="lazy"
-        />
-        <div class="trio-item-overlay"></div>
-        <div class="trio-item-content">
-          <span class="trio-item-tag">Nuovi Arrivi</span>
-          <h3 class="trio-item-name">Top &<br>Camicie</h3>
-          <a href="shop?categoria=top" class="trio-item-cta">
-            Scopri
+      <div class="trio-item trio-viola">
+        <a href="shop?categoria=top" class="trio-item-media" aria-label="Scopri Top e Camicie">
+          <img
+            src="/media/home-1.jpg"
+            alt="Top e Camicie"
+            loading="lazy"
+          />
+        </a>
+        <div class="trio-item-panel">
+          <div>
+            <span class="trio-item-tag">Nuovi Arrivi</span>
+            <h3 class="trio-item-name">Top & Camicie</h3>
+          </div>
+          <a href="shop?categoria=top" class="trio-item-cta" aria-label="Scopri Top e Camicie">
             <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
         </div>
       </div>
 
-      <div class="trio-item">
-        <img
-          src="/media/home-4.jpg"
-          alt="Accessori"
-          loading="lazy"
-        />
-        <div class="trio-item-overlay"></div>
-        <div class="trio-item-content">
-          <span class="trio-item-tag">Saldi</span>
-          <h3 class="trio-item-name">Accessori &<br>Blazer</h3>
-          <a href="shop?categoria=accessori" class="trio-item-cta">
-            Scopri
+      <div class="trio-item trio-verde">
+        <a href="shop?categoria=accessori" class="trio-item-media" aria-label="Scopri Accessori e Blazer">
+          <img
+            src="/media/home-4.jpg"
+            alt="Accessori"
+            loading="lazy"
+          />
+        </a>
+        <div class="trio-item-panel">
+          <div>
+            <span class="trio-item-tag">Saldi</span>
+            <h3 class="trio-item-name">Accessori & Blazer</h3>
+          </div>
+          <a href="shop?categoria=accessori" class="trio-item-cta" aria-label="Scopri Accessori e Blazer">
             <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
         </div>
