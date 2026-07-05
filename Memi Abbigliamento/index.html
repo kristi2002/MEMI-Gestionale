@@ -776,7 +776,20 @@
     /* ============================================================
        8. SHOP THE LOOK
        ============================================================ */
-    .instagram-section { background: var(--cream); }
+    .instagram-section { background: var(--cream); position: relative; overflow: hidden; }
+    .instagram-section .container { position: relative; z-index: 1; }
+    .look-ribbons { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+    .look-ribbon { position: absolute; top: -10px; transform-origin: top center; animation: ribbonSway 9s ease-in-out infinite; }
+    .look-ribbon.r1 { left: 3%;  width: 52px; height: 46%; opacity: .5; }
+    .look-ribbon.r2 { left: 9%;  width: 34px; height: 30%; opacity: .38; animation-duration: 12s; animation-delay: -4s; }
+    .look-ribbon.r3 { right: 8%; width: 52px; height: 52%; opacity: .5; animation-delay: -6s; animation-duration: 10s; }
+    .look-ribbon.r4 { right: 3%; width: 32px; height: 26%; opacity: .38; animation-delay: -2s; animation-duration: 13s; }
+    @keyframes ribbonSway {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50%      { transform: translateY(7px) rotate(1.4deg); }
+    }
+    @media (max-width: 639px) { .look-ribbon.r2, .look-ribbon.r4 { display: none; } .look-ribbon { opacity: .3; } }
+    @media (prefers-reduced-motion: reduce) { .look-ribbon { animation: none; } }
     .looks-home-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -1294,6 +1307,32 @@
        7. SHOP THE LOOK
        ============================================================ -->
   <section class="section instagram-section" id="instagram">
+    <div class="look-ribbons" aria-hidden="true">
+      <svg class="look-ribbon r1" viewBox="-15 0 110 600" preserveAspectRatio="none">
+        <defs><linearGradient id="ribGradA" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#8F8FC1"/><stop offset=".5" stop-color="#6B6BA3"/><stop offset="1" stop-color="#A9A9D6"/>
+        </linearGradient></defs>
+        <path fill="url(#ribGradA)" d="M20,0 C55,80 -15,160 20,240 C55,320 -15,400 20,480 L20,600 L40,556 L60,600 L60,480 C25,400 95,320 60,240 C25,160 95,80 60,0 Z"/>
+      </svg>
+      <svg class="look-ribbon r2" viewBox="-15 0 110 600" preserveAspectRatio="none">
+        <defs><linearGradient id="ribGradB" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#CFCFE8"/><stop offset="1" stop-color="#8F8FC1"/>
+        </linearGradient></defs>
+        <path fill="url(#ribGradB)" d="M20,0 C50,90 -10,180 20,270 C50,360 -10,450 20,540 L20,600 L40,558 L60,600 L60,540 C30,450 90,360 60,270 C30,180 90,90 60,0 Z"/>
+      </svg>
+      <svg class="look-ribbon r3" viewBox="-15 0 110 600" preserveAspectRatio="none">
+        <defs><linearGradient id="ribGradC" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#6B6BA3"/><stop offset=".55" stop-color="#5C5C94"/><stop offset="1" stop-color="#8F8FC1"/>
+        </linearGradient></defs>
+        <path fill="url(#ribGradC)" d="M20,0 C-10,85 55,170 20,255 C-10,340 55,425 20,510 L20,600 L40,552 L60,600 L60,510 C95,425 30,340 60,255 C95,170 30,85 60,0 Z"/>
+      </svg>
+      <svg class="look-ribbon r4" viewBox="-15 0 110 600" preserveAspectRatio="none">
+        <defs><linearGradient id="ribGradD" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#A9A9D6"/><stop offset="1" stop-color="#CFCFE8"/>
+        </linearGradient></defs>
+        <path fill="url(#ribGradD)" d="M20,0 C48,100 -8,200 20,300 C48,400 -8,500 20,560 L20,600 L40,560 L60,600 L60,560 C88,500 32,400 60,300 C88,200 32,100 60,0 Z"/>
+      </svg>
+    </div>
     <div class="container">
       <div class="section-header reveal" style="margin-bottom:var(--space-8);">
         <h2 class="section-title">Shop <em>the Look</em></h2>
