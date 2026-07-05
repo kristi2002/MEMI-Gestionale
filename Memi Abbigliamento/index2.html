@@ -825,18 +825,15 @@
       overflow: hidden;
       cursor: pointer;
     }
-    .trio-item::before,
     .trio-item::after {
       content: "";
       position: absolute;
-      left: 0; right: 0;
+      left: 0; right: 0; bottom: 0;
       height: 4px;
       background: var(--trio-accent, var(--brand-mint-mid, #9CB37F));
       z-index: 3;
       transition: height var(--dur-med, 0.3s);
     }
-    .trio-item::before { top: 0; }
-    .trio-item::after { bottom: 0; }
     .trio-item:hover::after { height: 7px; }
     .trio-grid .trio-item:nth-child(2) { --trio-accent: var(--brand-violet-mid, #8F8FC1); }
     .trio-item img { transition: transform 1.1s var(--ease-out); }
@@ -865,7 +862,16 @@
       color: rgba(255,255,255,.55);
       font-weight: 500;
       margin-bottom: var(--space-2);
-      display: block;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .trio-tag-icon {
+      width: 13px; height: 13px;
+      flex: 0 0 auto;
+      stroke: var(--trio-accent, var(--brand-mint-mid, #9CB37F));
+      fill: none; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round;
     }
     .trio-item-name {
       font-family: var(--font-serif);
@@ -886,7 +892,7 @@
     }
     .trio-item:hover .trio-item-cta {
       color: rgba(255,255,255,.85);
-      border-color: rgba(255,255,255,.4);
+      border-color: var(--trio-accent, var(--brand-mint-mid, #9CB37F));
     }
     .trio-item-cta svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
 
@@ -1337,7 +1343,7 @@
         />
         <div class="trio-item-overlay"></div>
         <div class="trio-item-content">
-          <span class="trio-item-tag">Collezione</span>
+          <span class="trio-item-tag"><svg class="trio-tag-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9l4-6z"/><path d="M2 9h20"/><path d="M12 3 8 9l4 12 4-12-4-6"/></svg>Collezione</span>
           <h3 class="trio-item-name">Vestiti &<br>Gonne</h3>
           <a href="shop?categoria=vestiti" class="trio-item-cta">
             Scopri
@@ -1354,7 +1360,7 @@
         />
         <div class="trio-item-overlay"></div>
         <div class="trio-item-content">
-          <span class="trio-item-tag">Nuovi Arrivi</span>
+          <span class="trio-item-tag"><svg class="trio-tag-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.8L20 12l-6.1 3.2L12 21l-1.9-5.8L4 12l6.1-3.2L12 3z"/></svg>Nuovi Arrivi</span>
           <h3 class="trio-item-name">Top &<br>Camicie</h3>
           <a href="shop?categoria=top" class="trio-item-cta">
             Scopri
@@ -1371,7 +1377,7 @@
         />
         <div class="trio-item-overlay"></div>
         <div class="trio-item-content">
-          <span class="trio-item-tag">Saldi</span>
+          <span class="trio-item-tag"><svg class="trio-tag-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.83z"/><circle cx="7" cy="7" r="1.5"/></svg>Saldi</span>
           <h3 class="trio-item-name">Accessori &<br>Blazer</h3>
           <a href="shop?categoria=accessori" class="trio-item-cta">
             Scopri
