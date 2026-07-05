@@ -128,3 +128,22 @@ Key facts now true in the code (both sprints combined):
 
 **productsData.js** is no longer a runtime source of truth — all catalog surfaces read from the API.
 The file still exists for reference but is not loaded by any customer-facing page.
+
+## Update Luglio 2026 — demo catalog fully alive
+- `memi-products-seed.csv` now carries Italian descriptions, varied per-size stock (some sizes
+  intentionally 0 to demo the OOS strikethrough UI) and 2–3 **verified** Unsplash `image_urls`
+  per product (all 23 products covered). Re-import via admin (Prodotti → Importa CSV) or
+  `POST /api/admin/products/import` — the backend downloads the images itself (sharp → WebP →
+  `/api/uploads`, persisted in the `uploads_data` volume). **Careful: import appends images** —
+  re-running the same CSV duplicates gallery photos (clear `products.images` first, or attach
+  photos with bulk-images `mode=replace`).
+- `MEMI-Backend/src/db/seed-reviews.sql` — 20 published demo reviews. Idempotent (deletes rows
+  with the `@demo.memi.it` email domain before inserting). Apply *after* the catalog exists
+  (FK on `product_id`): `Get-Content ...seed-reviews.sql -Raw | docker exec -i <mysql> mysql -uroot -p<pw> memi_db`.
+- `product.html` PDP is fully data-driven now: per-category care list + size-guide table
+  (letters / IT pantaloni / EU scarpe; hidden for bags-jewellery-belts), Klarna rate computed
+  from price, header rating synced to real reviews (hardcoded "4.8 (32 recensioni)" removed),
+  and a dynamic "Completa il look" section (complementary categories via `OUTFIT_MAP`) replacing
+  the old hardcoded related cards.
+- Home "video moment" section now plays `/media/hero.mp4`; two dead Unsplash hero URLs replaced
+  (`collections/gonne`, `collections/pantaloni`, `shop.html` BG_MAP).
