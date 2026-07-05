@@ -921,13 +921,26 @@
       gap: var(--space-3);
     }
     @media (min-width: 900px) { .looks-home-grid { grid-template-columns: repeat(4, 1fr); gap: var(--space-4); } }
-    .look-tile { position: relative; display: block; overflow: hidden; border-radius: var(--radius-lg); background: var(--beige); aspect-ratio: 3/4; text-decoration: none; }
+    .instagram-section .section-title em { color: var(--lavender-dark); }
+    .look-tile {
+      --accent-strong: var(--lavender-dark);
+      --accent-on-dark: #C9C9EC;
+      --accent-chip-bg: rgba(143,143,193,.30);
+      --accent-chip-border: rgba(201,201,236,.55);
+      position: relative; display: block; overflow: hidden; border-radius: var(--radius-lg); background: var(--beige); aspect-ratio: 3/4; text-decoration: none;
+    }
+    .look-tile.tile-verde {
+      --accent-strong: var(--sage-dark);
+      --accent-on-dark: #CFE3B4;
+      --accent-chip-bg: rgba(156,179,127,.30);
+      --accent-chip-border: rgba(207,227,180,.55);
+    }
     .look-tile img { position: absolute; inset: 0; height: 100%; object-position: center top; transition: transform var(--dur-med) var(--ease-out); }
     .look-tile:hover img, .look-tile:focus-visible img { transform: scale(1.05); }
     .look-tile-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(59,43,43,.74) 0%, rgba(59,43,43,.22) 45%, rgba(59,43,43,0) 72%); }
     .look-tile-body { position: absolute; left: 0; right: 0; bottom: 0; padding: var(--space-4); }
     @media (min-width: 900px) { .look-tile-body { padding: var(--space-5); } }
-    .look-tile-num { font-size: 10px; letter-spacing: var(--tracking-wider); text-transform: uppercase; color: rgba(255,255,255,.65); margin-bottom: 2px; }
+    .look-tile-num { font-size: 10px; letter-spacing: var(--tracking-wider); text-transform: uppercase; color: var(--accent-on-dark); margin-bottom: 2px; }
     .look-tile-name { font-family: var(--font-serif); font-size: var(--text-xl); font-weight: 300; color: var(--white); line-height: var(--leading-tight); margin-bottom: 4px; }
     .look-tile-name em { font-style: italic; }
     .look-tile-meta { font-size: var(--text-xs); color: rgba(255,255,255,.75); }
@@ -940,10 +953,10 @@
                   transform var(--dur-med) var(--ease-out), margin-top var(--dur-med) var(--ease-out);
     }
     .look-tile:hover .look-tile-pieces, .look-tile:focus-visible .look-tile-pieces { max-height: 120px; opacity: 1; transform: translateY(0); margin-top: var(--space-3); }
-    .look-tile-pieces li { font-size: 10px; font-weight: 500; letter-spacing: .04em; color: var(--white); background: rgba(255,253,249,.14); border: 1px solid rgba(255,253,249,.35); backdrop-filter: blur(6px); padding: 3px 10px; border-radius: var(--radius-full); white-space: nowrap; }
+    .look-tile-pieces li { font-size: 10px; font-weight: 500; letter-spacing: .04em; color: var(--white); background: var(--accent-chip-bg); border: 1px solid var(--accent-chip-border); backdrop-filter: blur(6px); padding: 3px 10px; border-radius: var(--radius-full); white-space: nowrap; }
     .look-tile-cta {
       display: inline-flex; align-items: center; gap: 6px; margin-top: var(--space-3);
-      background: var(--white); color: var(--espresso);
+      background: var(--accent-strong); color: var(--white);
       font-size: 10px; font-weight: 700; letter-spacing: var(--tracking-wider); text-transform: uppercase;
       padding: 7px 14px; border-radius: var(--radius-full); box-shadow: var(--shadow-md);
       opacity: 0; transform: translateY(6px);
@@ -955,10 +968,10 @@
     .looks-home-more { text-align: center; margin-top: var(--space-8); }
     .looks-home-more a {
       font-size: var(--text-xs); letter-spacing: var(--tracking-wider); text-transform: uppercase;
-      font-weight: 500; color: var(--brown-mid); border-bottom: 1px solid var(--beige-dark); padding-bottom: 2px;
+      font-weight: 600; color: var(--lavender-dark); border-bottom: 1px solid var(--lavender-dark); padding-bottom: 2px;
       transition: color var(--dur-fast), border-color var(--dur-fast);
     }
-    .looks-home-more a:hover { color: var(--espresso); border-color: var(--espresso); }
+    .looks-home-more a:hover { color: var(--brand-violet-deep); border-color: var(--brand-violet-deep); }
 
     /* ============================================================
        8.5 INSTAGRAM LOOKBOOK
@@ -1453,7 +1466,7 @@
             <span class="look-tile-cta"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Acquista il look</span>
           </div>
         </a>
-        <a class="look-tile" href="/look?look=2" aria-label="Shop the Look 2 — Verde Salvia, 2 capi, totale €184">
+        <a class="look-tile tile-verde" href="/look?look=2" aria-label="Shop the Look 2 — Verde Salvia, 2 capi, totale €184">
           <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80" alt="Look Verde Salvia" loading="lazy"/>
           <div class="look-tile-overlay"></div>
           <div class="look-tile-body">
@@ -1479,7 +1492,7 @@
             <span class="look-tile-cta"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>Acquista il look</span>
           </div>
         </a>
-        <a class="look-tile" href="/look?look=4" aria-label="Shop the Look 4 — Total Cream, 2 capi, totale €178">
+        <a class="look-tile tile-verde" href="/look?look=4" aria-label="Shop the Look 4 — Total Cream, 2 capi, totale €178">
           <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80" alt="Look Total Cream" loading="lazy"/>
           <div class="look-tile-overlay"></div>
           <div class="look-tile-body">
