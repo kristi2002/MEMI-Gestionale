@@ -12,6 +12,7 @@
 const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { logAdminAction } = require('../audit');
 
 /* ── GET /api/admin/customers ── */
 router.get('/', requireAdmin, async (req, res) => {
@@ -110,6 +111,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
       `UPDATE customers SET ${fields.join(', ')} WHERE id = ?`, vals
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Cliente non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'customer.update', entityType: 'customer', entityId: req.params.id, details: {} }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });
@@ -121,6 +123,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const [result] = await pool.execute('DELETE FROM customers WHERE id = ?', [req.params.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Cliente non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'customer.delete', entityType: 'customer', entityId: req.params.id, details: {} }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });

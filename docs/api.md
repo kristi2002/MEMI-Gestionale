@@ -38,6 +38,7 @@
 |---|---|---|---|
 | POST | `/api/admin/auth/login` | public | Admin login → admin JWT |
 | GET | `/api/admin/auth/me` | admin | Verify token + profile |
+| PUT | `/api/admin/auth/password` | admin/staff | Change own password (current one required) |
 
 ## Products (`routes/products.js`, `routes/products-import.js`)
 | Method | Path | Auth | Purpose |
@@ -67,6 +68,7 @@
 | POST | `/api/orders/admin` | admin | Manual order creation |
 | PUT | `/api/orders/admin/:id/status` | admin | Update payment_status / order_status (spedito → shipping email) |
 | PUT | `/api/orders/admin/:id/ship` | admin | Assign courier + tracking |
+| POST | `/api/orders/admin/:id/send-tracking` | admin | Re-send the tracking email to the customer |
 | DELETE | `/api/orders/admin/:id` | admin | Delete |
 
 ## Payments — Stripe (`routes/payments.js`)
@@ -107,7 +109,7 @@ GET/POST `/api/admin/campaigns`, PUT/DELETE `/api/admin/campaigns/:id` — tipo 
 Admin CRUD: `/api/admin/cms/pages`, `/api/admin/cms/blog`. Public: GET `/api/cms/published/:slug`.
 
 ## Dashboard (admin) (`routes/dashboard.js`)
-GET `/api/admin/dashboard/kpis`, `/chart` (30d revenue), `/top-products`, `/recent-orders`, `/finance`.
+GET `/api/admin/dashboard/kpis`, `/chart` (30d revenue), `/top-products`, `/recent-orders`, `/finance`, `/catalog-kpis` (active products, low/out-of-stock, today's paid sales/orders).
 
 ## Loyalty (admin) (`routes/loyalty.js`)
 GET/PUT `/api/admin/loyalty/config`; GET `/api/admin/loyalty/customers`, GET `/api/admin/loyalty/customers/:id`, POST `/api/admin/loyalty/customers/:id/adjust`.
@@ -122,7 +124,7 @@ GET/PUT `/api/admin/settings` (flat key/value in `store_settings`); GET `/api/ad
 GET `/api/admin/audit-log` — read-only, filter by entity_type, limit 1–1000.
 
 ## Rate limits (server.js)
-- General API: 300 req/15min — Auth endpoints: 20/15min — Checkout (orders + create-intent): 30/15min.
+- General API: 300 req/15min — Auth: 20/15min — Checkout (orders + create-intent): 30/15min — Public writes (reviews, newsletter, resi request): 10/15min — Gift-card code validation: 30/15min.
 
 ## Error conventions
 - 404 JSON `{error:'Endpoint non trovato'}`; 500 generic; login errors non-enumerating; Stripe mismatch → 402; unconfigured Stripe → 503; emails/audit best-effort (never block).

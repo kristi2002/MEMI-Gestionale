@@ -64,6 +64,7 @@
     },
     logout:    function() { clearToken(); },
     me:        function() { return get('/admin/auth/me'); },
+    changePassword: function(current, nw) { return put('/admin/auth/password', { current_password: current, new_password: nw }); },
     isLoggedIn: function() { return !!getToken(); },
   };
 
@@ -76,6 +77,7 @@
     topProducts:  function() { return get('/admin/dashboard/top-products'); },
     recentOrders: function() { return get('/admin/dashboard/recent-orders'); },
     finance:      function() { return get('/admin/dashboard/finance'); },
+    catalogKpis:  function() { return get('/admin/dashboard/catalog-kpis'); },
   };
 
   /* ═══════════════════════════════════════════════════════

@@ -20,6 +20,8 @@ const multer = require('multer');
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const { processAndStore, deleteVariants } = require('../images');
+const { validateBody, createProductSchema, updateProductSchema } = require('../validation');
+const { logAdminAction } = require('../audit');
 
 /* mysql2 returns JSON columns already parsed (object/array). Older rows or
    non-JSON storage may return a string. This handles both safely. */
@@ -138,7 +140,7 @@ router.get('/:id/stock', async (req, res) => {
    ══════════════════════════════════════════════════════════════ */
 
 /* ── POST /api/products ── */
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireAdmin, validateBody(createProductSchema), async (req, res) => {
   const {
     id, name, categoria, colore = null, color_label = null, price, original_price = null,
     discount_pct = 0, is_new = false, icon = 'dress', alt_color = null,
@@ -170,6 +172,7 @@ router.post('/', requireAdmin, async (req, res) => {
     }
 
     await conn.commit();
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'product.create', entityType: 'product', entityId: id, details: { name } }).catch(() => {});
     return res.status(201).json({ ok: true, id });
   } catch (err) {
     await conn.rollback();
@@ -183,7 +186,7 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /api/products/:id ── */
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireAdmin, validateBody(updateProductSchema), async (req, res) => {
   const {
     name, categoria, colore, color_label, price, original_price,
     discount_pct, is_new, icon, alt_color, popularity,
@@ -233,6 +236,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
     }
 
     await conn.commit();
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'product.update', entityType: 'product', entityId: req.params.id, details: {} }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     await conn.rollback();
@@ -249,6 +253,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     const [result] = await pool.execute('DELETE FROM products WHERE id = ?', [req.params.id]);
     if (result.affectedRows === 0)
       return res.status(404).json({ error: 'Prodotto non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'product.delete', entityType: 'product', entityId: req.params.id, details: {} }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     console.error('product delete error', err);

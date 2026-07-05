@@ -252,6 +252,40 @@
     if (!productId) return;
 
     window.MemiAPI.products.get(productId).then(function (p) {
+      /* SEO: canonical + Product structured data, built from live API data. */
+      try {
+        var canon = 'https://memiabbigliamento.it/product?id=' + encodeURIComponent(productId);
+        if (!document.querySelector('link[rel="canonical"]')) {
+          var lk = document.createElement('link'); lk.rel = 'canonical'; lk.href = canon;
+          document.head.appendChild(lk);
+        }
+        var ldImgs = (Array.isArray(p.images) ? p.images : []).map(function (x) {
+          var u = (typeof x === 'string') ? x : (x.full || x.card || x.thumb);
+          if (u && u.indexOf('http') !== 0) u = 'https://memiabbigliamento.it' + u;
+          return u;
+        }).filter(Boolean);
+        var inStock = (p.status !== 'esaurito');
+        if (Array.isArray(p.taglie) && p.taglie.length && typeof p.taglie[0] === 'object') {
+          inStock = p.taglie.some(function (tg) { return Number(tg.stock) > 0; });
+        }
+        var ld = {
+          '@context': 'https://schema.org', '@type': 'Product',
+          name: p.name, sku: p.id, url: canon,
+          description: (p.description || p.name || ''),
+          image: ldImgs,
+          brand: { '@type': 'Brand', name: 'Memi Abbigliamento' },
+          offers: {
+            '@type': 'Offer', url: canon, priceCurrency: 'EUR',
+            price: String(p.price),
+            availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'
+          }
+        };
+        var ldTag = document.createElement('script');
+        ldTag.type = 'application/ld+json';
+        ldTag.textContent = JSON.stringify(ld);
+        document.head.appendChild(ldTag);
+      } catch (_) {}
+
       var raw = (p && Array.isArray(p.images)) ? p.images : [];
       var imgs = raw.map(function (x) {
         if (typeof x === 'string') return { full: x, card: x, thumb: x };

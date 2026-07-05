@@ -167,6 +167,27 @@ app.use('/api/admin/auth/login',     authLimiter);
 // mounted, so it layers on top of the routes' own handlers rather than replacing them.
 app.post('/api/orders', checkoutLimiter);
 app.post('/api/payments/create-intent', checkoutLimiter);
+// Public write endpoints — small budget stops review/newsletter bot floods
+// without ever bothering a real shopper.
+const publicWriteLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppe richieste, riprova più tardi' },
+});
+// Gift-card code validation — throttled hard to make code enumeration impractical.
+const codeProbeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppi tentativi, riprova più tardi' },
+});
+app.post('/api/reviews', publicWriteLimiter);
+app.post('/api/newsletter/subscribe', publicWriteLimiter);
+app.post('/api/resi/request', publicWriteLimiter);
+app.use('/api/giftcards/validate', codeProbeLimiter);
 
 // ── Health check ───────────────────────────────────────────────
 // Checks DB connectivity, not just "the process is alive" — a Docker/Coolify healthcheck

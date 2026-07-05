@@ -60,6 +60,10 @@ echo "[4] Admin dashboard"
 if [ -n "$ADMIN_TOKEN" ]; then
   C="$(code -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/dashboard/kpis")"
   [ "$C" = "200" ] && ok "GET /api/admin/dashboard/kpis -> 200" || ko "kpis -> HTTP $C"
+  C="$(code -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/dashboard/catalog-kpis")"
+  [ "$C" = "200" ] && ok "GET /api/admin/dashboard/catalog-kpis -> 200" || ko "catalog-kpis -> HTTP $C"
+  C="$(code -X PUT -H "Content-Type: application/json" -d '{"current_password":"x","new_password":"yyyyyyyy"}' "$BASE/api/admin/auth/password")"
+  [ "$C" = "401" ] && ok "PUT /api/admin/auth/password without token -> 401" || ko "password change unauth -> HTTP $C"
 else
   ko "skipped — no admin token"
 fi

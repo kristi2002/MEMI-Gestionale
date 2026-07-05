@@ -150,6 +150,24 @@
       esc(msg) + '</div>';
   }
 
+
+  /* Recount the category filter chips from the live API data, so the counts
+     baked into the generated collections HTML can never drift. Hides empty ones. */
+  function updateFilterCounts(products) {
+    try {
+      var byCat = {};
+      products.forEach(function (p) { var c = p.categoria || ''; byCat[c] = (byCat[c] || 0) + 1; });
+      var inputs = document.querySelectorAll('.check-list input[data-cat]');
+      Array.prototype.forEach.call(inputs, function (inp) {
+        var n = byCat[inp.getAttribute('data-cat')] || 0;
+        var label = inp.closest('.check-item');
+        var span = label && label.querySelector('.check-count');
+        if (span) span.textContent = '(' + n + ')';
+        if (label) label.style.display = n ? '' : 'none';
+      });
+    } catch (_) {}
+  }
+
   /* ── Main ──────────────────────────────────────────────── */
   function init() {
     var cfg  = resolveConfig();
@@ -196,6 +214,7 @@
 
         grid.innerHTML = restProducts.map(function (p, i) { return buildCard(p, i); }).join('');
         setCounts(products.length);
+        updateFilterCounts(products);
 
         // Re-run the filter engine's hooks if present (collections pages).
         if (typeof window.applyFilters === 'function') window.applyFilters();

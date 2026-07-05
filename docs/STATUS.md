@@ -15,12 +15,12 @@
 | Returns request | WIRED | Public `/resi/request`; admin workflow behind it |
 | Password reset | WIRED | 1h token email |
 | Newsletter signup | WIRED (verify UX) | Footer form auto-wired; success/error feedback minimal |
-| Blog / campagne / articolo / pagina pages | PLACEHOLDER | Static shells; CMS content not rendered on storefront |
+| Blog / articolo / pagina pages | WIRED | Render published CMS content (restored 2026-07-05; were truncated files) |
 
 ## Admin panel — view by view
 | View | Status |
 |---|---|
-| Dashboard, Analytics, Finance, Payouts | WIRED (real KPIs/chart/finance endpoints) |
+| Dashboard, Analytics, Finance, Payouts | WIRED (+ catalog KPI row: products/low-stock/out-of-stock/orders-today, 2026-07-05) |
 | Orders (list/detail/status/ship/create/delete) | WIRED |
 | Products (CRUD, images, stock, CSV import) | WIRED |
 | Inventory / Collections / Categories | WIRED (derived from products API) |
@@ -41,15 +41,15 @@
 | **Abandoned carts** | UI-ONLY — always empty, no endpoint |
 | **Live view** | UI-ONLY — needs analytics integration |
 | **Pop-ups, Menus, POS, Bills, Social/marketplace, Apps store** | UI-ONLY façades |
-| Send-tracking-email button | PARTIAL — copies to clipboard; no email endpoint |
+| Send-tracking-email button | WIRED — POST /orders/admin/:id/send-tracking (2026-07-05) |
 | Taxes view | PARTIAL — reads settings only |
 
 ## Backend — cross-cutting
 | Area | Status |
 |---|---|
 | Security: parameterized SQL, bcrypt, separate JWTs, Helmet, CORS, rate limits | GOOD |
-| Zod validation | PARTIAL — on register/login/orders/discounts/giftcards/create-intent; missing on many admin PUTs |
-| Audit logging | PARTIAL — not called on every sensitive op |
+| Zod validation | GOOD — also products/campaigns/discounts/giftcards/staff mutations (passthrough) |
+| Audit logging | GOOD — orders, discounts, giftcards, loyalty, resi, settings, staff + products/customers/reviews/password (2026-07-05) |
 | Emails: welcome, order confirm, shipping, password reset, gift card | WIRED (no-op without SMTP) |
 | Stripe: intent verify, webhook, refunds (via resi) | WIRED |
 | Structured logging (Pino) | PARTIAL — console.log remnants |

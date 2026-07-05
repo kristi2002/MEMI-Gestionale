@@ -12,6 +12,7 @@
 const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { validateBody, campaignSchema, updateCampaignSchema } = require('../validation');
 
 const ALLOWED_TIPI  = ['email', 'ads', 'automazione', 'sms'];
 const ALLOWED_STATI = ['bozza', 'attiva', 'pianificata', 'conclusa'];
@@ -28,7 +29,7 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 /* ── POST /api/admin/campaigns ── */
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireAdmin, validateBody(campaignSchema), async (req, res) => {
   const { nome, tipo = 'email', canale, budget = 0, destinatari = 0, stato = 'bozza' } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ error: 'Nome obbligatorio' });
   if (!ALLOWED_TIPI.includes(tipo))   return res.status(400).json({ error: 'Tipo non valido' });
@@ -48,7 +49,7 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /api/admin/campaigns/:id ── */
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireAdmin, validateBody(updateCampaignSchema), async (req, res) => {
   const { nome, tipo, canale, budget, destinatari, stato, open_rate, click_rate, revenue } = req.body;
   if (tipo  !== undefined && !ALLOWED_TIPI.includes(tipo))   return res.status(400).json({ error: 'Tipo non valido' });
   if (stato !== undefined && !ALLOWED_STATI.includes(stato)) return res.status(400).json({ error: 'Stato non valido' });

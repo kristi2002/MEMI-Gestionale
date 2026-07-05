@@ -316,3 +316,28 @@ orders. These are new features, not fixes — best tackled during/after the Reac
   mutations; audit-log coverage; staff self password change.
 - Phase D: Product JSON-LD, collection canonicals, client-side filter recounts.
 - Phase E: catalog KPI row on the admin dashboard (cockpit preview parity).
+
+### 2026-07-05 (later) — Phases D + E delivered
+- **D1** `product.js`: injects canonical link + schema.org Product JSON-LD (name, sku, images with absolute
+  URLs, price, availability from live stock) on product-page hydrate.
+- **D2** canonical `<link>` on all 15 `collections/*/index.html` + emitted by `generate-collections.js`.
+- **D3** `catalog-loader.js` recounts the category filter chips from live API data after render and hides
+  empty categories — the baked-in counts can no longer drift.
+- **E** `GET /api/admin/dashboard/catalog-kpis` (active products, low stock ≤3, out-of-stock, today's paid
+  sales/orders) + second KPI row on the admin dashboard (Prodotti attivi / Scorte basse / Esauriti /
+  Ordini oggi) matching the cockpit preview. Fetch is fail-safe: endpoint failure can't blank the dashboard.
+- Bookkeeping: contract pairs in `verify/contract.cjs`, rows in `docs/integrations.md`, assertion in
+  `smoke-test.sh`, docs/api.md + STATUS.md updated. Phase C (hardening) remains open by user choice.
+
+### 2026-07-05 (later still) — Phase C: hardening delivered
+- **Rate limits** (server.js): `publicWriteLimiter` 10/15min on POST /reviews, /newsletter/subscribe,
+  /resi/request; `codeProbeLimiter` 30/15min on /giftcards/validate/* (anti-enumeration).
+- **Zod validation** extended (all `.passthrough()` so extra legit fields survive): products create/update,
+  campaigns create/update, discounts update, giftcards update, staff create/update (staff empty-password
+  means "don't change"). 8 new schemas in src/validation.js.
+- **Audit logging** added to products (create/update/delete), customers (update/delete), reviews
+  (moderate/delete) — plus admin.change_password.
+- **Staff self password change**: `PUT /api/admin/auth/password` (verifies current password, min 8 chars,
+  bcrypt, audited) + 🔑 button in the admin sidebar footer (works for both admin and staff roles) opening
+  a modal with confirmation field.
+- Bookkeeping: 6 new contract checks, smoke-test 401 assertion, docs/api.md + integrations.md updated.

@@ -59,7 +59,7 @@ router.post('/', requireAdmin, validateBody(createDiscountSchema), async (req, r
 });
 
 /* ── PUT /api/admin/discounts/:id ── */
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireAdmin, validateBody(updateDiscountSchema), async (req, res) => {
   const { tipo, valore, max_utilizzi, scadenza, stato, min_order } = req.body;
   if (tipo !== undefined && !ALLOWED_TIPI.includes(tipo))
     return res.status(400).json({ error: 'Tipo sconto non valido' });

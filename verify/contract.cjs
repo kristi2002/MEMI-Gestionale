@@ -48,6 +48,22 @@ ok(pagHtml.includes("/api/cms/published/pages/"),        "pagina.html fetches /a
 ok(cms.includes("router.get('/published/pages/:slug'"),  "backend defines GET /cms/published/pages/:slug");
 ok(/<\/html>\s*$/.test(blogHtml) && /<\/html>\s*$/.test(artHtml), "blog + articolo are complete files (anti-truncation)");
 
+const dashboard = read('MEMI-Backend/src/routes/dashboard.js');
+console.log('Dashboard catalog-KPI contract:');
+ok(adminApi.includes("/admin/dashboard/catalog-kpis"),        "admin dashboard.catalogKpis() -> /admin/dashboard/catalog-kpis");
+ok(dashboard.includes("router.get('/catalog-kpis'"),           "backend defines GET /admin/dashboard/catalog-kpis");
+
+const adminAuth = read('MEMI-Backend/src/routes/admin-auth.js');
+const serverJs  = read('MEMI-Backend/src/server.js');
+const productsR = read('MEMI-Backend/src/routes/products.js');
+console.log('Hardening (Phase C) contract:');
+ok(adminApi.includes("/admin/auth/password"),                 "admin auth.changePassword() -> /admin/auth/password");
+ok(adminAuth.includes("router.put('/password'"),               "backend defines PUT /admin/auth/password");
+ok(serverJs.includes("publicWriteLimiter"),                    "rate limit on public writes (reviews/newsletter/resi)");
+ok(serverJs.includes("codeProbeLimiter"),                      "rate limit on gift-card code validation");
+ok(productsR.includes("validateBody(createProductSchema)"),    "zod validation on product create");
+ok(productsR.includes("logAdminAction"),                       "audit logging on product mutations");
+
 console.log('Order-lifecycle correctness invariants:');
 ok(orders.includes("paymentStatus = 'pagato'"),         "verified Stripe payment sets payment_status=pagato");
 ok(orders.includes("Number(pi.amount) !== expected"),   "Stripe amount is verified against the order total");

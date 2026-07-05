@@ -21,7 +21,7 @@ The gaps below are ranked by client-visible value vs risk.
 | G11 | nginx: no HSTS header | Security header hygiene | S |
 | G12 | Backups exist as scripts but cron installation is a manual server step (unverified) | Data safety | S (ops) |
 
-## Phases
+## Phases — status 2026-07-05: A ✅ · B ✅ · C ✅ (2026-07-05) · D ✅ · E ✅ — all phases delivered
 - **Phase A — quick wins (code now):** G1 endpoint `POST /api/orders/admin/:id/send-tracking` reusing the
   existing shipping-confirmation email + wire the admin button; G11 HSTS in both nginx configs; G4 unify
   storefront nav/footer links onto `/collections/<slug>/`; G9 hide façade views from admin nav (keep code);

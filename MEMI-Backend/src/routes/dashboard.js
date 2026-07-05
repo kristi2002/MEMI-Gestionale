@@ -170,4 +170,42 @@ router.get('/finance', requireAdmin, requireRole('admin'), async (req, res) => {
   }
 });
 
+/* ── GET /api/admin/dashboard/catalog-kpis ──
+   Catalog health for the cockpit dashboard: active products, low stock,
+   out of stock, today's paid sales/orders. */
+router.get('/catalog-kpis', requireAdmin, async (req, res) => {
+  try {
+    const [[prod]] = await pool.execute(`
+      SELECT
+        SUM(CASE WHEN status = 'attivo' THEN 1 ELSE 0 END) AS active_products,
+        COUNT(*)                                           AS total_products
+      FROM products
+    `);
+    const [[stock]] = await pool.execute(`
+      SELECT
+        SUM(CASE WHEN p.status = 'esaurito' OR COALESCE(s.tot, 0) = 0 THEN 1 ELSE 0 END) AS out_of_stock,
+        SUM(CASE WHEN p.status <> 'esaurito' AND COALESCE(s.tot, 0) BETWEEN 1 AND 3 THEN 1 ELSE 0 END) AS low_stock
+      FROM products p
+      LEFT JOIN (SELECT product_id, SUM(stock) AS tot FROM product_sizes GROUP BY product_id) s
+        ON s.product_id = p.id
+    `);
+    const [[today]] = await pool.execute(`
+      SELECT COALESCE(SUM(total), 0) AS sales_today, COUNT(*) AS orders_today
+      FROM orders
+      WHERE payment_status = 'pagato' AND DATE(created_at) = CURDATE()
+    `);
+    return res.json({
+      active_products: Number(prod.active_products) || 0,
+      total_products:  Number(prod.total_products)  || 0,
+      low_stock:       Number(stock.low_stock)      || 0,
+      out_of_stock:    Number(stock.out_of_stock)   || 0,
+      sales_today:     Number(today.sales_today)    || 0,
+      orders_today:    Number(today.orders_today)   || 0,
+    });
+  } catch (err) {
+    (req.log || console).error({ err }, 'catalog-kpis error');
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 module.exports = router;

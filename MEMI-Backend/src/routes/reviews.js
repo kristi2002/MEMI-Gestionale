@@ -13,6 +13,7 @@
 const router = require('express').Router();
 const { pool }                     = require('../db');
 const { requireAdmin, optionalCustomer } = require('../middleware/auth');
+const { logAdminAction } = require('../audit');
 
 /* ── GET /api/admin/reviews ── */
 router.get('/admin', requireAdmin, async (req, res) => {
@@ -107,6 +108,7 @@ router.put('/admin/:id', requireAdmin, async (req, res) => {
     const [result] = await pool.execute(`UPDATE reviews SET ${fields.join(', ')} WHERE id = ?`, vals);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Recensione non trovata' });
     const [[review]] = await pool.execute('SELECT * FROM reviews WHERE id = ?', [req.params.id]);
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'review.moderate', entityType: 'review', entityId: req.params.id, details: { stato: req.body && req.body.stato } }).catch(() => {});
     return res.json({ review });
   } catch (err) {
     console.error('update review error', err);
@@ -119,6 +121,7 @@ router.delete('/admin/:id', requireAdmin, async (req, res) => {
   try {
     const [result] = await pool.execute('DELETE FROM reviews WHERE id = ?', [req.params.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Recensione non trovata' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'review.delete', entityType: 'review', entityId: req.params.id, details: {} }).catch(() => {});
     return res.json({ ok: true, message: 'Recensione eliminata' });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });

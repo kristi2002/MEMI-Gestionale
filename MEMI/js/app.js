@@ -13,6 +13,7 @@ const DATA = {
     visitors:{ value: "—",            delta: "", up:false },
     aov:     { value: "—",            delta: "", up:true }
   },
+  catalogKpi: { products: "—", low: "—", out: "—", ordersToday: "—" },
   // All collections start empty and are filled from the API. No mock/seed
   // rows: if an endpoint is unavailable the UI shows an honest empty state
   // instead of fabricated data.
@@ -161,6 +162,29 @@ VIEWS.dashboard = function(){
         <span class="label">AOV</span>
         <span class="value">${k.aov.value}</span>
         <span class="delta ${k.aov.up?'up':'down'}">${k.aov.delta}</span>
+      </div>
+    </div>
+
+    <div class="grid grid-4" style="margin-top:16px">
+      <div class="card kpi pink"><div class="icon-wrap">🏷</div>
+        <span class="label">Prodotti attivi</span>
+        <span class="value">${DATA.catalogKpi.products}</span>
+        <span class="delta up">a catalogo</span>
+      </div>
+      <div class="card kpi warn"><div class="icon-wrap">⚠️</div>
+        <span class="label">Scorte basse</span>
+        <span class="value">${DATA.catalogKpi.low}</span>
+        <span class="delta down">da riordinare</span>
+      </div>
+      <div class="card kpi danger"><div class="icon-wrap">⛔</div>
+        <span class="label">Esauriti</span>
+        <span class="value">${DATA.catalogKpi.out}</span>
+        <span class="delta down">non vendibili</span>
+      </div>
+      <div class="card kpi soft"><div class="icon-wrap">🛍</div>
+        <span class="label">Ordini oggi</span>
+        <span class="value">${DATA.catalogKpi.ordersToday}</span>
+        <span class="delta up">pagati</span>
       </div>
     </div>
 
@@ -2291,6 +2315,29 @@ $(function(){
     });
   });
 
+  // Change own password (any role) — sidebar footer key button
+  $(document).on('click','.js-change-password', function(){
+    openModal('Cambia password',
+      '<div class="field"><label>Password attuale</label><input type="password" id="cpCurrent" autocomplete="current-password"/></div>' +
+      '<div class="field"><label>Nuova password (min 8 caratteri)</label><input type="password" id="cpNew" autocomplete="new-password"/></div>' +
+      '<div class="field"><label>Conferma nuova password</label><input type="password" id="cpNew2" autocomplete="new-password"/></div>',
+      '<button class="btn btn-primary btn-sm" id="cpSubmit">🔑 Aggiorna password</button>'
+    );
+  });
+  $(document).on('click','#cpSubmit', function(){
+    var cur = $('#cpCurrent').val(), nw = $('#cpNew').val(), nw2 = $('#cpNew2').val();
+    if (!cur || !nw)       { toast('Compila tutti i campi','error'); return; }
+    if (nw.length < 8)     { toast('La nuova password deve avere almeno 8 caratteri','error'); return; }
+    if (nw !== nw2)        { toast('Le nuove password non coincidono','error'); return; }
+    var $btn = $(this).prop('disabled', true).text('Aggiornamento…');
+    AdminAPI.auth.changePassword(cur, nw).done(function(){
+      closeModal(); toast('Password aggiornata','success');
+    }).fail(function(xhr){
+      $btn.prop('disabled', false).text('🔑 Aggiorna password');
+      toast((xhr.responseJSON && xhr.responseJSON.error) || 'Errore aggiornamento password','error');
+    });
+  });
+
   // Sidebar mobile menu
   $(document).on('click','#mobileMenu', function(){
     $('.sidebar').toggleClass('mobile-open');
@@ -3842,13 +3889,31 @@ $(function(){
     var api = window.AdminAPI;
     if (!api) { (typeof _origRenderView === 'function' ? _origRenderView : renderView)('dashboard'); return; }
 
+    // Catalog KPIs must never sink the whole dashboard (e.g. during a
+    // mixed-version deploy where the endpoint doesn't exist yet): convert
+    // any failure into an empty result.
+    var catKpisSafe = api.dashboard.catalogKpis().then(
+      function (d) { return [d]; },
+      function ()  { return $.Deferred().resolve([{}]).promise(); }
+    );
+
     $.when(
       api.dashboard.kpis(),
       api.dashboard.recentOrders(),
       api.dashboard.topProducts(),
       api.shipping.shipments(),
-      api.dashboard.chart()
-    ).done(function(kpiRes, ordersRes, topRes, shipRes, chartRes) {
+      api.dashboard.chart(),
+      catKpisSafe
+    ).done(function(kpiRes, ordersRes, topRes, shipRes, chartRes, catRes) {
+      var cat = (catRes && catRes[0]) || {};
+      if (cat && typeof cat.active_products !== 'undefined') {
+        DATA.catalogKpi = {
+          products:    String(cat.active_products),
+          low:         String(cat.low_stock),
+          out:         String(cat.out_of_stock),
+          ordersToday: String(cat.orders_today)
+        };
+      }
       var kpi      = kpiRes[0]   || {};
       var recent   = ordersRes[0]|| [];
       var topProds = topRes[0]   || [];

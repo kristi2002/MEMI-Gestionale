@@ -74,6 +74,61 @@ const createGiftcardSchema = z.object({
   note:            z.string().trim().max(255).optional().nullable(),
 });
 
+/* ── POST/PUT /api/products (admin) ──
+   passthrough(): validates the critical fields without dropping extras
+   (images, icon, alt_color, popularity...) that the route also accepts. */
+const productBaseSchema = z.object({
+  id:           z.string().trim().min(1).max(100),
+  name:         z.string().trim().min(1).max(255),
+  categoria:    z.string().trim().min(1).max(60),
+  price:        z.coerce.number().min(0).max(1000000),
+  original_price: z.coerce.number().min(0).max(1000000).optional().nullable(),
+  discount_pct: z.coerce.number().min(0).max(100).optional(),
+  status:       z.enum(['attivo', 'bozza', 'esaurito']).optional(),
+  collections:  z.array(z.string().trim().max(60)).max(50).optional(),
+  taglie:       z.array(z.object({
+                  taglia: z.string().trim().min(1).max(20),
+                  stock:  z.coerce.number().int().min(0).max(1000000).optional(),
+                }).passthrough()).max(50).optional(),
+}).passthrough();
+const createProductSchema = productBaseSchema;
+const updateProductSchema = productBaseSchema.partial();
+
+/* ── POST/PUT /api/admin/campaigns ── */
+const campaignSchema = z.object({
+  nome:        z.string().trim().min(1).max(255),
+  tipo:        z.enum(['email', 'ads', 'automazione', 'sms']).optional(),
+  canale:      z.string().trim().max(100).optional().nullable(),
+  budget:      z.coerce.number().min(0).max(100000000).optional(),
+  destinatari: z.coerce.number().int().min(0).optional(),
+  stato:       z.enum(['bozza', 'attiva', 'pianificata', 'conclusa']).optional(),
+}).passthrough();
+const updateCampaignSchema = campaignSchema.partial();
+
+/* ── PUT /api/admin/discounts/:id ── */
+const updateDiscountSchema = createDiscountSchema.partial().passthrough();
+
+/* ── PUT /api/admin/giftcards/:id ── */
+const updateGiftcardSchema = z.object({
+  balance: z.coerce.number().min(0).max(100000).optional(),
+  stato:   z.enum(['attiva', 'utilizzata', 'disattivata']).optional(),
+  note:    z.string().trim().max(255).optional().nullable(),
+}).passthrough();
+
+/* ── POST/PUT /api/admin/staff ── */
+const staffCreateSchema = z.object({
+  email:    emailSchema,
+  nome:     z.string().trim().min(1).max(120),
+  password: z.string().min(8, 'Minimo 8 caratteri').max(200),
+  role:     z.enum(['admin', 'staff']).optional(),
+});
+const staffUpdateSchema = z.object({
+  email:    emailSchema.optional(),
+  nome:     z.string().trim().min(1).max(120).optional(),
+  password: z.string().min(8, 'Minimo 8 caratteri').max(200).optional().or(z.literal('').transform(() => undefined)),
+  role:     z.enum(['admin', 'staff']).optional(),
+}).passthrough();
+
 /* ── POST /api/payments/create-intent ── */
 const createIntentSchema = z.object({
   amount_cents: z.coerce.number().int().min(50, 'Importo minimo €0.50'),
@@ -105,4 +160,12 @@ module.exports = {
   createDiscountSchema,
   createGiftcardSchema,
   createIntentSchema,
+  createProductSchema,
+  updateProductSchema,
+  campaignSchema,
+  updateCampaignSchema,
+  updateDiscountSchema,
+  updateGiftcardSchema,
+  staffCreateSchema,
+  staffUpdateSchema,
 };

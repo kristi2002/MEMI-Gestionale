@@ -77,7 +77,7 @@ router.post('/', requireAdmin, validateBody(createGiftcardSchema), async (req, r
 });
 
 /* ── PUT /api/admin/giftcards/:id ── */
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireAdmin, validateBody(updateGiftcardSchema), async (req, res) => {
   const { balance, stato, recipient_email } = req.body;
   try {
     const fields = [];

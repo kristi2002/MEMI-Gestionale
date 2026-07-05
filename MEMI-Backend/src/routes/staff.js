@@ -14,6 +14,7 @@ const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const bcrypt           = require('bcryptjs');
 const { logAdminAction } = require('../audit');
+const { validateBody, staffCreateSchema, staffUpdateSchema } = require('../validation');
 
 /* ── GET /api/admin/staff ── */
 router.get('/', requireAdmin, async (req, res) => {
@@ -29,7 +30,7 @@ router.get('/', requireAdmin, async (req, res) => {
 });
 
 /* ── POST /api/admin/staff ── */
-router.post('/', requireAdmin, async (req, res) => {
+router.post('/', requireAdmin, validateBody(staffCreateSchema), async (req, res) => {
   if (req.admin.role !== 'admin')
     return res.status(403).json({ error: 'Solo admin può creare account staff' });
 
@@ -63,7 +64,7 @@ router.post('/', requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /api/admin/staff/:id ── */
-router.put('/:id', requireAdmin, async (req, res) => {
+router.put('/:id', requireAdmin, validateBody(staffUpdateSchema), async (req, res) => {
   if (req.admin.role !== 'admin')
     return res.status(403).json({ error: 'Solo admin può modificare account staff' });
 
