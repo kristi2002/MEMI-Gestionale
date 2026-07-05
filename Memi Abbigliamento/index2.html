@@ -825,6 +825,17 @@
       overflow: hidden;
       cursor: pointer;
     }
+    .trio-item::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 4px;
+      background: var(--trio-accent, var(--brand-mint-mid, #9CB37F));
+      z-index: 3;
+      transition: height var(--dur-med, 0.3s);
+    }
+    .trio-item:hover::after { height: 7px; }
+    .trio-grid .trio-item:nth-child(2) { --trio-accent: var(--brand-violet-mid, #8F8FC1); }
     .trio-item img { transition: transform 1.1s var(--ease-out); }
     .trio-item:hover img { transform: scale(1.07); }
     .trio-item-overlay {
