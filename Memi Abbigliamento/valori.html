@@ -155,9 +155,8 @@
       font-size: var(--text-xs);
       letter-spacing: var(--tracking-wider);
       text-transform: uppercase;
-      color: var(--espresso);
-      opacity: .55;
-      font-weight: 500;
+      color: var(--brand-violet-dark, #6B6BA3);
+      font-weight: 600;
       margin-bottom: var(--space-5);
     }
     .values-title {
@@ -174,16 +173,26 @@
       display: grid;
       grid-template-columns: 1fr;
       gap: var(--space-8);
-      border-top: 1px solid rgba(59,43,43,.12);
-      padding-top: var(--space-8);
+      border-top: 1px solid var(--beige, #DBDBEE);
+      padding-top: var(--space-10);
     }
     @media (min-width: 640px) { .values-grid { grid-template-columns: 1fr 1fr; } }
     @media (min-width: 900px) { .values-grid { grid-template-columns: repeat(4, 1fr); } }
     .value-icon {
-      font-size: 1.5rem;
-      color: var(--white);
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--brand-mint-light, #EAF1E0);
+      color: var(--brand-violet-dark, #6B6BA3);
+      font-size: 1.35rem;
       line-height: 1;
       margin-bottom: var(--space-4);
+      transition: background .25s ease, color .25s ease, transform .25s ease;
+    }
+    .value-item { transition: transform .25s ease; }
+    .value-item:hover .value-icon {
+      background: var(--brand-violet-dark, #6B6BA3);
+      color: #fff;
+      transform: translateY(-3px);
     }
     .value-name {
       font-family: var(--font-serif);
@@ -360,9 +369,6 @@
   <div data-include="site-footer"></div>
 
   <script src="api-client.js?v=5"></script>
-<<<<<<< HEAD
-  <script src="app.js?v=15"></script>
-=======
   <script src="app.js?v=17"></script>
   <script>
     /* Hero scroll animations: reveal-on-enter + gentle parallax float.
@@ -415,6 +421,5 @@
       update();
     })();
   </script>
->>>>>>> a8a4287b2da003768d9c27532e1e3585f528fafb
 </body>
 </html>

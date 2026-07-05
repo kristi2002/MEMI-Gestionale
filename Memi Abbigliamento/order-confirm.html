@@ -533,11 +533,7 @@
   </footer>
 
   <script src="api-client.js?v=5"></script>
-<<<<<<< HEAD
-  <script src="app.js?v=15"></script>
-=======
   <script src="app.js?v=17"></script>
->>>>>>> a8a4287b2da003768d9c27532e1e3585f528fafb
   <script>
     // ── Order number ──────────────────────────────────────
     function genOrderNum() {
@@ -719,31 +715,3 @@
             ctx.globalAlpha = Math.max(0, p.alpha);
             ctx.translate(p.x, p.y);
             ctx.rotate(p.rot);
-            drawPetal(ctx, p.w, p.h);
-            ctx.fillStyle = p.color;
-            ctx.fill();
-            // Subtle inner highlight
-            ctx.globalAlpha = Math.max(0, p.alpha * 0.35);
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.ellipse(0, -p.h * 0.12, p.w * 0.22, p.h * 0.18, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-          }
-        });
-
-        if (alive) requestAnimationFrame(draw);
-        else canvas.style.display = 'none';
-      }
-
-      // Start after a brief delay so the checkmark animates first
-      setTimeout(() => requestAnimationFrame(draw), 500);
-
-      window.addEventListener('resize', () => {
-        canvas.width  = window.innerWidth;
-        canvas.height = window.innerHeight;
-      });
-    })();
-  </script>
-</body>
-</html>

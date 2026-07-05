@@ -196,11 +196,7 @@
 </main>
 
 <script src="api-client.js?v=5"></script>
-<<<<<<< HEAD
-  <script src="app.js?v=15"></script>
-=======
   <script src="app.js?v=17"></script>
->>>>>>> a8a4287b2da003768d9c27532e1e3585f528fafb
 <script>
 (function () {
   var ICONS = {
@@ -339,22 +335,4 @@
 
     if (window.MemiAPI && window.MemiAPI.products) {
       window.MemiAPI.products.list({ limit: 300 })
-        .then(function (res) {
-          var list = Array.isArray(res) ? res : (res && res.products) || [];
-          window.PRODUCTS = list.map(mapApiToProduct);
-        })
-        .catch(function () { window.PRODUCTS = window.PRODUCTS || []; })
-        .finally(start);
-    } else {
-      start();
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-})();
-</script>
-</body>
+        .

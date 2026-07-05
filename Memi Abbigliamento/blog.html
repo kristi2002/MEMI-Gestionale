@@ -56,11 +56,7 @@
   <div data-include="site-footer"></div>
 
   <script src="api-client.js?v=5"></script>
-<<<<<<< HEAD
-  <script src="app.js?v=15"></script>
-=======
   <script src="app.js?v=17"></script>
->>>>>>> a8a4287b2da003768d9c27532e1e3585f528fafb
   <script>
   (function(){
     function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -77,11 +73,4 @@
             '<h2 class="blog-title">' + esc(p.titolo) + '</h2>' +
             (p.estratto ? '<p class="blog-excerpt">' + esc(p.estratto) + '</p>' : '') +
             (p.published_at ? '<p class="blog-date">' + fmtDate(p.published_at) + '</p>' : '') +
-          '</a>';
-        }).join('');
-      })
-      .catch(function(){ grid.innerHTML = '<div class="blog-empty">Impossibile caricare gli articoli.</div>'; });
-  })();
-  </script>
-</body>
-</html>
+       

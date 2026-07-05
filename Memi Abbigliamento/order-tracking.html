@@ -161,11 +161,7 @@
   <div data-include="site-footer"></div>
 
   <script src="api-client.js?v=5"></script>
-<<<<<<< HEAD
-  <script src="app.js?v=15"></script>
-=======
   <script src="app.js?v=17"></script>
->>>>>>> a8a4287b2da003768d9c27532e1e3585f528fafb
   <script>
   (function () {
     const form      = document.getElementById('trackForm');
@@ -293,20 +289,4 @@
       } catch (err) {
         const msg = (err && err.error) ? err.error : 'Ordine non trovato. Verifica il numero ordine e l\'email.';
         showError(msg);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Cerca ordine';
       }
-    });
-
-    document.getElementById('newSearchBtn').addEventListener('click', function () {
-      resultBox.classList.remove('visible');
-      resultBox.style.display = 'none';
-      clearError();
-      form.reset();
-      document.getElementById('orderNumber').focus();
-    });
-  })();
-  </script>
-</body>
-</html>
