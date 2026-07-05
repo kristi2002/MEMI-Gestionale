@@ -40,11 +40,32 @@ CREATE TABLE IF NOT EXISTS customers (
   cap           VARCHAR(10),
   paese         VARCHAR(100) DEFAULT 'Italia',
   wishlist      JSON,
+  sizes         JSON,
+  preferences   JSON,
+  lang          VARCHAR(5) NULL,
   total_orders  INT DEFAULT 0,
   total_spent   DECIMAL(10,2) DEFAULT 0.00,
   points        INT NOT NULL DEFAULT 0,
   created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   last_login    TIMESTAMP NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Customer shipping addresses (Area Personale · Indirizzi).
+-- One customer can save several; exactly one is flagged is_default.
+CREATE TABLE IF NOT EXISTS customer_addresses (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  customer_id INT NOT NULL,
+  label       VARCHAR(80)  NULL,
+  indirizzo   VARCHAR(255) NULL,
+  citta       VARCHAR(100) NULL,
+  cap         VARCHAR(10)  NULL,
+  paese       VARCHAR(100) DEFAULT 'Italia',
+  telefono    VARCHAR(30)  NULL,
+  is_default  TINYINT(1)   NOT NULL DEFAULT 0,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_addr_customer (customer_id),
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
@@ -234,6 +255,9 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
   id            INT AUTO_INCREMENT PRIMARY KEY,
   email         VARCHAR(255) NOT NULL UNIQUE,
   fonte         VARCHAR(100) DEFAULT 'footer',  -- where they subscribed (footer, popup, etc.)
+  customer_id   INT NULL,                        -- linked account, when subscribed while logged in
+  frequenza     VARCHAR(20) NULL,                -- weekly | biweekly | monthly
+  topics        JSON NULL,                       -- ['novita','saldi','editoriali','eventi']
   subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   unsubscribed  TINYINT(1) DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

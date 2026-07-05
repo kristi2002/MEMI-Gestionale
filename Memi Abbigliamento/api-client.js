@@ -115,6 +115,34 @@
     /** Loyalty: redeem points → returns a single-use discount code. */
     redeemPoints: function(points) { return post('/auth/loyalty/redeem', { points: points }); },
 
+    /** Save the fit/size profile (stored on customers.sizes). */
+    saveSizes: function(sizes) { return put('/auth/me', { sizes: sizes }); },
+    /** Save style preferences (customers.preferences). */
+    savePreferences: function(prefs) { return put('/auth/me', { preferences: prefs }); },
+    /** Persist the preferred language (customers.lang). */
+    setLang: function(lang) { return put('/auth/me', { lang: lang }); },
+
+    /** Wishlist (customers.wishlist JSON) — used for cross-device sync. */
+    wishlist: {
+      get:  function()      { return get('/auth/wishlist'); },
+      save: function(items) { return put('/auth/wishlist', { items: items }); },
+    },
+
+    /** Saved shipping addresses (customer_addresses table). */
+    addresses: {
+      list:       function()        { return get('/auth/addresses'); },
+      create:     function(data)     { return post('/auth/addresses', data); },
+      update:     function(id, data) { return put('/auth/addresses/' + encodeURIComponent(id), data); },
+      remove:     function(id)       { return del('/auth/addresses/' + encodeURIComponent(id)); },
+      setDefault: function(id)       { return put('/auth/addresses/' + encodeURIComponent(id) + '/default', {}); },
+    },
+
+    /** Per-customer newsletter subscription + settings. */
+    newsletter: {
+      get:  function()     { return get('/auth/newsletter'); },
+      save: function(data) { return put('/auth/newsletter', data); },
+    },
+
     /** True if a token exists in localStorage (doesn't verify it). */
     isLoggedIn: function() { return !!getToken(); },
   };

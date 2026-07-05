@@ -93,11 +93,17 @@ router.get('/me', requireCustomer, async (req, res) => {
   try {
     const [[user]] = await pool.execute(
       `SELECT id, email, nome, cognome, telefono, indirizzo, citta, cap, paese,
+              wishlist, sizes, preferences, lang,
               total_orders, total_spent, COALESCE(points,0) AS points, created_at
        FROM customers WHERE id = ?`,
       [req.customer.id]
     );
     if (!user) return res.status(404).json({ error: 'Utente non trovato' });
+    // mysql2 returns JSON columns already parsed; normalise NULL → sensible empties.
+    user.wishlist    = user.wishlist    || [];
+    user.sizes       = user.sizes       || {};
+    user.preferences = user.preferences || {};
+    user.lang        = user.lang        || null;
     return res.json(user);
   } catch (err) {
     console.error('me error', err);
@@ -162,9 +168,10 @@ router.post('/loyalty/redeem', requireCustomer, async (req, res) => {
 
 /* ── PUT /api/auth/me ── */
 router.put('/me', requireCustomer, async (req, res) => {
-  const { nome, cognome, telefono, indirizzo, citta, cap, paese, password, email } = req.body;
+  const { nome, cognome, telefono, indirizzo, citta, cap, paese, password, email, lang } = req.body;
+  const { wishlist, sizes, preferences } = req.body;
   // Reject explicitly non-string values up front (e.g. email:null) → 400, never a 500
-  for (const [k, v] of Object.entries({ nome, cognome, telefono, indirizzo, citta, cap, paese, password, email })) {
+  for (const [k, v] of Object.entries({ nome, cognome, telefono, indirizzo, citta, cap, paese, password, email, lang })) {
     if (v !== undefined && v !== null && typeof v !== 'string')
       return res.status(400).json({ error: `Campo non valido: ${k}` });
   }
@@ -175,12 +182,23 @@ router.put('/me', requireCustomer, async (req, res) => {
     const add = (col, val) => {
       if (val !== undefined && val !== null) { fields.push(`${col} = ?`); vals.push(val === '' ? null : val); }
     };
+    // JSON columns: accept an object/array (stored as JSON) or null (cleared).
+    const addJson = (col, val) => {
+      if (val === undefined) return;
+      if (val === null) { fields.push(`${col} = ?`); vals.push(null); return; }
+      if (typeof val !== 'object') return; // ignore junk, never 500
+      fields.push(`${col} = ?`); vals.push(JSON.stringify(val));
+    };
     add('cognome',   cognome);
     add('telefono',  telefono);
     add('indirizzo', indirizzo);
     add('citta',     citta);
     add('cap',       cap);
     add('paese',     paese);
+    add('lang',      lang);
+    addJson('wishlist',    wishlist);
+    addJson('sizes',       sizes);
+    addJson('preferences', preferences);
 
     // nome is NOT NULL — only update when a non-empty string is provided
     if (nome !== undefined && nome !== null) {

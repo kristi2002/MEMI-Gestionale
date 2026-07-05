@@ -29,6 +29,7 @@ const { pool, testConnection } = require('./db');
 
 // ── Route modules ──────────────────────────────────────────────
 const authRoutes       = require('./routes/auth');
+const accountRoutes    = require('./routes/account');
 const adminAuthRoutes  = require('./routes/admin-auth');
 const productsRoutes   = require('./routes/products');
 const ordersRoutes     = require('./routes/orders');
@@ -183,6 +184,7 @@ app.get('/health', async (req, res) => {
 
 // ── API routes ─────────────────────────────────────────────────
 app.use('/api/auth',              authRoutes);
+app.use('/api/auth',              accountRoutes);   // wishlist, addresses, newsletter (customer)
 app.use('/api/admin/auth',        adminAuthRoutes);
 app.use('/api/products',          productsRoutes);
 app.use('/api/orders',            ordersRoutes);

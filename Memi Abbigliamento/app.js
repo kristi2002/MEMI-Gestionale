@@ -228,6 +228,40 @@
 
   function saveWishlist() {
     try { localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist)); } catch (_) {}
+    pushWishlistToBackend();
+  }
+
+  // Persist the wishlist to the logged-in customer's account (customers.wishlist).
+  // Debounced + best-effort: guests and offline users keep working via localStorage.
+  var _wlPushTimer = null;
+  function pushWishlistToBackend() {
+    try {
+      var A = window.MemiAPI && window.MemiAPI.auth;
+      if (!A || !A.isLoggedIn() || !A.wishlist) return;
+      clearTimeout(_wlPushTimer);
+      var snapshot = wishlist.slice();
+      _wlPushTimer = setTimeout(function(){ A.wishlist.save(snapshot).catch(function(){}); }, 400);
+    } catch (_) {}
+  }
+
+  // On login / page load, pull the account wishlist and merge it with whatever
+  // the guest built locally (union by id; the merged set is saved back).
+  function syncWishlistFromBackend() {
+    try {
+      var A = window.MemiAPI && window.MemiAPI.auth;
+      if (!A || !A.isLoggedIn() || !A.wishlist) return;
+      A.wishlist.get().then(function(res){
+        var server = (res && res.items) || [];
+        if (!Array.isArray(server)) return;
+        var byId = {};
+        server.forEach(function(i){ if (i && i.id) byId[i.id] = i; });
+        wishlist.forEach(function(i){ if (i && i.id) byId[i.id] = i; });
+        wishlist = Object.keys(byId).map(function(k){ return byId[k]; });
+        saveWishlist();
+        updateWishlistBadge();
+        renderWishlistItems();
+      }).catch(function(){});
+    } catch (_) {}
   }
 
   function isWishlisted(id) { return wishlist.some(function(i){ return i.productId === id || i.id === id; }); }
@@ -727,17 +761,37 @@
           </button>
         </div>
         <div class="account-drawer-body">
-          <button class="account-menu-item" id="accountToWishlist">
+          <a href="/account" class="account-menu-item">
+            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Il mio profilo
+          </a>
+          <a href="/account#ordini" class="account-menu-item">
+            <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            Ordini
+          </a>
+          <a href="/account#wishlist" class="account-menu-item">
             <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
             Lista desideri
-          </button>
-          <a href="/account" class="account-menu-item">
-            <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-            I miei ordini
+          </a>
+          <a href="/account#reso" class="account-menu-item">
+            <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            Effettua un reso
+          </a>
+          <a href="/account#taglie" class="account-menu-item">
+            <svg viewBox="0 0 24 24"><path d="M3 6h18M3 6l2 14h14l2-14M8 6V4a4 4 0 0 1 8 0v2"/></svg>
+            La tua taglia
+          </a>
+          <a href="/account#carta" class="account-menu-item">
+            <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Carta fedeltà
+          </a>
+          <a href="/account#aiuto" class="account-menu-item">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Aiuto e contatti
           </a>
         </div>
         <div class="account-drawer-footer">
-          <button class="account-logout" id="accountLogoutBtn">Esci dall'account</button>
+          <button class="account-logout" id="accountLogoutBtn">Disconnetti</button>
         </div>
       </aside>
     `);
@@ -800,9 +854,9 @@
       .account-menu-item{display:flex;align-items:center;gap:.75rem;padding:.9rem 1.25rem;text-decoration:none;color:var(--espresso,#3b2b2b);font-size:.9rem;transition:background .15s;border:none;background:none;width:100%;text-align:left;cursor:pointer;font-family:var(--font-sans,'DM Sans',sans-serif)}
       .account-menu-item:hover{background:var(--bg-soft,#F1F0F8)}
       .account-menu-item svg{width:18px;height:18px;stroke:var(--brown-mid,#6b5050);fill:none;stroke-width:1.5;flex-shrink:0}
-      .account-drawer-footer{padding:1rem 1.25rem;border-top:1px solid var(--beige,#DBDBEE)}
-      .account-logout{width:100%;background:none;border:1px solid var(--beige-dark,#BEBEDD);border-radius:3px;padding:.7rem;font-family:var(--font-sans,'DM Sans',sans-serif);font-size:.75rem;color:var(--brown-mid,#6b5050);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:border-color .15s,color .15s}
-      .account-logout:hover{border-color:var(--espresso,#3b2b2b);color:var(--espresso,#3b2b2b)}
+      .account-drawer-footer{padding:1rem 1.25rem;border-top:1px solid var(--beige,#DDD9EC)}
+      .account-logout{width:100%;background:none;border:none;padding:.35rem 0;font-family:var(--font-sans,'DM Sans',sans-serif);font-size:.9rem;font-weight:500;color:var(--espresso,#3b2b2b);text-align:left;cursor:pointer;transition:color .15s}
+      .account-logout:hover{color:var(--blush-dark,#C4A8B0)}
     `;
     document.head.appendChild(s);
 
@@ -1718,6 +1772,8 @@
     document.getElementById('accountAvatar').textContent    = user.name.charAt(0).toUpperCase();
     document.getElementById('accountInfoName').textContent  = user.name;
     document.getElementById('accountInfoEmail').textContent = user.email;
+    var _lo = document.getElementById('accountLogoutBtn');
+    if (_lo) _lo.textContent = 'Non sei ' + (user.name || '').split(' ')[0] + '? Disconnetti';
     document.getElementById('accountDrawer')?.classList.add('open');
     document.getElementById('appScrim')?.classList.add('visible');
     document.body.style.overflow = 'hidden';
@@ -1852,6 +1908,7 @@
         closeAuthDrawer();
         updateAuthUI();
         renderWishlistItems();
+        syncWishlistFromBackend();
         var displayName = (res.user && (res.user.nome || res.user.name)) || email;
         showAuthToast('Bentornata, ' + displayName + '!');
       });
@@ -1882,6 +1939,7 @@
         if (!res.ok) { errEl.textContent = res.msg; return; }
         closeAuthDrawer();
         updateAuthUI();
+        syncWishlistFromBackend();
         showAuthToast('Benvenuta, ' + name + '! Account creato ✦');
       });
     });
@@ -1891,8 +1949,10 @@
     });
 
     document.getElementById('accountCloseBtn')?.addEventListener('click', closeAccountDrawer);
-    document.getElementById('accountToWishlist')?.addEventListener('click', function() {
-      closeAccountDrawer(); openWishlist();
+    // Close the drawer when a menu link is tapped (so hash-only navigation on
+    // /account doesn't leave the drawer covering the page).
+    document.querySelectorAll('#accountDrawer .account-menu-item').forEach(function(a) {
+      a.addEventListener('click', function() { closeAccountDrawer(); });
     });
     document.getElementById('accountLogoutBtn')?.addEventListener('click', function() {
       authLogout();
@@ -1900,6 +1960,10 @@
       updateAuthUI();
       showAuthToast("Hai effettuato il logout.");
     });
+
+    // If the visitor is already logged in on page load, reconcile their
+    // wishlist with the account copy so it follows them across devices.
+    syncWishlistFromBackend();
   }
 
   /* ── 15b. SCROLL STAGGER — product cards ──────────────── */
