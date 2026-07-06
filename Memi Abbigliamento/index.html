@@ -628,7 +628,8 @@
 
     .na-carousel {
       display: flex;
-      gap: var(--space-3);
+      /* mobile: gap = side padding, so the next card sits fully off-screen */
+      gap: var(--space-4);
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       -webkit-overflow-scrolling: touch;
@@ -653,16 +654,21 @@
 
     .na-carousel > .product-card,
     .na-carousel > .na-skel {
-      flex: 0 0 min(70vw, 300px);
+      /* phones: exactly one full card per view, swipe pages card-by-card */
+      flex: 0 0 100%;
       scroll-snap-align: start;
+      scroll-snap-stop: always;
     }
     @media (min-width: 640px) {
       .na-carousel > .product-card,
-      .na-carousel > .na-skel { flex-basis: calc(45% - var(--space-3)); }
+      .na-carousel > .na-skel { flex-basis: calc(45% - var(--space-4)); }
     }
     @media (min-width: 768px) {
       .na-carousel > .product-card,
-      .na-carousel > .na-skel { flex-basis: calc((100% - 2 * var(--space-4)) / 3); }
+      .na-carousel > .na-skel {
+        flex-basis: calc((100% - 2 * var(--space-4)) / 3);
+        scroll-snap-stop: normal;
+      }
     }
     @media (min-width: 1024px) {
       .na-carousel > .product-card,
