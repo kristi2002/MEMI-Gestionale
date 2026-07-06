@@ -585,7 +585,7 @@
     // Show/hide editorial block based on active filters
     var eb=document.getElementById('editorialBanner');
     if (eb) {
-      var hasF=af.categoria||af.saldi||af.collez||af.taglie.length||af.colori.length;
+      var hasF=hasActiveFilters();
       eb.style.display=hasF?'none':'';
     }
     // Hide pagination when filters are active
@@ -682,7 +682,19 @@
   // ── Pagination ────────────────────────────────────────────────────────────
   var PAGE_SIZE=12, currentPage=1, allCards=[];
 
+  function hasActiveFilters() {
+    var pr = document.getElementById('priceRange');
+    var priceActive = pr ? (parseFloat(pr.value) < parseFloat(pr.max || 300)) : false;
+    return !!(af.saldi || af.categorie.length || af.collez || af.taglie.length || af.colori.length || priceActive);
+  }
+
   function initPagination() {
+    // When any filter is active, applyFilters() already shows every matching
+    // card and hides the pagination bar. Paginating on top of that would grab
+    // ALL cards (ignoring the filter) and re-show the first 12 of the whole
+    // catalog — the /shop?categoria=borse "shows everything" bug. So only
+    // paginate the full, unfiltered catalog.
+    if (hasActiveFilters()) { currentPage = 1; return; }
     allCards = Array.from(document.querySelectorAll('#productGrid > a.product-card-link, #productGrid > .editorial-block'));
     currentPage = 1;
     renderPage();
