@@ -229,6 +229,13 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;background:var(--whit
 .product-img-alt{position:absolute;inset:0;opacity:0;}
 .product-card.in-view:hover .product-img-main{opacity:0;}
 .product-card.in-view:hover .product-img-alt{opacity:1;}
+/* Accessory shots (borse, gioielli, cinture, scarpe) are product-on-white and
+   centred, so the default object-fit:cover crops them ("look cut"). Show the
+   whole product with contain + a little breathing room. Apparel/model shots
+   keep cover for a full-bleed grid. box-sizing:border-box (global) keeps the
+   padding inside the 3/4 frame. */
+.product-card[data-is-accessori="1"] .product-img-main,
+.product-card[data-is-accessori="1"] .product-img-alt{object-fit:contain;object-position:center;padding:6%;}
 
 .product-badges{position:absolute;top:var(--space-3);left:var(--space-3);display:flex;flex-direction:column;gap:var(--space-1);}
 .badge{display:inline-block;font-size:10px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:0;border-radius:0;line-height:1.4;background:none;}
