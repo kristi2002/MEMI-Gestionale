@@ -174,7 +174,11 @@
     .spread-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .spread-3col { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
     .spread-1big2small { display: grid; grid-template-columns: 3fr 2fr; grid-template-rows: auto auto; gap: 6px; }
-    .spread-1big2small .main { grid-row: 1 / 3; }
+    .spread-1big2small .main { grid-row: 1 / 3; display: flex; flex-direction: column; }
+    .spread-1big2small .main .ed-photo { flex: 1; }
+    @media (min-width: 641px) {
+      .spread-1big2small .main .ed-photo { aspect-ratio: auto; }
+    }
     @media (max-width: 640px) {
       .spread-2col, .spread-3col, .spread-1big2small { grid-template-columns: 1fr; }
       .spread-1big2small .main { grid-row: auto; }
@@ -188,15 +192,32 @@
     .ar-wide     { aspect-ratio: 4/3; }
     .ar-tall     { aspect-ratio: 2/3; }
 
-    /* Caption below photo */
+    /* Caption below photo — corsivo memì, cliccabile verso il prodotto */
     .ed-photo-cap {
-      padding: 10px 0 0;
+      padding: 12px 0 0;
       display: flex; justify-content: space-between; align-items: baseline;
       gap: var(--space-3);
     }
-    .ed-photo-cap-name { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-      font-weight: 500; color: var(--espresso); }
-    .ed-photo-cap-price { font-size: 11px; color: var(--brown-light); }
+    .ed-photo-cap-label { display: block; font-size: 9px; letter-spacing: 0.22em;
+      text-transform: uppercase; font-weight: 600; color: var(--brown-light);
+      margin-bottom: 2px; font-family: var(--font-sans); font-style: normal; }
+    .ed-photo-cap-name {
+      font-family: var(--font-serif); font-style: italic;
+      font-size: clamp(1.1rem, 1.8vw, 1.35rem); font-weight: 500;
+      color: var(--espresso); letter-spacing: 0.01em; line-height: 1.2;
+    }
+    .ed-photo-cap-name::after {
+      content: '→'; display: inline-block; margin-left: 8px;
+      font-family: var(--font-sans); font-style: normal; font-size: .75em;
+      color: var(--blush-dark);
+      opacity: 0; transform: translateX(-4px);
+      transition: opacity 200ms, transform 200ms;
+    }
+    a.ed-photo-cap:hover .ed-photo-cap-name::after { opacity: 1; transform: translateX(0); }
+    .ed-photo-cap-price {
+      font-family: var(--font-serif); font-size: clamp(1rem, 1.5vw, 1.15rem);
+      color: var(--brown-mid); white-space: nowrap; flex-shrink: 0;
+    }
 
     /* Full-bleed */
     .ed-fullbleed { width: 100%; overflow: hidden; position: relative; }
@@ -364,33 +385,33 @@
   <!-- SPREAD 1 — La fioritura -->
   <div class="ed-spread">
     <div class="spread-1big2small">
-      <div>
-        <div class="ed-photo main ar-portrait" style="height:100%;">
+      <div class="main">
+        <div class="ed-photo ar-portrait">
           <img src="https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=900&q=82" alt="Vestito bianco in cotone sangallo" loading="lazy">
         </div>
+        <a class="ed-photo-cap" href="/products/vestito-lino-cannes/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Vestito Lino Cannes</span></span>
+          <span class="ed-photo-cap-price">€89</span>
+        </a>
       </div>
       <div>
         <div class="ed-photo ar-square" style="margin-bottom:6px;">
           <img src="https://images.unsplash.com/photo-1496217590455-aa63a8350eea?auto=format&fit=crop&w=700&q=80" alt="Vestito azzurro polvere davanti a una porta turchese" loading="lazy">
         </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Camicia Cotone Brisa</span>
+        <a class="ed-photo-cap" href="/products/camicia-cotone-brisa/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Camicia Cotone Brisa</span></span>
           <span class="ed-photo-cap-price">€55</span>
-        </div>
+        </a>
       </div>
       <div>
         <div class="ed-photo ar-square">
           <img src="https://images.unsplash.com/photo-1490725263030-1f0521cec8ec?auto=format&fit=crop&w=700&q=80" alt="Vestito rosa cipria e cappello di paglia in un vicolo italiano" loading="lazy">
         </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Vestito Midi Fiori</span>
+        <a class="ed-photo-cap" href="/products/vestito-midi-fiori/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Vestito Midi Fiori</span></span>
           <span class="ed-photo-cap-price">€115</span>
-        </div>
+        </a>
       </div>
-    </div>
-    <div class="ed-photo-cap" style="max-width:60%;">
-      <span class="ed-photo-cap-name">Vestito Lino Cannes</span>
-      <span class="ed-photo-cap-price">€89</span>
     </div>
   </div>
 
@@ -418,28 +439,28 @@
         <div class="ed-photo ar-portrait">
           <img src="https://images.unsplash.com/photo-1521577352947-9bb58764b69a?auto=format&fit=crop&w=700&q=80" alt="T-shirt bianca e pantalone palazzo a righe" loading="lazy">
         </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Pantalone Culotte Zen</span>
+        <a class="ed-photo-cap" href="/products/pantalone-culotte-zen/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Pantalone Culotte Zen</span></span>
           <span class="ed-photo-cap-price">€88</span>
-        </div>
+        </a>
       </div>
       <div>
         <div class="ed-photo ar-portrait">
           <img src="https://images.unsplash.com/photo-1526510747491-58f928ec870f?auto=format&fit=crop&w=700&q=80" alt="Top in seta avorio alla luce del tramonto" loading="lazy">
         </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Top Bustier Perla</span>
+        <a class="ed-photo-cap" href="/products/top-bustier-perla/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Top Bustier Perla</span></span>
           <span class="ed-photo-cap-price">€48</span>
-        </div>
+        </a>
       </div>
       <div>
         <div class="ed-photo ar-portrait">
           <img src="https://images.unsplash.com/photo-1495385794356-15371f348c31?auto=format&fit=crop&w=700&q=80" alt="Set coordinato in raso" loading="lazy">
         </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Set Coordinato</span>
+        <a class="ed-photo-cap" href="/products/set-coordinato-viola/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Set Coordinato Viola</span></span>
           <span class="ed-photo-cap-price">€130</span>
-        </div>
+        </a>
       </div>
     </div>
   </div>
@@ -456,17 +477,17 @@
           <img src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1000&q=80" alt="I capi della collezione appesi in atelier" loading="lazy">
         </div>
         <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">L'atelier — la palette avorio</span>
+          <span><span class="ed-photo-cap-label">Backstage</span><span class="ed-photo-cap-name">L'atelier — la palette avorio</span></span>
         </div>
       </div>
       <div>
         <div class="ed-photo ar-wide">
           <img src="https://images.unsplash.com/photo-1506152983158-b4a74a01c721?auto=format&fit=crop&w=1000&q=80" alt="Borsa avorio e occhiali da sole su pietra" loading="lazy">
         </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Borsa Bucket Sabbia</span>
+        <a class="ed-photo-cap" href="/products/borsa-bucket-sabbia/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Borsa Bucket Sabbia</span></span>
           <span class="ed-photo-cap-price">€165</span>
-        </div>
+        </a>
       </div>
     </div>
   </div>
