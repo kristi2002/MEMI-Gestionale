@@ -89,19 +89,58 @@ async function processAndStore(buffer) {
   return result;
 }
 
-/** Best-effort delete of an image's variant files (given the stored object). */
-function deleteVariants(image) {
+// Pull the content hash out of a stored variant URL/filename.
+// e.g. '/api/uploads/905abeb693a0f2ed-card.webp' -> '905abeb693a0f2ed'
+function hashOf(url) {
+  const base = String(url || '').split('/').pop() || '';
+  const m = base.match(/^([0-9a-f]{8,})-(?:thumb|card|full)\.webp$/i);
+  return m ? m[1] : null;
+}
+
+/**
+ * Best-effort delete of an image's variant files (given the stored object).
+ *
+ * REFERENCE-COUNTED: because filenames are content-hashed, the SAME photo
+ * (identical bytes) is deduplicated to ONE set of files on disk and may be
+ * referenced by more than one product (or twice in one product — e.g. a
+ * duplicated CSV import). Physically unlinking here without checking would
+ * orphan those other references and 404 a live image. So before deleting we
+ * ask the DB whether any product's `images` still contains this hash; if so,
+ * we keep the files. Callers should update the DB FIRST, then call this.
+ *
+ * async now — callers must await it.
+ */
+async function deleteVariants(image) {
   if (!image) return;
   const urls = typeof image === 'string'
     ? [image]
     : [image.thumb, image.card, image.full].filter(Boolean);
-  for (const url of urls) {
+
+  // All three variants share one hash; reference-count once per hash.
+  const hashes = new Set(urls.map(hashOf).filter(Boolean));
+  for (const hash of hashes) {
     try {
-      const base = String(url).split('/').pop();
-      if (!base || base.indexOf('..') !== -1) continue;
-      const fp = path.join(UPLOADS_DIR, base);
-      if (fp.startsWith(UPLOADS_DIR) && fs.existsSync(fp)) fs.unlinkSync(fp);
-    } catch (_) { /* best effort */ }
+      // Lazy require to avoid a circular dependency at module load time.
+      const { pool } = require('./db');
+      const [rows] = await pool.execute(
+        'SELECT 1 FROM products WHERE images LIKE ? LIMIT 1',
+        [`%${hash}%`]
+      );
+      if (rows.length) continue;   // still referenced somewhere → do NOT delete
+    } catch (_) {
+      // If the check fails for any reason, err on the safe side and KEEP the
+      // files (a stray unused file is harmless; a deleted live one is not).
+      continue;
+    }
+    for (const url of urls) {
+      if (hashOf(url) !== hash) continue;
+      try {
+        const base = String(url).split('/').pop();
+        if (!base || base.indexOf('..') !== -1) continue;
+        const fp = path.join(UPLOADS_DIR, base);
+        if (fp.startsWith(UPLOADS_DIR) && fs.existsSync(fp)) fs.unlinkSync(fp);
+      } catch (_) { /* best effort */ }
+    }
   }
 }
 

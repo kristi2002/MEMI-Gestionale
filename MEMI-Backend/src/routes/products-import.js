@@ -344,7 +344,9 @@ router.post('/bulk-images', requireAdmin, zipUploadMw, async (req, res) => {
     await pool.execute('UPDATE products SET images = ? WHERE id = ?', [JSON.stringify(images), pid]);
     if (replace) {
       const keepUrls = new Set(images.map(function (im) { return im.full; }));
-      old.forEach(function (im) { if (!keepUrls.has(im.full)) deleteVariants(im); });
+      for (const im of old) {
+        if (!keepUrls.has(im.full)) await deleteVariants(im);   // reference-counted (see images.js)
+      }
     }
     results.push({ id: pid, added: n });
   }

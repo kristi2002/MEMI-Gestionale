@@ -321,7 +321,7 @@ router.delete('/:id/images', requireAdmin, async (req, res) => {
     if (!removed) return res.status(404).json({ error: 'Immagine non trovata' });
 
     await pool.execute('UPDATE products SET images = ? WHERE id = ?', [JSON.stringify(keep), req.params.id]);
-    deleteVariants(removed);
+    await deleteVariants(removed);   // reference-counted: only unlinks if no product still references this hash
     return res.json({ ok: true, images: keep });
   } catch (err) {
     console.error('image delete error', err);

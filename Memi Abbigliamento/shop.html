@@ -962,6 +962,7 @@ window.submitNewsletter = function (form) {
     var NO_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><rect width="600" height="800" fill="#f1ece6"/><rect x="225" y="300" width="150" height="120" rx="10" fill="none" stroke="#BEBEDD" stroke-width="6"/><circle cx="268" cy="338" r="13" fill="none" stroke="#BEBEDD" stroke-width="6"/><path d="M232 414 L300 358 L338 392 L368 366 L368 418 Z" fill="#BEBEDD"/><text x="300" y="476" text-anchor="middle" font-family="DM Sans, sans-serif" font-size="26" fill="#8F8FC1">Nessuna immagine</text></svg>');
     var img1 = pickImg(imgs[0], 'card') || NO_IMAGE;
     var img2 = pickImg(imgs[1], 'card') || pickImg(imgs[0], 'card') || NO_IMAGE;
+    try { window.MEMI_NO_IMAGE = NO_IMAGE; } catch (_) {}
 
     // Pricing
     var pricingHtml = '<span class="price-current">' + fmtPrice(p.price) + '</span>';
@@ -979,8 +980,8 @@ window.submitNewsletter = function (form) {
         ' data-prezzo="' + (p.price || 0) + '"' +
         dataAcc + '>' +
         '<div class="product-img-wrap">' +
-          '<img class="product-img-main" src="' + img1 + '" alt="' + p.name + '" loading="lazy">' +
-          '<img class="product-img-alt" src="' + img2 + '" alt="' + p.name + ' alt" loading="lazy">' +
+          '<img class="product-img-main" src="' + img1 + '" alt="' + p.name + '" loading="lazy" onerror="this.onerror=null;this.src=window.MEMI_NO_IMAGE">' +
+          '<img class="product-img-alt" src="' + img2 + '" alt="' + p.name + ' alt" loading="lazy" onerror="this.onerror=null;this.src=window.MEMI_NO_IMAGE">' +
           (badges ? '<div class="product-badges">' + badges + '</div>' : '') +
           '<button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();">' + WISHLIST_ICON + '</button>' +
           '<div class="product-quick-add"><div class="size-chips">' + chips + '</div></div>' +

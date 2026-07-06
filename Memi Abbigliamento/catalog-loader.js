@@ -53,6 +53,9 @@
   function imgFallback(seed) {
     return NO_IMAGE;
   }
+  // Expose the placeholder so an <img onerror> can swap to it when a stored
+  // file 404s (e.g. an orphaned/missing upload) instead of showing a broken image.
+  try { window.MEMI_NO_IMAGE = NO_IMAGE; } catch (_) {}
 
   function buildCard(p, idx, opts) {
     opts = opts || {};
@@ -107,8 +110,8 @@
         ' style="--i:' + (idx % 4) + '"' +
         dataAcc + '>' +
         '<div class="product-img-wrap">' +
-          '<img class="product-img-main" src="' + img1 + '" alt="' + esc(p.name) + '" loading="lazy">' +
-          '<img class="product-img-alt" src="' + img2 + '" alt="' + esc(p.name) + ' alt" loading="lazy">' +
+          '<img class="product-img-main" src="' + img1 + '" alt="' + esc(p.name) + '" loading="lazy" onerror="this.onerror=null;this.src=window.MEMI_NO_IMAGE">' +
+          '<img class="product-img-alt" src="' + img2 + '" alt="' + esc(p.name) + ' alt" loading="lazy" onerror="this.onerror=null;this.src=window.MEMI_NO_IMAGE">' +
           badges +
           (flagBadges ? '<div class="product-badges">' + flagBadges + '</div>' : '') +
           '<button class="product-wishlist" aria-label="Wishlist" onclick="event.preventDefault();event.stopPropagation();">' + WISHLIST_ICON + '</button>' +
