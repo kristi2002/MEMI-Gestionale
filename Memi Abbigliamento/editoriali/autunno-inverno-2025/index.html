@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Autunno Inverno 2025 — Editoriali Memi</title>
+  <meta name="description" content="Memi Editoriali N° 02 — Autunno Inverno 2025. Il calore dell'autunno si fa tessuto: strati, lana e maglia che proteggono senza rinunciare all'eleganza. Milano." />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Autunno Inverno 2025 — Editoriali Memi" />
+  <meta property="og:description" content="Strati, lana e maglia: l'editoriale Autunno Inverno 2025 di Memi Abbigliamento." />
+  <meta property="og:image" content="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1200&q=80" />
+  <meta property="og:locale" content="it_IT" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -50,30 +56,88 @@
       .desktop-nav a { color: var(--brown-mid); transition: color var(--dur-fast); }
       .desktop-nav a:hover { color: var(--espresso); }
     }
+
+    /* ── Back nav ── */
     .ed-back { position: absolute; top: calc(64px + 1.5rem); left: clamp(1.5rem,5vw,4rem);
       z-index: 10; display: inline-flex; align-items: center; gap: 8px;
       font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 600;
-      color: var(--espresso); transition: color 200ms; }
+      color: rgba(255,255,255,.6); transition: color 200ms; }
     .ed-back:hover { color: #fff; }
     .ed-back svg { width: 14px; height: 14px; stroke: currentColor; fill: none; }
+
+    /* ── Hero ── */
     .ed-hero { position: relative; height: 95svh; min-height: 550px; overflow: hidden; }
-    .ed-hero img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; }
+    .ed-hero img { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; }
     .ed-hero-veil { position: absolute; inset: 0;
       background: linear-gradient(to bottom, rgba(59,43,43,.12) 0%, rgba(59,43,43,0) 38%, rgba(59,43,43,.34) 82%, rgba(59,43,43,.55) 100%); }
     .ed-hero-body { position: absolute; z-index: 2; left: clamp(1.5rem,6vw,5rem); bottom: clamp(2.5rem,6vw,5rem); }
-    .ed-hero-issue { font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(255,255,255,.4); margin-bottom: var(--space-3); }
+    .ed-hero-issue { font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase; color: rgba(255,255,255,.55); margin-bottom: var(--space-3); }
     .ed-hero-title { font-family: var(--font-serif); font-size: clamp(3.5rem,9vw,8rem);
       font-weight: 300; line-height: 0.92; letter-spacing: -0.03em; color: #fff; }
     .ed-hero-title em { font-style: italic; color: rgba(241,240,248,.85); }
-    .ed-intro { background: #FBF9F5; padding: clamp(3rem,6vw,5rem) clamp(1.5rem,5vw,4rem); max-width: 640px; }
+    .ed-hero-sub { margin-top: var(--space-4); font-family: var(--font-serif); font-style: italic;
+      font-size: clamp(.95rem, 1.6vw, 1.15rem); color: rgba(255,255,255,.7); letter-spacing: .05em; }
+
+    /* ── Marquee (identità memì, come la home) ── */
+    .ed-marquee {
+      background: var(--lavender);
+      overflow: hidden;
+      padding: var(--space-4) 0;
+      border-top: 1px solid rgba(59,43,43,.1);
+      border-bottom: 1px solid rgba(59,43,43,.1);
+    }
+    .ed-marquee-track {
+      display: flex;
+      white-space: nowrap;
+      animation: edMarquee 30s linear infinite;
+      width: max-content;
+    }
+    .ed-marquee-item {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--espresso);
+      font-weight: 500;
+      padding: 0 var(--space-6);
+    }
+    .ed-marquee-item.accent { color: var(--lavender-dark); padding: 0 var(--space-4); }
+    @keyframes edMarquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* ── Intro text ── */
+    .ed-intro { background: #FBF9F5; padding: clamp(3rem,6vw,5rem) clamp(1.5rem,5vw,4rem); max-width: 680px; }
     .ed-intro-label { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brown-light); margin-bottom: var(--space-4); }
     .ed-intro-text { font-family: var(--font-serif); font-size: clamp(1.35rem,2.5vw,1.8rem);
       font-weight: 300; line-height: 1.45; color: var(--espresso); font-style: italic; }
+    .ed-intro-text .hl {
+      font-style: inherit;
+      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 40%;
+      background-position: 0% 74%;
+      padding: 0 .08em;
+    }
+
+    /* ── Photo spreads ── */
     .ed-spread { background: #FBF9F5; padding: 0 clamp(1.5rem,5vw,4rem) clamp(2rem,4vw,3rem); }
+    .ed-spread-head { max-width: 1280px; margin: 0 auto; padding: 0 0 var(--space-6); }
+    .ed-spread-head .eyebrow { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--brown-light); margin-bottom: var(--space-2); }
+    .ed-spread-head h2 { font-family: var(--font-serif); font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+      font-weight: 300; letter-spacing: -0.02em; color: var(--espresso); }
+    .ed-spread-head h2 em {
+      font-style: italic;
+      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 40%;
+      background-position: 0% 74%;
+      padding: 0 .08em;
+    }
     .spread-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .spread-3col { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
-    .spread-asym { display: grid; grid-template-columns: 1fr 2fr; gap: 6px; }
-    @media (max-width:640px) { .spread-2col,.spread-3col,.spread-asym { grid-template-columns:1fr; } }
+    @media (max-width:640px) { .spread-2col,.spread-3col { grid-template-columns:1fr; } }
     .ed-photo { overflow: hidden; position: relative; }
     .ed-photo img { width:100%;height:100%;object-fit:cover;transition:transform 800ms ease-out; }
     .ed-photo:hover img { transform: scale(1.03); }
@@ -81,28 +145,103 @@
     .ar-square   { aspect-ratio: 1/1; }
     .ar-wide     { aspect-ratio: 4/3; }
     .ar-ultra    { aspect-ratio: 21/8; }
-    .ed-photo-cap { padding: 10px 0 0; display:flex;justify-content:space-between;align-items:baseline;gap:var(--space-3); }
-    .ed-photo-cap-name { font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:500;color:var(--espresso); }
-    .ed-photo-cap-price { font-size:11px;color:var(--brown-light); }
-    .ed-fullbleed { width:100%;overflow:hidden; }
-    .ed-fullbleed img { width:100%;aspect-ratio:21/8;object-fit:cover;object-position:center 30%; }
+    @media(max-width:640px){ .ar-ultra { aspect-ratio: 16/9; } }
+
+    /* Caption below photo — corsivo memì, cliccabile verso il prodotto */
+    .ed-photo-cap {
+      padding: 12px 0 0;
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: var(--space-3);
+    }
+    .ed-photo-cap-label { display: block; font-size: 9px; letter-spacing: 0.22em;
+      text-transform: uppercase; font-weight: 600; color: var(--brown-light);
+      margin-bottom: 2px; font-family: var(--font-sans); font-style: normal; }
+    .ed-photo-cap-name {
+      font-family: var(--font-serif); font-style: italic;
+      font-size: clamp(1.1rem, 1.8vw, 1.35rem); font-weight: 500;
+      color: var(--espresso); letter-spacing: 0.01em; line-height: 1.2;
+    }
+    .ed-photo-cap-name::after {
+      content: '→'; display: inline-block; margin-left: 8px;
+      font-family: var(--font-sans); font-style: normal; font-size: .75em;
+      color: var(--blush-dark);
+      opacity: 0; transform: translateX(-4px);
+      transition: opacity 200ms, transform 200ms;
+    }
+    a.ed-photo-cap:hover .ed-photo-cap-name::after { opacity: 1; transform: translateX(0); }
+    .ed-photo-cap-price {
+      font-family: var(--font-serif); font-size: clamp(1rem, 1.5vw, 1.15rem);
+      color: var(--brown-mid); white-space: nowrap; flex-shrink: 0;
+    }
+
+    /* Full-bleed */
+    .ed-fullbleed { width:100%;overflow:hidden; position: relative; }
+    .ed-fullbleed img { width:100%;aspect-ratio:21/8;object-fit:cover;object-position:center 60%; }
     @media(max-width:640px){ .ed-fullbleed img { aspect-ratio:16/9; } }
-    .ed-quote { background:var(--lavender-light);padding:clamp(3rem,6vw,5rem) clamp(1.5rem,5vw,4rem);text-align:center; }
+    .ed-fullbleed-cap {
+      position: absolute; right: clamp(1rem, 4vw, 3rem); bottom: clamp(.75rem, 2vw, 1.5rem);
+      font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+      color: rgba(255,255,255,.85); text-shadow: 0 1px 8px rgba(0,0,0,.35);
+    }
+
+    /* Pull quote — lilla memì (dal logo, come il manifesto della home) */
+    .ed-quote {
+      background: #BFC0E1;
+      padding: clamp(3.5rem, 7vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .ed-quote::before {
+      content: '"';
+      position: absolute;
+      top: -0.2em;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-serif);
+      font-size: clamp(12rem, 25vw, 22rem);
+      font-weight: 300;
+      color: rgba(59,43,43,.05);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+    .ed-quote-divider {
+      display: flex; align-items: center; justify-content: center;
+      gap: var(--space-4); margin-bottom: var(--space-6);
+      position: relative; z-index: 1;
+    }
+    .ed-quote-divider::before,
+    .ed-quote-divider::after {
+      content: ''; flex: 1; max-width: 80px; height: 1px; background: rgba(59,43,43,.2);
+    }
+    .ed-quote-divider span { color: var(--sage-dark); font-size: var(--text-base); }
     .ed-quote p { font-family:var(--font-serif);font-size:clamp(1.5rem,3.5vw,3rem);font-weight:300;font-style:italic;
-      color:var(--espresso);line-height:1.4;max-width:800px;margin:0 auto; }
-    .ed-quote cite { display:block;margin-top:var(--space-4);font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-style:normal;color:var(--brown-light); }
+      color:var(--espresso);line-height:1.4;max-width:800px;margin:0 auto; position: relative; z-index: 1; }
+    .ed-quote cite { display:block;margin-top:var(--space-4);font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-style:normal;color:var(--brown-mid); position: relative; z-index: 1; }
+
+    /* Shop CTA strip */
     .ed-shop-strip { background:#f7f2ee;padding:clamp(4rem,8vw,6rem) clamp(1.5rem,5vw,4rem);
       display:flex;align-items:center;justify-content:space-between;gap:var(--space-6);flex-wrap:wrap; }
     .ed-shop-strip-left h2 { font-family:var(--font-serif);font-size:clamp(1.75rem,4vw,3rem);font-weight:300;
       letter-spacing:-0.02em;color:var(--espresso);line-height:1.1; }
-    .ed-shop-strip-left h2 em { font-style:italic; }
+    .ed-shop-strip-left h2 em {
+      font-style: italic;
+      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 40%;
+      background-position: 0% 74%;
+      padding: 0 .08em;
+    }
     .ed-shop-strip-left p { font-size:var(--text-sm);color:var(--brown-mid);margin-top:var(--space-2); }
     .ed-shop-btn { flex-shrink:0;display:inline-flex;align-items:center;gap:var(--space-2);
       padding:var(--space-4) 2rem;background:var(--espresso);color:#fff;
       font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;
       border-radius:9999px;transition:background 200ms,transform 150ms; }
     .ed-shop-btn:hover { background:#2a1e1e;transform:translateY(-1px); }
-    .ed-pagination { background:#FBF9F5;border-top:1px solid var(--beige);display:grid;grid-template-columns:1fr 1fr; }
+
+    /* Pagination between editorials */
+    .ed-pagination { background:#FFFFFF;border-top:1px solid var(--beige);display:grid;grid-template-columns:1fr 1fr; }
     .ed-pag-item { padding:clamp(2rem,4vw,3rem) clamp(1.5rem,4vw,3rem);display:flex;flex-direction:column;gap:6px;transition:background 200ms; }
     .ed-pag-item:hover { background:var(--bg-soft); }
     .ed-pag-item+.ed-pag-item { border-left:1px solid var(--beige); }
@@ -115,104 +254,142 @@
   <div class="announcement-bar">Spedizione gratuita da €50 &nbsp;·&nbsp; Resi gratuiti entro 30 giorni</div>
   <div data-include="site-header"></div>
 
+  <!-- HERO -->
   <div class="ed-hero">
-    <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1920&q=88" alt="Autunno Inverno 2025" loading="eager">
+    <a class="ed-back" href="/">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Memì
+    </a>
+    <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=1920&q=88" alt="Cappotto azzurro davanti al Duomo di Milano — Autunno Inverno 2025" loading="eager">
     <div class="ed-hero-veil"></div>
     <div class="ed-hero-body">
-      <p class="ed-hero-issue">N° 02 &nbsp;·&nbsp; Autunno Inverno 2025</p>
-      <h1 class="ed-hero-title">Fall<br><em>Winter</em><br>2025</h1>
+      <p class="ed-hero-issue">N° 02 &nbsp;·&nbsp; Editoriali Memì · Milano</p>
+      <h1 class="ed-hero-title">Autunno<br><em>Inverno</em><br>2025</h1>
+      <p class="ed-hero-sub">L'arte degli strati, il calore dell'eleganza</p>
     </div>
   </div>
 
-  <div class="ed-intro">
-    <p class="ed-intro-label">Nota del direttore creativo</p>
-    <p class="ed-intro-text">Il calore dell'autunno si fa tessuto. Strati che proteggono senza mai rinunciare all'eleganza. Una collezione per chi vive ogni stagione con intensità.</p>
+  <!-- MARQUEE -->
+  <div class="ed-marquee" aria-hidden="true">
+    <div class="ed-marquee-track">
+      <span class="ed-marquee-item">Autunno Inverno 2025</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Lana &amp; Maglia</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Strati</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Luce d'ottobre</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Toni caldi</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Milano</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Autunno Inverno 2025</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Lana &amp; Maglia</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Strati</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Luce d'ottobre</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Toni caldi</span><span class="ed-marquee-item accent">✳</span>
+      <span class="ed-marquee-item">Milano</span><span class="ed-marquee-item accent">✳</span>
+    </div>
   </div>
 
-  <!-- Full strip -->
+  <!-- INTRO -->
+  <div class="ed-intro">
+    <p class="ed-intro-label">Nota del direttore creativo</p>
+    <p class="ed-intro-text">Il calore dell'autunno si fa tessuto. Strati che proteggono <span class="hl">senza mai rinunciare all'eleganza</span>. Una collezione per chi vive ogni stagione con intensità.</p>
+  </div>
+
+  <!-- SPREAD 1 — La boutique + i cappotti -->
   <div class="ed-spread">
-    <div class="ed-photo ar-ultra" style="aspect-ratio:21/8;margin-bottom:6px;">
-      <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1920&q=85" alt="AI25 hero" loading="lazy" style="object-position:center 20%;">
+    <div class="ed-photo ar-ultra" style="margin-bottom:6px;">
+      <img src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=1920&q=85" alt="L'interno della boutique con i capi d'autunno" loading="lazy" style="object-position:center 55%;">
+    </div>
+    <div class="ed-photo-cap" style="margin-bottom: var(--space-6);">
+      <span><span class="ed-photo-cap-label">Backstage</span><span class="ed-photo-cap-name">La boutique d'autunno</span></span>
     </div>
     <div class="spread-3col">
       <div>
         <div class="ed-photo ar-portrait">
-          <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80" alt="Look 1" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1523359346063-d879354c0ea5?auto=format&fit=crop&w=700&q=80" alt="Blazer in denim, luce d'atelier" loading="lazy">
         </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Giacca Kimono Fresca</span>
-          <span class="ed-photo-cap-price">€72</span>
-        </div>
-      </div>
-      <div>
-        <div class="ed-photo ar-portrait">
-          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&q=80" alt="Look 2" loading="lazy">
-        </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Pantalone Culotte Zen</span>
-          <span class="ed-photo-cap-price">€88</span>
-        </div>
-      </div>
-      <div>
-        <div class="ed-photo ar-portrait">
-          <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80" alt="Look 3" loading="lazy">
-        </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Maxi Cardigan Nuvola</span>
-          <span class="ed-photo-cap-price">€85</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="ed-fullbleed">
-    <img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=1920&q=85" alt="" loading="lazy">
-  </div>
-
-  <div class="ed-quote">
-    <p>"Il lusso è sentirsi a casa in qualunque stagione."</p>
-    <cite>— Fall Winter, Memi 2025</cite>
-  </div>
-
-  <div class="ed-spread">
-    <div class="spread-asym">
-      <div>
-        <div class="ed-photo ar-portrait">
-          <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80" alt="Look 4" loading="lazy">
-        </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Set Coordinato Viola</span>
-          <span class="ed-photo-cap-price">€130</span>
-        </div>
-      </div>
-      <div>
-        <div class="ed-photo ar-portrait">
-          <img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=900&q=80" alt="Look 5" loading="lazy">
-        </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Blazer Sartoriale Mia</span>
+        <a class="ed-photo-cap" href="/products/blazer-sartoriale-mia/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Blazer Sartoriale Mia</span></span>
           <span class="ed-photo-cap-price">€105</span>
+        </a>
+      </div>
+      <div>
+        <div class="ed-photo ar-portrait">
+          <img src="https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?auto=format&fit=crop&w=700&q=80" alt="Cappotto rosa cipria sotto il colonnato" loading="lazy">
         </div>
+        <a class="ed-photo-cap" href="/products/maxi-cardigan-nuvola/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Maxi Cardigan Nuvola</span></span>
+          <span class="ed-photo-cap-price">€85</span>
+        </a>
+      </div>
+      <div>
+        <div class="ed-photo ar-portrait">
+          <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80" alt="Cappotto bordeaux e shopping bag" loading="lazy">
+        </div>
+        <a class="ed-photo-cap" href="/products/borsa-tracolla-luna/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Borsa a Tracolla Luna</span></span>
+          <span class="ed-photo-cap-price">€120</span>
+        </a>
       </div>
     </div>
   </div>
 
+  <!-- FULL BLEED — ottobre -->
+  <div class="ed-fullbleed">
+    <img src="https://images.unsplash.com/photo-1508264165352-258db2ebd59b?auto=format&fit=crop&w=1920&q=85" alt="Larici color ruggine sulle montagne d'autunno" loading="lazy">
+    <span class="ed-fullbleed-cap">Ottobre</span>
+  </div>
+
+  <!-- PULL QUOTE — lilla memì -->
+  <div class="ed-quote">
+    <div class="ed-quote-divider"><span>✳</span></div>
+    <p>"Il lusso è sentirsi a casa in qualunque stagione."</p>
+    <cite>— Memì Studio, Milano 2025</cite>
+  </div>
+
+  <!-- SPREAD 2 — Il primo freddo -->
+  <div class="ed-spread" style="padding-top: clamp(2.5rem, 5vw, 4rem); padding-bottom: clamp(2.5rem, 5vw, 4rem);">
+    <div class="ed-spread-head">
+      <p class="eyebrow">Capitolo II</p>
+      <h2>Il primo <em>freddo</em></h2>
+    </div>
+    <div class="spread-2col">
+      <div>
+        <div class="ed-photo ar-portrait">
+          <img src="https://images.unsplash.com/photo-1475180098004-ca77a66827be?auto=format&fit=crop&w=800&q=80" alt="Maglione a motivo chevron e stivali scamosciati in riva al lago" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span><span class="ed-photo-cap-label">La gita</span><span class="ed-photo-cap-name">Weekend fuori porta</span></span>
+        </div>
+      </div>
+      <div>
+        <div class="ed-photo ar-portrait">
+          <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80" alt="Top nero in seta trasparente, ritratto serale" loading="lazy">
+        </div>
+        <a class="ed-photo-cap" href="/products/top-seta-lucida-aria/">
+          <span><span class="ed-photo-cap-label">Shop il look</span><span class="ed-photo-cap-name">Top Seta Lucida Aria</span></span>
+          <span class="ed-photo-cap-price">€65</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHOP CTA -->
   <div class="ed-shop-strip">
     <div class="ed-shop-strip-left">
       <h2>Acquista la<br><em>collezione autunno</em></h2>
       <p>Autunno Inverno 2025 — pezzi selezionati ancora disponibili</p>
     </div>
-    <a href="../../collections/shop-all/index.html" class="ed-shop-btn">Scopri i pezzi →</a>
+    <a href="/shop" class="ed-shop-btn">Scopri i pezzi →</a>
   </div>
 
+  <!-- PAGINATION -->
   <nav class="ed-pagination">
-    <a class="ed-pag-item" href="../../editoriali.html">
-      <span class="ed-pag-label">← Tutti gli editoriali</span>
-      <span class="ed-pag-title">Archivio completo</span>
-    </a>
     <a class="ed-pag-item" href="../estate-2025/index.html">
-      <span class="ed-pag-label">Successivo →</span>
-      <span class="ed-pag-title">Estate 2025</span>
+      <span class="ed-pag-label">← Successivo · N° 03</span>
+      <span class="ed-pag-title">Estate 2025 — Dance Collection</span>
+    </a>
+    <a class="ed-pag-item" href="../primavera-estate-2026/index.html">
+      <span class="ed-pag-label">Ultimo numero · N° 04 →</span>
+      <span class="ed-pag-title">Primavera Estate 2026</span>
     </a>
   </nav>
 
