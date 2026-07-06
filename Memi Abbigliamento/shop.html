@@ -89,7 +89,7 @@
     /* SALDI: bold typographic split */
     .shop-hero.hero--saldi{width:100%;height:clamp(420px,62vh,700px);display:flex;}
     .hero-saldi-text{flex:0 0 46%;min-width:0;box-sizing:border-box;background:linear-gradient(155deg,#F1F0F8 0%,#FBFAFF 48%,#EAF1E0 100%);display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:clamp(var(--space-8),5vw,var(--space-16)) clamp(1rem,2.5vw,2.5rem) clamp(var(--space-8),5vw,var(--space-16)) clamp(2.5rem,7vw,6.5rem);overflow:hidden;}
-    .saldi-eyebrow{font-size:9px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--lavender-dark,#6B6BA3);margin-bottom:var(--space-3);opacity:0;animation:heroIn .6s ease-out .1s forwards;}
+    .saldi-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:9px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--lavender-dark,#6B6BA3);margin-bottom:var(--space-3);opacity:0;animation:heroIn .6s ease-out .1s forwards;}
     .saldi-pct{font-family:var(--font-serif);font-size:clamp(3rem,7vw,7rem);font-weight:300;color:#565690;background:linear-gradient(125deg,#8F8FC1 0%,#565690 58%,#6E8A57 132%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;line-height:1;letter-spacing:-.05em;margin-bottom:var(--space-5);padding:.32em .28em .28em 0;margin-top:-.18em;overflow:visible;opacity:0;animation:heroIn .7s ease-out .2s forwards;max-width:100%;}
     .saldi-pct span{font-size:.42em;font-weight:400;vertical-align:top;margin-top:.2em;display:inline-block;}
     .hero-saldi-img{flex:1;min-width:0;position:relative;overflow:hidden;}
@@ -121,6 +121,21 @@
     .page-hero-sub{font-size:var(--text-sm);margin-bottom:0;max-width:480px;opacity:0;animation:heroIn .7s ease-out .5s forwards;}
     .hero--editorial .page-hero-sub,.hero--novita .page-hero-sub{color:rgba(255,255,255,.58);}
     .hero--accessori .page-hero-sub,.hero--saldi .page-hero-sub{color:var(--brown-mid);}
+    /* HERO BRAND DETAILS — micro icone nei colori MEMI (viola/menta), come index2 */
+    .page-hero-eyebrow{display:inline-flex;align-items:center;gap:7px;}
+    .hero-eyebrow-ic{width:13px;height:13px;flex:0 0 auto;fill:none;stroke:var(--brand-mint-mid,#9CB37F);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .hero--editorial .hero-eyebrow-ic,.novita-drop-badge .hero-eyebrow-ic{stroke:#C9DBAE;}
+    .hero-perks{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2) var(--space-5);margin-top:var(--space-5);opacity:0;animation:heroIn .7s ease-out .65s forwards;}
+    .hero--editorial .hero-perks{justify-content:flex-end;}
+    .hero-perk{display:inline-flex;align-items:center;gap:6px;font-size:9px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;white-space:nowrap;}
+    .hero-perk svg{width:14px;height:14px;flex:0 0 auto;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+    .hero--editorial .hero-perk,.hero--novita .hero-perk{color:rgba(255,255,255,.62);}
+    .hero--saldi .hero-perk,.hero--accessori .hero-perk{color:var(--brown-mid);}
+    .hero-perk .ic-viola{stroke:var(--brand-violet-mid,#8F8FC1);}
+    .hero-perk .ic-menta{stroke:var(--brand-mint-mid,#9CB37F);}
+    .hero--editorial .hero-perk .ic-viola,.hero--novita .hero-perk .ic-viola{stroke:#A9A9D6;}
+    .hero--editorial .hero-perk .ic-menta,.hero--novita .hero-perk .ic-menta{stroke:#C9DBAE;}
+    @media(max-width:768px){.hero-saldi-text .hero-perks{justify-content:center;}}
     @keyframes heroIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
 
     /* ═══ MARQUEE ════════════════════════════════════════════════ */
@@ -332,20 +347,27 @@
   var BG_MAP={default:'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1920&q=85',vestiti:'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1920&q=85',gonne:'https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?auto=format&fit=crop&w=1920&q=85',top:'https://images.unsplash.com/photo-1596783074918-c84cb06531ca?auto=format&fit=crop&w=1920&q=85',pantaloni:'https://images.unsplash.com/photo-1509551388413-e18d0ac5d495?auto=format&fit=crop&w=1920&q=85',blazer:'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=1920&q=85',set:'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=85'};
   var p=new URLSearchParams(location.search),cat=p.get('categoria'),sal=p.get('saldi'),h=document.getElementById('shopHero');
   if(!h)return;
+  var SPK='<svg class="hero-eyebrow-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.8L20 12l-6.1 3.2L12 21l-1.9-5.8L4 12l6.1-3.2L12 3z"/></svg>';
+  var TAG='<svg class="hero-eyebrow-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.83z"/><circle cx="7" cy="7" r="1.5"/></svg>';
+  var PERKS='<div class="hero-perks" aria-hidden="true">'
+    +'<span class="hero-perk"><svg class="ic-viola" viewBox="0 0 24 24"><rect x="1" y="4" width="14" height="12" rx="1"/><path d="M15 8h4l4 4v4h-8V8z"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="18.5" r="2"/></svg>Spedizione gratuita</span>'
+    +'<span class="hero-perk"><svg class="ic-menta" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>Reso 30 giorni</span>'
+    +'<span class="hero-perk"><svg class="ic-viola" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Made in Italy</span>'
+    +'</div>';
   if(cat==='novita'){
     h.className='shop-hero hero--novita';
     var _imgs=['https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=960&q=85','https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=960&q=85','https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=960&q=85'];
-    h.innerHTML='<div class="novita-cols">'+_imgs.map(function(src){return '<div class="novita-col"><img src="'+src+'" alt="Look Novità Estate 2025" loading="eager" /></div>';}).join('')+'</div><div class="hero-video-overlay"></div><div class="hero-novita-inner"><div class="novita-drop-badge">Drop 23 ✦ Estate 2025</div><h1 class="page-hero-title">Novità</h1><p class="page-hero-sub">I pezzi più desiderati della stagione, appena arrivati.</p><a href="#productGrid" class="novita-scroll-hint"><span>Scopri la collezione</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>';
+    h.innerHTML='<div class="novita-cols">'+_imgs.map(function(src){return '<div class="novita-col"><img src="'+src+'" alt="Look Novità Estate 2025" loading="eager" /></div>';}).join('')+'</div><div class="hero-video-overlay"></div><div class="hero-novita-inner"><div class="novita-drop-badge">'+SPK+'Drop 23 · Estate 2025</div><h1 class="page-hero-title">Novità</h1><p class="page-hero-sub">I pezzi più desiderati della stagione, appena arrivati.</p>'+PERKS+'<a href="#productGrid" class="novita-scroll-hint"><span>Scopri la collezione</span><svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>';
   }else if(sal==='1'){
     h.className='shop-hero hero--saldi';
-    h.innerHTML='<div class="hero-saldi-text"><p class="saldi-eyebrow">Fino al</p><div class="saldi-pct">&#8722;30<span>%</span></div><h1 class="page-hero-title">I <em>Saldi</em></h1><p class="page-hero-sub">Selezionati. Limitati. Solo per te.</p></div><div class="hero-saldi-img"><img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=960&q=85" alt="" /></div>';
+    h.innerHTML='<div class="hero-saldi-text"><p class="saldi-eyebrow">'+TAG+'Fino al</p><div class="saldi-pct">&#8722;30<span>%</span></div><h1 class="page-hero-title">I <em>Saldi</em></h1><p class="page-hero-sub">Selezionati. Limitati. Solo per te.</p>'+PERKS+'</div><div class="hero-saldi-img"><img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=960&q=85" alt="" /></div>';
   }else if(cat==='accessori'){
     h.className='shop-hero hero--accessori';
-    h.innerHTML='<div class="hero-accessori-img"><img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=960&q=85" alt="" /></div><div class="hero-accessori-text"><span class="page-hero-eyebrow">Collezione accessori</span><h1 class="page-hero-title">I nostri<br><em>Accessori</em></h1><p class="page-hero-sub">Dettagli che fanno la differenza. Selezionati per esaltare ogni look.</p></div>';
+    h.innerHTML='<div class="hero-accessori-img"><img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=960&q=85" alt="" /></div><div class="hero-accessori-text"><span class="page-hero-eyebrow">'+SPK+'Collezione accessori</span><h1 class="page-hero-title">I nostri<br><em>Accessori</em></h1><p class="page-hero-sub">Dettagli che fanno la differenza. Selezionati per esaltare ogni look.</p>'+PERKS+'</div>';
   }else{
     var bg=(cat&&BG_MAP[cat])?BG_MAP[cat]:BG_MAP.default,eye=cat?(EYE_MAP[cat]||'Collezione Estate 2025'):'Collezione Estate 2025',title=cat?(TITLE_MAP[cat]||'Tutto <em>l\'Abbigliamento</em>'):'Tutto <em>l\'Abbigliamento</em>';
     h.className='shop-hero hero--editorial';
-    h.innerHTML='<img class="editorial-hero-bg" src="'+bg+'" alt="" loading="eager" /><div class="editorial-hero-overlay"></div><div class="editorial-hero-content"><span class="page-hero-eyebrow">'+eye+'</span><h1 class="page-hero-title">'+title+'</h1><p class="page-hero-sub page-hero-sub-count">Articoli selezionati con cura per il tuo stile.</p></div>';
+    h.innerHTML='<img class="editorial-hero-bg" src="'+bg+'" alt="" loading="eager" /><div class="editorial-hero-overlay"></div><div class="editorial-hero-content"><span class="page-hero-eyebrow">'+SPK+eye+'</span><h1 class="page-hero-title">'+title+'</h1><p class="page-hero-sub page-hero-sub-count">Articoli selezionati con cura per il tuo stile.</p>'+PERKS+'</div>';
   }
   h.style.opacity='1';
   document.documentElement.classList.remove('filtering');
