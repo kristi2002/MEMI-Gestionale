@@ -108,6 +108,22 @@
     .saldi-cta svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .3s;}
     .saldi-cta:hover{background:var(--brand-violet-dark,#6B6BA3);border-color:var(--brand-violet-dark,#6B6BA3);color:#fff;}
     .saldi-cta:hover svg{transform:translateX(3px);}
+    /* SALDI: blocco editoriale prima del footer (visibile solo con ?saldi=1) */
+    .saldi-seo{display:none;background:linear-gradient(180deg,#fff 0%,var(--bg-soft,#F1F0F8) 100%);border-top:1px solid var(--beige,#DBDBEE);padding:var(--space-16) var(--space-6) var(--space-16);}
+    .saldi-seo.show{display:block;}
+    .saldi-seo-inner{max-width:760px;margin:0 auto;text-align:center;}
+    .saldi-seo-divider{display:flex;align-items:center;justify-content:center;gap:var(--space-3);margin-bottom:var(--space-6);}
+    .saldi-seo-divider::before,.saldi-seo-divider::after{content:'';height:1px;width:56px;background:var(--beige-dark,#BEBEDD);}
+    .saldi-seo-divider svg{width:14px;height:14px;fill:none;stroke:var(--brand-mint-mid,#9CB37F);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+    .saldi-seo h2{font-family:var(--font-serif);font-size:clamp(1.7rem,3.2vw,2.4rem);font-weight:300;letter-spacing:-.02em;line-height:1.15;color:var(--espresso,#3B2B2B);margin-bottom:var(--space-5);}
+    .saldi-seo h3{font-family:var(--font-serif);font-size:clamp(1.25rem,2vw,1.55rem);font-weight:400;color:var(--espresso,#3B2B2B);margin:var(--space-10) 0 var(--space-3);}
+    .saldi-seo h2 em,.saldi-seo h3 em{font-style:italic;font-weight:400;color:var(--brand-violet-dark,#6B6BA3);}
+    .saldi-seo p{font-size:var(--text-sm);line-height:1.8;color:var(--brown-mid,#6B5D52);max-width:640px;margin:0 auto var(--space-4);}
+    .saldi-seo a{color:var(--brand-violet-dark,#6B6BA3);border-bottom:1px solid var(--beige-dark,#BEBEDD);transition:border-color .25s;}
+    .saldi-seo a:hover{border-color:var(--brand-violet-dark,#6B6BA3);}
+    .saldi-seo-back{display:inline-flex;align-items:center;gap:7px;margin-top:var(--space-8);font-size:var(--text-xs);letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--espresso,#3B2B2B) !important;border-bottom:none !important;}
+    .saldi-seo-back svg{width:14px;height:14px;fill:none;stroke:var(--brand-violet-mid,#8F8FC1);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .3s;}
+    .saldi-seo-back:hover svg{transform:translateY(-3px);}
     .hero-saldi-img{flex:1;min-width:0;position:relative;overflow:hidden;}
     .hero-saldi-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;}
     .hero-saldi-img::after{content:'';position:absolute;inset:0;background:linear-gradient(to right,rgba(255,255,255,.4) 0%,transparent 28%);}
@@ -385,6 +401,7 @@
       +'<a href="#productGrid" class="saldi-cta">Scopri i saldi<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>'
       +PERKS
       +'</div><div class="hero-saldi-img"><img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=960&q=85" alt="Abito estivo a fiori in saldo" /></div>';
+    document.addEventListener('DOMContentLoaded',function(){var s=document.getElementById('saldiSeo');if(s)s.classList.add('show');});
   }else if(cat==='accessori'){
     h.className='shop-hero hero--accessori';
     h.innerHTML='<div class="hero-accessori-img"><img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=960&q=85" alt="" /></div><div class="hero-accessori-text"><span class="page-hero-eyebrow">'+SPK+'Collezione accessori</span><h1 class="page-hero-title">I nostri<br><em>Accessori</em></h1><p class="page-hero-sub">Dettagli che fanno la differenza. Selezionati per esaltare ogni look.</p>'+PERKS+'</div>';
@@ -476,6 +493,23 @@
 
   </main>
 </div><!-- /shop-layout -->
+
+<!-- Blocco editoriale saldi — visibile solo su /shop?saldi=1 (attivato dallo script della hero) -->
+<section class="saldi-seo" id="saldiSeo" aria-label="I saldi Memi Abbigliamento">
+  <div class="saldi-seo-inner">
+    <div class="saldi-seo-divider" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.8L20 12l-6.1 3.2L12 21l-1.9-5.8L4 12l6.1-3.2L12 3z"/></svg></div>
+    <h2>Saldi: il momento giusto per uno shopping <em>a cuor leggero</em></h2>
+    <p>Il periodo dei saldi è il più atteso da chi cerca il pezzo giusto al momento giusto. Tra sconti di fine stagione e offerte a tempo, abbiamo selezionato una a una le occasioni migliori per risparmiare senza rinunciare alla qualità che ci contraddistingue.</p>
+    <p>Approfittane per rinnovare l'armadio, fare spazio alle ultime tendenze o dare nuova luce al tuo look con capi scontati scelti con cura. E poiché la selezione si rinnova di continuo, ogni visita è una nuova fonte di ispirazione.</p>
+    <h3>Le occasioni più amate della <em>stagione</em></h3>
+    <p>Le nostre promozioni attraversano tutte le categorie: dai <a href="shop?categoria=vestiti">vestiti</a> e le <a href="shop?categoria=gonne">gonne</a> che accompagnano l'estate, ai <a href="shop?categoria=blazer">blazer</a> che danno struttura a ogni outfit, fino ai <a href="shop?categoria=set">set coordinati</a> che risolvono il look in un solo gesto. Le settimane dei saldi sono il momento perfetto per accaparrarsi a prezzo conveniente i capi intramontabili del guardaroba femminile.</p>
+    <p>Tra gli accessori, dai un'occhiata alle <a href="shop?categoria=borse">borse</a> a spalla: versatili e disponibili in più dimensioni, sono perfette per l'ufficio, per un viaggio o per portare con te solo l'essenziale. E per il tocco finale, i <a href="shop?categoria=gioielli">gioielli</a> giusti fanno sempre la differenza.</p>
+    <h3>Classici intramontabili o novità: su cosa <em>punterai?</em></h3>
+    <p>I saldi ti danno l'opportunità di moltiplicare le possibilità del tuo guardaroba senza pesare sul bilancio. Con un po' di shopping mirato puoi trovare nuovi capi per il tempo libero o proposte da sfoggiare nelle occasioni più formali — dal casual curato all'eleganza senza tempo.</p>
+    <p>E se hai una cerimonia in calendario, qui trovi abiti eleganti e dettagli raffinati in linea con il dress code dell'evento. Per completare il look, uno sguardo anche alle <a href="shop?categoria=scarpe">scarpe</a> e alle <a href="shop?categoria=cinture">cinture</a> in saldo.</p>
+    <a href="#productGrid" class="saldi-seo-back">Torna alla selezione<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></a>
+  </div>
+</section>
 
 <footer class="site-footer" role="contentinfo">
 
