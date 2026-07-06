@@ -3,7 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script>if(/[?&](categoria|saldi)=/.test(location.search))document.documentElement.classList.add('filtering');</script>
+  <script>if(/[?&](categoria|saldi)=/.test(location.search))document.documentElement.classList.add('filtering');
+  // Solo su ?saldi=1: header "classic" (logo circolare favicon.svg come index2) al posto del wordmark nero
+  if(/[?&]saldi=1/.test(location.search)){var _mn=document.createElement('meta');_mn.name='memi-nav';_mn.content='classic';document.head.appendChild(_mn);}</script>
   <style>html.filtering #productGrid{opacity:0;} html.filtering .shop-hero{opacity:0;}
   @keyframes skel-pulse{0%,100%{opacity:.5;}50%{opacity:.9;}}</style>
   <title>Shop — Memi Abbigliamento | Moda Femminile</title>
@@ -93,7 +95,6 @@
     .saldi-spark{position:absolute;z-index:0;pointer-events:none;fill:none;stroke-linecap:round;stroke-linejoin:round;}
     .saldi-spark.s1{top:-38px;right:-34px;width:200px;height:200px;stroke:var(--brand-violet-mid,#8F8FC1);stroke-width:.8;opacity:.3;transform:rotate(14deg);}
     .saldi-spark.s2{bottom:26px;left:30px;width:58px;height:58px;stroke:var(--brand-mint-mid,#9CB37F);stroke-width:1.4;opacity:.5;transform:rotate(-12deg);}
-    .saldi-logo{width:60px;height:60px;border-radius:50%;object-fit:cover;box-shadow:0 6px 18px -6px rgba(107,107,163,.5);margin-bottom:var(--space-4);opacity:0;animation:heroIn .6s ease-out .05s forwards;}
     .saldi-eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:9px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--lavender-dark,#6B6BA3);margin-bottom:var(--space-3);opacity:0;animation:heroIn .6s ease-out .1s forwards;}
     .hero--saldi .page-hero-title{font-size:clamp(2.8rem,5.5vw,5.2rem);}
     .saldi-tag-badge{display:inline-flex;align-items:baseline;gap:10px;background:var(--brand-violet-dark,#6B6BA3);color:#fff;padding:10px 22px 10px 32px;border-radius:12px;border:1px solid rgba(255,255,255,.28);transform:rotate(-4deg);margin:var(--space-2) 0 var(--space-5) 4px;box-shadow:0 12px 26px -10px rgba(107,107,163,.55);opacity:0;animation:saldiTagIn .7s var(--ease-out) .45s forwards;}
@@ -107,10 +108,6 @@
     .saldi-cta svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .3s;}
     .saldi-cta:hover{background:var(--brand-violet-dark,#6B6BA3);border-color:var(--brand-violet-dark,#6B6BA3);color:#fff;}
     .saldi-cta:hover svg{transform:translateX(3px);}
-    .saldi-footer-brand{display:none;justify-content:center;padding:var(--space-10) var(--space-6);background:#BFC0E1;}
-    .saldi-footer-brand.show{display:flex;}
-    .saldi-footer-brand img{width:76px;height:76px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.75);box-shadow:0 10px 24px -8px rgba(92,92,148,.55);transition:transform .3s var(--ease-out);}
-    .saldi-footer-brand a:hover img{transform:scale(1.06) rotate(-4deg);}
     .hero-saldi-img{flex:1;min-width:0;position:relative;overflow:hidden;}
     .hero-saldi-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 42%;}
     .hero-saldi-img::after{content:'';position:absolute;inset:0;background:linear-gradient(to right,rgba(255,255,255,.4) 0%,transparent 28%);}
@@ -381,7 +378,6 @@
     h.innerHTML='<div class="hero-saldi-text">'
       +'<svg class="saldi-spark s1" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.8L20 12l-6.1 3.2L12 21l-1.9-5.8L4 12l6.1-3.2L12 3z"/></svg>'
       +'<svg class="saldi-spark s2" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.8L20 12l-6.1 3.2L12 21l-1.9-5.8L4 12l6.1-3.2L12 3z"/></svg>'
-      +'<img class="saldi-logo" src="/favicon.svg" alt="Memì" width="60" height="60" />'
       +'<p class="saldi-eyebrow">'+TAG+'Saldi estivi · Tempo limitato</p>'
       +'<h1 class="page-hero-title">I <em>Saldi</em></h1>'
       +'<div class="saldi-tag-badge"><span class="stb-lbl">Fino al</span><span class="stb-pct">&#8722;30<span>%</span></span></div>'
@@ -389,7 +385,6 @@
       +'<a href="#productGrid" class="saldi-cta">Scopri i saldi<svg viewBox="0 0 24 24" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>'
       +PERKS
       +'</div><div class="hero-saldi-img"><img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=960&q=85" alt="Abito estivo a fiori in saldo" /></div>';
-    document.addEventListener('DOMContentLoaded',function(){var b=document.getElementById('saldiFooterBrand');if(b)b.classList.add('show');});
   }else if(cat==='accessori'){
     h.className='shop-hero hero--accessori';
     h.innerHTML='<div class="hero-accessori-img"><img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=960&q=85" alt="" /></div><div class="hero-accessori-text"><span class="page-hero-eyebrow">'+SPK+'Collezione accessori</span><h1 class="page-hero-title">I nostri<br><em>Accessori</em></h1><p class="page-hero-sub">Dettagli che fanno la differenza. Selezionati per esaltare ogni look.</p>'+PERKS+'</div>';
@@ -559,10 +554,6 @@
 
 </footer>
 
-<!-- Fascia logo brand — visibile solo su /shop?saldi=1 (attivata dallo script della hero) -->
-<div class="saldi-footer-brand" id="saldiFooterBrand">
-  <a href="/" aria-label="Memi Abbigliamento — Home"><img src="/favicon.svg" alt="Memì" width="76" height="76" /></a>
-</div>
 
 <script>
 (function(){
