@@ -150,8 +150,7 @@
     /* Caption below photo — corsivo memì, cliccabile verso il prodotto */
     .ed-photo-cap {
       padding: 12px 0 0;
-      display: flex; justify-content: space-between; align-items: flex-end;
-      gap: var(--space-4);
+      display: block;
     }
     .ed-photo-cap-label { display: block; font-size: 9px; letter-spacing: 0.22em;
       text-transform: uppercase; font-weight: 600; color: var(--brown-light);
@@ -170,8 +169,9 @@
     }
     a.ed-photo-cap:hover .ed-photo-cap-name::after { opacity: 1; transform: translateX(0); }
     .ed-photo-cap-price {
+      display: block; margin-top: 4px;
       font-family: var(--font-serif); font-size: clamp(1rem, 1.5vw, 1.15rem);
-      color: var(--brown-mid); white-space: nowrap; flex-shrink: 0;
+      color: var(--brown-mid); white-space: nowrap;
       line-height: 1.2;
     }
 
