@@ -390,6 +390,17 @@
     @media (min-width: 768px) {
       .editorial-panel { aspect-ratio: unset; height: 88vh; max-height: 900px; }
     }
+    .editorial-panel::after {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 4px;
+      background: var(--editorial-accent, var(--brand-mint-mid, #9CB37F));
+      z-index: 3;
+      transition: height var(--dur-med, 0.3s);
+    }
+    .editorial-panel:hover::after { height: 7px; }
+    .editorial-split .editorial-panel:nth-child(2) { --editorial-accent: var(--brand-violet-mid, #8F8FC1); }
     .editorial-panel img {
       transition: transform 1.2s var(--ease-out);
     }
