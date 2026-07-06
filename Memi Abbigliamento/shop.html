@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <script>if(/[?&](categoria|saldi)=/.test(location.search))document.documentElement.classList.add('filtering');
-  // Solo su ?saldi=1: header "classic" (logo circolare favicon.svg come index2) al posto del wordmark nero
-  if(/[?&]saldi=1/.test(location.search)){var _mn=document.createElement('meta');_mn.name='memi-nav';_mn.content='classic';document.head.appendChild(_mn);}</script>
+  <script>if(/[?&](categoria|saldi)=/.test(location.search))document.documentElement.classList.add('filtering');</script>
   <style>html.filtering #productGrid{opacity:0;} html.filtering .shop-hero{opacity:0;}
   @keyframes skel-pulse{0%,100%{opacity:.5;}50%{opacity:.9;}}</style>
   <title>Shop — Memi Abbigliamento | Moda Femminile</title>
