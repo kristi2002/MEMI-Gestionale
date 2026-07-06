@@ -524,11 +524,6 @@
       overflow: hidden; background: var(--cream);
     }
     .product-img-wrap img { height: 100%; object-position: center top; transition: opacity var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-out); }
-    /* Accessory shots (borse, gioielli, cinture, scarpe) are product-on-white and
-       centred, so the default object-fit:cover crops them ("look cut"). Show the
-       whole product with contain + a little breathing room. Apparel keeps cover. */
-    .product-card[data-is-accessori="1"] .product-img-main,
-    .product-card[data-is-accessori="1"] .product-img-alt { object-fit: contain; object-position: center; padding: 6%; }
     .product-img-alt { position: absolute; inset: 0; opacity: 0; transition: opacity var(--dur-med) var(--ease-out); }
     .product-card:hover .product-img-main { opacity: 0; }
     .product-card:hover .product-img-alt  { opacity: 1; }
