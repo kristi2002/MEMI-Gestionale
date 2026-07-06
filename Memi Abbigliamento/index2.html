@@ -989,7 +989,7 @@
     /* ============================================================
        8.5 INSTAGRAM LOOKBOOK
        ============================================================ */
-    .ig-lookbook { background: var(--bg-soft); }
+    .ig-lookbook { background: var(--white); }
     .ig-lookbook-header {
       display: flex; flex-direction: column;
       align-items: center; text-align: center;
@@ -1231,6 +1231,13 @@
     .reveal-delay-3 { transition-delay: 0.34s; }
   </style>
   <link rel="stylesheet" href="app.css?v=3" />
+  <!-- index2-only overrides: caricato dopo app.css così vince sui default condivisi -->
+  <style>
+    /* Footer un po' più viola (stessa tinta del brand, intensità contenuta) —
+       scoped a questa pagina per non toccare le altre ~56 pagine dello store. */
+    .site-footer { background: #E9E7F5; }
+    .site-footer .footer-newsletter { background: #E1DFF0; }
+  </style>
 </head>
 <body>
 
