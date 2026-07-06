@@ -28,7 +28,12 @@ const VARIANTS = [
   { name: 'full',  width: 1600, quality: 82 },
 ];
 
-const ALLOWED = new Set(['jpeg', 'jpg', 'png', 'webp', 'gif', 'avif', 'tiff']);
+// NOTE: sharp/libvips reports AVIF images as format 'heif' (AVIF is an
+// AV1-encoded payload inside the HEIF/ISOBMFF container; metadata.compression
+// is 'av1'). So 'heif'/'heic' MUST be here or AVIF uploads get rejected 415
+// even though the AVIF→WebP decode works fine. 'avif' is kept for forward-compat
+// in case a future libvips labels it directly.
+const ALLOWED = new Set(['jpeg', 'jpg', 'png', 'webp', 'gif', 'avif', 'heif', 'heic', 'tiff']);
 
 function ensureDir() {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
