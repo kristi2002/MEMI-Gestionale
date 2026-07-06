@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Primavera Estate 2026 — Editoriali Memi</title>
+  <meta name="description" content="Memi Editoriali N° 04 — Primavera Estate 2026. Il momento in cui la primavera incontra l'estate: lino, fioriture e colori pastello. Moda femminile curata, Milano." />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Primavera Estate 2026 — Editoriali Memi" />
+  <meta property="og:description" content="Lino, fioriture e colori pastello: l'editoriale Primavera Estate 2026 di Memi Abbigliamento." />
+  <meta property="og:image" content="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80" />
+  <meta property="og:locale" content="it_IT" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
@@ -82,7 +88,7 @@
       min-height: 550px;
       overflow: hidden;
     }
-    .ed-hero img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+    .ed-hero img { width: 100%; height: 100%; object-fit: cover; object-position: center 35%; }
     .ed-hero-veil {
       position: absolute; inset: 0;
       background: linear-gradient(to bottom, rgba(59,43,43,.12) 0%, rgba(59,43,43,0) 38%, rgba(59,43,43,.34) 82%, rgba(59,43,43,.55) 100%);
@@ -93,25 +99,77 @@
       bottom: clamp(2.5rem, 6vw, 5rem);
     }
     .ed-hero-issue { font-size: 10px; letter-spacing: 0.25em; text-transform: uppercase;
-      color: rgba(255,255,255,.4); margin-bottom: var(--space-3); }
+      color: rgba(255,255,255,.55); margin-bottom: var(--space-3); }
     .ed-hero-title { font-family: var(--font-serif); font-size: clamp(3.5rem, 9vw, 8rem);
       font-weight: 300; line-height: 0.92; letter-spacing: -0.03em; color: #fff; }
     .ed-hero-title em { font-style: italic; color: rgba(241,240,248,.85); }
+    .ed-hero-sub { margin-top: var(--space-4); font-family: var(--font-serif); font-style: italic;
+      font-size: clamp(.95rem, 1.6vw, 1.15rem); color: rgba(255,255,255,.7); letter-spacing: .05em; }
+
+    /* ── Marquee (identità memì, come la home) ── */
+    .ed-marquee {
+      background: var(--lavender);
+      overflow: hidden;
+      padding: var(--space-4) 0;
+      border-top: 1px solid rgba(59,43,43,.1);
+      border-bottom: 1px solid rgba(59,43,43,.1);
+    }
+    .ed-marquee-track {
+      display: flex;
+      white-space: nowrap;
+      animation: edMarquee 30s linear infinite;
+      width: max-content;
+    }
+    .ed-marquee-item {
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--espresso);
+      font-weight: 500;
+      padding: 0 var(--space-6);
+    }
+    .ed-marquee-item.accent { color: var(--lavender-dark); padding: 0 var(--space-4); }
+    @keyframes edMarquee {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
 
     /* ── Intro text ── */
     .ed-intro {
       background: #FBF9F5;
       padding: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 5vw, 4rem);
-      max-width: 640px;
+      max-width: 680px;
     }
     .ed-intro-label { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
       color: var(--brown-light); margin-bottom: var(--space-4); }
     .ed-intro-text { font-family: var(--font-serif); font-size: clamp(1.35rem, 2.5vw, 1.8rem);
       font-weight: 300; line-height: 1.45; color: var(--espresso); font-style: italic; }
+    .ed-intro-text .hl {
+      font-style: inherit;
+      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 40%;
+      background-position: 0% 74%;
+      padding: 0 .08em;
+    }
 
     /* ── Photo spreads ── */
     .ed-spread { background: #FBF9F5; padding: 0 clamp(1.5rem, 5vw, 4rem) clamp(2rem, 4vw, 3rem); }
     .ed-spread + .ed-spread { padding-top: 6px; }
+
+    .ed-spread-head { max-width: 1280px; margin: 0 auto; padding: 0 0 var(--space-6); }
+    .ed-spread-head .eyebrow { font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+      color: var(--brown-light); margin-bottom: var(--space-2); }
+    .ed-spread-head h2 { font-family: var(--font-serif); font-size: clamp(1.6rem, 3.5vw, 2.6rem);
+      font-weight: 300; letter-spacing: -0.02em; color: var(--espresso); }
+    .ed-spread-head h2 em {
+      font-style: italic;
+      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 40%;
+      background-position: 0% 74%;
+      padding: 0 .08em;
+    }
 
     .spread-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
     .spread-3col { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
@@ -141,16 +199,47 @@
     .ed-photo-cap-price { font-size: 11px; color: var(--brown-light); }
 
     /* Full-bleed */
-    .ed-fullbleed { width: 100%; overflow: hidden; }
-    .ed-fullbleed img { width: 100%; aspect-ratio: 21/8; object-fit: cover; object-position: center 30%; }
+    .ed-fullbleed { width: 100%; overflow: hidden; position: relative; }
+    .ed-fullbleed img { width: 100%; aspect-ratio: 21/8; object-fit: cover; object-position: center 55%; }
     @media (max-width: 640px) { .ed-fullbleed img { aspect-ratio: 16/9; } }
-
-    /* Pull quote */
-    .ed-quote {
-      background: var(--lavender-light);
-      padding: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 5vw, 4rem);
-      text-align: center;
+    .ed-fullbleed-cap {
+      position: absolute; right: clamp(1rem, 4vw, 3rem); bottom: clamp(.75rem, 2vw, 1.5rem);
+      font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+      color: rgba(255,255,255,.75); text-shadow: 0 1px 8px rgba(0,0,0,.35);
     }
+
+    /* Pull quote — lilla memì (dal logo, come il manifesto della home) */
+    .ed-quote {
+      background: #BFC0E1;
+      padding: clamp(3.5rem, 7vw, 6rem) clamp(1.5rem, 5vw, 4rem);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .ed-quote::before {
+      content: '"';
+      position: absolute;
+      top: -0.2em;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--font-serif);
+      font-size: clamp(12rem, 25vw, 22rem);
+      font-weight: 300;
+      color: rgba(59,43,43,.05);
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+    .ed-quote-divider {
+      display: flex; align-items: center; justify-content: center;
+      gap: var(--space-4); margin-bottom: var(--space-6);
+      position: relative; z-index: 1;
+    }
+    .ed-quote-divider::before,
+    .ed-quote-divider::after {
+      content: ''; flex: 1; max-width: 80px; height: 1px; background: rgba(59,43,43,.2);
+    }
+    .ed-quote-divider span { color: var(--sage-dark); font-size: var(--text-base); }
     .ed-quote p {
       font-family: var(--font-serif);
       font-size: clamp(1.5rem, 3.5vw, 3rem);
@@ -160,6 +249,7 @@
       line-height: 1.4;
       max-width: 800px;
       margin: 0 auto;
+      position: relative; z-index: 1;
     }
     .ed-quote cite {
       display: block;
@@ -168,7 +258,8 @@
       letter-spacing: 0.2em;
       text-transform: uppercase;
       font-style: normal;
-      color: var(--brown-light);
+      color: var(--brown-mid);
+      position: relative; z-index: 1;
     }
 
     /* Shop CTA strip */
@@ -184,7 +275,14 @@
     .ed-shop-strip-left h2 { font-family: var(--font-serif);
       font-size: clamp(1.75rem, 4vw, 3rem); font-weight: 300; letter-spacing: -0.02em;
       color: var(--espresso); line-height: 1.1; }
-    .ed-shop-strip-left h2 em { font-style: italic; }
+    .ed-shop-strip-left h2 em {
+      font-style: italic;
+      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 40%;
+      background-position: 0% 74%;
+      padding: 0 .08em;
+    }
     .ed-shop-strip-left p { font-size: var(--text-sm); color: var(--brown-mid);
       margin-top: var(--space-2); }
     .ed-shop-btn {
@@ -226,38 +324,117 @@
 
   <!-- HERO -->
   <div class="ed-hero">
-    <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1920&q=88" alt="Primavera Estate 2026" loading="eager">
+    <a class="ed-back" href="/">
+      <svg viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Memì
+    </a>
+    <img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1920&q=85" alt="Vestito a fiori sul lungomare — Primavera Estate 2026" loading="eager">
     <div class="ed-hero-veil"></div>
     <div class="ed-hero-body">
-      <p class="ed-hero-issue">N° 04 &nbsp;·&nbsp; Primavera Estate 2026</p>
-      <h1 class="ed-hero-title">Spring<br><em>Summer</em><br>2026</h1>
+      <p class="ed-hero-issue">N° 04 &nbsp;·&nbsp; Editoriali Memì</p>
+      <h1 class="ed-hero-title">Primavera<br><em>Estate</em><br>2026</h1>
+      <p class="ed-hero-sub">Dove la fioritura incontra la prima luce d'estate</p>
+    </div>
+  </div>
+
+  <!-- MARQUEE -->
+  <div class="ed-marquee" aria-hidden="true">
+    <div class="ed-marquee-track">
+      <span class="ed-marquee-item">Primavera Estate 2026</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Lino &amp; Cotone</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Colori pastello</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Fioriture</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Seta leggera</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Milano</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Primavera Estate 2026</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Lino &amp; Cotone</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Colori pastello</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Fioriture</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Seta leggera</span><span class="ed-marquee-item accent">❀</span>
+      <span class="ed-marquee-item">Milano</span><span class="ed-marquee-item accent">❀</span>
     </div>
   </div>
 
   <!-- INTRO -->
   <div class="ed-intro">
     <p class="ed-intro-label">Nota del direttore creativo</p>
-    <p class="ed-intro-text">Questa stagione celebra la leggerezza. Tessuti che respirano, colori che evocano l'alba sul mare, silhouette che danzano con il vento. Un'ode alla femminilità senza sforzo.</p>
+    <p class="ed-intro-text">Questa è la stagione di mezzo, la più preziosa: la primavera che sboccia e scivola nella prima estate. <span class="hl">Lino che respira</span>, fiori sul cotone, pastelli che prendono il sole. Capi pensati per fiorire con voi.</p>
   </div>
 
-  <!-- SPREAD 1 -->
+  <!-- SPREAD 1 — La fioritura -->
   <div class="ed-spread">
     <div class="spread-1big2small">
-      <div class="ed-photo main ar-portrait">
-        <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=800&q=82" alt="Look 1" loading="lazy">
+      <div>
+        <div class="ed-photo main ar-portrait" style="height:100%;">
+          <img src="https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=900&q=82" alt="Vestito bianco in cotone sangallo" loading="lazy">
+        </div>
       </div>
       <div>
         <div class="ed-photo ar-square" style="margin-bottom:6px;">
-          <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80" alt="Look 2" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1496217590455-aa63a8350eea?auto=format&fit=crop&w=700&q=80" alt="Vestito azzurro polvere davanti a una porta turchese" loading="lazy">
         </div>
         <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Top Seta Lucida Aria</span>
-          <span class="ed-photo-cap-price">€65</span>
+          <span class="ed-photo-cap-name">Camicia Cotone Brisa</span>
+          <span class="ed-photo-cap-price">€55</span>
         </div>
       </div>
       <div>
         <div class="ed-photo ar-square">
-          <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80" alt="Look 3" loading="lazy">
+          <img src="https://images.unsplash.com/photo-1490725263030-1f0521cec8ec?auto=format&fit=crop&w=700&q=80" alt="Vestito rosa cipria e cappello di paglia in un vicolo italiano" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span class="ed-photo-cap-name">Vestito Midi Fiori</span>
+          <span class="ed-photo-cap-price">€115</span>
+        </div>
+      </div>
+    </div>
+    <div class="ed-photo-cap" style="max-width:60%;">
+      <span class="ed-photo-cap-name">Vestito Lino Cannes</span>
+      <span class="ed-photo-cap-price">€89</span>
+    </div>
+  </div>
+
+  <!-- FULL BLEED — il vento di primavera -->
+  <div class="ed-fullbleed">
+    <img src="https://images.unsplash.com/photo-1502716119720-b23a93e5fe1b?auto=format&fit=crop&w=1920&q=85" alt="Abito a pois che danza nel vento tra i campi" loading="lazy">
+    <span class="ed-fullbleed-cap">Il vento di maggio</span>
+  </div>
+
+  <!-- PULL QUOTE — lilla memì -->
+  <div class="ed-quote">
+    <div class="ed-quote-divider"><span>❀</span></div>
+    <p>"La primavera non chiede permesso: fiorisce. Noi le andiamo dietro, un capo alla volta."</p>
+    <cite>— Memì Studio, Milano 2026</cite>
+  </div>
+
+  <!-- SPREAD 2 — I look della stagione -->
+  <div class="ed-spread" style="padding-top: clamp(2.5rem, 5vw, 4rem);">
+    <div class="ed-spread-head">
+      <p class="eyebrow">Capitolo II</p>
+      <h2>I look della <em>stagione</em></h2>
+    </div>
+    <div class="spread-3col">
+      <div>
+        <div class="ed-photo ar-portrait">
+          <img src="https://images.unsplash.com/photo-1521577352947-9bb58764b69a?auto=format&fit=crop&w=700&q=80" alt="T-shirt bianca e pantalone palazzo a righe" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span class="ed-photo-cap-name">Pantalone Culotte Zen</span>
+          <span class="ed-photo-cap-price">€88</span>
+        </div>
+      </div>
+      <div>
+        <div class="ed-photo ar-portrait">
+          <img src="https://images.unsplash.com/photo-1526510747491-58f928ec870f?auto=format&fit=crop&w=700&q=80" alt="Top in seta avorio alla luce del tramonto" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span class="ed-photo-cap-name">Top Bustier Perla</span>
+          <span class="ed-photo-cap-price">€48</span>
+        </div>
+      </div>
+      <div>
+        <div class="ed-photo ar-portrait">
+          <img src="https://images.unsplash.com/photo-1495385794356-15371f348c31?auto=format&fit=crop&w=700&q=80" alt="Set coordinato in raso" loading="lazy">
         </div>
         <div class="ed-photo-cap">
           <span class="ed-photo-cap-name">Set Coordinato</span>
@@ -267,58 +444,29 @@
     </div>
   </div>
 
-  <!-- FULL BLEED -->
-  <div class="ed-fullbleed">
-    <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=85" alt="" loading="lazy">
-  </div>
-
-  <!-- PULL QUOTE -->
-  <div class="ed-quote">
-    <p>"La semplicità è la massima sofisticazione."</p>
-    <cite>— Memi Studio, Milano 2026</cite>
-  </div>
-
-  <!-- SPREAD 2 -->
-  <div class="ed-spread">
-    <div class="spread-3col">
-      <div>
-        <div class="ed-photo ar-portrait">
-          <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=600&q=80" alt="Look 4" loading="lazy">
-        </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Blazer Sartoriale Mia</span>
-          <span class="ed-photo-cap-price">€105</span>
-        </div>
-      </div>
-      <div>
-        <div class="ed-photo ar-portrait">
-          <img src="https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?auto=format&fit=crop&w=600&q=80" alt="Look 5" loading="lazy">
-        </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Vestito Lino Cannes</span>
-          <span class="ed-photo-cap-price">€89</span>
-        </div>
-      </div>
-      <div>
-        <div class="ed-photo ar-portrait">
-          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=600&q=80" alt="Look 6" loading="lazy">
-        </div>
-        <div class="ed-photo-cap">
-          <span class="ed-photo-cap-name">Gonna Plissé Nuvola</span>
-          <span class="ed-photo-cap-price">€79</span>
-        </div>
-      </div>
+  <!-- SPREAD 3 — L'atelier e gli accessori -->
+  <div class="ed-spread" style="padding-bottom: clamp(2.5rem, 5vw, 4rem);">
+    <div class="ed-spread-head">
+      <p class="eyebrow">Capitolo III</p>
+      <h2>Dietro le quinte, <em>gli accessori</em></h2>
     </div>
-  </div>
-
-  <!-- SPREAD 3 -->
-  <div class="ed-spread" style="padding-bottom: 0;">
     <div class="spread-2col">
-      <div class="ed-photo ar-wide">
-        <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80" alt="Look 7" loading="lazy">
+      <div>
+        <div class="ed-photo ar-wide">
+          <img src="https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=1000&q=80" alt="I capi della collezione appesi in atelier" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span class="ed-photo-cap-name">L'atelier — la palette avorio</span>
+        </div>
       </div>
-      <div class="ed-photo ar-wide">
-        <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80" alt="Look 8" loading="lazy">
+      <div>
+        <div class="ed-photo ar-wide">
+          <img src="https://images.unsplash.com/photo-1506152983158-b4a74a01c721?auto=format&fit=crop&w=1000&q=80" alt="Borsa avorio e occhiali da sole su pietra" loading="lazy">
+        </div>
+        <div class="ed-photo-cap">
+          <span class="ed-photo-cap-name">Borsa Bucket Sabbia</span>
+          <span class="ed-photo-cap-price">€165</span>
+        </div>
       </div>
     </div>
   </div>
@@ -327,20 +475,20 @@
   <div class="ed-shop-strip">
     <div class="ed-shop-strip-left">
       <h2>Acquista la<br><em>collezione</em></h2>
-      <p>Primavera Estate 2026 — disponibile ora</p>
+      <p>Primavera Estate 2026 — disponibile ora in boutique</p>
     </div>
-    <a href="../../collections/shop-all/index.html" class="ed-shop-btn">Scopri i pezzi →</a>
+    <a href="/shop" class="ed-shop-btn">Scopri i pezzi →</a>
   </div>
 
   <!-- PAGINATION -->
   <nav class="ed-pagination">
-    <a class="ed-pag-item" href="../autunno-inverno-2025/index.html">
-      <span class="ed-pag-label">← Precedente</span>
-      <span class="ed-pag-title">Fall Winter 2025</span>
+    <a class="ed-pag-item" href="../estate-2025/index.html">
+      <span class="ed-pag-label">← Precedente · N° 03</span>
+      <span class="ed-pag-title">Estate 2025 — Dance Collection</span>
     </a>
-    <a class="ed-pag-item" href="../../editoriali.html">
-      <span class="ed-pag-label">Tutti gli editoriali →</span>
-      <span class="ed-pag-title">Archivio completo</span>
+    <a class="ed-pag-item" href="../autunno-inverno-2025/index.html">
+      <span class="ed-pag-label">Dall'archivio · N° 02 →</span>
+      <span class="ed-pag-title">Autunno Inverno 2025</span>
     </a>
   </nav>
 
