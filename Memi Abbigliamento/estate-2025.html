@@ -26,7 +26,8 @@
     .coll-hero-overlay {
       position: absolute;
       inset: 0;
-      background: linear-gradient(to bottom, rgba(10,4,4,.15) 0%, rgba(10,4,4,.55) 100%);
+      /* cool viola-toned scrim — richiamo al brand invece del nero caldo */
+      background: linear-gradient(to bottom, rgba(47,42,68,.18) 0%, rgba(38,32,58,.6) 100%);
     }
     .coll-hero-body {
       position: absolute;
@@ -35,11 +36,20 @@
       right: clamp(1.5rem, 5vw, 4rem);
     }
     .coll-hero-season {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
       font-size: 10px;
       letter-spacing: 0.2em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.6);
+      color: var(--brand-mint, #D5E4C3);
+      font-weight: 500;
       margin-bottom: var(--space-2);
+    }
+    .coll-hero-season::before {
+      content: '';
+      width: 28px; height: 2px;
+      background: var(--brand-mint, #D5E4C3);
     }
     .coll-hero-title {
       font-family: var(--font-serif);
@@ -50,7 +60,7 @@
       line-height: 1.05;
       margin-bottom: var(--space-4);
     }
-    .coll-hero-title em { font-style: italic; }
+    .coll-hero-title em { font-style: italic; color: var(--brand-mint, #D5E4C3); }
     .coll-hero-sub {
       font-size: var(--text-sm);
       color: rgba(255,255,255,.75);
@@ -83,34 +93,71 @@
       font-size: 10px;
       letter-spacing: 0.15em;
       text-transform: uppercase;
-      color: rgba(255,255,255,.7);
+      font-weight: 600;
+      color: var(--espresso);
+      background: var(--brand-mint, #D5E4C3);
+      padding: 5px 14px;
+      border-radius: var(--radius-full);
     }
+    .lookbook-cell:nth-child(2) .lookbook-caption { background: var(--brand-violet, #F1F0F8); }
     @media (max-width: 640px) { .lookbook-strip { grid-template-columns: 1fr 1fr; } .lookbook-cell:last-child { display: none; } }
 
-    /* ── Collection intro text ── */
+    /* ── Collection intro text — banda viola brand ── */
+    .coll-intro-band { background: var(--bg-soft, #F1F0F8); }
     .coll-intro {
       max-width: 1280px;
       margin: 0 auto;
       padding: clamp(3rem, 6vw, 5rem) var(--space-6);
       display: grid;
       gap: var(--space-8);
-      align-items: center;
+      align-items: start;
     }
     @media (min-width: 768px) { .coll-intro { grid-template-columns: 1fr 1fr; } }
+    .coll-eyebrow {
+      display: block;
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      color: var(--brown-light);
+      font-weight: 500;
+      margin-bottom: var(--space-3);
+    }
+    .coll-intro-col {
+      position: relative;
+      padding-top: var(--space-4);
+    }
+    .coll-intro-col::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 44px; height: 3px;
+      background: var(--brand-mint-mid, #9CB37F);
+    }
+    .coll-intro-col:nth-child(2)::before { background: var(--brand-violet-mid, #8F8FC1); }
     .coll-intro-title {
       font-family: var(--font-serif);
       font-size: clamp(1.75rem, 3vw, 2.75rem);
       font-weight: 300;
       letter-spacing: -0.02em;
       line-height: 1.2;
+      color: var(--espresso);
       margin-bottom: var(--space-4);
     }
-    .coll-intro-title em { font-style: italic; }
+    .coll-intro-title em {
+      font-style: italic;
+      /* evidenziatore menta — stesso richiamo dei titoli in home */
+      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 42%;
+      background-position: 0% 68%;
+      padding: 0 .1em;
+    }
     .coll-intro-body {
       font-size: var(--text-sm);
       color: var(--brown-mid);
       line-height: 1.9;
     }
+    .coll-intro-body strong { color: var(--brand-violet-dark, #6B6BA3); font-weight: 600; }
 
     /* ── Filter bar ── */
     .ec-filterbar {
@@ -155,7 +202,12 @@
       white-space: nowrap;
       font-family: var(--font-sans);
     }
-    .ec-chip:hover, .ec-chip.active {
+    .ec-chip:hover:not(.active) {
+      background: var(--brand-mint-light, #EAF1E0);
+      border-color: var(--brand-mint-mid, #9CB37F);
+      color: var(--brand-mint-dark, #5F7A3F);
+    }
+    .ec-chip.active {
       background: var(--espresso);
       border-color: var(--espresso);
       color: var(--white);
@@ -174,6 +226,7 @@
       white-space: nowrap;
       letter-spacing: .04em;
     }
+    .ec-count [data-result-count] { color: var(--brand-violet-dark, #6B6BA3); font-weight: 600; }
     @media (max-width: 600px) { .ec-count { display: none; } }
     .ec-sort {
       padding: 5px 28px 5px 12px;
@@ -189,7 +242,57 @@
       appearance: none;
       cursor: pointer;
     }
-    .ec-sort:focus { outline: none; border-color: var(--espresso); }
+    .ec-sort:focus { outline: none; border-color: var(--brand-violet-dark, #6B6BA3); }
+
+    /* ── Outro — rimando all'editoriale, banda viola + CTA menta ── */
+    .coll-outro {
+      background: var(--bg-soft, #F1F0F8);
+      text-align: center;
+      padding: clamp(3rem, 7vw, 5rem) var(--space-6);
+      margin-top: var(--space-16);
+    }
+    .coll-outro .coll-eyebrow { margin-bottom: var(--space-3); }
+    .coll-outro-title {
+      font-family: var(--font-serif);
+      font-size: clamp(1.9rem, 3.5vw, 2.75rem);
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--espresso);
+      margin-bottom: var(--space-4);
+    }
+    .coll-outro-title em {
+      font-style: italic;
+      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 42%;
+      background-position: 0% 68%;
+      padding: 0 .1em;
+    }
+    .coll-outro-sub {
+      font-size: var(--text-sm);
+      color: var(--brown-mid);
+      line-height: 1.7;
+      max-width: 440px;
+      margin: 0 auto var(--space-8);
+    }
+    .coll-outro-btn {
+      display: inline-block;
+      padding: 14px 38px;
+      background: #d9e6c5;
+      color: var(--espresso);
+      border-radius: var(--radius-full);
+      font-size: var(--text-xs);
+      letter-spacing: var(--tracking-wider);
+      text-transform: uppercase;
+      font-weight: 600;
+      transition: background var(--dur-fast), transform var(--dur-fast), box-shadow var(--dur-fast);
+    }
+    .coll-outro-btn:hover {
+      background: var(--brand-mint, #D5E4C3);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-sm);
+    }
   </style>
 </head>
 <body>
@@ -200,8 +303,8 @@
   <!-- HERO -->
   <div class="coll-hero">
     <img class="coll-hero-img"
-      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=1920&q=85"
-      alt="Estate 2025 — Memi Abbigliamento"
+      src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1920&q=85"
+      alt="Donna in abito a fiori sul mare — Estate 2025, Memi Abbigliamento"
     />
     <div class="coll-hero-overlay"></div>
     <div class="coll-hero-body">
@@ -214,27 +317,30 @@
   <!-- LOOKBOOK STRIP -->
   <div class="lookbook-strip">
     <div class="lookbook-cell">
-      <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80" alt="Look 1" loading="lazy" />
+      <img src="https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?auto=format&fit=crop&w=700&q=80" alt="Abito bianco estivo" loading="lazy" />
       <span class="lookbook-caption">Vestiti</span>
     </div>
     <div class="lookbook-cell">
-      <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=700&q=80" alt="Look 2" loading="lazy" />
+      <img src="https://images.unsplash.com/photo-1523779917675-b6ed3a42a561?auto=format&fit=crop&w=700&q=80" alt="Top bianco davanti a una porta blu mediterranea" loading="lazy" />
       <span class="lookbook-caption">Top &amp; Bluse</span>
     </div>
     <div class="lookbook-cell">
-      <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80" alt="Look 3" loading="lazy" />
+      <img src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=700&q=80" alt="Occhiali da sole e accessori estivi" loading="lazy" />
       <span class="lookbook-caption">Accessori</span>
     </div>
   </div>
 
   <!-- COLLECTION INTRO -->
-  <div class="coll-intro">
-    <div>
-      <h2 class="coll-intro-title">Nata sotto<br>il sole <em>italiano</em></h2>
-      <p class="coll-intro-body">La collezione Estate 2025 nasce dall'incontro tra la sartoria artigianale italiana e l'ispirazione dei paesaggi mediterranei. Ogni capo è pensato per accompagnarti dal giorno alla sera con eleganza naturale.</p>
-    </div>
-    <div>
-      <p class="coll-intro-body">Lino, seta e cotone leggero in una palette di colori che va dal bianco avorio al terracotta, passando per il blush e il verde salvia. Pezzi versatili, pensati per durare oltre la stagione.</p>
+  <div class="coll-intro-band">
+    <div class="coll-intro">
+      <div class="coll-intro-col">
+        <span class="coll-eyebrow">La collezione</span>
+        <h2 class="coll-intro-title">Nata sotto<br>il sole <em>italiano</em></h2>
+        <p class="coll-intro-body">La collezione Estate 2025 nasce dall'incontro tra la <strong>sartoria artigianale italiana</strong> e l'ispirazione dei paesaggi mediterranei. Ogni capo è pensato per accompagnarti dal giorno alla sera con eleganza naturale.</p>
+      </div>
+      <div class="coll-intro-col">
+        <p class="coll-intro-body">Lino, seta e cotone leggero in una palette di colori che va dal bianco avorio al terracotta, passando per il blush e il <strong>verde salvia</strong>. Pezzi versatili, pensati per durare oltre la stagione.</p>
+      </div>
     </div>
   </div>
 
@@ -267,6 +373,14 @@
     
 
     </div>
+  </div>
+
+  <!-- OUTRO — rimando all'editoriale della stagione -->
+  <div class="coll-outro">
+    <span class="coll-eyebrow">Il racconto della stagione</span>
+    <h2 class="coll-outro-title">Vivi l'estate <em>Memì</em></h2>
+    <p class="coll-outro-sub">Sfoglia l'editoriale Estate 2025: i look, i luoghi e le ispirazioni dietro ogni capo della collezione.</p>
+    <a class="coll-outro-btn" href="/editoriali/estate-2025/">Sfoglia l'editoriale</a>
   </div>
 
   <div data-include="site-footer"></div>
