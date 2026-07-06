@@ -2043,8 +2043,8 @@ $(function(){
       '<div style="font-size:13px;font-weight:600;margin-bottom:6px">Immagini prodotto</div>'+
       '<div id="galleryGrid" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>'+
       '<div id="galleryDrop" style="border:2px dashed var(--line);border-radius:8px;padding:16px;text-align:center;cursor:pointer;color:var(--muted);font-size:13px">'+
-        'Trascina qui le immagini o <strong>clicca per scegliere</strong><br><small>JPG · PNG · WebP — vengono ottimizzate in automatico</small>'+
-        '<input type="file" id="galleryFile" accept="image/*" multiple style="display:none"/>'+
+        'Trascina qui le immagini o <strong>clicca per scegliere</strong><br><small>JPG · PNG · WebP · AVIF — vengono ottimizzate in automatico</small>'+
+        '<input type="file" id="galleryFile" accept="image/*,.avif,.webp,.jpg,.jpeg,.png" multiple style="display:none"/>'+
       '</div>'+
       '<div id="galleryMsg" style="font-size:12px;color:var(--muted);margin-top:4px"></div>'+
     '</div>';
