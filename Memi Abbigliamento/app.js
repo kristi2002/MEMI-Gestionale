@@ -53,6 +53,14 @@
     return !!(m && String(m.content || '').trim() === 'classic');
   }
 
+  // A page can keep the default nav but opt into the circular favicon.svg logo
+  // alone with <meta name="memi-logo" content="circle"> in its <head>.
+  function isCircleLogo() {
+    if (isClassicNav()) return true;
+    var m = document.querySelector('meta[name="memi-logo"]');
+    return !!(m && String(m.content || '').trim() === 'circle');
+  }
+
   function injectHeader() {
     const hosts = document.querySelectorAll('[data-include="site-header"]');
     if (!hosts.length) return;
@@ -165,7 +173,7 @@
     // storefront is Italian-only HTML, so the toggle had nothing to swap to.
     // The .lang-switch CSS + wireLangSwitch() remain dormant for easy re-add.
 
-    const logoImg = classicNav
+    const logoImg = isCircleLogo()
       ? '<img src="/favicon.svg" alt="Memì" class="logo-img logo-img--circle" />'
       : '<img src="/logo.svg" alt="Memì" class="logo-img" />';
     const headerHtml =
@@ -655,7 +663,7 @@
     document.body.insertAdjacentHTML('beforeend', `
       <nav class="mobile-nav-drawer" id="mobileNavDrawer" role="navigation" aria-label="Menu principale">
         <div class="mobile-nav-header">
-          <a href="/" class="mobile-nav-logo">${isClassicNav() ? '<img src="/favicon.svg" alt="Memì" class="mobile-nav-logo-img mobile-nav-logo-img--circle" />' : '<img src="/logo.svg" alt="Memì" class="mobile-nav-logo-img" />'}</a>
+          <a href="/" class="mobile-nav-logo">${isCircleLogo() ? '<img src="/favicon.svg" alt="Memì" class="mobile-nav-logo-img mobile-nav-logo-img--circle" />' : '<img src="/logo.svg" alt="Memì" class="mobile-nav-logo-img" />'}</a>
           <button class="mobile-nav-close" id="mobileNavClose" aria-label="Chiudi menu">
             <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
