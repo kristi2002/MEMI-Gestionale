@@ -22,11 +22,26 @@ const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'uploa
 const PUBLIC_BASE = '/api/uploads';           // URL prefix (proxied to the backend)
 
 // Responsive widths (px). Each becomes a WebP file; images are never enlarged.
+// Qualities are deliberately on the higher side: product imagery must not look
+// blocky/"pixelated" after conversion. The small variants matter less, the
+// larger (card/full) ones are what customers actually scrutinise.
 const VARIANTS = [
-  { name: 'thumb', width: 400,  quality: 78 },
-  { name: 'card',  width: 800,  quality: 80 },
-  { name: 'full',  width: 1600, quality: 82 },
+  { name: 'thumb', width: 400,  quality: 82 },
+  { name: 'card',  width: 800,  quality: 85 },
+  { name: 'full',  width: 1600, quality: 88 },
 ];
+
+// Shared WebP encoder options tuned for quality over raw byte-count. The single
+// biggest cause of the "pixelated"/blocky look is WebP's DEFAULT 4:2:0 chroma
+// subsampling, which throws away colour resolution and smears saturated edges
+// (reds, prints, fine patterns). '4:4:4' keeps full chroma so colour edges stay
+// crisp; higher `effort` gives better quality-per-byte; alphaQuality keeps PNG
+// transparency clean. (See sharp output docs: sharp.pixelplumbing.com/api-output)
+const WEBP_OPTS = {
+  chromaSubsampling: '4:4:4',  // no chroma subsampling — kills colour-edge blockiness
+  effort: 6,                   // 0-6: spend more CPU for a better-looking, smaller file
+  alphaQuality: 100,           // crisp transparency for PNG uploads
+};
 
 // NOTE: sharp/libvips reports AVIF images as format 'heif' (AVIF is an
 // AV1-encoded payload inside the HEIF/ISOBMFF container; metadata.compression
@@ -64,8 +79,9 @@ async function processAndStore(buffer) {
     if (!fs.existsSync(filepath)) {
       await sharp(buffer)
         .rotate()                                   // auto-orient from EXIF, then EXIF is dropped
-        .resize({ width: v.width, withoutEnlargement: true })
-        .webp({ quality: v.quality })
+        .resize({ width: v.width, withoutEnlargement: true, kernel: 'lanczos3' })
+        .sharpen({ sigma: 0.5 })                    // gentle unsharp mask to recover detail lost when downscaling (Lanczos3 + light sharpen is the standard high-quality combo)
+        .webp(Object.assign({ quality: v.quality }, WEBP_OPTS))
         .toFile(filepath);
     }
     result[v.name] = `${PUBLIC_BASE}/${filename}`;
