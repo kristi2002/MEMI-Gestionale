@@ -504,6 +504,12 @@
         .sf2-trust-inner{max-width:1280px;margin:0 auto;display:flex;flex-wrap:wrap;gap:1rem 2.5rem;justify-content:center;}
         .sf2-trust-item{display:flex;align-items:center;gap:.5rem;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--brown-mid,#7A6B6B);}
         .sf2-trust-item svg{width:14px;height:14px;stroke:var(--brown-mid,#7A6B6B);fill:none;stroke-width:1.6;flex-shrink:0;}
+        @media(max-width:640px){
+          .sf2-trust{padding:.9rem 1.25rem;}
+          .sf2-trust-inner{display:grid;grid-template-columns:1fr 1fr;gap:.75rem 1rem;}
+          .sf2-trust-item{font-size:.6rem;letter-spacing:.04em;gap:.45rem;align-items:flex-start;line-height:1.35;}
+          .sf2-trust-item svg{width:13px;height:13px;margin-top:-1px;}
+        }
         .sf2-inner{max-width:1280px;margin:0 auto;padding:3.25rem 2rem 3.5rem;display:grid;grid-template-columns:1fr 2fr;gap:4rem;align-items:start;}
         @media(max-width:800px){.sf2-inner{grid-template-columns:1fr;gap:2.5rem;}}
         .sf2-logo{display:inline-block;margin-bottom:.55rem;line-height:0;text-decoration:none;}

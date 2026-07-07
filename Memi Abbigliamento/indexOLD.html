@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- Default nav (same as index) but with the circular favicon logo -->
-  <meta name="memi-logo" content="circle" />
-  <title>Memi Abbigliamento — Home (v2)</title>
+  <title>Memi Abbigliamento — Moda Femminile Curata</title>
   <meta name="description" content="Memi Abbigliamento: moda femminile curata, capi senza tempo per ogni occasione. Scopri la nuova collezione Estate 2025 — abbigliamento, accessori, borse e gioielli." />
   <meta name="keywords" content="moda femminile, abbigliamento donna, vestiti donna, boutique italiana, estate 2025, accessori donna" />
   <meta property="og:type" content="website" />
@@ -390,17 +388,6 @@
     @media (min-width: 768px) {
       .editorial-panel { aspect-ratio: unset; height: 88vh; max-height: 900px; }
     }
-    .editorial-panel::after {
-      content: "";
-      position: absolute;
-      left: 0; right: 0; bottom: 0;
-      height: 4px;
-      background: var(--editorial-accent, var(--brand-mint-mid, #9CB37F));
-      z-index: 3;
-      transition: height var(--dur-med, 0.3s);
-    }
-    .editorial-panel:hover::after { height: 7px; }
-    .editorial-split .editorial-panel:nth-child(2) { --editorial-accent: var(--brand-violet-mid, #8F8FC1); }
     .editorial-panel img {
       transition: transform 1.2s var(--ease-out);
     }
@@ -495,14 +482,6 @@
       gap: var(--space-4);
     }
     .section-header-row .section-title { text-align: left; }
-    #novita .section-title {
-      display: inline-block;
-      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
-      background-repeat: no-repeat;
-      background-size: 100% 42%;
-      background-position: 0% 68%;
-      padding: 0 .1em;
-    }
     .link-see-all {
       font-size: var(--text-xs);
       letter-spacing: var(--tracking-wider);
@@ -613,104 +592,6 @@
     .placeholder-figure { width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
     .placeholder-figure svg { width: 55%; opacity: .22; }
 
-    /* ── Nuovi Arrivi — carosello ── */
-    .na-controls { display: flex; align-items: center; gap: var(--space-5); flex-shrink: 0; }
-    .na-arrows { display: none; gap: var(--space-2); }
-    @media (min-width: 768px) { .na-arrows { display: flex; } }
-    .na-arrow {
-      width: 42px; height: 42px;
-      display: flex; align-items: center; justify-content: center;
-      border: 1px solid var(--beige-dark); border-radius: var(--radius-full);
-      background: var(--bg-card); color: var(--espresso);
-      transition: background var(--dur-fast), border-color var(--dur-fast), color var(--dur-fast), opacity var(--dur-fast);
-    }
-    .na-arrow svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; }
-    .na-arrow:hover:not(:disabled) { background: var(--espresso); border-color: var(--espresso); color: var(--white); }
-    .na-arrow:disabled { opacity: .3; cursor: default; }
-
-    .na-carousel {
-      display: flex;
-      gap: var(--space-3);
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding-bottom: var(--space-2); /* room for card hover shadow */
-      /* full-bleed on mobile: cards peek from the screen edge */
-      margin-inline: calc(-1 * var(--space-4));
-      padding-inline: var(--space-4);
-      scroll-padding-inline: var(--space-4);
-    }
-    .na-carousel::-webkit-scrollbar { display: none; }
-    .na-carousel:focus-visible { outline: 2px solid var(--beige-dark); outline-offset: 4px; border-radius: var(--radius-lg); }
-    @media (min-width: 768px) {
-      .na-carousel {
-        margin-inline: 0;
-        padding-inline: 0;
-        scroll-padding-inline: 0;
-        gap: var(--space-4);
-      }
-    }
-    @media (min-width: 1024px) { .na-carousel { gap: var(--space-6); } }
-
-    .na-carousel > .product-card,
-    .na-carousel > .na-skel {
-      flex: 0 0 min(70vw, 300px);
-      scroll-snap-align: start;
-    }
-    @media (min-width: 640px) {
-      .na-carousel > .product-card,
-      .na-carousel > .na-skel { flex-basis: calc(45% - var(--space-3)); }
-    }
-    @media (min-width: 768px) {
-      .na-carousel > .product-card,
-      .na-carousel > .na-skel { flex-basis: calc((100% - 2 * var(--space-4)) / 3); }
-    }
-    @media (min-width: 1024px) {
-      .na-carousel > .product-card,
-      .na-carousel > .na-skel { flex-basis: calc((100% - 3 * var(--space-6)) / 4); }
-    }
-
-    /* staggered entrance (backwards fill so hover transforms keep working after) */
-    @media (prefers-reduced-motion: no-preference) {
-      .na-carousel > .product-card {
-        animation: naIn .55s var(--ease-out) backwards;
-        animation-delay: calc(var(--i, 0) * 70ms);
-      }
-    }
-    @keyframes naIn {
-      from { opacity: 0; transform: translateY(18px); }
-      to   { opacity: 1; transform: none; }
-    }
-
-    /* skeleton (shown while the API loads) */
-    .na-skel {
-      background: var(--bg-card);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: var(--shadow-xs);
-    }
-    .na-skel-img { aspect-ratio: 3/4; }
-    .na-skel-body { padding: var(--space-3) var(--space-3) var(--space-4); }
-    .na-skel-line { height: 12px; border-radius: 6px; margin-bottom: var(--space-2); }
-    .na-skel-line.w60 { width: 60%; }
-    .na-skel-line.w35 { width: 35%; margin-bottom: 0; }
-
-    .na-empty { flex: 1 0 100%; text-align: center; padding: 3rem 1rem; color: var(--brown-light); font-size: .9rem; }
-
-    /* scroll progress */
-    .na-progress {
-      height: 2px; margin-top: var(--space-5);
-      background: var(--beige); border-radius: 2px;
-      position: relative; overflow: hidden;
-    }
-    .na-progress-fill {
-      position: absolute; inset: 0 auto 0 0;
-      width: 25%;
-      background: var(--espresso); border-radius: 2px;
-      transition: width .18s var(--ease-out);
-    }
-
     /* ============================================================
        6. MANIFESTO SECTION
        ============================================================ */
@@ -807,21 +688,11 @@
        ============================================================ */
     .trio-section { background: var(--bg-soft); padding: 0; }
     .trio-header {
-      display: flex; align-items: flex-end;
-      justify-content: space-between; gap: var(--space-4);
-      max-width: 1280px; margin: 0 auto;
       padding: var(--space-12) var(--space-6) var(--space-8);
-      text-align: left;
+      text-align: center;
     }
     @media (min-width: 768px) {
       .trio-header { padding: var(--space-16) var(--space-8) var(--space-10); }
-    }
-    .trio-header .section-title em {
-      background-image: linear-gradient(103deg, transparent 0%, transparent 1.5%, #d9e6c5 1.5%, #d9e6c5 96%, transparent 96%, transparent 100%);
-      background-repeat: no-repeat;
-      background-size: 100% 40%;
-      background-position: 0% 74%;
-      padding: 0 .08em;
     }
     .trio-grid {
       display: grid;
@@ -836,17 +707,6 @@
       overflow: hidden;
       cursor: pointer;
     }
-    .trio-item::after {
-      content: "";
-      position: absolute;
-      left: 0; right: 0; bottom: 0;
-      height: 4px;
-      background: var(--trio-accent, var(--brand-mint-mid, #9CB37F));
-      z-index: 3;
-      transition: height var(--dur-med, 0.3s);
-    }
-    .trio-item:hover::after { height: 7px; }
-    .trio-grid .trio-item:nth-child(2) { --trio-accent: var(--brand-violet-mid, #8F8FC1); }
     .trio-item img { transition: transform 1.1s var(--ease-out); }
     .trio-item:hover img { transform: scale(1.07); }
     .trio-item-overlay {
@@ -873,16 +733,7 @@
       color: rgba(255,255,255,.55);
       font-weight: 500;
       margin-bottom: var(--space-2);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .trio-tag-icon {
-      width: 13px; height: 13px;
-      flex: 0 0 auto;
-      stroke: var(--trio-accent, var(--brand-mint-mid, #9CB37F));
-      fill: none; stroke-width: 2;
-      stroke-linecap: round; stroke-linejoin: round;
+      display: block;
     }
     .trio-item-name {
       font-family: var(--font-serif);
@@ -903,7 +754,7 @@
     }
     .trio-item:hover .trio-item-cta {
       color: rgba(255,255,255,.85);
-      border-color: var(--trio-accent, var(--brand-mint-mid, #9CB37F));
+      border-color: rgba(255,255,255,.4);
     }
     .trio-item-cta svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
 
@@ -1000,25 +851,13 @@
     /* ============================================================
        8.5 INSTAGRAM LOOKBOOK
        ============================================================ */
-    .ig-lookbook { background: var(--white); }
-    .ig-lookbook-header {
-      display: flex; flex-direction: column;
-      align-items: center; text-align: center;
-      gap: var(--space-6);
-      margin-bottom: var(--space-8);
-    }
-    @media (min-width: 900px) {
-      .ig-lookbook-header {
-        flex-direction: row; align-items: flex-end;
-        justify-content: space-between;
-        text-align: left;
-      }
-    }
+    .ig-lookbook { background: var(--bg-base); }
+    .ig-lookbook-header { text-align: center; margin-bottom: var(--space-8); }
     .ig-lookbook-eyebrow {
       display: block;
       font-size: var(--text-xs); font-weight: 500;
       letter-spacing: var(--tracking-wider); text-transform: uppercase;
-      color: var(--brand-violet-dark);
+      color: var(--brown-light);
       margin-bottom: var(--space-3);
     }
     .ig-lookbook-title {
@@ -1030,48 +869,17 @@
       color: var(--espresso);
     }
     .ig-lookbook-title em { font-style: italic; }
-    .ig-lookbook-sub {
+    .ig-lookbook-handle {
+      display: inline-block;
       margin-top: var(--space-3);
       font-size: var(--text-sm);
+      letter-spacing: var(--tracking-wide);
       color: var(--brown-mid);
-      line-height: var(--leading-normal);
-      max-width: 440px;
+      transition: color var(--dur-fast);
     }
-    .ig-lookbook-sub strong { color: var(--brand-violet-dark); font-weight: 600; }
+    .ig-lookbook-handle:hover { color: var(--espresso); }
 
-    /* Follow pill — real Instagram logo (gradient tile + white glyph) */
-    .ig-follow-btn {
-      display: inline-flex; align-items: center; gap: var(--space-3);
-      background: var(--white);
-      border: 1px solid var(--beige);
-      border-radius: var(--radius-full);
-      padding: var(--space-2) var(--space-6) var(--space-2) var(--space-2);
-      box-shadow: var(--shadow-sm);
-      flex-shrink: 0;
-      transition: transform var(--dur-fast) var(--ease-out),
-                  box-shadow var(--dur-fast), border-color var(--dur-fast);
-    }
-    .ig-follow-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-md);
-      border-color: var(--beige-dark);
-    }
-    .ig-logo-badge {
-      width: 44px; height: 44px; border-radius: 13px;
-      display: grid; place-items: center;
-      flex-shrink: 0;
-      background: radial-gradient(circle at 28% 110%,
-        #FEDA75 0%, #FA7E1E 28%, #D62976 54%, #962FBF 78%, #4F5BD5 100%);
-    }
-    .ig-logo-badge svg { width: 24px; height: 24px; fill: var(--white); display: block; }
-    .ig-follow-text { display: flex; flex-direction: column; text-align: left; line-height: 1.35; }
-    .ig-follow-text strong {
-      font-size: var(--text-sm); font-weight: 600;
-      color: var(--espresso); letter-spacing: 0.02em;
-    }
-    .ig-follow-text span { font-size: var(--text-xs); color: var(--brown-light); }
-
-    /* Feed: 6 squares on desktop; snap-scrolling row (~2 visible) on mobile */
+    /* Feed: 5 squares on desktop; snap-scrolling row (~2 visible) on mobile */
     .ig-feed {
       display: grid;
       grid-auto-flow: column;
@@ -1084,85 +892,46 @@
       padding-bottom: var(--space-2);
     }
     .ig-feed::-webkit-scrollbar { display: none; }
-    @media (min-width: 640px) {
+    @media (min-width: 900px) {
       .ig-feed {
         grid-auto-flow: row;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         overflow: visible;
         padding-bottom: 0;
       }
     }
-    @media (min-width: 1024px) { .ig-feed { grid-template-columns: repeat(6, 1fr); } }
     .ig-card {
       position: relative;
       display: block;
       aspect-ratio: 1 / 1;
       overflow: hidden;
       border-radius: var(--radius-md);
-      background: var(--white);
-      box-shadow: var(--shadow-xs);
+      background: var(--beige);
       scroll-snap-align: start;
     }
     .ig-card img {
       width: 100%; height: 100%;
       object-fit: cover;
-      transition: transform var(--dur-slow) var(--ease-out);
+      transition: transform var(--dur-med) var(--ease-out);
     }
-    .ig-card:hover img { transform: scale(1.06); }
+    .ig-card:hover img { transform: scale(1.05); }
     .ig-card-overlay {
       position: absolute; inset: 0;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: var(--space-3);
-      background: linear-gradient(to top, rgba(59,43,43,.55), rgba(59,43,43,.22));
+      gap: var(--space-2);
+      background: rgba(26,18,16,.38);
       color: var(--white);
       opacity: 0;
       transition: opacity var(--dur-med) var(--ease-out);
     }
     .ig-card:hover .ig-card-overlay,
     .ig-card:focus-visible .ig-card-overlay { opacity: 1; }
-    .ig-glyph { width: 24px; height: 24px; fill: currentColor; }
-    .ig-card-stats {
-      display: flex; gap: var(--space-4);
-      font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.04em;
+    .ig-icon { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+    .ig-card-overlay span {
+      font-size: 10px; font-weight: 500;
+      letter-spacing: 0.14em; text-transform: uppercase;
     }
-    .ig-card-stats span { display: inline-flex; align-items: center; gap: 5px; }
-    .ig-card-stats svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; }
-
-    /* Follow CTA tile inside the feed */
-    .ig-cta-tile {
-      position: relative;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: var(--space-3);
-      aspect-ratio: 1 / 1;
-      padding: var(--space-4);
-      text-align: center;
-      background: var(--brand-violet-dark);
-      border-radius: var(--radius-md);
-      scroll-snap-align: start;
-      transition: background var(--dur-fast);
-    }
-    .ig-cta-tile:hover { background: var(--brand-violet-deep); }
-    .ig-cta-tile .ig-logo-badge {
-      width: 52px; height: 52px; border-radius: 16px;
-      box-shadow: 0 6px 18px rgba(28,20,50,.28);
-    }
-    .ig-cta-tile .ig-logo-badge svg { width: 28px; height: 28px; }
-    .ig-cta-handle {
-      font-size: var(--text-sm); font-weight: 600;
-      color: var(--white); letter-spacing: 0.02em;
-    }
-    .ig-cta-pill {
-      display: inline-block;
-      font-size: var(--text-xs); font-weight: 600;
-      color: var(--espresso);
-      background: var(--brand-mint);
-      border-radius: var(--radius-full);
-      padding: 6px 16px;
-      transition: background var(--dur-fast);
-    }
-    .ig-cta-tile:hover .ig-cta-pill { background: var(--brand-mint-light); }
 
     /* ============================================================
        9. TRUST STRIP
@@ -1242,13 +1011,6 @@
     .reveal-delay-3 { transition-delay: 0.34s; }
   </style>
   <link rel="stylesheet" href="app.css?v=3" />
-  <!-- index2-only overrides: caricato dopo app.css così vince sui default condivisi -->
-  <style>
-    /* Footer un po' più viola (stessa tinta del brand, intensità contenuta) —
-       scoped a questa pagina per non toccare le altre ~56 pagine dello store. */
-    .site-footer { background: #E9E7F5; }
-    .site-footer .footer-newsletter { background: #E1DFF0; }
-  </style>
 </head>
 <body>
 
@@ -1423,25 +1185,13 @@
           <span class="section-eyebrow">Collezione Estate 2025</span>
           <h2 class="section-title">Nuovi <em>Arrivi</em></h2>
         </div>
-        <div class="na-controls">
-          <a href="shop?categoria=novita" class="link-see-all">Vedi tutto →</a>
-          <div class="na-arrows">
-            <button class="na-arrow" id="naPrev" aria-label="Prodotti precedenti" disabled>
-              <svg viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-            </button>
-            <button class="na-arrow" id="naNext" aria-label="Prodotti successivi">
-              <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </button>
-          </div>
-        </div>
+        <a href="shop?categoria=novita" class="link-see-all">Vedi tutto →</a>
       </div>
 
-      <div class="na-carousel" role="list" id="homeProductGrid" tabindex="0" aria-label="Nuovi arrivi — scorri per vedere altri prodotti"></div><!-- /na-carousel -->
-
-      <div class="na-progress" id="naProgress" aria-hidden="true"><span class="na-progress-fill" id="naProgressFill"></span></div>
+      <div class="product-grid" role="list" id="homeProductGrid"></div><!-- /product-grid -->
 
       <div class="reveal reveal-delay-1" style="text-align:center;margin-top:var(--space-10);">
-        <a href="shop" class="btn-primary" style="background:#d9e6c5;color:var(--espresso);">
+        <a href="collections/shop-all/index.html" class="btn-primary" style="background:#d9e6c5;color:var(--espresso);">
           Vedi tutta la collezione
         </a>
       </div>
@@ -1474,11 +1224,8 @@
        ============================================================ -->
   <section class="trio-section" aria-label="Categorie">
     <div class="trio-header reveal">
-      <div>
-        <span class="section-eyebrow">Esplora per categoria</span>
-        <h2 class="section-title">Trova il tuo <em>stile</em></h2>
-      </div>
-      <a href="shop" class="link-see-all">Tutte le categorie →</a>
+      <span class="section-eyebrow">Esplora per categoria</span>
+      <h2 class="section-title">Trova il tuo <em>stile</em></h2>
     </div>
 
     <div class="trio-grid">
@@ -1491,7 +1238,7 @@
         />
         <div class="trio-item-overlay"></div>
         <div class="trio-item-content">
-          <span class="trio-item-tag"><svg class="trio-tag-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12l4 6-10 12L2 9l4-6z"/><path d="M2 9h20"/><path d="M12 3 8 9l4 12 4-12-4-6"/></svg>Collezione</span>
+          <span class="trio-item-tag">Collezione</span>
           <h3 class="trio-item-name">Vestiti &<br>Gonne</h3>
           <a href="shop?categoria=vestiti" class="trio-item-cta">
             Scopri
@@ -1508,7 +1255,7 @@
         />
         <div class="trio-item-overlay"></div>
         <div class="trio-item-content">
-          <span class="trio-item-tag"><svg class="trio-tag-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.8L20 12l-6.1 3.2L12 21l-1.9-5.8L4 12l6.1-3.2L12 3z"/></svg>Nuovi Arrivi</span>
+          <span class="trio-item-tag">Nuovi Arrivi</span>
           <h3 class="trio-item-name">Top &<br>Camicie</h3>
           <a href="shop?categoria=top" class="trio-item-cta">
             Scopri
@@ -1525,7 +1272,7 @@
         />
         <div class="trio-item-overlay"></div>
         <div class="trio-item-content">
-          <span class="trio-item-tag"><svg class="trio-tag-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.83z"/><circle cx="7" cy="7" r="1.5"/></svg>Saldi</span>
+          <span class="trio-item-tag">Saldi</span>
           <h3 class="trio-item-name">Accessori &<br>Blazer</h3>
           <a href="shop?categoria=accessori" class="trio-item-cta">
             Scopri
@@ -1543,6 +1290,7 @@
   <section class="video-feature" aria-label="Estate 2025 in movimento">
     <video class="video-feature-bg" id="homeFeatureVideo" autoplay muted loop playsinline
       poster="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=85">
+      <source src="/media/hero.mp4" type="video/mp4">
     </video>
     <div class="video-feature-overlay" aria-hidden="true"></div>
     <div class="video-feature-content">
@@ -1656,77 +1404,44 @@
   <section class="section ig-lookbook" id="instagram-feed" aria-label="Seguici su Instagram">
     <div class="container">
       <div class="ig-lookbook-header reveal">
-        <div class="ig-lookbook-heading">
-          <span class="ig-lookbook-eyebrow">Dal nostro feed</span>
-          <h2 class="ig-lookbook-title">Seguici su <em>Instagram</em></h2>
-          <p class="ig-lookbook-sub">Look quotidiani, backstage e anteprime dei nuovi arrivi. Tagga <strong>#memilook</strong> per essere ricondivisa sul nostro profilo.</p>
-        </div>
-        <a class="ig-follow-btn" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Segui @memiabbigliamento su Instagram">
-          <span class="ig-logo-badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zm0 3.678c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
-          </span>
-          <span class="ig-follow-text">
-            <strong>@memiabbigliamento</strong>
-            <span>Nuovi look ogni settimana</span>
-          </span>
-        </a>
+        <span class="ig-lookbook-eyebrow">Dal nostro feed</span>
+        <h2 class="ig-lookbook-title">Seguici su <em>Instagram</em></h2>
+        <a class="ig-lookbook-handle" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener">@memiabbigliamento</a>
       </div>
       <div class="ig-feed reveal">
         <a class="ig-card" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Vedi su Instagram">
-          <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — look del giorno in boutique" loading="lazy"/>
+          <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — shopping in boutique" loading="lazy"/>
           <div class="ig-card-overlay" aria-hidden="true">
-            <svg class="ig-glyph" viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
-            <div class="ig-card-stats">
-              <span><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>248</span>
-              <span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>12</span>
-            </div>
+            <svg class="ig-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+            <span>Vedi su Instagram</span>
           </div>
         </a>
         <a class="ig-card" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Vedi su Instagram">
           <img src="https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — look del giorno" loading="lazy"/>
           <div class="ig-card-overlay" aria-hidden="true">
-            <svg class="ig-glyph" viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
-            <div class="ig-card-stats">
-              <span><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>512</span>
-              <span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>34</span>
-            </div>
+            <svg class="ig-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+            <span>Vedi su Instagram</span>
           </div>
         </a>
         <a class="ig-card" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Vedi su Instagram">
           <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — editoriale" loading="lazy"/>
           <div class="ig-card-overlay" aria-hidden="true">
-            <svg class="ig-glyph" viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
-            <div class="ig-card-stats">
-              <span><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>186</span>
-              <span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>9</span>
-            </div>
+            <svg class="ig-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+            <span>Vedi su Instagram</span>
           </div>
-        </a>
-        <a class="ig-cta-tile" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Segui @memiabbigliamento su Instagram">
-          <span class="ig-logo-badge" aria-hidden="true">
-            <svg viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
-          </span>
-          <span class="ig-cta-handle">@memiabbigliamento</span>
-          <span class="ig-cta-pill">Seguici →</span>
         </a>
         <a class="ig-card" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Vedi su Instagram">
           <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — dettagli" loading="lazy"/>
           <div class="ig-card-overlay" aria-hidden="true">
-            <svg class="ig-glyph" viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
-            <div class="ig-card-stats">
-              <span><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>342</span>
-              <span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>21</span>
-            </div>
+            <svg class="ig-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+            <span>Vedi su Instagram</span>
           </div>
         </a>
         <a class="ig-card" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Vedi su Instagram">
           <img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — street style" loading="lazy"/>
           <div class="ig-card-overlay" aria-hidden="true">
-            <svg class="ig-glyph" viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
-            <div class="ig-card-stats">
-              <span><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>129</span>
-              <span><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>7</span>
-            </div>
+            <svg class="ig-icon" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+            <span>Vedi su Instagram</span>
           </div>
         </a>
       </div>
@@ -1822,7 +1537,7 @@
 
   <!-- MEMI API client — must load before app.js -->
   <script src="api-client.js?v=5"></script>
-  <script src="app.js?v=19"></script>
+  <script src="app.js?v=20"></script>
 
   <!-- Dynamic "Nuovi Arrivi" — loads real products from the API; shows an
        empty message when the catalogue has none (no more hardcoded cards). -->
@@ -1846,7 +1561,7 @@
       return '<div class="' + cls + '"><svg viewBox="0 0 120 200" fill="none">' + (ICONS[icon] || ICONS.dress) + '</svg></div>';
     }
 
-    function buildCard(p, idx) {
+    function buildCard(p) {
       var name = p.name || '';
       var isOos = p.status === 'esaurito';
       var badges = '';
@@ -1871,7 +1586,7 @@
       var main = '<img class="product-img-main" src="' + esc(img1f) + '" alt="' + esc(name) + '" loading="lazy" style="' + imgStyle + '">';
       var alt = '<img class="product-img-alt" src="' + esc(img2f) + '" alt="" loading="lazy" style="' + imgStyle + '">';
 
-      return '<article class="product-card in-view" data-id="' + esc(p.id) + '" role="listitem" tabindex="0" style="--i:' + (idx || 0) + '">' +
+      return '<article class="product-card in-view" data-id="' + esc(p.id) + '" role="listitem" tabindex="0">' +
           '<div class="product-img-wrap">' + main + alt +
             (badges ? '<div class="product-badges">' + badges + '</div>' : '') +
             '<button class="product-wishlist" aria-label="Aggiungi ai preferiti"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></button>' +
@@ -1885,74 +1600,23 @@
         '</article>';
     }
 
-    /* ── carousel chrome (arrows + progress) ── */
-    var prevBtn = document.getElementById('naPrev');
-    var nextBtn = document.getElementById('naNext');
-    var progress = document.getElementById('naProgress');
-    var progressFill = document.getElementById('naProgressFill');
-
-    function hideChrome() {
-      if (prevBtn) prevBtn.parentNode.style.display = 'none';
-      if (progress) progress.style.display = 'none';
-    }
-    function updateChrome() {
-      var max = grid.scrollWidth - grid.clientWidth;
-      if (max <= 4) { hideChrome(); return; }
-      if (prevBtn) { prevBtn.parentNode.style.display = ''; prevBtn.disabled = grid.scrollLeft <= 2; }
-      if (nextBtn) nextBtn.disabled = grid.scrollLeft >= max - 2;
-      if (progress) {
-        progress.style.display = '';
-        progressFill.style.width = (((grid.scrollLeft + grid.clientWidth) / grid.scrollWidth) * 100) + '%';
-      }
-    }
-    function scrollByPage(dir) {
-      grid.scrollBy({ left: dir * grid.clientWidth * 0.9, behavior: 'smooth' });
-    }
-    if (prevBtn) prevBtn.addEventListener('click', function () { scrollByPage(-1); });
-    if (nextBtn) nextBtn.addEventListener('click', function () { scrollByPage(1); });
-    grid.addEventListener('scroll', updateChrome, { passive: true });
-    window.addEventListener('resize', updateChrome);
-
-    /* ── skeleton (immediate, replaced once the API answers) ── */
-    function skelCard() {
-      return '<div class="na-skel" aria-hidden="true">' +
-          '<div class="na-skel-img ph-shimmer"></div>' +
-          '<div class="na-skel-body">' +
-            '<div class="na-skel-line ph-shimmer"></div>' +
-            '<div class="na-skel-line w60 ph-shimmer"></div>' +
-            '<div class="na-skel-line w35 ph-shimmer"></div>' +
-          '</div>' +
-        '</div>';
-    }
-    function showSkeleton() {
-      var out = '';
-      for (var i = 0; i < 4; i++) out += skelCard();
-      grid.innerHTML = out;
-      hideChrome();
-    }
-
     function showEmpty() {
-      grid.innerHTML = '<div class="na-empty">Nessun prodotto disponibile al momento.</div>';
-      hideChrome();
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--brown-light);font-size:.9rem;">Nessun prodotto disponibile al momento.</div>';
     }
     function showError() {
-      grid.innerHTML = '<div class="na-empty">Impossibile caricare i prodotti. <a href="" style="color:var(--espresso);text-decoration:underline;" onclick="location.reload();return false;">Riprova</a></div>';
-      hideChrome();
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem 1rem;color:var(--brown-light);font-size:.9rem;">Impossibile caricare i prodotti. <a href="" style="color:var(--espresso);text-decoration:underline;" onclick="location.reload();return false;">Riprova</a></div>';
     }
 
     function render(list) {
       list = Array.isArray(list) ? list : [];
       if (!list.length) { showEmpty(); return; }
       var nuovi = list.filter(function (p) { return p.is_new; });
-      var pick = (nuovi.length ? nuovi : list).slice(0, 10);
+      var pick = (nuovi.length ? nuovi : list).slice(0, 8);
       grid.innerHTML = pick.map(buildCard).join('');
       if (typeof window.wireProductCards === 'function') window.wireProductCards();
-      grid.scrollLeft = 0;
-      updateChrome();
     }
 
     function load() {
-      showSkeleton();
       if (window.MemiAPI && window.MemiAPI.products) {
         window.MemiAPI.products.list({ limit: 24 })
           .then(function (res) { render(Array.isArray(res) ? res : (res && res.products) || []); })
