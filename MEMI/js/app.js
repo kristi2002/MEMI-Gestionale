@@ -1554,8 +1554,19 @@ VIEWS.social = function(){
     ['Amazon','social_amazon_seller_id','Seller ID','social_amazon_token','SP-API token'],
     ['Zalando','social_zalando_id','Partner ID','social_zalando_token','Token'],
   ];
-  return `${pageHead("Social & Marketplace","Credenziali dei canali di vendita esterni.",`<button class="btn btn-primary btn-sm js-save-settings"><i class="ti ti-device-floppy"></i> Salva</button>`)}
-    <div class="card" style="background:var(--warn-bg);border-color:transparent;margin-bottom:14px"><p style="font-size:12.5px;color:var(--warn);margin:0">⚠️ Qui configuri le <strong>chiavi</strong> di ogni canale. La sincronizzazione automatica del catalogo con ciascun marketplace richiede lo sviluppo dell'integrazione API dedicata — arriverà in una fase successiva.</p></div>
+  const shopDom = (s.store_domain || '').replace(/^https?:\/\//,'').replace(/\/$/,'');
+  const feedUrl = shopDom ? ('https://'+shopDom+'/api/feed/meta.csv') : '/api/feed/meta.csv';
+  return `${pageHead("Social & Marketplace","Vendi su Instagram, Facebook e Google Shopping.",`<button class="btn btn-primary btn-sm js-save-settings"><i class="ti ti-device-floppy"></i> Salva</button>`)}
+    <div class="card" style="margin-bottom:14px">
+      <h3>📤 Feed prodotti (Meta &amp; Google Shopping)</h3>
+      <p style="font-size:12.5px;color:var(--muted);margin:6px 0 10px">Il modo più semplice per vendere su Instagram/Facebook Shop e Google Shopping: incolla questo URL come <strong>feed pianificato</strong> in Meta Commerce Manager o Google Merchant Center. Si aggiorna da solo dal catalogo — <strong>senza chiavi API</strong>.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <code style="font-size:12px;background:var(--line-2);padding:6px 10px;border-radius:6px;flex:1;min-width:200px;overflow:auto">${feedUrl}</code>
+        <a class="btn btn-soft btn-sm" href="/api/feed/meta.csv" target="_blank" rel="noopener"><i class="ti ti-download"></i> Scarica / anteprima</a>
+      </div>
+      ${shopDom ? '' : `<p style="font-size:11px;color:var(--muted);margin-top:8px">Imposta il <strong>dominio del negozio</strong> in Impostazioni per generare l'URL pubblico completo.</p>`}
+    </div>
+    <div class="card" style="background:var(--warn-bg);border-color:transparent;margin-bottom:14px"><p style="font-size:12.5px;color:var(--warn);margin:0">⚠️ I campi sotto salvano le <strong>chiavi API</strong> di ogni canale, per la futura <strong>sincronizzazione automatica</strong> (push via Graph API). Per iniziare subito, usa il <strong>feed</strong> qui sopra.</p></div>
     <div class="grid grid-2">
       ${chan.map(c=>`<div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center"><h3>${c[0]}</h3>${(s[c[1]]||s[c[3]])?'<span class="status-pill ok">Configurato</span>':'<span class="status-pill neutral">Non configurato</span>'}</div>
