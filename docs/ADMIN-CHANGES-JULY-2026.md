@@ -89,6 +89,40 @@ did nothing.
 - `Files` still stores media by URL (not the `/api/uploads` pipeline).
 - Splitting the 4.5k-line `app.js` into modules.
 
+## 6b. Ghost views → REAL (phased build, all on `main`)
+
+Every reachable view now has a real backend, or an honest config page. New tables
+self-heal on boot via `db/migrations.js`. Each feature was endpoint-tested against a
+mocked pool + `verify/run.sh`.
+
+| View | Now | Backend |
+|---|---|---|
+| **Fatture & Spese** (bills) | ✅ real CRUD + KPIs | `store_expenses` · `/api/admin/expenses` |
+| **Segmenti** | ✅ saved rule-based segments, live counts | `customer_segments` · `/api/admin/segments` (+`/:id/customers`) |
+| **Trasferimenti** | ✅ movement log CRUD | `stock_transfers` · `/api/admin/transfers` |
+| **Pop-up** | ✅ CRUD **+ public feed** | `popups` · `/api/admin/popups` + `/api/popups/published` |
+| **Report** | ✅ (already worked) — un-ghosted; 6 CSV exports | uses existing data |
+| **Live view** | ✅ self-hosted visitor tracking | `page_views` · public `POST /api/track` (storefront beacon) + `GET /api/admin/liveview` |
+| **Automazioni** | ✅ trigger→action rules engine + test-run | `automations` · `/api/admin/automations` (+`/:id/test`); fires from order status/ship hooks; `sendGenericEmail` in `email.js` |
+| **Social / POS / App esterne** | ✅ config stubs (store keys) | settings-backed (`store_settings`) — full channel sync / POS hardware = later phase |
+| **Menu** | ❌ removed (dead) | — |
+| **Chat** | ⏸ deferred by owner | — |
+
+Nav: new **Canali** group (Negozio online / Social / POS), **App esterne** under
+Strumenti; re-enabled links for Segmenti, Trasferimenti, Pop-up, Report, Live view,
+Automazioni, and **Fatture & Spese** (its link had been left commented).
+
+**Order-flow safety:** the automation hooks in `orders.js` are single wrapped
+best-effort calls placed *after* `conn.commit()`, mirroring the existing
+`ensureInvoiceForOrder(...).catch(()=>{})` pattern — they can never break an order
+update. The visitor beacon and all email actions are no-ops when their dependency
+(traffic / SMTP) is absent.
+
+**Not testable in this env (still true):** no live Docker stack here, so these were
+validated by isolated endpoint/engine tests + `verify/run.sh`, not a full click-through.
+Confirm on the deployed site (create an expense, a segment, a pop-up, a rule + "Esegui
+test").
+
 ## 7. Deploy / Coolify status
 `MEMI/Dockerfile` (cache-bust → nginx), `MEMI/nginx.conf` (SPA + `/api` proxy +
 security headers + `no-cache` HTML), and the `admin` service in

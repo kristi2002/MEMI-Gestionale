@@ -179,9 +179,11 @@ Grouped by view:
    full-screen on phones; order detail promoted to a full **page (scheda)**; the
    scheda scaffold is reusable for the other entities (deferred).
 3. ~~**Auth 401 redirect is disabled**~~ **FIXED** — re-enabled in `admin-api.js`.
-4. **Ghost views still shipped**: `bills`, `pos`, `social`, `transfers`,
-   `reports`, `liveview`, `segments`, `popups`, `apps` render empty/static content.
-   `chat` is a full front-end mock with no backend. Some are hidden in nav, some not.
+4. ~~**Ghost views still shipped**~~ **MOSTLY RESOLVED (Luglio 2026)** — `bills`,
+   `segments`, `transfers`, `popups`, `reports`, `liveview`, `automations` are now
+   real (DB + API); `social`/`pos`/`apps` are real settings-backed **config stubs**;
+   `menus` was removed; only `chat` remains a deferred front-end mock. See
+   [ADMIN-CHANGES-JULY-2026.md §6b](ADMIN-CHANGES-JULY-2026.md).
 5. **Display-only screens** (`taxes` OSS block, `online-store` speed score) show
    static/placeholder numbers.
 6. ~~**`Files`** only stores image URLs~~ **FIXED** — the File page now does real
