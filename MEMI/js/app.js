@@ -1502,38 +1502,59 @@ VIEWS["online-store"] = function(){
       <div class="card"><h3>Velocità</h3><p>Score: <strong>—</strong></p><small style="color:var(--muted)">Richiede analisi performance</small></div>
     </div>`;
 };
+/* Shared settings-input builder for the config-stub pages (saved by
+   the existing .js-save-settings handler → store_settings key/value). */
+function _cfgInput(s, key, ph, type){
+  return '<input type="'+(type||'text')+'" class="settings-input" data-key="'+key+'" value="'+String(s[key]||'').replace(/"/g,'&quot;')+'" placeholder="'+(ph||'')+'" style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;margin-top:6px"/>';
+}
 VIEWS.pos = function(){
-  return `${pageHead("Punto Vendita","Configura POS fisici collegati allo store.","")}
-    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun punto vendita configurato.</p></div>`;
+  const s = DATA.settings || {};
+  return `${pageHead("Punto Vendita (POS)","Configura i punti vendita fisici collegati.",`<button class="btn btn-primary btn-sm js-save-settings"><i class="ti ti-device-floppy"></i> Salva</button>`)}
+    <div class="grid grid-2">
+      <div class="card"><h3>Negozio fisico</h3>
+        <label style="font-size:12px;color:var(--muted);margin-top:10px;display:block">Nome punto vendita</label>${_cfgInput(s,'pos_name','Es. MEMI Store Milano')}
+        <label style="font-size:12px;color:var(--muted);margin-top:10px;display:block">Indirizzo</label>${_cfgInput(s,'pos_address','Via...')}
+        <label style="font-size:12px;color:var(--muted);margin-top:10px;display:block">Terminale / Cassa (ID)</label>${_cfgInput(s,'pos_terminal_id','ID terminale')}
+      </div>
+      <div class="card"><h3>Nota</h3><p style="color:var(--muted);font-size:12.5px">Il collegamento a un <strong>terminale POS fisico</strong> (lettore carte) richiede l'hardware e l'SDK del fornitore (SumUp, Nexi, Stripe Terminal…). Qui salvi la configurazione del punto vendita; l'integrazione hardware è una fase successiva.</p></div>
+    </div>`;
 };
 VIEWS.social = function(){
-  return `${pageHead("Social & Marketplace","Vendi sui canali esterni.","")}
-    <div class="grid grid-3">
-      ${[["Instagram Shopping"],["Facebook Shop"],["TikTok Shop"],["Amazon"],["Zalando"],["Google Shopping"]].map(s=>`
-        <div class="card"><h3>${s[0]}</h3><span class="badge badge-soft">Non collegato</span></div>
-      `).join('')}
+  const s = DATA.settings || {};
+  const chan = [
+    ['Instagram','social_instagram_handle','@handle','social_instagram_token','Access token'],
+    ['Facebook','social_facebook_page','Pagina','social_facebook_token','Access token'],
+    ['TikTok','social_tiktok_handle','@handle','social_tiktok_token','Access token'],
+    ['Google Shopping','social_google_merchant_id','Merchant ID','social_google_api_key','API key'],
+    ['Amazon','social_amazon_seller_id','Seller ID','social_amazon_token','SP-API token'],
+    ['Zalando','social_zalando_id','Partner ID','social_zalando_token','Token'],
+  ];
+  return `${pageHead("Social & Marketplace","Credenziali dei canali di vendita esterni.",`<button class="btn btn-primary btn-sm js-save-settings"><i class="ti ti-device-floppy"></i> Salva</button>`)}
+    <div class="card" style="background:var(--warn-bg);border-color:transparent;margin-bottom:14px"><p style="font-size:12.5px;color:var(--warn);margin:0">⚠️ Qui configuri le <strong>chiavi</strong> di ogni canale. La sincronizzazione automatica del catalogo con ciascun marketplace richiede lo sviluppo dell'integrazione API dedicata — arriverà in una fase successiva.</p></div>
+    <div class="grid grid-2">
+      ${chan.map(c=>`<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center"><h3>${c[0]}</h3>${(s[c[1]]||s[c[3]])?'<span class="status-pill ok">Configurato</span>':'<span class="status-pill neutral">Non configurato</span>'}</div>
+        <label style="font-size:12px;color:var(--muted);margin-top:10px;display:block">${c[2]}</label>${_cfgInput(s,c[1],c[2])}
+        <label style="font-size:12px;color:var(--muted);margin-top:10px;display:block">${c[4]}</label>${_cfgInput(s,c[3],c[4])}
+      </div>`).join('')}
     </div>`;
 };
 
 /* ---------- SISTEMA ---------- */
 VIEWS.apps = function(){
-  const apps = DATA.apps || [];
-  return `${pageHead("App installate","Estendi le funzionalità del tuo store.",`<button class="btn btn-primary btn-sm js-app-store">+ App Store</button>`)}
-    ${apps.length===0 ? `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessuna app installata. Aggiungine una da “+ App Store”.</p></div>` : `
+  const s = DATA.settings || {};
+  const apps = [
+    ['Google Analytics 4','app_ga4_id','G-XXXXXXX'],
+    ['Meta Pixel','app_meta_pixel','Pixel ID'],
+    ['Mailchimp','app_mailchimp_key','API key'],
+    ['Klaviyo','app_klaviyo_key','API key'],
+    ['Trustpilot','app_trustpilot_key','API key'],
+    ['Webhook personalizzato','app_webhook_url','https://...'],
+  ];
+  return `${pageHead("App & Integrazioni esterne","Chiavi API dei servizi collegati al negozio.",`<button class="btn btn-primary btn-sm js-save-settings"><i class="ti ti-device-floppy"></i> Salva</button>`)}
     <div class="grid grid-3">
-      ${apps.map(a=>`
-        <div class="card">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="width:42px;height:42px;border-radius:10px;background:var(--line-2);display:flex;align-items:center;justify-content:center;font-size:18px">🧩</div>
-            <div><strong>${a.nome}</strong><small style="display:block;color:var(--muted)">${a.cat}</small></div>
-          </div>
-          <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
-            ${statusPill(a.stato)}
-            <button class="btn btn-soft btn-sm js-open-app" data-nome="${(a.nome||'').replace(/"/g,'&quot;')}" data-cat="${a.cat}" data-stato="${a.stato}">Apri</button>
-          </div>
-        </div>
-      `).join('')}
-    </div>`}`;
+      ${apps.map(a=>`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h3 style="font-size:14px">${a[0]}</h3>${s[a[1]]?'<span class="status-pill ok">Attivo</span>':'<span class="status-pill neutral">—</span>'}</div>${_cfgInput(s,a[1],a[2])}</div>`).join('')}
+    </div>`;
 };
 VIEWS.integrations = function(){
   var list = DATA.integrations || [];
@@ -4619,7 +4640,7 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { DATA.blog = []; _apiFail(name); });
 
-    } else if (name === 'files' || name === 'online-store') {
+    } else if (name === 'files' || name === 'online-store' || name === 'social' || name === 'pos' || name === 'apps') {
       api.settings.get().done(function(data) {
         DATA.settings = data || {};
         _origRenderView(name);
