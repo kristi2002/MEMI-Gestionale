@@ -3,7 +3,9 @@
 > Implementation report for the admin/gestionale (`MEMI/`) mobile + UX pass.
 > Read alongside [ADMIN-PANEL.md](ADMIN-PANEL.md) and
 > [ADMIN-GAP-ANALYSIS-AND-PLAN.md](ADMIN-GAP-ANALYSIS-AND-PLAN.md).
-> **No backend code was changed** — all edits are in `MEMI/` (frontend).
+> **§1–5 were frontend-only.** Later phases (§6b onward) add backend: new tables
+> (self-healing migrations), routes, a storefront chat widget + visitor beacon,
+> and product feed. See §8 for the honesty/cleanup pass and the tax/automation work.
 
 ## 1. What changed (files)
 
@@ -131,3 +133,47 @@ security headers + `no-cache` HTML), and the `admin` service in
 The cache-bust step was verified against the edited files. Set `ADMIN_DOMAIN`,
 `ALLOWED_ORIGINS` (must include the admin domain), and `ADMIN_EMAIL/PASSWORD` in
 Coolify env vars.
+
+## 8. Honesty/cleanup pass + tax & automation depth (late Luglio 2026)
+
+After the ghost-view build, an audit swept the admin for leftover mock/fake data
+and shallow logic. Fixes (all on `main`, each endpoint/engine-tested + `verify` green):
+
+**A — Real "Visitatori" KPI.** Dashboard/Analytics visitors was `COUNT(*)` of
+customers mislabeled as visitors. Now: distinct tracked sessions **today vs
+yesterday** from `page_views` (safe 0-fallback if the table isn't present).
+
+**B — Dead mock code removed (~250 lines, 0 residual refs):** the fake **App Store**
+(`js-app-store`/`js-open-app`/`js-install-app`), the entire **legacy chat mock**
+(`CHATS`/`QUICK_REPLIES`/`AUTO_REPLIES` + the old `VIEWS.chat`/`renderConvList`/
+`renderActiveChat`/`sendChatMessage` + fake chiama/video/blocca/goorder buttons),
+and the never-firing "Vista dimostrativa" banner.
+
+**C — Chat unread wired in.** The 🔔 bell counts unread + lists "💬 N messaggi non
+letti"; the sidebar chat badge is driven by real `/admin/chat` `unread_total` via
+`refreshNotifCounters`.
+
+**E — Small honesty fixes.** Removed the hardcoded **"SDA"** sidebar badge; replaced
+the fake **"Velocità Score: —"** card with a real **PageSpeed** link.
+
+**D — Taxes made real.** `GET /api/admin/dashboard/tax-stats` computes cross-border
+(non-Italy) paid sales YTD from `orders.shipping_paese` vs the €10.000 OSS threshold;
+the Tasse page shows real "Venduto UE YTD" + sotto/superata-soglia status. Standard
+**and** reduced VAT rates are now editable settings (`store_vat_rate`,
+`store_vat_reduced_rate`).
+
+**F — More automation triggers.** Added `nuovo_cliente` (register hook) and
+`recensione` (review-submit hook) to the engine + admin UI, via a best-effort
+`runSimpleTrigger()` (wrapped, can't break signup/reviews).
+
+**Still deferred:** **G — real abandoned-cart tracking** (needs a storefront cart
+beacon + model; a separate project).
+
+### Full route inventory added this session
+`/api/admin/expenses`, `/api/admin/segments` (+`/:id/customers`),
+`/api/admin/transfers`, `/api/admin/popups` (+ public `/api/popups/published`),
+`/api/track` (public beacon) + `/api/admin/liveview`, `/api/admin/automations`
+(+`/:id/test`), `/api/admin/chat` + public `/api/chat/{message,messages}`,
+`/api/feed/meta.csv` (public), `/api/admin/settings/media` (upload),
+`/api/admin/dashboard/tax-stats`. New tables: `store_expenses`, `customer_segments`,
+`stock_transfers`, `popups`, `page_views`, `automations`, `conversations`, `messages`.
