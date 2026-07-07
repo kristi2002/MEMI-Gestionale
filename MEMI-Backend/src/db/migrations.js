@@ -201,6 +201,32 @@ const STATEMENTS = [
      created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      KEY idx_auto_trigger (trigger_event, attivo)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Customer chat (Chat clienti) — conversations + messages ─────────────────
+  `CREATE TABLE IF NOT EXISTS conversations (
+     id              INT AUTO_INCREMENT PRIMARY KEY,
+     customer_id     INT NULL,
+     guest_name      VARCHAR(120) NULL,
+     guest_email     VARCHAR(255) NULL,
+     token           VARCHAR(64)  NOT NULL,
+     subject         VARCHAR(200) NULL,
+     status          VARCHAR(20)  NOT NULL DEFAULT 'aperta',
+     unread_admin    INT NOT NULL DEFAULT 0,
+     last_message_at TIMESTAMP NULL,
+     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     UNIQUE KEY uq_conv_token (token),
+     KEY idx_conv_status (status),
+     KEY idx_conv_last (last_message_at)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  `CREATE TABLE IF NOT EXISTS messages (
+     id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+     conversation_id INT NOT NULL,
+     sender          VARCHAR(12) NOT NULL,
+     body            TEXT NOT NULL,
+     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_msg_conv (conversation_id, id)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');
