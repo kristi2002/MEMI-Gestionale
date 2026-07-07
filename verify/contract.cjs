@@ -96,5 +96,28 @@ ok(/wishlist,\s*sizes,\s*preferences,\s*lang/.test(authRt), "GET /auth/me return
 ok(authRt.includes("addJson('sizes'"),                  "PUT /auth/me accepts sizes JSON");
 ok(custRt.includes('addresses') && custRt.includes('newsletter'), "admin customer detail returns addresses + newsletter");
 
+console.log('Order-compensation invariants (Luglio 2026):');
+const resiRt    = read('MEMI-Backend/src/routes/resi.js');
+const payRt     = read('MEMI-Backend/src/routes/payments.js');
+const comp      = read('MEMI-Backend/src/order-compensation.js');
+const invoic    = read('MEMI-Backend/src/invoicing.js');
+const adminApp  = read('MEMI/js/app.js');
+const adminHtml = read('MEMI/dashboard.html');
+ok(/router\.delete\('\/admin\/:id'[\s\S]{0,900}compensateOrder/.test(orders), 'DELETE order compensates (stock/gift/discount/points)');
+ok(/annullato[\s\S]{0,600}compensateOrder\(conn, order, 'cancel'\)/.test(orders), 'cancel (annullato) compensates');
+ok(orders.includes('non può essere riattivato'),                 'annullato is terminal (409 on reactivation)');
+ok(/stock >= \?/.test(orders) && /affectedRows === 0/.test(orders), 'checkout stock decrement is atomic (no oversell)');
+ok(orders.includes('ensureInvoiceForOrder(pool, orderId)'),      'auto-invoice on paid checkout/admin order');
+ok(/payment_status === 'pagato'[\s\S]{0,200}ensureInvoiceForOrder/.test(orders), 'auto-invoice on pagato transition');
+ok(resiRt.includes("compensateOrder(conn, orderRow, 'refund')"), 'Stripe refund restocks goods');
+ok(/manual === true/.test(resiRt) && /if \(!stripe && !manual\)/.test(resiRt), 'manual refund path (PayPal/Klarna/bonifico)');
+ok(resiRt.includes('sendRefundNotification'),                    'refund notifies the customer by email');
+ok(/payment_status = 'pagato' WHERE id = \?", \[existing\.id\]/.test(payRt), 'webhook reconciles late payments to pagato');
+ok(comp.includes('reverseOrderPoints') && comp.includes('GREATEST(0, utilizzi - 1)'), 'compensation module reverses points + frees discount');
+ok(invoic.includes("payment_status !== 'pagato'"),               'invoicing only fires for paid orders');
+ok(adminApp.includes('_apiFail'),                                'admin shows API-offline banner (no silent mock data)');
+ok(adminApp.includes('data-manual="1"'),                         'admin UI exposes manual refund');
+ok(adminHtml.includes('id="notifBtn"') && adminApp.includes("'#notifBtn'"), 'notification bell wired to real counts');
+
 if (fail) { console.error(`\n${fail} contract check(s) FAILED`); process.exit(1); }
 console.log('\nAll contract checks passed.');

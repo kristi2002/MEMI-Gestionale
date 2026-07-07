@@ -20,6 +20,8 @@ const { pool }                           = require('../db');
 const { requireCustomer, requireAdmin, optionalCustomer } = require('../middleware/auth');
 const { sendOrderConfirmation, sendShippingConfirmation } = require('../email');
 const { awardPurchasePoints } = require('../loyalty');
+const { compensateOrder } = require('../order-compensation');
+const { ensureInvoiceForOrder } = require('../invoicing');
 const { validateBody, createOrderSchema } = require('../validation');
 const { logAdminAction } = require('../audit');
 
@@ -238,11 +240,19 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
           [orderId, item.product_id, item.product_name, item.taglia, item.colore, item.price, item.qty]
         );
         if (item.taglia) {
-          await conn.execute(
-            `UPDATE product_sizes SET stock = GREATEST(0, stock - ?)
-             WHERE product_id = ? AND taglia = ?`,
-            [item.qty, item.product_id, item.taglia]
+          // Conditional decrement: if a concurrent order consumed the stock after
+          // the pre-check, affectedRows is 0 and we roll back instead of overselling.
+          const [stockRes] = await conn.execute(
+            `UPDATE product_sizes SET stock = stock - ?
+             WHERE product_id = ? AND taglia = ? AND stock >= ?`,
+            [item.qty, item.product_id, item.taglia, item.qty]
           );
+          if (stockRes.affectedRows === 0) {
+            await conn.rollback();
+            return res.status(409).json({
+              error: `Taglia ${item.taglia} di "${item.product_name}" esaurita un attimo fa — aggiorna il carrello.`,
+            });
+          }
         }
       }
 
@@ -264,6 +274,9 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
       try { await awardPurchasePoints(conn, email, total, orderId); } catch (_) {}
 
       await conn.commit();
+
+      // Fiscal document must follow the payment (fire-and-forget; never blocks the order)
+      if (paymentStatus === 'pagato') ensureInvoiceForOrder(pool, orderId).catch(() => {});
 
       sendOrderConfirmation({
         order_number: orderNumber, nome, cognome, email, items: resolved, total,
@@ -475,6 +488,9 @@ router.post('/admin', requireAdmin, async (req, res) => {
     try { await awardPurchasePoints(conn, email, total); } catch (_) {}
 
     await conn.commit();
+
+    if (payment_status === 'pagato') ensureInvoiceForOrder(pool, orderId).catch(() => {});
+
     return res.status(201).json({ ok: true, id: orderId, order_number: orderNumber, total });
   } catch (err) {
     await conn.rollback();
@@ -506,23 +522,55 @@ router.put('/admin/:id/status', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Stato ordine non valido' });
   if (payment_status && !PAYMENT_STATUSES.includes(payment_status))
     return res.status(400).json({ error: 'Stato pagamento non valido' });
+  if (!order_status && !payment_status)
+    return res.status(400).json({ error: 'Nessun campo da aggiornare' });
+
+  const conn = await pool.getConnection();
   try {
+    await conn.beginTransaction();
+    const [[order]] = await conn.execute(
+      'SELECT * FROM orders WHERE id = ? FOR UPDATE', [req.params.id]
+    );
+    if (!order) { await conn.rollback(); return res.status(404).json({ error: 'Ordine non trovato' }); }
+
+    // Business rule: an annulled order stays annulled — its stock, gift card and
+    // discount were already given back; re-activating would corrupt the inventory.
+    if (order.order_status === 'annullato' && order_status && order_status !== 'annullato') {
+      await conn.rollback();
+      return res.status(409).json({ error: 'Ordine annullato: non può essere riattivato. Crea un nuovo ordine.' });
+    }
+
+    const cancelling = order_status === 'annullato' && order.order_status !== 'annullato';
+    if (cancelling && order.payment_status !== 'rimborsato') {
+      // Put everything back: stock, gift-card balance, discount redemption,
+      // loyalty points and the customer's totals. (Skipped when a refund via
+      // Resi already compensated this order.)
+      await compensateOrder(conn, order, 'cancel');
+    }
+
     const fields = [];
     const vals   = [];
     if (order_status)   { fields.push('order_status = ?');   vals.push(order_status); }
     if (payment_status) { fields.push('payment_status = ?'); vals.push(payment_status); }
-    if (!fields.length) return res.status(400).json({ error: 'Nessun campo da aggiornare' });
-
     vals.push(req.params.id);
-    await pool.execute(`UPDATE orders SET ${fields.join(', ')} WHERE id = ?`, vals);
+    await conn.execute(`UPDATE orders SET ${fields.join(', ')} WHERE id = ?`, vals);
+    await conn.commit();
+
+    if (payment_status === 'pagato' && order.payment_status !== 'pagato')
+      ensureInvoiceForOrder(pool, order.id).catch(() => {});
+
     logAdminAction({
-      adminId: req.admin.id, adminEmail: req.admin.email, action: 'order.status_update',
+      adminId: req.admin.id, adminEmail: req.admin.email,
+      action: cancelling ? 'order.cancel' : 'order.status_update',
       entityType: 'order', entityId: req.params.id, details: { order_status, payment_status },
     }).catch(() => {});
-    return res.json({ ok: true });
+    return res.json({ ok: true, cancelled: !!cancelling });
   } catch (err) {
+    await conn.rollback();
     (req.log || console).error({ err }, 'update order status error');
     return res.status(500).json({ error: 'Errore server' });
+  } finally {
+    conn.release();
   }
 });
 
@@ -623,6 +671,19 @@ router.delete('/admin/:id', requireAdmin, async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    const [[order]] = await conn.execute(
+      'SELECT * FROM orders WHERE id = ? FOR UPDATE', [req.params.id]
+    );
+    if (!order) { await conn.rollback(); return res.status(404).json({ error: 'Ordine non trovato' }); }
+
+    // Give stock / gift card / discount / points back UNLESS a cancel or a
+    // refund already did (those flows compensate when they run).
+    let compensated = false;
+    if (order.order_status !== 'annullato' && order.payment_status !== 'rimborsato') {
+      await compensateOrder(conn, order, 'cancel');
+      compensated = true;
+    }
+
     // Delete child records first (FK constraints)
     await conn.execute('DELETE FROM order_items WHERE order_id = ?', [req.params.id]);
     await conn.execute('DELETE FROM shipments WHERE order_id = ?', [req.params.id]);
@@ -638,7 +699,8 @@ router.delete('/admin/:id', requireAdmin, async (req, res) => {
     await conn.commit();
     logAdminAction({
       adminId: req.admin.id, adminEmail: req.admin.email, action: 'order.delete',
-      entityType: 'order', entityId: req.params.id, details: {},
+      entityType: 'order', entityId: req.params.id,
+      details: { order_number: order.order_number, compensated },
     }).catch(() => {});
     return res.json({ ok: true, message: 'Ordine eliminato' });
   } catch (err) {

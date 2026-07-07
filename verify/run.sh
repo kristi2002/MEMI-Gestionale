@@ -12,6 +12,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 FAIL=0
 sec(){ echo; echo "== $* =="; }
+# Scratch files: honor $TMPDIR (some sandboxes have a non-writable /tmp)
+NC_ERR="$(mktemp 2>/dev/null || echo "$ROOT/.nc.err.$$")"
+NPM_LOG="$(mktemp 2>/dev/null || echo "$ROOT/.npm-verify.log.$$")"
+trap 'rm -f "$NC_ERR" "$NPM_LOG"' EXIT
 
 sec "1. JS syntax (node --check)"
 JS=$(
@@ -21,7 +25,7 @@ JS=$(
 )
 while IFS= read -r f; do
   [ -z "$f" ] && continue
-  if node --check "$f" 2>/tmp/nc.err; then echo "  ok  $f"; else echo "  FAIL $f"; cat /tmp/nc.err; FAIL=1; fi
+  if node --check "$f" 2>"$NC_ERR"; then echo "  ok  $f"; else echo "  FAIL $f"; cat "$NC_ERR"; FAIL=1; fi
 done <<< "$JS"
 
 sec "2. Cache-version consistency"
@@ -41,7 +45,7 @@ NP=""
 if [ ! -d MEMI-Backend/node_modules/express ]; then
   TMPD=$(mktemp -d)
   echo "  (installing express+jsonwebtoken to temp: $TMPD)"
-  npm install --prefix "$TMPD" express jsonwebtoken >/tmp/npm-verify.log 2>&1 || { echo "  FAIL npm install"; FAIL=1; }
+  npm install --prefix "$TMPD" express jsonwebtoken >"$NPM_LOG" 2>&1 || { echo "  FAIL npm install"; FAIL=1; }
   NP="$TMPD/node_modules"
 fi
 NODE_PATH="$NP" node MEMI-Backend/test/orders-logic.test.cjs || FAIL=1
@@ -51,6 +55,9 @@ NODE_PATH="$NP" node MEMI-Backend/test/webhook-logic.test.cjs || FAIL=1
 
 sec "6. Gift-card redemption simulation"
 NODE_PATH="$NP" node MEMI-Backend/test/giftcard-logic.test.cjs || FAIL=1
+
+sec "6b. Cancel/refund compensation simulation"
+NODE_PATH="$NP" node MEMI-Backend/test/compensation-logic.test.cjs || FAIL=1
 
 sec "7. Input-validation (zod) schema tests"
 NODE_PATH="$NP" node MEMI-Backend/test/validation.test.cjs || FAIL=1

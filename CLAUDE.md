@@ -147,3 +147,29 @@ The file still exists for reference but is not loaded by any customer-facing pag
   the old hardcoded related cards.
 - Home "video moment" section now plays `/media/hero.mp4`; two dead Unsplash hero URLs replaced
   (`collections/gonne`, `collections/pantaloni`, `shop.html` BG_MAP).
+
+## Update Luglio 2026 — Sprint 3 (compensazione ordini + fatture automatiche)
+
+**⚠️ REGOLA OPERATIVA per sessioni Claude/Cowork su questo repo:** NON usare i tool
+Write/Edit su file esistenti del repo — la vista VM resta bloccata alla vecchia
+lunghezza del file (troncamento silenzioso, causa dell'incidente Jul 1–5). Fare TUTTE
+le modifiche via bash (heredoc / node patch script) e verificare con `tail -c`/`node --check`.
+
+Cache-bust correnti: admin `app.js?v=28`, `admin-api.js?v=17` (storefront invariato:
+`app.js?v=19`, `api-client.js?v=5`).
+
+Fatti nuovi veri nel codice:
+- `src/order-compensation.js` — annullare/eliminare/rimborsare un ordine ripristina stock,
+  gift card, codice sconto (solo cancel), punti fedeltà (storno via ledger, idempotente) e
+  totali cliente. `annullato` è terminale (riattivazione → 409). DELETE salta la compensazione
+  se l'ordine era già annullato/rimborsato.
+- `src/invoicing.js` — fattura automatica `F-YYYY-NNNN` alla prima transizione a `pagato`
+  (checkout, ordine admin, cambio stato, webhook). Opt-out `store_settings.auto_invoice='0'`.
+- Checkout: decremento stock **atomico** (`WHERE stock >= ?` → 409, niente oversell).
+- Resi: `POST /api/admin/resi/:id/refund` accetta `{manual:true}` (PayPal/Klarna/bonifico,
+  nessuna chiamata Stripe); ogni rimborso rimette a stock e manda `sendRefundNotification`.
+- Webhook Stripe: ordine `in_attesa` con `payment_intent.succeeded` → riconciliato `pagato` + fattura.
+- Admin: banner rosso quando l'API non risponde (niente più mock silenziosi), campanella
+  notifiche con contatori reali, "Rimborso manuale" nel dettaglio reso, viste demo etichettate
+  (bills/liveview/menus/popups/reports/chat), conferme esplicite su annulla/elimina.
+- Test: `test/compensation-logic.test.cjs` (10 sim, verify sez. 6b) + smoke `[8] Order lifecycle`.

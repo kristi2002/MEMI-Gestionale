@@ -204,3 +204,38 @@ PaymentIntent is now stored with `payment_status='pagato'` (previously it stayed
 is why the admin dashboard read ~zero). Line prices are re-resolved from `products`; the Stripe
 amount/currency are verified against the server-computed total; `orders.payment_intent_id` is UNIQUE
 (no replay). See `CHANGES-DEPLOY-READY.md`.
+
+---
+
+## Aggiornamento Luglio 2026 — compensazione ordini, rimborsi, fatture automatiche
+
+**Semantica cambiata / nuovi comportamenti** (route esistenti, nessun nuovo path):
+
+| Route | Comportamento nuovo |
+|-------|---------------------|
+| `PUT /api/orders/admin/:id/status` con `order_status='annullato'` | **Annullamento compensato**: ripristina stock (per taglia), saldo gift card (riattiva la card se era `utilizzata`), libera il codice sconto (contatore globale + riga per-email), storna i punti fedeltà (via ledger, idempotente) e decrementa `total_orders`/`total_spent` del cliente. Un ordine `annullato` è **terminale**: tentare di riattivarlo → `409`. Se l'ordine era già `rimborsato`, la compensazione è saltata (l'ha già fatta il reso). |
+| `PUT /api/orders/admin/:id/status` con `payment_status='pagato'` | Emette la **fattura automaticamente** (vedi sotto). Risposta ora include `{ cancelled: bool }`. |
+| `DELETE /api/orders/admin/:id` | Prima di cancellare le righe esegue la stessa compensazione dell'annullamento, **a meno che** l'ordine fosse già `annullato` o `rimborsato` (evita il doppio ripristino). |
+| `POST /api/orders` (checkout) | Il decremento stock è **atomico** (`UPDATE ... WHERE stock >= ?`): due checkout concorrenti sull'ultimo pezzo → il secondo riceve `409` e nessuna riga scritta (niente oversell). Ordine pagato ⇒ fattura automatica. |
+| `PUT /api/admin/resi/:id` con `stato='rimborsato'` | Solo alla **prima** transizione: marca l'ordine `rimborsato`, rimette a stock i capi, ripristina la quota gift card, storna i punti, riduce `total_spent`, invia email di rimborso al cliente. Idempotente sulle ripetizioni. |
+| `POST /api/admin/resi/:id/refund` | Rimborso Stripe **oppure manuale**: body `{ "manual": true }` per ordini senza `payment_intent_id` (PayPal/Klarna/bonifico) — stessa contabilità, nessuna chiamata Stripe, funziona anche senza `STRIPE_SECRET_KEY`. In entrambi i casi: reso→`rimborsato`, ordine→`rimborsato`, merce a stock, email al cliente. Già rimborsato → `409`. NB: un rimborso **parziale** rimette comunque a stock tutti i capi. |
+| `POST /api/payments/webhook` (`payment_intent.succeeded`) | Se esiste l'ordine ed è ancora `in_attesa` → riconciliato a `pagato` + fattura automatica (pagamenti asincroni). |
+
+**Fatture automatiche** — nuovo modulo `src/invoicing.js` (`ensureInvoiceForOrder`): alla prima
+transizione a `pagato` viene emessa `F-YYYY-NNNN` (IVA 22% scorporata, coerente con
+`POST /api/admin/invoices`). Idempotente (`invoices.order_id` UNIQUE, retry sul numero in gara).
+Opt-out: `store_settings.auto_invoice='0'` (seed default `'1'`).
+
+**Compensazione** — nuovo modulo `src/order-compensation.js` (`compensateOrder(conn, order, 'cancel'|'refund')`).
+`cancel` libera anche il codice sconto; `refund` lo lascia consumato. Lo storno punti è basato sul
+ledger `loyalty_transactions` (net per ordine ⇒ chiamate ripetute = no-op). Email: `sendRefundNotification` in `src/email.js` (no-op senza SMTP).
+
+**Admin (dashboard.html `app.js?v=28`, `admin-api.js?v=17`):** banner rosso "API non raggiungibile"
+al posto del fallback silenzioso sui dati mock (26 viste); badge "Vista dimostrativa" su
+bills/liveview/menus/popups/reports/chat; campanella notifiche con contatori reali (ordini da
+evadere, recensioni da moderare, resi aperti); bottone "Rimborso manuale" nel dettaglio reso per
+ordini non-Stripe; conferme esplicite per annulla/elimina ordine; `AdminAPI.resi.refund(id, amount, {manual:true})`.
+
+**Test:** `MEMI-Backend/test/compensation-logic.test.cjs` (10 sim con DB mock stateful) — in
+`verify/run.sh` (sez. 6b). Smoke test live: sezione `[8] Order lifecycle` (annulla→restock,
+409 su riattivazione, rimborso manuale→restock, fattura automatica, no doppio ripristino).

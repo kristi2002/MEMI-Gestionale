@@ -348,6 +348,7 @@ CREATE TABLE IF NOT EXISTS store_settings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT IGNORE INTO store_settings (`key`, `value`) VALUES
+  ('auto_invoice', '1'),
   ('store_name',                'MEMI Abbigliamento'),
   ('store_email',               'info@memi.it'),
   ('store_phone',               ''),

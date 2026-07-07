@@ -1784,6 +1784,55 @@ $(function(){
     if(e.target.id==='modalClose' || e.target.id==='modalBackdrop') closeModal();
   });
 
+  // ── Topbar: aiuto / notifiche / messaggi ─────────────────────
+  var _notif = { orders: 0, reviews: 0, resi: 0 };
+  function paintNotifDot() {
+    var tot = _notif.orders + _notif.reviews + _notif.resi;
+    $('#notifDot').toggle(tot > 0);
+    $('#notifBtn').attr('title', tot > 0 ? (tot + ' cose da gestire') : 'Notifiche');
+  }
+  window.refreshNotifCounters = function () {
+    if (!window.AdminAPI) return;
+    AdminAPI.reviews.list({ limit: 1 }).done(function (d) {
+      _notif.reviews = (d && d.pending) || 0; paintNotifDot();
+    });
+    AdminAPI.resi.list({ limit: 200 }).done(function (d) {
+      var l = (d && d.resi) || [];
+      _notif.resi = l.filter(function (r) { return r.stato === 'aperto' || r.stato === 'in_analisi'; }).length;
+      paintNotifDot();
+    });
+  };
+  $(document).on('click', '#msgBtn', function () { setActiveNav('chat'); renderView('chat'); });
+  $(document).on('click', '#helpBtn', function () {
+    openModal('Guida rapida', [
+      '<div style="font-size:13px;line-height:1.7">',
+      '<p><strong>Flusso ordini</strong> — Ordini → apri l\'ordine → <em>Spedisci</em> (crea la spedizione e invia il tracking) → lo stato passa a Spedito. Annullare un ordine ripristina stock, gift card, sconto e punti.</p>',
+      '<p><strong>Resi</strong> — Resi → apri il reso → approva → <em>Rimborsa via Stripe</em> (o <em>Rimborso manuale</em> per PayPal/Klarna/bonifico). Il rimborso rimette i capi a stock e avvisa il cliente.</p>',
+      '<p><strong>Fatture</strong> — vengono emesse automaticamente quando un ordine risulta pagato (disattivabile con l\'impostazione <code>auto_invoice</code>).</p>',
+      '<p><strong>Catalogo</strong> — Prodotti → nuovo prodotto / Importa CSV; le foto si caricano dal dettaglio prodotto o in blocco (ZIP).</p>',
+      '<p><strong>Tracking pubblico</strong> — i clienti seguono l\'ordine su <code>/order-tracking</code> con numero ordine + email.</p>',
+      '</div>',
+    ].join(''));
+  });
+  $(document).on('click', '#notifBtn', function (e) {
+    e.stopPropagation();
+    $('#notifDrop').remove();
+    var items = [];
+    if (_notif.orders)  items.push({ label: '🧾 ' + _notif.orders + ' ordini da evadere', view: 'orders' });
+    if (_notif.reviews) items.push({ label: '⭐ ' + _notif.reviews + ' recensioni da moderare', view: 'reviews' });
+    if (_notif.resi)    items.push({ label: '↩️ ' + _notif.resi + ' resi da gestire', view: 'returns' });
+    var html = items.length
+      ? items.map(function (i) { return '<div class="notif-item" data-view="' + i.view + '" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)">' + i.label + '</div>'; }).join('')
+      : '<div style="padding:14px;font-size:13px;color:var(--muted)">Nessuna notifica — tutto sotto controllo ✓</div>';
+    var $drop = $('<div id="notifDrop" style="position:absolute;top:100%;right:0;width:280px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.14);z-index:1000;margin-top:6px;overflow:hidden">' + html + '</div>');
+    $(this).css('position', 'relative').append($drop);
+    $drop.on('click', '.notif-item', function () {
+      var v = $(this).data('view');
+      $('#notifDrop').remove(); setActiveNav(v); renderView(v);
+    });
+    $(document).one('click', function () { $('#notifDrop').remove(); });
+  });
+
   // Top-bar global search
   var $topSearchWrap = $('#topSearch').wrap('<div style="position:relative;flex:1"></div>').parent();
   $topSearchWrap.css('flex','1');
@@ -1989,11 +2038,13 @@ $(function(){
     const dbId  = $(this).data('id');
     const stato = $('#modalOrderStatus').val();
     if (!window.AdminAPI || !dbId) return;
+    if (stato === 'annullato' &&
+        !confirm('Annullare questo ordine?\n\nStock, gift card, codice sconto e punti fedeltà vengono ripristinati automaticamente. Un ordine annullato non può essere riattivato.')) return;
     const $btn = $(this);
     $btn.prop('disabled', true).text('Salvataggio…');
     AdminAPI.orders.updateStatus(dbId, { order_status: stato })
-      .done(function() { toast('Stato aggiornato', 'success'); closeModal(); renderView('orders'); })
-      .fail(function() { toast('Errore aggiornamento', 'error'); $btn.prop('disabled', false).html('<i class="ti ti-device-floppy"></i> Salva stato'); });
+      .done(function(res) { toast(res && res.cancelled ? 'Ordine annullato — stock e valori ripristinati' : 'Stato aggiornato', 'success'); closeModal(); renderView('orders'); })
+      .fail(function(xhr) { toast((xhr.responseJSON && xhr.responseJSON.error) || 'Errore aggiornamento', 'error'); $btn.prop('disabled', false).html('<i class="ti ti-device-floppy"></i> Salva stato'); });
   });
 
   // Product detail
@@ -2955,7 +3006,7 @@ $(function(){
     var dbId    = $(this).data('id');
     var orderNr = $(this).data('order');
     if (!dbId || !window.AdminAPI){ toast('ID ordine non disponibile','error'); return; }
-    if (!confirm('Eliminare definitivamente l\'ordine '+orderNr+'? L\'azione e\' irreversibile.')) return;
+    if (!confirm('Eliminare definitivamente l\'ordine '+orderNr+'?\n\nStock, gift card, codice sconto e punti fedeltà vengono ripristinati automaticamente (se l\'ordine non era già annullato o rimborsato). L\'azione è irreversibile.')) return;
     AdminAPI.orders.delete(dbId)
       .done(function(){ toast('Ordine eliminato','success'); renderView('orders'); })
       .fail(function(xhr){ toast((xhr.responseJSON&&xhr.responseJSON.error)||'Errore eliminazione','error'); });
@@ -3130,7 +3181,9 @@ $(function(){
         (items?'<div style="margin-top:12px"><table class="data" style="width:100%"><thead><tr><th>Prodotto</th><th>Taglia</th><th>Qty</th><th>Prezzo</th></tr></thead><tbody>'+items+'</tbody></table></div>':'')+
         '<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">'+
         '<button class="btn btn-ghost btn-sm" onclick="closeModal()">Chiudi</button>'+
-        ((r.payment_intent_id && r.stato !== 'rimborsato') ? '<button class="btn btn-soft btn-sm js-refund-reso" data-id="'+r.id+'" data-total="'+(r.order_total||0)+'">💳 Rimborsa via Stripe</button>' : '')+
+        ((r.stato !== 'rimborsato') ? (r.payment_intent_id
+          ? '<button class="btn btn-soft btn-sm js-refund-reso" data-id="'+r.id+'" data-total="'+(r.order_total||0)+'">💳 Rimborsa via Stripe</button>'
+          : '<button class="btn btn-soft btn-sm js-refund-reso" data-manual="1" data-id="'+r.id+'" data-total="'+(r.order_total||0)+'">✔ Rimborso manuale</button>') : '')+
         '<button class="btn btn-primary btn-sm js-save-reso" data-id="'+r.id+'">Aggiorna reso</button></div>'
       );
     }).fail(function(){ toast('Errore caricamento reso','error'); });
@@ -3149,16 +3202,20 @@ $(function(){
 
   $(document).on('click','.js-refund-reso', function(){
     var id=$(this).data('id');
+    var manual=String($(this).data('manual'))==='1';
     var total=parseFloat($(this).data('total'))||0;
     var input=$('#resoRimborso').val();
     var amount = input ? parseFloat(input) : total;
     if (!(amount > 0)) amount = total;
-    if (!confirm('Emettere un rimborso Stripe di EUR '+amount.toFixed(2)+'? Operazione irreversibile.')) return;
+    var msg = manual
+      ? 'Confermi il RIMBORSO MANUALE di EUR '+amount.toFixed(2)+'?\n\nUsalo solo se hai già restituito l\'importo al cliente (PayPal, Klarna, bonifico). Il reso viene chiuso, lo stock ripristinato e il cliente avvisato via email.'
+      : 'Emettere un rimborso Stripe di EUR '+amount.toFixed(2)+'?\n\nLo stock viene ripristinato automaticamente. Operazione irreversibile.';
+    if (!confirm(msg)) return;
     var $btn=$(this);
     $btn.prop('disabled',true).text('Rimborso...');
-    AdminAPI.resi.refund(id, amount)
+    AdminAPI.resi.refund(id, amount, manual ? { manual: true } : undefined)
       .done(function(res){ toast('Rimborso eseguito'+((res&&res.warning)?': '+res.warning:''),'success'); closeModal(); renderView('returns'); })
-      .fail(function(xhr){ var m=(xhr.responseJSON&&xhr.responseJSON.error)||'Errore rimborso'; toast(m,'error'); $btn.prop('disabled',false).text('💳 Rimborsa via Stripe'); });
+      .fail(function(xhr){ var m=(xhr.responseJSON&&xhr.responseJSON.error)||'Errore rimborso'; toast(m,'error'); $btn.prop('disabled',false).text(manual?'✔ Rimborso manuale':'💳 Rimborsa via Stripe'); });
   });
 
   $(document).on('click','.js-del-reso', function(){
@@ -3933,6 +3990,8 @@ $(function(){
       var drafts  = list.filter(function(o){ return o.order_status==='in_attesa'; }).length;
       setSideBadge('badgeOrders', pending);
       setSideBadge('badgeDrafts', drafts);
+      _notif.orders = pending; paintNotifDot();
+      if (window.refreshNotifCounters) window.refreshNotifCounters();
     }).fail(function(){ setSideBadge('badgeOrders',0); setSideBadge('badgeDrafts',0); });
     // Active discount codes
     AdminAPI.discounts.list().done(function(l){
@@ -4046,12 +4105,27 @@ $(function(){
 
       _origRenderView('dashboard');
     }).fail(function() {
-      _origRenderView('dashboard');
+      _apiFail('dashboard');
     });
   }
 
   // ── Override renderView to fetch fresh API data per view ──
   var _origRenderView = renderView;
+
+  // When the API can't be reached we still render (mock or stale data) but make
+  // it IMPOSSIBLE to mistake for live shop data.
+  function _apiFail(name) {
+    _origRenderView(name);
+    var $vc = $('#viewContainer');
+    $vc.find('.api-offline-banner').remove();
+    $vc.prepend(
+      '<div class="api-offline-banner" style="background:#fdecea;color:#b3261e;border:1px solid #f5c6c0;' +
+      'border-radius:10px;padding:12px 16px;margin:0 0 14px;font-size:13px;display:flex;gap:10px;align-items:center">' +
+      '<i class="ti ti-plug-connected-x" style="font-size:18px"></i><div><strong>API non raggiungibile.</strong> ' +
+      'I dati mostrati sono di esempio o non aggiornati — non sono i dati reali del negozio. ' +
+      'Verifica che il backend sia attivo, poi ricarica la pagina.</div></div>'
+    );
+  }
   renderView = function(name) {
     // Permission gate: staff cannot open admin-only sections (defense beyond the hidden nav).
     if (!canAccessView(name)) {
@@ -4082,7 +4156,7 @@ $(function(){
           };
         });
         _origRenderView(name);
-      }).fail(function() { _origRenderView(name); });
+      }).fail(function() { _apiFail(name); });
 
     } else if (name === 'products' || name === 'inventory') {
       api.products.listAll().done(function(list) {
@@ -4118,7 +4192,7 @@ $(function(){
           };
         });
         _origRenderView(name);
-      }).fail(function() { _origRenderView(name); });
+      }).fail(function() { _apiFail(name); });
 
     } else if (name === 'customers' || name === 'segments') {
       api.customers.list({ limit: 200 }).done(function(data) {
@@ -4136,7 +4210,7 @@ $(function(){
           };
         });
         _origRenderView(name);
-      }).fail(function() { _origRenderView(name); });
+      }).fail(function() { _apiFail(name); });
 
     } else if (name === 'discounts') {
       api.discounts.list().done(function(list) {
@@ -4155,7 +4229,7 @@ $(function(){
           };
         });
         _origRenderView(name);
-      }).fail(function() { _origRenderView(name); });
+      }).fail(function() { _apiFail(name); });
 
     } else if (name === 'shipping' || name === 'couriers' || name === 'shipping-zones') {
       $.when(api.shipping.couriers(), api.shipping.zones(), api.shipping.shipments()).done(function(courRes, zoneRes, shipRes) {
@@ -4179,7 +4253,7 @@ $(function(){
           return { _db_id: z.id, nome: z.nome, paesi: z.paesi, metodo: z.metodo, prezzo: 'EUR ' + parseFloat(z.prezzo || 0).toFixed(2), grat: z.spedizione_gratuita_da ? 'EUR ' + z.spedizione_gratuita_da : '-' };
         });
         _origRenderView(name);
-      }).fail(function() { _origRenderView(name); });
+      }).fail(function() { _apiFail(name); });
 
     } else if (name === 'shipments' || name === 'tracking') {
       api.shipping.shipments().done(function(list) {
@@ -4204,23 +4278,23 @@ $(function(){
               return { code: c.code, nome: c.nome, slug: c.slug || c.code.toUpperCase(), rate: 'EUR ' + parseFloat(c.rate || 0).toFixed(2), rate_raw: parseFloat(c.rate || 0), attivo: !!c.attivo, tracking_url_template: c.tracking_url_template || '', sped: 0, consegnati: 0, ritardi: 0 };
             });
             _origRenderView(name);
-          }).fail(function() { _origRenderView(name); });
+          }).fail(function() { _apiFail(name); });
         } else {
           _origRenderView(name);
         }
-      }).fail(function() { _origRenderView(name); });
+      }).fail(function() { _apiFail(name); });
 
     } else if (name === 'invoices') {
       api.invoices.list({ limit: 200 }).done(function(data) {
         DATA.invoices = (data && data.invoices) ? data.invoices : (Array.isArray(data) ? data : []);
         _origRenderView(name);
-      }).fail(function() { DATA.invoices = DATA.invoices || []; _origRenderView(name); });
+      }).fail(function() { DATA.invoices = DATA.invoices || []; _apiFail(name); });
 
     } else if (name === 'returns') {
       api.resi.list({ limit: 200 }).done(function(data) {
         DATA.resi = (data && data.resi) ? data.resi : (Array.isArray(data) ? data : []);
         _origRenderView(name);
-      }).fail(function() { DATA.resi = DATA.resi || []; _origRenderView(name); });
+      }).fail(function() { DATA.resi = DATA.resi || []; _apiFail(name); });
 
     } else if (name === 'reviews') {
       api.reviews.list({ limit: 200 }).done(function(data) {
@@ -4230,7 +4304,7 @@ $(function(){
           pending: (data && data.pending) ? data.pending  : 0,
         };
         _origRenderView(name);
-      }).fail(function() { DATA.reviews = DATA.reviews || {list:[],total:0,pending:0}; _origRenderView(name); });
+      }).fail(function() { DATA.reviews = DATA.reviews || {list:[],total:0,pending:0}; _apiFail(name); });
 
     } else if (name === 'newsletter') {
       api.newsletter.list({ limit: 500 }).done(function(data) {
@@ -4242,7 +4316,7 @@ $(function(){
           recent:       subs
         };
         _origRenderView(name);
-      }).fail(function() { _origRenderView(name); });
+      }).fail(function() { _apiFail(name); });
 
     } else if (name === 'analytics') {
       // Always refresh KPI + chart so analytics reflects current numbers.
@@ -4250,19 +4324,19 @@ $(function(){
         var kpi = kpiRes[0] || {}; if (kpi && kpi.revenue) DATA.kpi = kpi;
         DATA.chartData = chartRes[0] || [];
         _origRenderView(name);
-      }).fail(function() { _origRenderView(name); });
+      }).fail(function() { _apiFail(name); });
 
     } else if (name === 'staff') {
       api.staff.list().done(function(data) {
         DATA.staff = (data && data.staff) ? data.staff : [];
         _origRenderView(name);
-      }).fail(function() { DATA.staff = DATA.staff || []; _origRenderView(name); });
+      }).fail(function() { DATA.staff = DATA.staff || []; _apiFail(name); });
 
     } else if (name === 'settings' || name === 'taxes') {
       api.settings.get().done(function(data) {
         DATA.settings = data || {};
         _origRenderView(name);
-      }).fail(function() { DATA.settings = DATA.settings || {}; _origRenderView(name); });
+      }).fail(function() { DATA.settings = DATA.settings || {}; _apiFail(name); });
 
     } else if (name === 'collections') {
       api.products.listAll().done(function(list) {
@@ -4283,7 +4357,7 @@ $(function(){
           return { slug: slug, count: map[slug] };
         });
         _origRenderView(name);
-      }).fail(function() { DATA.collections = DATA.collections || []; _origRenderView(name); });
+      }).fail(function() { DATA.collections = DATA.collections || []; _apiFail(name); });
 
     } else if (name === 'categories') {
       api.products.listAll().done(function(list) {
@@ -4301,40 +4375,40 @@ $(function(){
           return Object.assign({ slug: slug }, map[slug]);
         });
         _origRenderView(name);
-      }).fail(function() { DATA.categories = DATA.categories || []; _origRenderView(name); });
+      }).fail(function() { DATA.categories = DATA.categories || []; _apiFail(name); });
 
     } else if (name === 'giftcards') {
       api.giftcards.list().done(function(data) {
         DATA.giftcards   = (data && data.cards)   ? data.cards   : [];
         DATA.giftSummary = (data && data.summary) ? data.summary : null;
         _origRenderView(name);
-      }).fail(function() { DATA.giftcards = DATA.giftcards || []; _origRenderView(name); });
+      }).fail(function() { DATA.giftcards = DATA.giftcards || []; _apiFail(name); });
 
     } else if (name === 'marketing' || name === 'automations') {
       api.campaigns.list().done(function(list) {
         DATA.campaigns = Array.isArray(list) ? list : [];
         _origRenderView(name);
-      }).fail(function() { DATA.campaigns = DATA.campaigns || []; _origRenderView(name); });
+      }).fail(function() { DATA.campaigns = DATA.campaigns || []; _apiFail(name); });
 
     } else if (name === 'content') {
       DATA.pages = null;
       api.pages.list().done(function(list) {
         DATA.pages = Array.isArray(list) ? list : ((list && list.pages) || []);
         _origRenderView(name);
-      }).fail(function() { DATA.pages = []; _origRenderView(name); });
+      }).fail(function() { DATA.pages = []; _apiFail(name); });
 
     } else if (name === 'blog') {
       DATA.blog = null;
       api.blog.list().done(function(list) {
         DATA.blog = Array.isArray(list) ? list : ((list && list.posts) || []);
         _origRenderView(name);
-      }).fail(function() { DATA.blog = []; _origRenderView(name); });
+      }).fail(function() { DATA.blog = []; _apiFail(name); });
 
     } else if (name === 'files' || name === 'online-store') {
       api.settings.get().done(function(data) {
         DATA.settings = data || {};
         _origRenderView(name);
-      }).fail(function() { DATA.settings = DATA.settings || {}; _origRenderView(name); });
+      }).fail(function() { DATA.settings = DATA.settings || {}; _apiFail(name); });
 
     } else if (name === 'loyalty') {
       $.when(api.loyalty.config(), api.loyalty.customers({ limit: 200 })).done(function(cfgRes, custRes) {
@@ -4342,7 +4416,7 @@ $(function(){
         var cust = custRes[0] || {};
         DATA.loyalty = { config: cfg, customers: cust.customers || [], summary: cust.summary || {} };
         _origRenderView(name);
-      }).fail(function() { DATA.loyalty = DATA.loyalty || { config:{}, customers:[], summary:{} }; _origRenderView(name); });
+      }).fail(function() { DATA.loyalty = DATA.loyalty || { config:{}, customers:[], summary:{} }; _apiFail(name); });
 
     } else if (name === 'pickup') {
       api.shipping.pickup().done(function(list) {
@@ -4353,26 +4427,33 @@ $(function(){
           });
         }
         _origRenderView(name);
-      }).fail(function() { _origRenderView(name); });
+      }).fail(function() { _apiFail(name); });
 
     } else if (name === 'finance' || name === 'payouts') {
       DATA.finance = DATA.finance || null;
       api.dashboard.finance().done(function(res) {
         DATA.finance = res || { summary: null, by_method: [], recent: [] };
         _origRenderView(name);
-      }).fail(function() { DATA.finance = { summary: null, by_method: [], recent: [] }; _origRenderView(name); });
+      }).fail(function() { DATA.finance = { summary: null, by_method: [], recent: [] }; _apiFail(name); });
 
     } else if (name === 'integrations') {
       DATA.integrations = null;
       api.settings.integrations().done(function(res) {
         DATA.integrations = (res && res.integrations) ? res.integrations : [];
         _origRenderView(name);
-      }).fail(function() { DATA.integrations = []; _origRenderView(name); });
+      }).fail(function() { DATA.integrations = []; _apiFail(name); });
 
     } else if (name === 'dashboard') {
       loadDashboardData();
     } else {
       _origRenderView(name);
+      if (['bills','liveview','menus','popups','reports','chat'].indexOf(name) !== -1) {
+        $('#viewContainer').prepend(
+          '<div style="background:#fff8e6;color:#7a5b00;border:1px solid #f0dfa8;border-radius:10px;' +
+          'padding:10px 16px;margin:0 0 14px;font-size:13px"><strong>Vista dimostrativa.</strong> ' +
+          'Questa sezione non è ancora collegata ai dati reali del negozio.</div>'
+        );
+      }
     }
   };
 

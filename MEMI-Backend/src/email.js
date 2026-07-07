@@ -330,4 +330,51 @@ async function sendGiftCardDelivery(card) {
   }
 }
 
-module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery };
+/* ── Refund confirmation ─────────────────────────────────────── */
+async function sendRefundNotification(data) {
+  const t = getTransporter();
+  if (!t) return;
+
+  const { order_number, nome, email, amount } = data;
+  if (!email) return;
+  const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
+  const amountStr = (Number(amount) || 0).toFixed(2).replace('.', ',');
+
+  const html = `
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Rimborso effettuato</title></head>
+<body style="margin:0;padding:0;background:#faf7f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#3B2B2B;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.06);">
+    <div style="background:#3B2B2B;padding:32px 40px;text-align:center;">
+      <h1 style="color:#fff;font-size:28px;font-weight:300;letter-spacing:.12em;margin:0;">Memi<span style="color:#c9897a;">.</span></h1>
+    </div>
+    <div style="padding:36px 40px;">
+      <h2 style="font-size:20px;font-weight:400;margin:0 0 8px;">Rimborso effettuato ✓</h2>
+      <p style="color:#7a6060;font-size:14px;line-height:1.6;margin:0 0 20px;">
+        Ciao ${nome || ''}, il rimborso per l'ordine <strong>${order_number}</strong> è stato elaborato.
+      </p>
+      <div style="background:#faf7f4;border-radius:8px;padding:18px 22px;margin:0 0 20px;">
+        <p style="margin:0;font-size:15px;"><strong>Importo rimborsato:</strong> € ${amountStr}</p>
+      </div>
+      <p style="color:#7a6060;font-size:13px;line-height:1.6;margin:0;">
+        A seconda del metodo di pagamento, l'accredito può richiedere 5–10 giorni lavorativi.
+        Per qualsiasi domanda rispondi a questa email.
+      </p>
+    </div>
+    <div style="background:#faf7f4;padding:20px 40px;text-align:center;">
+      <p style="color:#b5a0a0;font-size:12px;margin:0;">Memi Abbigliamento · Grazie per aver scelto Memi</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    await t.sendMail({ from, to: email, subject: `Rimborso ordine ${order_number} — Memi`, html });
+    console.log(`[email] refund notification sent to ${email} for ${order_number}`);
+  } catch (err) {
+    console.error('[email] refund notification failed:', err.message);
+  }
+}
+
+module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification };

@@ -130,6 +130,67 @@ else
 fi
 
 echo
+# 8 — Order lifecycle: compensation (cancel / manual refund) + auto-invoice
+echo "[8] Order lifecycle (compensation + auto-invoice)"
+if [ -n "$ADMIN_TOKEN" ]; then
+  P8="smoke-life-$(date +%s)"
+  C="$(curl -s -o /dev/null -w "%{http_code}" -X POST "$BASE/api/products" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$P8\",\"name\":\"Smoke Life\",\"categoria\":\"vestiti\",\"price\":40,\"taglie\":[{\"taglia\":\"M\",\"stock\":3}]}")"
+  [ "$C" = "201" ] && ok "lifecycle product created" || ko "lifecycle product create -> HTTP $C"
+
+  stock8() { curl -fsS "$BASE/api/products/$P8" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const j=JSON.parse(d);const t=(j.taglie||[]).find(x=>String(x.taglia).toUpperCase()==="M");console.log(t?t.stock:"")}catch(e){console.log("")}})'; }
+
+  # a) create an admin order (qty 1) -> stock 3->2
+  OID="$(curl -fsS -X POST "$BASE/api/orders/admin" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"nome\":\"Smoke\",\"email\":\"smoke-life@example.com\",\"items\":[{\"product_id\":\"$P8\",\"taglia\":\"M\",\"qty\":1}]}" 2>/dev/null | jget id)"
+  [ -n "$OID" ] && ok "admin order created (id $OID)" || ko "admin order create failed"
+  [ "$(stock8)" = "2" ] && ok "stock decremented 3->2" || ko "stock after order = $(stock8) (expected 2)"
+
+  # b) cancel -> stock restored; annullato is terminal; delete doesn't double-restock
+  if [ -n "$OID" ]; then
+    C="$(code -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"order_status":"annullato"}' "$BASE/api/orders/admin/$OID/status")"
+    [ "$C" = "200" ] && ok "order cancelled" || ko "cancel -> HTTP $C"
+    [ "$(stock8)" = "3" ] && ok "cancel restored stock 2->3" || ko "stock after cancel = $(stock8) (expected 3)"
+    C="$(code -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"order_status":"in_preparazione"}' "$BASE/api/orders/admin/$OID/status")"
+    [ "$C" = "409" ] && ok "annullato is terminal (reactivation -> 409)" || ko "reactivation -> HTTP $C (expected 409)"
+    C="$(code -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/orders/admin/$OID")"
+    [ "$C" = "200" ] && ok "cancelled order deleted" || ko "order delete -> HTTP $C"
+    [ "$(stock8)" = "3" ] && ok "delete after cancel: no double restock" || ko "stock after delete = $(stock8) (expected 3)"
+  fi
+
+  # c) paid order -> auto-invoice; manual refund -> restock + rimborsato
+  OID2="$(curl -fsS -X POST "$BASE/api/orders/admin" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"nome\":\"Smoke\",\"email\":\"smoke-life@example.com\",\"payment_method\":\"paypal\",\"items\":[{\"product_id\":\"$P8\",\"taglia\":\"M\",\"qty\":1}]}" 2>/dev/null | jget id)"
+  if [ -n "$OID2" ]; then
+    C="$(code -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"payment_status":"pagato"}' "$BASE/api/orders/admin/$OID2/status")"
+    [ "$C" = "200" ] && ok "order marked pagato" || ko "mark pagato -> HTTP $C"
+    sleep 1
+    INV="$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/invoices?limit=500" 2>/dev/null | grep -c "\"order_id\":$OID2")"
+    [ "${INV:-0}" -gt 0 ] && ok "invoice auto-emitted on pagato" || ko "no auto-invoice for order $OID2"
+    RID="$(curl -fsS -X POST "$BASE/api/admin/resi" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+      -d "{\"order_id\":$OID2,\"motivo\":\"smoke\"}" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{console.log(JSON.parse(d).reso.id)}catch(e){console.log("")}})')"
+    [ -n "$RID" ] && ok "reso created (id $RID)" || ko "reso create failed"
+    if [ -n "$RID" ]; then
+      C="$(code -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"manual":true}' "$BASE/api/admin/resi/$RID/refund")"
+      [ "$C" = "200" ] && ok "manual refund -> 200" || ko "manual refund -> HTTP $C"
+      [ "$(stock8)" = "3" ] && ok "refund restocked 2->3" || ko "stock after refund = $(stock8) (expected 3)"
+      C="$(code -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"manual":true}' "$BASE/api/admin/resi/$RID/refund")"
+      [ "$C" = "409" ] && ok "second refund rejected (409)" || ko "second refund -> HTTP $C (expected 409)"
+    fi
+    C="$(code -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/orders/admin/$OID2")"
+    [ "$C" = "200" ] && ok "refunded order deleted (cleanup)" || ko "order2 delete -> HTTP $C"
+    [ "$(stock8)" = "3" ] && ok "delete after refund: no double restock" || ko "stock after delete2 = $(stock8) (expected 3)"
+  else
+    ko "second admin order create failed"
+  fi
+  C="$(code -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/products/$P8")"
+  [ "$C" = "200" ] && ok "lifecycle product deleted (cleanup)" || ko "product cleanup -> HTTP $C"
+else
+  ko "skipped — no admin token"
+fi
+
+echo
 echo "------------------------------"
 echo "  passed: $pass   failed: $fail"
 echo "------------------------------"

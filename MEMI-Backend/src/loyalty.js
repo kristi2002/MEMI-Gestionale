@@ -91,6 +91,27 @@ async function redeemPoints(conn, customerId, points) {
   return { ok: true, points: pts, value };
 }
 
+/** Reverse every point movement tied to an order (cancellation / refund).
+ *  Ledger-based and idempotent: reverses the NET of the order's existing rows,
+ *  so a second call finds net 0 and does nothing. */
+async function reverseOrderPoints(conn, orderId, reason) {
+  if (!orderId) return 0;
+  const [rows] = await conn.execute(
+    `SELECT customer_id, COALESCE(SUM(delta),0) AS net
+       FROM loyalty_transactions WHERE order_id = ? GROUP BY customer_id`,
+    [orderId]
+  );
+  let reversed = 0;
+  for (const r of rows) {
+    const net = parseInt(r.net, 10) || 0;
+    if (net > 0 && r.customer_id) {
+      await applyPoints(conn, r.customer_id, -net, reason || 'storno ordine', orderId);
+      reversed += net;
+    }
+  }
+  return reversed;
+}
+
 module.exports = {
   DEFAULTS,
   getConfig,
@@ -98,4 +119,5 @@ module.exports = {
   awardRegistrationPoints,
   awardPurchasePoints,
   redeemPoints,
+  reverseOrderPoints,
 };

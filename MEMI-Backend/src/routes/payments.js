@@ -17,6 +17,7 @@
 
 const router = require('express').Router();
 const { pool } = require('../db');
+const { ensureInvoiceForOrder } = require('../invoicing');
 const { validateBody, createIntentSchema } = require('../validation');
 
 function getStripe() {
@@ -90,13 +91,21 @@ async function stripeWebhookHandler(req, res) {
     if (event.type === 'payment_intent.succeeded') {
       const pi = event.data.object;
       const [[existing]] = await pool.execute(
-        'SELECT id, order_number FROM orders WHERE payment_intent_id = ?', [pi.id]
+        'SELECT id, order_number, payment_status FROM orders WHERE payment_intent_id = ?', [pi.id]
       );
       if (!existing) {
         console.error(
           `[Stripe Webhook] ⚠️  payment_intent.succeeded (${pi.id}, ${pi.amount / 100} ${pi.currency}) ` +
           'has NO matching order — the customer was charged but no order was ever created. ' +
           'Investigate in the Stripe dashboard and follow up manually (refund or contact customer).'
+        );
+      } else if (existing.payment_status === 'in_attesa') {
+        // Async payment confirmed after checkout responded: reconcile to 'pagato'
+        // (and emit the invoice) so the dashboard revenue matches Stripe.
+        await pool.execute("UPDATE orders SET payment_status = 'pagato' WHERE id = ?", [existing.id]);
+        ensureInvoiceForOrder(pool, existing.id).catch(() => {});
+        console.log(
+          `[Stripe Webhook] order ${existing.order_number} reconciled to 'pagato' (${pi.id})`
         );
       }
     } else if (event.type === 'charge.dispute.created') {
