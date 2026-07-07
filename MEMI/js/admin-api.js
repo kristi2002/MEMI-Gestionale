@@ -283,6 +283,16 @@
   };
 
   /* ================================================================
+     EXPENSES (Fatture & Spese)
+     ================================================================ */
+  var expenses = {
+    list:   function()      { return get('/admin/expenses'); },
+    create: function(d)     { return post('/admin/expenses', d); },
+    update: function(id, d) { return put('/admin/expenses/' + id, d); },
+    delete: function(id)    { return del('/admin/expenses/' + id); },
+  };
+
+  /* ================================================================
      STAFF
      ================================================================ */
   var staff = {
@@ -320,7 +330,7 @@
 
 
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {

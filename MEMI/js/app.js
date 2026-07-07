@@ -1388,8 +1388,35 @@ VIEWS.payouts = function(){
     </table></div></div>` : `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">${DATA.finance===null?'Caricamento…':'Nessun pagamento registrato.'}</p></div>`}`;
 };
 VIEWS.bills = function(){
-  return `${pageHead("Fatture & Spese","Spese del negozio (piano, app, dominio).","")}
-    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessuna spesa registrata.</p></div>`;
+  const data = DATA.expenses;
+  const eur  = v => '€ ' + (Number(v)||0).toFixed(2).replace('.', ',');
+  const list = (data && data.expenses) || [];
+  const sum  = (data && data.summary)  || { total:0, month:0, monthly_recurring:0 };
+  const catLabel = { piano:'Piano', app:'App', dominio:'Dominio', marketing:'Marketing', logistica:'Logistica', fornitore:'Fornitore', generale:'Generale' };
+  const recLabel = { una_tantum:'Una tantum', mensile:'Mensile', annuale:'Annuale' };
+  return `${pageHead("Fatture & Spese","Spese e costi ricorrenti del negozio.",`<button class="btn btn-primary btn-sm js-new-expense">+ Nuova spesa</button>`)}
+    <div class="grid grid-3" style="margin-bottom:16px">
+      <div class="card kpi soft"><span class="label">Spese totali</span><span class="value">${eur(sum.total)}</span></div>
+      <div class="card kpi pink"><span class="label">Questo mese</span><span class="value">${eur(sum.month)}</span></div>
+      <div class="card kpi warn"><span class="label">Ricorrenti / mese</span><span class="value">${eur(sum.monthly_recurring)}</span></div>
+    </div>
+    <div class="table-card"><div class="table-wrap"><table class="data">
+      <thead><tr><th>Descrizione</th><th>Categoria</th><th>Ricorrenza</th><th>Fornitore</th><th>Data</th><th style="text-align:right">Importo</th><th></th></tr></thead>
+      <tbody>
+        ${list.length ? list.map(e=>`<tr data-id="${e.id}">
+          <td><strong>${(e.descrizione||'').replace(/</g,'&lt;')}</strong>${e.note?`<div style="font-size:11px;color:var(--muted)">${(e.note||'').replace(/</g,'&lt;')}</div>`:''}</td>
+          <td><span class="badge badge-soft">${catLabel[e.categoria]||e.categoria||'—'}</span></td>
+          <td>${recLabel[e.ricorrenza]||e.ricorrenza||'—'}</td>
+          <td>${(e.fornitore||'—')}</td>
+          <td style="color:var(--muted)">${e.data_spesa?new Date(e.data_spesa).toLocaleDateString('it-IT'):'—'}</td>
+          <td style="text-align:right"><strong>${eur(e.importo)}</strong></td>
+          <td class="row-actions">
+            <button class="js-edit-expense" data-id="${e.id}" data-json="${encodeURIComponent(JSON.stringify(e))}" title="Modifica"><i class="ti ti-pencil"></i></button>
+            <button class="js-del-expense" data-id="${e.id}" title="Elimina"><i class="ti ti-trash"></i></button>
+          </td>
+        </tr>`).join('') : `<tr><td colspan="7" class="empty">${data===undefined?'Caricamento…':'Nessuna spesa registrata. Aggiungine una con “+ Nuova spesa”.'}</td></tr>`}
+      </tbody>
+    </table></div></div>`;
 };
 VIEWS.taxes = function(){
   const s = DATA.settings || {};
@@ -3736,6 +3763,49 @@ $(function(){
     }).fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
   });
 
+  /* ── Expenses (Fatture & Spese) ── */
+  function expenseForm(formId, e){
+    e = e || {};
+    var cats = ['piano','app','dominio','marketing','logistica','fornitore','generale'];
+    var recs = [['una_tantum','Una tantum'],['mensile','Mensile'],['annuale','Annuale']];
+    var catLbl = { piano:'Piano', app:'App', dominio:'Dominio', marketing:'Marketing', logistica:'Logistica', fornitore:'Fornitore', generale:'Generale' };
+    return modalForm(formId,
+      fieldRow('Descrizione *','<input name="descrizione" required value="'+((e.descrizione||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('Categoria','<select name="categoria" style="'+inputCss+'">'+cats.map(function(c){return '<option value="'+c+'"'+(e.categoria===c?' selected':'')+'>'+catLbl[c]+'</option>';}).join('')+'</select>')+
+      fieldRow('Importo (EUR) *','<input type="number" step="0.01" min="0" name="importo" required value="'+(e.importo!=null?e.importo:'')+'" style="'+inputCss+'"/>')+
+      fieldRow('Ricorrenza','<select name="ricorrenza" style="'+inputCss+'">'+recs.map(function(r){return '<option value="'+r[0]+'"'+(e.ricorrenza===r[0]?' selected':'')+'>'+r[1]+'</option>';}).join('')+'</select>')+
+      fieldRow('Fornitore','<input name="fornitore" value="'+((e.fornitore||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('Data','<input type="date" name="data_spesa" value="'+((e.data_spesa||'').slice(0,10))+'" style="'+inputCss+'"/>')+
+      fieldRow('Note','<textarea name="note" rows="2" style="'+inputCss+'">'+((e.note||'').replace(/</g,'&lt;'))+'</textarea>'),
+      e.id?'Salva':'Aggiungi');
+  }
+  $(document).on('click','.js-new-expense', function(){
+    openModal('Nuova spesa', expenseForm('newExpenseForm'));
+    $('#newExpenseForm').on('submit', function(ev){
+      ev.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.expenses.create(fd).done(function(){ toast('Spesa aggiunta','success'); closeModal(); renderView('bills'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-edit-expense', function(){
+    var e={}; try{ e=JSON.parse(decodeURIComponent($(this).data('json'))); }catch(_){}
+    var id=$(this).data('id');
+    openModal('Modifica spesa', expenseForm('editExpenseForm', e));
+    $('#editExpenseForm').on('submit', function(ev){
+      ev.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.expenses.update(id, fd).done(function(){ toast('Spesa aggiornata','success'); closeModal(); renderView('bills'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+    });
+  });
+  $(document).on('click','.js-del-expense', function(){
+    if(!apiReady()) return;
+    if(!confirm('Eliminare questa spesa?')) return;
+    AdminAPI.expenses.delete($(this).data('id')).done(function(){ toast('Spesa eliminata','success'); renderView('bills'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+
   /* ── Couriers: add / delete / import rates ── */
   $(document).on('click','.js-new-courier', function(){
     openModal('Aggiungi corriere',
@@ -4447,11 +4517,18 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { DATA.integrations = []; _apiFail(name); });
 
+    } else if (name === 'bills') {
+      DATA.expenses = undefined;
+      api.expenses.list().done(function(res) {
+        DATA.expenses = res || { expenses: [], summary: {} };
+        _origRenderView(name);
+      }).fail(function() { DATA.expenses = { expenses: [], summary: {} }; _apiFail(name); });
+
     } else if (name === 'dashboard') {
       loadDashboardData();
     } else {
       _origRenderView(name);
-      if (['bills','liveview','popups','reports','chat'].indexOf(name) !== -1) {
+      if (['liveview','popups','reports','chat'].indexOf(name) !== -1) {
         $('#viewContainer').prepend(
           '<div style="background:#fff8e6;color:#7a5b00;border:1px solid #f0dfa8;border-radius:10px;' +
           'padding:10px 16px;margin:0 0 14px;font-size:13px"><strong>Vista dimostrativa.</strong> ' +

@@ -124,6 +124,21 @@ const STATEMENTS = [
      KEY idx_addr_customer (customer_id),
      FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Store expenses (Finanza · Fatture & Spese) ──────────────────────────────
+  `CREATE TABLE IF NOT EXISTS store_expenses (
+     id           INT AUTO_INCREMENT PRIMARY KEY,
+     descrizione  VARCHAR(200) NOT NULL,
+     categoria    VARCHAR(60)  NOT NULL DEFAULT 'generale',
+     importo      DECIMAL(10,2) NOT NULL DEFAULT 0,
+     ricorrenza   VARCHAR(20)  NOT NULL DEFAULT 'una_tantum',
+     fornitore    VARCHAR(120) NULL,
+     data_spesa   DATE NULL,
+     note         TEXT NULL,
+     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_exp_cat (categoria),
+     KEY idx_exp_date (data_spesa)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');
