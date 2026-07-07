@@ -94,7 +94,7 @@ Sidebar groups (from `dashboard.html`). ✅ = API-backed & working,
 | Statistiche | ~~Live view~~ | `liveview` | 🚫👻 | none |
 | Contenuti | Pagine | `content` | ✅ | `/admin/cms/pages` |
 | Contenuti | Blog | `blog` | ✅ | `/admin/cms/blog` |
-| Contenuti | File | `files` | 🟡 | `store_settings['media_library']` JSON (URL-only, no upload here) |
+| Contenuti | File | `files` | ✅ | **real upload** → `POST/DELETE /admin/settings/media` (sharp→WebP, uploads volume); list in `store_settings['media_library']` |
 | Contenuti | ~~Menu~~ | `menus` | 🚫👻 | static list, no backend |
 | Spedizioni | Corrieri | `couriers` | ✅ | `/shipping/couriers` |
 | Spedizioni | Spedizioni in corso | `shipments` | ✅ | `/shipping/shipments` |
@@ -184,8 +184,10 @@ Grouped by view:
    `chat` is a full front-end mock with no backend. Some are hidden in nav, some not.
 5. **Display-only screens** (`taxes` OSS block, `online-store` speed score) show
    static/placeholder numbers.
-6. **`Files`** only stores image URLs in a settings JSON blob — it does not use the
-   real `/api/uploads` pipeline that product images use.
+6. ~~**`Files`** only stores image URLs~~ **FIXED** — the File page now does real
+   uploads via `POST /admin/settings/media` (sharp→WebP variants in the uploads
+   volume, same pipeline as product images); `DELETE /admin/settings/media` removes
+   entries. The `media_library` JSON in `store_settings` now holds uploaded URLs.
 7. ~~Sidebar footer shows a hardcoded `Admin / admin@memi.it` identity~~ **FIXED** —
    now painted from `/admin/auth/me` (real name/email/initial, Staff badge).
 

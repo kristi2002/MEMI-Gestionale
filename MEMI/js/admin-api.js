@@ -299,6 +299,23 @@
     get:          function()  { return get('/admin/settings'); },
     update:       function(d) { return put('/admin/settings', d); },
     integrations: function()  { return get('/admin/settings/integrations'); },
+    // Real media uploads — multipart, processed to WebP by the backend (bypasses
+    // the JSON request() wrapper). Returns { added, media }.
+    uploadMedia:  function(files) {
+      var fd = new FormData();
+      for (var i = 0; i < files.length; i++) fd.append('file', files[i]);
+      var token = getToken();
+      return $.ajax({
+        url:         API_BASE + '/admin/settings/media',
+        method:      'POST',
+        data:        fd,
+        processData: false,
+        contentType: false,
+        headers:     token ? { Authorization: 'Bearer ' + token } : {},
+        dataType:    'json',
+      });
+    },
+    deleteMedia:  function(url) { return request('DELETE', '/admin/settings/media', { url: url }); },
   };
 
 

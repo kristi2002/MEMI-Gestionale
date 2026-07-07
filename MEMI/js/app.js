@@ -889,14 +889,17 @@ VIEWS.files = function(){
   let media = [];
   try { media = JSON.parse((DATA.settings && DATA.settings.media_library) || '[]'); } catch(_) {}
   if (!Array.isArray(media)) media = [];
-  return `${pageHead("File","Asset multimediali del negozio (per URL).",`<button class="btn btn-primary btn-sm js-add-file">+ Aggiungi file</button>`)}
-    ${media.length===0 ? `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun file. Aggiungi un'immagine tramite URL con “+ Aggiungi file”.</p></div>` : `
+  return `${pageHead("File","Immagini del negozio — caricate e convertite in WebP.",`
+      <button class="btn btn-primary btn-sm js-add-file"><i class="ti ti-upload"></i> Carica immagini</button>
+      <input type="file" id="mediaFileInput" accept="image/*" multiple style="display:none">
+    `)}
+    ${media.length===0 ? `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun file. Carica un'immagine con “Carica immagini”.</p></div>` : `
     <div class="grid grid-4">
-      ${media.map((m,i)=>`<div class="card" style="text-align:center">
-        <div style="height:90px;background:var(--line-2) center/cover no-repeat;${m.url?`background-image:url('${m.url.replace(/'/g,'')}')`:''};border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:28px">${m.url?'':'🖼'}</div>
+      ${media.map((m,i)=>{ var src=(m.thumb||m.url||'').replace(/'/g,''); return `<div class="card" style="text-align:center">
+        <div style="height:90px;background:var(--line-2) center/cover no-repeat;${src?`background-image:url('${src}')`:''};border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:28px">${src?'':'🖼'}</div>
         <small style="display:block;margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${m.nome||('file-'+(i+1))}</small>
-        <button class="btn btn-ghost btn-sm js-del-file" data-idx="${i}" style="margin-top:4px"><i class="ti ti-trash"></i></button>
-      </div>`).join('')}
+        <button class="btn btn-ghost btn-sm js-del-file" data-url="${(m.url||'').replace(/"/g,'&quot;')}" style="margin-top:4px"><i class="ti ti-trash"></i></button>
+      </div>`; }).join('')}
     </div>`}`;
 };
 VIEWS.menus = function(){
@@ -3719,23 +3722,29 @@ $(function(){
       toast(okMsg||'Salvato','success'); renderView('files');
     }).fail(function(){ toast('Errore salvataggio','error'); });
   }
+  // Real upload: the "+ Carica immagini" button opens the native file picker;
+  // selected images are POSTed to /admin/settings/media (sharp → WebP variants).
   $(document).on('click','.js-add-file', function(){
-    openModal('Aggiungi file',
-      modalForm('addFileForm',
-        fieldRow('Nome *','<input name="nome" required placeholder="hero-estate.jpg" style="'+inputCss+'"/>')+
-        fieldRow('URL immagine *','<input name="url" required placeholder="https://..." style="'+inputCss+'"/>'),
-        'Aggiungi'));
-    $('#addFileForm').on('submit', function(e){
-      e.preventDefault();
-      var fd=Object.fromEntries(new FormData(this));
-      var list=getMedia(); list.unshift({ nome:fd.nome, url:fd.url });
-      closeModal(); saveMedia(list,'File aggiunto');
-    });
+    $('#mediaFileInput').val('').trigger('click');
+  });
+  $(document).on('change','#mediaFileInput', function(){
+    var files = this.files;
+    if(!files || !files.length || !apiReady()) return;
+    toast('Caricamento…','info');
+    AdminAPI.settings.uploadMedia(files).done(function(res){
+      if(res && res.media && DATA.settings){ DATA.settings.media_library = JSON.stringify(res.media); }
+      toast(files.length>1 ? (files.length+' file caricati') : 'File caricato','success');
+      renderView('files');
+    }).fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore caricamento','error'); });
   });
   $(document).on('click','.js-del-file', function(){
-    var idx=parseInt($(this).data('idx'),10);
-    var list=getMedia();
-    if(idx>=0 && idx<list.length){ list.splice(idx,1); saveMedia(list,'File rimosso'); }
+    var url = $(this).data('url');
+    if(!url || !apiReady()) return;
+    if(!confirm('Rimuovere questa immagine dalla libreria?')) return;
+    AdminAPI.settings.deleteMedia(url).done(function(res){
+      if(res && res.media && DATA.settings){ DATA.settings.media_library = JSON.stringify(res.media); }
+      toast('File rimosso','success'); renderView('files');
+    }).fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
   });
 
   /* ── Couriers: add / delete / import rates ── */

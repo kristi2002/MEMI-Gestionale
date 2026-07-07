@@ -95,4 +95,96 @@ router.get('/integrations', requireAdmin, requireRole('admin'), async (req, res)
   return res.json({ integrations });
 });
 
+/* ── Media library — REAL uploads (sharp → WebP variants, uploads volume) ─────
+   POST   /api/admin/settings/media   multipart (any file field) → process each
+                                      image and append to the media library.
+   DELETE /api/admin/settings/media   body { url } → remove the library entry.
+
+   The library itself is a JSON list persisted in store_settings['media_library']
+   (so the existing admin File view keeps reading it). Each entry is
+   { nome, url, thumb, full, created_at }. Reuses the exact product-image
+   pipeline via processAndStore, so uploads land in the same uploads_data volume
+   and are served at /api/uploads/<hash>-<variant>.webp through the nginx proxy. */
+const multer = require('multer');
+const { processAndStore, deleteVariants } = require('../images');
+const MEDIA_MAX_MB = parseInt(process.env.MAX_UPLOAD_MB, 10) || 8;
+const mediaUpload = multer({
+  storage: multer.memoryStorage(),
+  limits:  { fileSize: MEDIA_MAX_MB * 1024 * 1024, files: 10 },
+});
+
+async function readMediaLibrary() {
+  const [rows] = await pool.execute(
+    "SELECT `value` FROM store_settings WHERE `key` = 'media_library' LIMIT 1"
+  );
+  let list = [];
+  if (rows.length) { try { list = JSON.parse(rows[0].value || '[]'); } catch (_) { list = []; } }
+  return Array.isArray(list) ? list : [];
+}
+async function saveMediaLibrary(list) {
+  await pool.execute(
+    "INSERT INTO store_settings (`key`, `value`) VALUES ('media_library', ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+    [JSON.stringify(list)]
+  );
+}
+
+router.post('/media', requireAdmin, (req, res) => {
+  mediaUpload.any()(req, res, async (err) => {
+    if (err) {
+      const tooBig = err.code === 'LIMIT_FILE_SIZE';
+      return res.status(tooBig ? 413 : 400).json({
+        error: tooBig ? ('File troppo grande (max ' + MEDIA_MAX_MB + ' MB)') : 'Upload non valido',
+      });
+    }
+    const files = req.files || [];
+    if (!files.length) return res.status(400).json({ error: 'Nessun file caricato' });
+    try {
+      const list = await readMediaLibrary();
+      const added = [];
+      for (const f of files) {
+        const v = await processAndStore(f.buffer);       // throws 415 on non-images
+        const entry = {
+          nome: f.originalname || ('file-' + Date.now()),
+          url: v.card || v.full, thumb: v.thumb || v.card, full: v.full,
+          created_at: new Date().toISOString(),
+        };
+        list.unshift(entry);
+        added.push(entry);
+      }
+      await saveMediaLibrary(list);
+      logAdminAction({
+        adminId: req.admin.id, adminEmail: req.admin.email, action: 'media.upload',
+        entityType: 'store_settings', entityId: 'media_library', details: { count: added.length },
+      }).catch(() => {});
+      return res.json({ added, media: list });
+    } catch (e) {
+      console.error('media upload error', e);
+      return res.status(e.statusCode || 500).json({ error: e.message || 'Errore server' });
+    }
+  });
+});
+
+router.delete('/media', requireAdmin, async (req, res) => {
+  const url = req.body && req.body.url;
+  if (!url) return res.status(400).json({ error: 'url richiesto' });
+  try {
+    let list = await readMediaLibrary();
+    const before = list.length;
+    list = list.filter(m => !m || m.url !== url);
+    await saveMediaLibrary(list);
+    // Best-effort file cleanup. deleteVariants() keeps files still referenced by
+    // a product (reference-counted by content hash), so removing a library entry
+    // never 404s a live product image.
+    try { await deleteVariants({ thumb: url, card: url, full: url }); } catch (_) {}
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'media.delete',
+      entityType: 'store_settings', entityId: 'media_library', details: { url },
+    }).catch(() => {});
+    return res.json({ removed: before - list.length, media: list });
+  } catch (e) {
+    console.error('media delete error', e);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 module.exports = router;
