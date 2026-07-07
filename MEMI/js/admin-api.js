@@ -80,6 +80,7 @@
     finance:      function() { return get('/admin/dashboard/finance'); },
     catalogKpis:  function() { return get('/admin/dashboard/catalog-kpis'); },
     liveview:     function() { return get('/admin/liveview'); },
+    taxStats:     function() { return get('/admin/dashboard/tax-stats'); },
   };
 
   /* ═══════════════════════════════════════════════════════

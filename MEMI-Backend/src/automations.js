@@ -21,7 +21,7 @@ const TRIGGER_FROM_STATUS = {
   payment_status: { pagato: 'ordine_pagato' },
 };
 
-const TRIGGERS = ['ordine_pagato', 'ordine_spedito', 'ordine_consegnato', 'ordine_annullato'];
+const TRIGGERS = ['ordine_pagato', 'ordine_spedito', 'ordine_consegnato', 'ordine_annullato', 'nuovo_cliente', 'recensione'];
 const ACTIONS  = ['email_cliente', 'email_admin'];
 
 function fill(tpl, ctx) {
@@ -74,4 +74,17 @@ async function runOrderStatusAutomations(pool, orderId, changes) {
   } catch (_) {}
 }
 
-module.exports = { runTrigger, runOrderStatusAutomations, TRIGGERS, ACTIONS, TRIGGER_FROM_STATUS, fill };
+/** Fire a non-order trigger (nuovo_cliente, recensione). Resolves the store
+ *  admin email from settings, then runs matching rules. Never throws. */
+async function runSimpleTrigger(pool, event, ctx) {
+  try {
+    let adminEmail = null;
+    try {
+      const [[a]] = await pool.execute("SELECT `value` FROM store_settings WHERE `key` = 'order_notification_email' LIMIT 1");
+      adminEmail = a && a.value;
+    } catch (_) {}
+    await runTrigger(pool, event, Object.assign({ order_number: '', nome: '', email: null, admin_email: adminEmail }, ctx || {}));
+  } catch (_) {}
+}
+
+module.exports = { runTrigger, runOrderStatusAutomations, runSimpleTrigger, TRIGGERS, ACTIONS, TRIGGER_FROM_STATUS, fill };

@@ -215,4 +215,24 @@ router.get('/catalog-kpis', requireAdmin, async (req, res) => {
   }
 });
 
+/* ── GET /api/admin/dashboard/tax-stats ──
+   EU OSS relevance: value of paid orders this year shipped OUTSIDE Italy
+   (cross-border) vs the €10.000/yr OSS registration threshold. */
+router.get('/tax-stats', requireAdmin, async (req, res) => {
+  try {
+    const [[oss]] = await pool.execute(`
+      SELECT COALESCE(SUM(total),0) AS ytd, COUNT(*) AS orders
+        FROM orders
+       WHERE payment_status = 'pagato'
+         AND YEAR(created_at) = YEAR(CURDATE())
+         AND LOWER(COALESCE(shipping_paese,'italia')) NOT IN ('italia','italy','it')`);
+    const threshold = 10000;
+    const ytd = Number(oss.ytd) || 0;
+    return res.json({ oss_ytd: ytd, foreign_orders: Number(oss.orders) || 0, threshold, over: ytd >= threshold });
+  } catch (err) {
+    console.error('tax-stats error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 module.exports = router;

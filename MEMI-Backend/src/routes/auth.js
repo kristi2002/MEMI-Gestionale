@@ -52,6 +52,8 @@ router.post('/register', validateBody(registerSchema), async (req, res) => {
     const token = signToken({ id: user.id, email: user.email, nome: user.nome });
     // Send welcome email (non-blocking)
     sendWelcomeEmail({ nome: user.nome, email: user.email }).catch(() => {});
+    // Fire 'nuovo_cliente' automations (best-effort, never blocks registration).
+    try { require('../automations').runSimpleTrigger(pool, 'nuovo_cliente', { nome: user.nome, email: user.email }); } catch (_) {}
     return res.status(201).json({ token, user: { id: user.id, email: user.email, nome: user.nome } });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY')

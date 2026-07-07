@@ -90,6 +90,8 @@ router.post('/', optionalCustomer, async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [product_id, product.name, customerId, customerNome, customerEmail, rating, titolo || null, testo || null]
     );
+    // Fire 'recensione' automations (best-effort, never blocks).
+    try { require('../automations').runSimpleTrigger(pool, 'recensione', { nome: customerNome, email: customerEmail }); } catch (_) {}
     return res.status(201).json({ ok: true, id: result.insertId, message: 'Recensione inviata, in attesa di approvazione' });
   } catch (err) {
     console.error('submit review error', err);

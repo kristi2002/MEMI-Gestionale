@@ -745,7 +745,7 @@ VIEWS.marketing = function(){
 VIEWS.automations = function(){
   const data = DATA.automations;
   const list = (data && data.automations) || [];
-  const trigLabel = { ordine_pagato:'Ordine pagato', ordine_spedito:'Ordine spedito', ordine_consegnato:'Ordine consegnato', ordine_annullato:'Ordine annullato' };
+  const trigLabel = { ordine_pagato:'Ordine pagato', ordine_spedito:'Ordine spedito', ordine_consegnato:'Ordine consegnato', ordine_annullato:'Ordine annullato', nuovo_cliente:'Nuovo cliente registrato', recensione:'Nuova recensione' };
   const actLabel  = { email_cliente:'Email al cliente', email_admin:'Email all’admin' };
   return `${pageHead("Automazioni","Regole trigger → azione. Eseguite automaticamente sugli eventi degli ordini.",`<button class="btn btn-primary btn-sm js-new-automation">+ Nuova automazione</button>`)}
     <div class="table-card"><div class="table-wrap"><table class="data">
@@ -1259,18 +1259,21 @@ VIEWS.bills = function(){
 VIEWS.taxes = function(){
   const s = DATA.settings || {};
   const vat = s.store_vat_rate || '22';
+  const vatRed = s.store_vat_reduced_rate || '10';
+  const t = DATA.taxStats;
+  const eur = v => '€ ' + (Number(v)||0).toLocaleString('it-IT',{minimumFractionDigits:2,maximumFractionDigits:2});
   return `${pageHead("Tasse","Configurazione IVA e regimi fiscali.","")}
     <div class="grid grid-2">
       <div class="card"><h3>IVA Italia</h3><div class="kv">
         <div class="k">Aliquota standard</div><div class="v">${vat}%</div>
-        <div class="k">Aliquota ridotta</div><div class="v">10%</div>
+        <div class="k">Aliquota ridotta</div><div class="v">${vatRed}%</div>
         <div class="k">Inclusa nel prezzo</div><div class="v">Sì</div>
       </div><p style="color:var(--muted);font-size:12px;margin-top:10px">Configurabile nelle Impostazioni.</p></div>
-      <div class="card"><h3>UE OSS</h3><div class="kv">
-        <div class="k">Stato</div><div class="v">—</div>
-        <div class="k">Soglia annuale</div><div class="v">€ 10.000</div>
-        <div class="k">Venduto YTD</div><div class="v">—</div>
-      </div></div>
+      <div class="card"><h3>UE OSS <small style="font-weight:400;color:var(--muted)">· vendite cross-border</small></h3><div class="kv">
+        <div class="k">Stato</div><div class="v">${t===undefined?'Caricamento…':(t.over?'<span class="status-pill fail">Soglia superata</span>':'<span class="status-pill ok">Sotto soglia</span>')}</div>
+        <div class="k">Soglia annuale</div><div class="v">€ 10.000,00</div>
+        <div class="k">Venduto UE YTD</div><div class="v">${t===undefined?'—':(eur(t.oss_ytd)+(t.foreign_orders?` <small style="color:var(--muted)">(${t.foreign_orders} ordini)</small>`:''))}</div>
+      </div><p style="color:var(--muted);font-size:11px;margin-top:10px">Valore degli ordini pagati spediti fuori Italia quest'anno. Superati € 10.000 è richiesta la registrazione al regime OSS.</p></div>
     </div>`;
 };
 
@@ -1419,6 +1422,8 @@ VIEWS.settings = function(){
         ${field('Città','store_city','text','Milano')}
         ${field('Paese','store_country','text','Italia')}
         ${field('Partita IVA','store_vat_number','text','IT...')}
+        ${field('Aliquota IVA standard (%)','store_vat_rate','number','22')}
+        ${field('Aliquota IVA ridotta (%)','store_vat_reduced_rate','number','10')}
       </div>
       <div class="card">
         <h3 style="margin-bottom:16px">🚚 Spedizione & Resi</h3>
@@ -3934,7 +3939,7 @@ $(function(){
   /* ── Automations (trigger → action rules) ── */
   function automationForm(formId, a){
     a=a||{};
-    var trigs=[['ordine_pagato','Ordine pagato'],['ordine_spedito','Ordine spedito'],['ordine_consegnato','Ordine consegnato'],['ordine_annullato','Ordine annullato']];
+    var trigs=[['ordine_pagato','Ordine pagato'],['ordine_spedito','Ordine spedito'],['ordine_consegnato','Ordine consegnato'],['ordine_annullato','Ordine annullato'],['nuovo_cliente','Nuovo cliente registrato'],['recensione','Nuova recensione']];
     var acts=[['email_cliente','Email al cliente'],['email_admin','Email all’admin']];
     return modalForm(formId,
       fieldRow('Nome *','<input name="nome" required value="'+((a.nome||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
@@ -4394,11 +4399,23 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { DATA.staff = DATA.staff || []; _apiFail(name); });
 
-    } else if (name === 'settings' || name === 'taxes') {
+    } else if (name === 'settings') {
       api.settings.get().done(function(data) {
         DATA.settings = data || {};
         _origRenderView(name);
       }).fail(function() { DATA.settings = DATA.settings || {}; _apiFail(name); });
+
+    } else if (name === 'taxes') {
+      DATA.taxStats = undefined;
+      $.when(api.settings.get(), api.dashboard.taxStats()).done(function(sRes, tRes) {
+        DATA.settings  = sRes[0] || {};
+        DATA.taxStats  = tRes[0] || { oss_ytd: 0, foreign_orders: 0, over: false };
+        _origRenderView(name);
+      }).fail(function() {
+        DATA.settings = DATA.settings || {};
+        DATA.taxStats = { oss_ytd: 0, foreign_orders: 0, over: false };
+        _apiFail(name);
+      });
 
     } else if (name === 'collections') {
       api.products.listAll().done(function(list) {
