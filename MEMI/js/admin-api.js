@@ -292,6 +292,14 @@
     delete: function(id)    { return del('/admin/expenses/' + id); },
   };
 
+  var segments = {
+    list:      function()      { return get('/admin/segments'); },
+    customers: function(id)    { return get('/admin/segments/' + id + '/customers'); },
+    create:    function(d)     { return post('/admin/segments', d); },
+    update:    function(id, d) { return put('/admin/segments/' + id, d); },
+    delete:    function(id)    { return del('/admin/segments/' + id); },
+  };
+
   /* ================================================================
      STAFF
      ================================================================ */
@@ -330,7 +338,7 @@
 
 
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {

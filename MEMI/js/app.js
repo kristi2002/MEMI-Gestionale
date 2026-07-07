@@ -572,29 +572,37 @@ VIEWS.customers = function(){
 };
 
 VIEWS.segments = function(){
-  return `
-    ${pageHead("Segmenti","Raggruppa i clienti per comportamento.",`<button class="btn btn-primary btn-sm js-new-segment">+ Analizza segmento</button>`)}
-    ${(()=>{
-      const custs = DATA.customers;
-      if(custs===null || custs===undefined){ return '<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Caricamento…</p></div>'; }
-      const num = s => parseFloat(String(s||'').replace(/[^0-9,.-]/g,'').replace(/\./g,'').replace(',','.'))||0;
-      const segs = [
-        ["VIP","Speso > €300", custs.filter(c=>c.vip||num(c.speso)>300).length],
-        ["Spendaccioni","Speso > €100", custs.filter(c=>num(c.speso)>100).length],
-        ["Clienti fedeli","Più di 1 ordine", custs.filter(c=>(parseInt(c.ordini)||0)>1).length],
-        ["Primo acquisto","Un solo ordine", custs.filter(c=>(parseInt(c.ordini)||0)===1).length],
-        ["Senza ordini","Registrati, 0 ordini", custs.filter(c=>(parseInt(c.ordini)||0)===0).length],
-        ["Totale clienti","Tutta la base", custs.length]
-      ];
-      return `<div class="grid grid-3">${segs.map(s=>`
-        <div class="card">
-          <h3>${s[0]}</h3>
-          <p style="color:var(--muted);font-size:12px">${s[1]}</p>
-          <p style="margin-top:10px"><strong>${s[2]} ${s[2]===1?'cliente':'clienti'}</strong></p>
+  const eur   = v => '€ ' + (Number(v)||0).toFixed(2).replace('.', ',');
+  const data  = DATA.segments;
+  const saved = (data && data.segments) || [];
+  const totalCust = (data && data.total_customers);
+  const custs = DATA.customers || [];
+  const auto = [
+    ["Clienti fedeli","Più di 1 ordine", custs.filter(c=>(parseInt(c.ordini)||0)>1).length],
+    ["Primo acquisto","Un solo ordine", custs.filter(c=>(parseInt(c.ordini)||0)===1).length],
+    ["Senza ordini","Registrati, 0 ordini", custs.filter(c=>(parseInt(c.ordini)||0)===0).length],
+  ];
+  return `${pageHead("Segmenti","Gruppi di clienti salvati, con conteggio aggiornato in tempo reale.",`<button class="btn btn-primary btn-sm js-new-segment">+ Nuovo segmento</button>`)}
+    ${data===undefined ? '<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Caricamento…</p></div>' : `
+    ${saved.length ? `<div class="grid grid-3">${saved.map(s=>`
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <h3>${(s.nome||'').replace(/</g,'&lt;')}</h3>
+          <div class="row-actions">
+            <button class="js-edit-segment" data-json="${encodeURIComponent(JSON.stringify(s))}" title="Modifica"><i class="ti ti-pencil"></i></button>
+            <button class="js-del-segment" data-id="${s.id}" title="Elimina"><i class="ti ti-trash"></i></button>
+          </div>
         </div>
-      `).join('')}</div>`;
-    })()}
-  `;
+        <p style="color:var(--muted);font-size:12px">${s.descrizione?(''+s.descrizione).replace(/</g,'&lt;'):('Speso ≥ '+eur(s.min_spent)+' · Ordini ≥ '+(s.min_orders||0))}</p>
+        <p style="margin-top:10px;font-size:22px;font-weight:700">${s.members} <span style="font-size:13px;font-weight:500;color:var(--muted)">${s.members===1?'cliente':'clienti'}</span></p>
+        <button class="btn btn-soft btn-sm js-view-segment" data-id="${s.id}" data-nome="${(s.nome||'').replace(/"/g,'&quot;')}" style="margin-top:8px">Vedi clienti</button>
+      </div>
+    `).join('')}</div>` : `<div class="card"><p style="color:var(--muted);text-align:center;padding:30px">Nessun segmento salvato. Creane uno con “+ Nuovo segmento” (es. VIP: spesa ≥ €300).</p></div>`}
+    <h3 style="margin:22px 0 12px">Gruppi rapidi</h3>
+    <div class="grid grid-4">
+      <div class="card"><h3 style="font-size:13px">Totale clienti</h3><p style="margin-top:6px;font-size:18px;font-weight:700">${totalCust!=null?totalCust:custs.length}</p></div>
+      ${custs.length ? auto.map(a=>`<div class="card"><h3 style="font-size:13px">${a[0]}</h3><p style="color:var(--muted);font-size:11px">${a[1]}</p><p style="margin-top:6px;font-size:18px;font-weight:700">${a[2]}</p></div>`).join('') : ''}
+    </div>`}`;
 };
 
 VIEWS.reviews = function(){
@@ -3961,28 +3969,44 @@ $(function(){
   });
 
   /* ── Segments: live analysis from customer data ── */
+  /* ── Segments (saved, rule-based, live counts) ── */
+  function segmentForm(formId, s){
+    s = s || {};
+    return modalForm(formId,
+      fieldRow('Nome *','<input name="nome" required value="'+((s.nome||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('Descrizione','<input name="descrizione" value="'+((s.descrizione||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('Spesa minima (EUR)','<input type="number" step="0.01" min="0" name="min_spent" value="'+(s.min_spent!=null?s.min_spent:0)+'" style="'+inputCss+'"/>')+
+      fieldRow('Ordini minimi','<input type="number" min="0" step="1" name="min_orders" value="'+(s.min_orders!=null?s.min_orders:0)+'" style="'+inputCss+'"/>'),
+      s.id?'Salva':'Crea');
+  }
   $(document).on('click','.js-new-segment', function(){
-    openModal('Analizza segmento clienti',
-      modalForm('segForm',
-        fieldRow('Criterio','<select name="rule" style="'+inputCss+'"><option value="vip">VIP (speso &gt; €300)</option><option value="spend100">Speso &gt; €100</option><option value="multi">Più di 1 ordine</option><option value="single">Un solo ordine</option></select>'),
-        'Calcola'));
-    $('#segForm').on('submit', function(e){
-      e.preventDefault();
-      var rule=$(this).find('[name=rule]').val();
-      var custs=DATA.customers||[];
-      var num=function(s){ return parseFloat(String(s||'').replace(/[^0-9,.-]/g,'').replace('.','').replace(',','.'))||0; };
-      var match=custs.filter(function(c){
-        var spent=num(c.speso), ord=parseInt(c.ordini)||0;
-        if(rule==='vip') return c.vip||spent>300;
-        if(rule==='spend100') return spent>100;
-        if(rule==='multi') return ord>1;
-        if(rule==='single') return ord===1;
-        return false;
-      });
-      $('#modalBody').html('<p style="font-size:15px"><strong>'+match.length+'</strong> clienti corrispondono al criterio selezionato'+(custs.length?' (su '+custs.length+' caricati).':'.')+'</p>'+
-        (match.length?'<ul class="list-clean" style="margin-top:10px;max-height:220px;overflow:auto">'+match.slice(0,50).map(function(c){ return '<li><span>'+c.nome+'</span><small style="color:var(--muted)">'+c.speso+'</small></li>'; }).join('')+'</ul>':'')+
-        '<div style="margin-top:14px;display:flex;justify-content:flex-end"><button class="btn btn-primary btn-sm" onclick="closeModal()">Chiudi</button></div>');
-    });
+    openModal('Nuovo segmento', segmentForm('newSegForm'));
+    $('#newSegForm').on('submit', function(ev){ ev.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.segments.create(fd).done(function(){ toast('Segmento creato','success'); closeModal(); renderView('segments'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); }); });
+  });
+  $(document).on('click','.js-edit-segment', function(){
+    var s={}; try{ s=JSON.parse(decodeURIComponent($(this).data('json'))); }catch(_){}
+    openModal('Modifica segmento', segmentForm('editSegForm', s));
+    $('#editSegForm').on('submit', function(ev){ ev.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this));
+      AdminAPI.segments.update(s.id, fd).done(function(){ toast('Segmento aggiornato','success'); closeModal(); renderView('segments'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); }); });
+  });
+  $(document).on('click','.js-del-segment', function(){
+    if(!apiReady()) return; if(!confirm('Eliminare questo segmento?')) return;
+    AdminAPI.segments.delete($(this).data('id')).done(function(){ toast('Segmento eliminato','success'); renderView('segments'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+  $(document).on('click','.js-view-segment', function(){
+    if(!apiReady()) return; var nome=$(this).data('nome');
+    openModal('Clienti · '+nome, '<p style="color:var(--muted)">Caricamento…</p>', null, 'lg');
+    AdminAPI.segments.customers($(this).data('id')).done(function(res){
+      var list=(res&&res.customers)||[];
+      var rows=list.map(function(c){ return '<tr><td>'+(((c.nome||'')+' '+(c.cognome||'')).trim()||'—')+'</td><td>'+(c.email||'')+'</td><td style="text-align:center">'+(c.total_orders||0)+'</td><td style="text-align:right">€ '+(Number(c.total_spent)||0).toFixed(2).replace('.',',')+'</td></tr>'; }).join('');
+      $('#modalBody').html(list.length? '<div class="table-wrap"><table class="data" style="width:100%"><thead><tr><th>Cliente</th><th>Email</th><th style="text-align:center">Ordini</th><th style="text-align:right">Speso</th></tr></thead><tbody>'+rows+'</tbody></table></div>' : '<p style="color:var(--muted)">Nessun cliente in questo segmento.</p>');
+    }).fail(function(){ $('#modalBody').html('<p style="color:var(--danger)">Errore nel caricamento.</p>'); });
   });
 
   /* ── Reports: export CSV from already-loaded / freshly-fetched data ── */
@@ -4523,6 +4547,13 @@ $(function(){
         DATA.expenses = res || { expenses: [], summary: {} };
         _origRenderView(name);
       }).fail(function() { DATA.expenses = { expenses: [], summary: {} }; _apiFail(name); });
+
+    } else if (name === 'segments') {
+      DATA.segments = undefined;
+      api.segments.list().done(function(res) {
+        DATA.segments = res || { segments: [], total_customers: 0 };
+        _origRenderView(name);
+      }).fail(function() { DATA.segments = { segments: [], total_customers: 0 }; _apiFail(name); });
 
     } else if (name === 'dashboard') {
       loadDashboardData();

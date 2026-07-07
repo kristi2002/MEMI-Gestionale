@@ -53,6 +53,7 @@ const cmsRoutes           = require('./routes/cms');
 const loyaltyRoutes       = require('./routes/loyalty');
 const auditLogRoutes      = require('./routes/audit-log');
 const expensesRoutes      = require('./routes/expenses');
+const segmentsRoutes      = require('./routes/segments');
 const { ensureDir: ensureUploadsDir, UPLOADS_DIR } = require('./images');
 const { requestLogger }  = require('./logger');
 
@@ -232,6 +233,7 @@ app.use('/api/cms',               cmsRoutes);   // public /published/* routes fo
 app.use('/api/admin/loyalty',     loyaltyRoutes);
 app.use('/api/admin/audit-log',   auditLogRoutes);
 app.use('/api/admin/expenses',    expensesRoutes);
+app.use('/api/admin/segments',    segmentsRoutes);
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));

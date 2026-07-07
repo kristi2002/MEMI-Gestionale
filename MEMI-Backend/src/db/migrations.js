@@ -139,6 +139,16 @@ const STATEMENTS = [
      KEY idx_exp_cat (categoria),
      KEY idx_exp_date (data_spesa)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Customer segments (Clienti · Segmenti) — saved rule-based groups ─────────
+  `CREATE TABLE IF NOT EXISTS customer_segments (
+     id          INT AUTO_INCREMENT PRIMARY KEY,
+     nome        VARCHAR(120) NOT NULL,
+     descrizione VARCHAR(255) NULL,
+     min_spent   DECIMAL(10,2) NOT NULL DEFAULT 0,
+     min_orders  INT NOT NULL DEFAULT 0,
+     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');
