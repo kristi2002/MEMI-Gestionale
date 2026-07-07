@@ -149,6 +149,33 @@ const STATEMENTS = [
      min_orders  INT NOT NULL DEFAULT 0,
      created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Stock transfers (Prodotti · Trasferimenti) — movement log ───────────────
+  `CREATE TABLE IF NOT EXISTS stock_transfers (
+     id         INT AUTO_INCREMENT PRIMARY KEY,
+     prodotto   VARCHAR(200) NOT NULL,
+     taglia     VARCHAR(20)  NULL,
+     quantita   INT NOT NULL DEFAULT 0,
+     da_luogo   VARCHAR(120) NULL,
+     a_luogo    VARCHAR(120) NULL,
+     stato      VARCHAR(20)  NOT NULL DEFAULT 'richiesto',
+     note       TEXT NULL,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_trans_stato (stato)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── On-site pop-ups (Marketing · Pop-up) — storefront promo modals ──────────
+  `CREATE TABLE IF NOT EXISTS popups (
+     id         INT AUTO_INCREMENT PRIMARY KEY,
+     titolo     VARCHAR(200) NOT NULL,
+     contenuto  TEXT NULL,
+     cta_label  VARCHAR(80)  NULL,
+     cta_url    VARCHAR(255) NULL,
+     posizione  VARCHAR(20)  NOT NULL DEFAULT 'center',
+     attivo     TINYINT(1)   NOT NULL DEFAULT 0,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_popup_attivo (attivo)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');

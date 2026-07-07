@@ -498,10 +498,27 @@ VIEWS.categories = function(){
 };
 
 VIEWS.transfers = function(){
-  return `
-    ${pageHead("Trasferimenti","Movimenti di magazzino tra depositi.","")}
-    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun trasferimento registrato.</p></div>
-  `;
+  const list = DATA.transfers;
+  const stLabel = { richiesto:'Richiesto', in_transito:'In transito', completato:'Completato', annullato:'Annullato' };
+  return `${pageHead("Trasferimenti","Movimenti di magazzino tra depositi/sedi.",`<button class="btn btn-primary btn-sm js-new-transfer">+ Nuovo trasferimento</button>`)}
+    <div class="table-card"><div class="table-wrap"><table class="data">
+      <thead><tr><th>Prodotto</th><th>Taglia</th><th>Qtà</th><th>Da</th><th>A</th><th>Stato</th><th>Data</th><th></th></tr></thead>
+      <tbody>
+        ${(list && list.length) ? list.map(t=>`<tr data-id="${t.id}">
+          <td><strong>${(t.prodotto||'').replace(/</g,'&lt;')}</strong></td>
+          <td>${t.taglia||'—'}</td>
+          <td>${t.quantita}</td>
+          <td>${t.da_luogo||'—'}</td>
+          <td>${t.a_luogo||'—'}</td>
+          <td>${statusPill(stLabel[t.stato]||t.stato)}</td>
+          <td style="color:var(--muted)">${t.created_at?new Date(t.created_at).toLocaleDateString('it-IT'):'—'}</td>
+          <td class="row-actions">
+            <button class="js-edit-transfer" data-json="${encodeURIComponent(JSON.stringify(t))}" title="Modifica"><i class="ti ti-pencil"></i></button>
+            <button class="js-del-transfer" data-id="${t.id}" title="Elimina"><i class="ti ti-trash"></i></button>
+          </td>
+        </tr>`).join('') : `<tr><td colspan="8" class="empty">${list===undefined?'Caricamento…':'Nessun trasferimento registrato. Creane uno con “+ Nuovo trasferimento”.'}</td></tr>`}
+      </tbody>
+    </table></div></div>`;
 };
 
 VIEWS.giftcards = function(){
@@ -777,8 +794,24 @@ VIEWS.newsletter = function(){
   `;
 };
 VIEWS.popups = function(){
-  return `${pageHead("Pop-up","Banner promozionali sul negozio.","")}
-    <div class="card"><p style="color:var(--muted);text-align:center;padding:40px">Nessun pop-up configurato.</p></div>`;
+  const list = DATA.popups;
+  const posLabel = { center:'Centro', 'bottom-right':'In basso a destra', bar:'Barra' };
+  return `${pageHead("Pop-up","Modali promozionali mostrati sul negozio (storefront).",`<button class="btn btn-primary btn-sm js-new-popup">+ Nuovo pop-up</button>`)}
+    ${(list && list.length) ? `<div class="grid grid-3">${list.map(p=>`
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <h3>${(p.titolo||'').replace(/</g,'&lt;')}</h3>
+          ${p.attivo ? '<span class="status-pill ok">Attivo</span>' : '<span class="status-pill neutral">Disattivo</span>'}
+        </div>
+        <p style="color:var(--muted);font-size:12px;margin-top:6px">${(p.contenuto||'').replace(/</g,'&lt;').slice(0,120)}</p>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px">Posizione: ${posLabel[p.posizione]||p.posizione}${p.cta_label?` · CTA: ${p.cta_label}`:''}</p>
+        <div style="margin-top:10px;display:flex;gap:6px">
+          <button class="btn btn-soft btn-sm js-toggle-popup" data-id="${p.id}" data-attivo="${p.attivo?1:0}">${p.attivo?'Disattiva':'Attiva'}</button>
+          <button class="btn btn-ghost btn-sm js-edit-popup" data-json="${encodeURIComponent(JSON.stringify(p))}"><i class="ti ti-pencil"></i></button>
+          <button class="btn btn-ghost btn-sm js-del-popup" data-id="${p.id}"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+    `).join('')}</div>` : `<div class="card"><p style="color:var(--muted);text-align:center;padding:40px">${list===undefined?'Caricamento…':'Nessun pop-up configurato. Creane uno con “+ Nuovo pop-up”.'}</p></div>`}`;
 };
 
 VIEWS.discounts = function(){
@@ -4009,6 +4042,78 @@ $(function(){
     }).fail(function(){ $('#modalBody').html('<p style="color:var(--danger)">Errore nel caricamento.</p>'); });
   });
 
+  /* ── Transfers (magazzino) ── */
+  function transferForm(formId, t){
+    t=t||{};
+    var stati=[['richiesto','Richiesto'],['in_transito','In transito'],['completato','Completato'],['annullato','Annullato']];
+    return modalForm(formId,
+      fieldRow('Prodotto *','<input name="prodotto" required value="'+((t.prodotto||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('Taglia','<input name="taglia" value="'+((t.taglia||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('Quantità *','<input type="number" min="1" step="1" name="quantita" required value="'+(t.quantita!=null?t.quantita:1)+'" style="'+inputCss+'"/>')+
+      fieldRow('Da (sede)','<input name="da_luogo" value="'+((t.da_luogo||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('A (sede)','<input name="a_luogo" value="'+((t.a_luogo||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('Stato','<select name="stato" style="'+inputCss+'">'+stati.map(function(s){return '<option value="'+s[0]+'"'+(t.stato===s[0]?' selected':'')+'>'+s[1]+'</option>';}).join('')+'</select>')+
+      fieldRow('Note','<textarea name="note" rows="2" style="'+inputCss+'">'+((t.note||'').replace(/</g,'&lt;'))+'</textarea>'),
+      t.id?'Salva':'Crea');
+  }
+  $(document).on('click','.js-new-transfer', function(){
+    openModal('Nuovo trasferimento', transferForm('newTrForm'));
+    $('#newTrForm').on('submit', function(ev){ ev.preventDefault(); if(!apiReady()) return;
+      AdminAPI.transfers.create(Object.fromEntries(new FormData(this))).done(function(){ toast('Trasferimento creato','success'); closeModal(); renderView('transfers'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); }); });
+  });
+  $(document).on('click','.js-edit-transfer', function(){
+    var t={}; try{ t=JSON.parse(decodeURIComponent($(this).data('json'))); }catch(_){}
+    openModal('Modifica trasferimento', transferForm('editTrForm', t));
+    $('#editTrForm').on('submit', function(ev){ ev.preventDefault(); if(!apiReady()) return;
+      AdminAPI.transfers.update(t.id, Object.fromEntries(new FormData(this))).done(function(){ toast('Trasferimento aggiornato','success'); closeModal(); renderView('transfers'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); }); });
+  });
+  $(document).on('click','.js-del-transfer', function(){
+    if(!apiReady()) return; if(!confirm('Eliminare questo trasferimento?')) return;
+    AdminAPI.transfers.delete($(this).data('id')).done(function(){ toast('Trasferimento eliminato','success'); renderView('transfers'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+
+  /* ── Pop-ups ── */
+  function popupForm(formId, p){
+    p=p||{};
+    var pos=[['center','Centro'],['bottom-right','In basso a destra'],['bar','Barra']];
+    return modalForm(formId,
+      fieldRow('Titolo *','<input name="titolo" required value="'+((p.titolo||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('Contenuto','<textarea name="contenuto" rows="3" style="'+inputCss+'">'+((p.contenuto||'').replace(/</g,'&lt;'))+'</textarea>')+
+      fieldRow('CTA testo','<input name="cta_label" value="'+((p.cta_label||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('CTA link','<input name="cta_url" value="'+((p.cta_url||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('Posizione','<select name="posizione" style="'+inputCss+'">'+pos.map(function(o){return '<option value="'+o[0]+'"'+(p.posizione===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>')+
+      fieldRow('Attivo','<select name="attivo" style="'+inputCss+'"><option value="1"'+(p.attivo?' selected':'')+'>Sì</option><option value="0"'+(!p.attivo?' selected':'')+'>No</option></select>'),
+      p.id?'Salva':'Crea');
+  }
+  $(document).on('click','.js-new-popup', function(){
+    openModal('Nuovo pop-up', popupForm('newPopForm'));
+    $('#newPopForm').on('submit', function(ev){ ev.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this)); fd.attivo = fd.attivo==='1';
+      AdminAPI.popups.create(fd).done(function(){ toast('Pop-up creato','success'); closeModal(); renderView('popups'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); }); });
+  });
+  $(document).on('click','.js-edit-popup', function(){
+    var p={}; try{ p=JSON.parse(decodeURIComponent($(this).data('json'))); }catch(_){}
+    openModal('Modifica pop-up', popupForm('editPopForm', p));
+    $('#editPopForm').on('submit', function(ev){ ev.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this)); fd.attivo = fd.attivo==='1';
+      AdminAPI.popups.update(p.id, fd).done(function(){ toast('Pop-up aggiornato','success'); closeModal(); renderView('popups'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); }); });
+  });
+  $(document).on('click','.js-toggle-popup', function(){
+    if(!apiReady()) return; var id=$(this).data('id'); var active=String($(this).data('attivo'))==='1';
+    AdminAPI.popups.update(id, { attivo: !active }).done(function(){ toast('Pop-up aggiornato','success'); renderView('popups'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+  $(document).on('click','.js-del-popup', function(){
+    if(!apiReady()) return; if(!confirm('Eliminare questo pop-up?')) return;
+    AdminAPI.popups.delete($(this).data('id')).done(function(){ toast('Pop-up eliminato','success'); renderView('popups'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+
   /* ── Reports: export CSV from already-loaded / freshly-fetched data ── */
   $(document).on('click','.js-run-report', function(){
     if(!apiReady()) return;
@@ -4555,11 +4660,25 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { DATA.segments = { segments: [], total_customers: 0 }; _apiFail(name); });
 
+    } else if (name === 'transfers') {
+      DATA.transfers = undefined;
+      api.transfers.list().done(function(res) {
+        DATA.transfers = Array.isArray(res) ? res : [];
+        _origRenderView(name);
+      }).fail(function() { DATA.transfers = []; _apiFail(name); });
+
+    } else if (name === 'popups') {
+      DATA.popups = undefined;
+      api.popups.list().done(function(res) {
+        DATA.popups = Array.isArray(res) ? res : [];
+        _origRenderView(name);
+      }).fail(function() { DATA.popups = []; _apiFail(name); });
+
     } else if (name === 'dashboard') {
       loadDashboardData();
     } else {
       _origRenderView(name);
-      if (['liveview','popups','reports','chat'].indexOf(name) !== -1) {
+      if (['liveview','reports','chat'].indexOf(name) !== -1) {
         $('#viewContainer').prepend(
           '<div style="background:#fff8e6;color:#7a5b00;border:1px solid #f0dfa8;border-radius:10px;' +
           'padding:10px 16px;margin:0 0 14px;font-size:13px"><strong>Vista dimostrativa.</strong> ' +
