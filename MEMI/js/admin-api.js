@@ -323,6 +323,14 @@
     test:   function(id, d) { return post('/admin/automations/' + id + '/test', d || {}); },
   };
 
+  var chat = {
+    list:   function()       { return get('/admin/chat'); },
+    get:    function(id)     { return get('/admin/chat/' + id); },
+    reply:  function(id, d)  { return post('/admin/chat/' + id + '/reply', d); },
+    update: function(id, d)  { return put('/admin/chat/' + id, d); },
+    delete: function(id)     { return del('/admin/chat/' + id); },
+  };
+
   /* ================================================================
      STAFF
      ================================================================ */
@@ -361,7 +369,7 @@
 
 
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups, automations };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups, automations, chat };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {

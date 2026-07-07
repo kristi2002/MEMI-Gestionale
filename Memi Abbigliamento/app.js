@@ -2712,3 +2712,92 @@
     }
   } catch (_) {}
 })();
+
+/* ── Customer chat widget → /api/chat (self-hosted) ──────────────────────────
+   Floating bubble bottom-right. Fire-and-forget, guarded, no dependencies. */
+(function () {
+  if (window.__memiChatInit) return; window.__memiChatInit = true;
+  try {
+    var API = (window.MEMI && window.MEMI._base) || window.MEMI_API_URL || '/api';
+    var TOKEN_KEY = 'memi_chat_token';
+    var token = null, pollTimer = null, open = false;
+    try { token = localStorage.getItem(TOKEN_KEY); } catch (_) {}
+
+    var css = ''
+      + '.memi-chat-btn{position:fixed;right:20px;bottom:20px;width:56px;height:56px;border-radius:50%;background:#6B6BA3;color:#fff;border:none;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.2);font-size:24px;z-index:9998;display:flex;align-items:center;justify-content:center}'
+      + '.memi-chat-btn:hover{background:#565690}'
+      + '.memi-chat-panel{position:fixed;right:20px;bottom:88px;width:340px;max-width:calc(100vw - 32px);height:460px;max-height:calc(100vh - 120px);background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.22);z-index:9999;display:none;flex-direction:column;overflow:hidden;font-family:inherit}'
+      + '.memi-chat-panel.open{display:flex}'
+      + '.memi-chat-head{background:#6B6BA3;color:#fff;padding:14px 16px;font-weight:600;display:flex;justify-content:space-between;align-items:center}'
+      + '.memi-chat-head small{display:block;font-weight:400;opacity:.85;font-size:11px}'
+      + '.memi-chat-head button{background:none;border:none;color:#fff;font-size:20px;cursor:pointer;line-height:1}'
+      + '.memi-chat-body{flex:1;overflow-y:auto;padding:14px;background:#f7f7fb;display:flex;flex-direction:column;gap:8px}'
+      + '.memi-chat-msg{max-width:80%;padding:8px 12px;border-radius:12px;font-size:13.5px;line-height:1.4;word-wrap:break-word}'
+      + '.memi-chat-msg.me{align-self:flex-end;background:#6B6BA3;color:#fff;border-bottom-right-radius:4px}'
+      + '.memi-chat-msg.them{align-self:flex-start;background:#fff;border:1px solid #eceef2;border-bottom-left-radius:4px}'
+      + '.memi-chat-empty{color:#8992a2;font-size:12.5px;text-align:center;margin:auto;padding:0 10px}'
+      + '.memi-chat-foot{border-top:1px solid #eceef2;padding:8px;display:flex;gap:6px;background:#fff}'
+      + '.memi-chat-foot input{flex:1;border:1px solid #e7e9ee;border-radius:20px;padding:9px 13px;font-size:13.5px;outline:none;font-family:inherit}'
+      + '.memi-chat-foot button{background:#6B6BA3;color:#fff;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:15px}'
+      + '.memi-chat-id{padding:8px 12px;background:#fff;border-top:1px solid #eceef2;display:flex;gap:6px}'
+      + '.memi-chat-id input{flex:1;border:1px solid #e7e9ee;border-radius:8px;padding:7px 10px;font-size:12.5px;outline:none;font-family:inherit}';
+    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+
+    var btn = document.createElement('button');
+    btn.className = 'memi-chat-btn'; btn.setAttribute('aria-label', 'Chat'); btn.innerHTML = '💬';
+    var panel = document.createElement('div');
+    panel.className = 'memi-chat-panel';
+    panel.innerHTML =
+      '<div class="memi-chat-head"><div>Assistenza MEMI<small>Rispondiamo il prima possibile</small></div><button type="button" aria-label="Chiudi">&times;</button></div>'
+      + '<div class="memi-chat-body" id="memiChatBody"><div class="memi-chat-empty">Ciao! 👋 Scrivici e ti risponderemo qui.</div></div>'
+      + '<div class="memi-chat-id" id="memiChatId"><input id="memiChatName" placeholder="Nome (opz.)"/><input id="memiChatEmail" placeholder="Email (opz.)"/></div>'
+      + '<form class="memi-chat-foot" id="memiChatForm"><input id="memiChatInput" placeholder="Scrivi un messaggio..." autocomplete="off"/><button type="submit" aria-label="Invia">&#10148;</button></form>';
+    document.body.appendChild(btn); document.body.appendChild(panel);
+
+    var bodyEl = panel.querySelector('#memiChatBody');
+    var idRow  = panel.querySelector('#memiChatId');
+    function esc(s){ return String(s == null ? '' : s).replace(/[&<>]/g, function (c){ return { '&':'&amp;','<':'&lt;','>':'&gt;' }[c]; }); }
+
+    function render(msgs){
+      if (!msgs || !msgs.length){ bodyEl.innerHTML = '<div class="memi-chat-empty">Ciao! 👋 Scrivici e ti risponderemo qui.</div>'; return; }
+      bodyEl.innerHTML = msgs.map(function (m){
+        return '<div class="memi-chat-msg ' + (m.sender === 'admin' ? 'them' : 'me') + '">' + esc(m.body) + '</div>';
+      }).join('');
+      bodyEl.scrollTop = bodyEl.scrollHeight;
+    }
+    function poll(){
+      if (!token) return;
+      fetch(API + '/chat/messages?token=' + encodeURIComponent(token))
+        .then(function (r){ return r.ok ? r.json() : null; })
+        .then(function (d){ if (d && d.messages){ render(d.messages); if (d.messages.length) idRow.style.display = 'none'; } })
+        .catch(function () {});
+    }
+    function startPoll(){ stopPoll(); poll(); pollTimer = setInterval(poll, 5000); }
+    function stopPoll(){ if (pollTimer){ clearInterval(pollTimer); pollTimer = null; } }
+
+    btn.addEventListener('click', function (){
+      open = !open; panel.classList.toggle('open', open);
+      if (open){ if (token){ idRow.style.display = 'none'; } startPoll(); panel.querySelector('#memiChatInput').focus(); }
+      else stopPoll();
+    });
+    panel.querySelector('.memi-chat-head button').addEventListener('click', function (){ open = false; panel.classList.remove('open'); stopPoll(); });
+
+    panel.querySelector('#memiChatForm').addEventListener('submit', function (e){
+      e.preventDefault();
+      var input = panel.querySelector('#memiChatInput');
+      var text = (input.value || '').trim(); if (!text) return;
+      input.value = '';
+      var payload = { token: token || undefined, body: text,
+        name: (panel.querySelector('#memiChatName').value || '').trim() || undefined,
+        email: (panel.querySelector('#memiChatEmail').value || '').trim() || undefined };
+      // optimistic echo
+      var cur = bodyEl.querySelector('.memi-chat-empty') ? [] :
+        Array.prototype.map.call(bodyEl.querySelectorAll('.memi-chat-msg'), function (el){ return { sender: el.classList.contains('them') ? 'admin' : 'customer', body: el.textContent }; });
+      cur.push({ sender: 'customer', body: text }); render(cur);
+      fetch(API + '/chat/message', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) })
+        .then(function (r){ return r.ok ? r.json() : null; })
+        .then(function (d){ if (d && d.token){ token = d.token; try { localStorage.setItem(TOKEN_KEY, token); } catch (_) {} idRow.style.display = 'none'; startPoll(); } })
+        .catch(function () {});
+    });
+  } catch (_) {}
+})();
