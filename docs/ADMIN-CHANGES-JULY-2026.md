@@ -104,9 +104,10 @@ mocked pool + `verify/run.sh`.
 | **Report** | ✅ (already worked) — un-ghosted; 6 CSV exports | uses existing data |
 | **Live view** | ✅ self-hosted visitor tracking | `page_views` · public `POST /api/track` (storefront beacon) + `GET /api/admin/liveview` |
 | **Automazioni** | ✅ trigger→action rules engine + test-run | `automations` · `/api/admin/automations` (+`/:id/test`); fires from order status/ship hooks; `sendGenericEmail` in `email.js` |
-| **Social / POS / App esterne** | ✅ config stubs (store keys) | settings-backed (`store_settings`) — full channel sync / POS hardware = later phase |
+| **Social / POS / App esterne** | ✅ config stubs (store keys) | settings-backed (`store_settings`) — POS hardware = later phase |
+| **Chat** | ✅ real messaging | `conversations`+`messages` · admin inbox `/api/admin/chat` + public `/api/chat` (storefront **floating widget** added to `Memi Abbigliamento/app.js`) |
+| **Meta / Instagram / Google Shopping** | ✅ product feed | public `GET /api/feed/meta.csv` (Commerce Manager / Merchant Center ingest by URL). API-key auto-sync = later phase (needs owner's Meta account) |
 | **Menu** | ❌ removed (dead) | — |
-| **Chat** | ⏸ deferred by owner | — |
 
 Nav: new **Canali** group (Negozio online / Social / POS), **App esterne** under
 Strumenti; re-enabled links for Segmenti, Trasferimenti, Pop-up, Report, Live view,
