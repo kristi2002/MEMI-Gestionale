@@ -227,6 +227,23 @@ const STATEMENTS = [
      created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      KEY idx_msg_conv (conversation_id, id)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Carts (Ordini · Carrelli abbandonati) — storefront cart snapshots ───────
+  `CREATE TABLE IF NOT EXISTS carts (
+     id          INT AUTO_INCREMENT PRIMARY KEY,
+     token       VARCHAR(64)  NOT NULL,
+     customer_id INT NULL,
+     email       VARCHAR(255) NULL,
+     items       JSON NULL,
+     item_count  INT NOT NULL DEFAULT 0,
+     total       DECIMAL(10,2) NOT NULL DEFAULT 0,
+     status      VARCHAR(20)  NOT NULL DEFAULT 'attivo',
+     recovered_at TIMESTAMP NULL,
+     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     UNIQUE KEY uq_cart_token (token),
+     KEY idx_cart_status (status, updated_at)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');

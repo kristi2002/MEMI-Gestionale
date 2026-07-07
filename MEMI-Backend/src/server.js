@@ -61,6 +61,8 @@ const automationsRoutes   = require('./routes/automations');
 const chatRoutes          = require('./routes/chat');
 const chatPublicRoutes    = require('./routes/chat-public');
 const feedRoutes          = require('./routes/feed');
+const cartsRoutes         = require('./routes/carts');
+const cartPublicRoutes    = require('./routes/cart-public');
 const { ensureDir: ensureUploadsDir, UPLOADS_DIR } = require('./images');
 const { requestLogger }  = require('./logger');
 
@@ -249,6 +251,8 @@ app.use('/api/admin/automations', automationsRoutes);
 app.use('/api/admin/chat',        chatRoutes);
 app.use('/api/chat',              chatPublicRoutes);   // public storefront widget
 app.use('/api/feed',              feedRoutes);         // public product feed (Meta/Google)
+app.use('/api/admin/carts',       cartsRoutes);
+app.use('/api/cart',              cartPublicRoutes);   // public cart beacon (storefront)
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));

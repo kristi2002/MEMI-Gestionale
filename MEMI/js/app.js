@@ -316,7 +316,35 @@ VIEWS.orders = function(filter){
   `;
 };
 VIEWS["orders-drafts"]    = ()=> VIEWS.orders("drafts");
-VIEWS["orders-abandoned"] = ()=> VIEWS.orders("abandoned");
+VIEWS["orders-abandoned"] = function(){
+  const data = DATA.carts;
+  const list = (data && data.carts) || [];
+  const sum  = (data && data.summary) || { count:0, potential_value:0, recoverable:0 };
+  const eur  = v => '€ ' + (Number(v)||0).toFixed(2).replace('.', ',');
+  const ago  = ts => { if(!ts) return '—'; var m=Math.max(0,Math.floor((Date.now()-new Date(ts).getTime())/60000)); return m<60?(m+' min fa'):(m<1440?(Math.floor(m/60)+' h fa'):(Math.floor(m/1440)+' g fa')); };
+  return `${pageHead("Carrelli abbandonati","Carrelli con articoli, inattivi da oltre 30 minuti.","")}
+    <div class="grid grid-3" style="margin-bottom:16px">
+      <div class="card kpi warn"><div class="icon-wrap"><i class="ti ti-shopping-cart-off"></i></div><span class="label">Carrelli abbandonati</span><span class="value">${sum.count}</span></div>
+      <div class="card kpi pink"><div class="icon-wrap"><i class="ti ti-cash"></i></div><span class="label">Valore potenziale</span><span class="value">${eur(sum.potential_value)}</span></div>
+      <div class="card kpi green"><div class="icon-wrap"><i class="ti ti-mail"></i></div><span class="label">Recuperabili (con email)</span><span class="value">${sum.recoverable}</span></div>
+    </div>
+    <div class="table-card"><div class="table-wrap"><table class="data">
+      <thead><tr><th>Cliente / Email</th><th>Articoli</th><th style="text-align:right">Totale</th><th>Ultima attività</th><th></th></tr></thead>
+      <tbody>
+        ${list.length ? list.map(c=>`<tr data-id="${c.id}">
+          <td>${c.customer_nome?`<strong>${(c.customer_nome||'').replace(/</g,'&lt;')}</strong><br>`:''}${c.email?`<small style="color:var(--muted)">${(c.email||'').replace(/</g,'&lt;')}</small>`:'<small style="color:var(--muted)">ospite anonimo</small>'}</td>
+          <td>${c.item_count} ${c.item_count===1?'articolo':'articoli'}<div style="font-size:11px;color:var(--muted)">${(c.items||[]).slice(0,3).map(i=>String(i.product_name||i.nome||i.name||'?').replace(/</g,'&lt;')).join(', ')}${(c.items||[]).length>3?'…':''}</div></td>
+          <td style="text-align:right"><strong>${eur(c.total)}</strong></td>
+          <td style="color:var(--muted)">${ago(c.updated_at)}</td>
+          <td class="row-actions">
+            ${c.recoverable?`<button class="js-recover-cart" data-id="${c.id}" title="Invia promemoria via email"><i class="ti ti-mail-forward"></i></button>`:''}
+            <button class="js-del-cart" data-id="${c.id}" title="Elimina"><i class="ti ti-trash"></i></button>
+          </td>
+        </tr>`).join('') : `<tr><td colspan="5" class="empty">${data===undefined?'Caricamento…':'Nessun carrello abbandonato. 🎉'}</td></tr>`}
+      </tbody>
+    </table></div></div>
+    <p style="color:var(--muted);font-size:11px;margin-top:10px">Tracciati dal negozio con un beacon anonimo. “Invia promemoria” manda un'email di recupero se il carrello ha un indirizzo associato.</p>`;
+};
 
 VIEWS.invoices = function(){
   const invs = DATA.invoices || [];
@@ -4205,7 +4233,14 @@ $(function(){
     var loading = '<div style="padding:60px;text-align:center;color:var(--muted)">Caricamento...</div>';
     $('#viewContainer').html(loading);
 
-    if (name === 'orders' || name === 'orders-drafts' || name === 'orders-abandoned') {
+    if (name === 'orders-abandoned') {
+      DATA.carts = undefined;
+      api.carts.list().done(function(res) {
+        DATA.carts = res || { carts: [], summary: {} };
+        _origRenderView(name);
+      }).fail(function() { DATA.carts = { carts: [], summary: {} }; _apiFail(name); });
+
+    } else if (name === 'orders' || name === 'orders-drafts') {
       api.orders.list({ limit: 100 }).done(function(data) {
         var list = (data && data.orders) ? data.orders : (Array.isArray(data) ? data : []);
         DATA.orders = list.map(function(o) {
@@ -4826,3 +4861,24 @@ VIEWS.chat = function(){
       '<div class="chat-info" id="chatInfo"></div>'+
     '</div>';
 };
+
+/* ── Abandoned-cart actions (recover email / delete) ── */
+jQuery(function ($) {
+  $(document).on('click', '.js-recover-cart', function () {
+    if (!window.AdminAPI) return;
+    var id = $(this).data('id');
+    if (!confirm('Inviare un\'email di promemoria a questo cliente?')) return;
+    AdminAPI.carts.recover(id).done(function (r) {
+      toast('Promemoria inviato' + (r && r.sent_to ? (' → ' + r.sent_to) : '') + ' (se SMTP è configurato)', 'success');
+      renderView('orders-abandoned');
+    }).fail(function (x) { toast((x.responseJSON && x.responseJSON.error) || 'Errore', 'error'); });
+  });
+  $(document).on('click', '.js-del-cart', function () {
+    if (!window.AdminAPI) return;
+    if (!confirm('Eliminare questo carrello?')) return;
+    AdminAPI.carts.delete($(this).data('id')).done(function () {
+      toast('Carrello eliminato', 'success');
+      renderView('orders-abandoned');
+    }).fail(function (x) { toast((x.responseJSON && x.responseJSON.error) || 'Errore', 'error'); });
+  });
+});

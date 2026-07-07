@@ -332,6 +332,12 @@
     delete: function(id)     { return del('/admin/chat/' + id); },
   };
 
+  var carts = {
+    list:    function(params) { return get('/admin/carts' + (params ? '?' + $.param(params) : '')); },
+    recover: function(id)     { return post('/admin/carts/' + id + '/recover', {}); },
+    delete:  function(id)     { return del('/admin/carts/' + id); },
+  };
+
   /* ================================================================
      STAFF
      ================================================================ */
@@ -370,7 +376,7 @@
 
 
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups, automations, chat };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups, automations, chat, carts };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {

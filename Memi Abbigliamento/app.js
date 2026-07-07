@@ -2801,3 +2801,37 @@
     });
   } catch (_) {}
 })();
+
+/* ── Cart beacon → abandoned-cart tracking (POST /api/cart) ───────────────────
+   Sends a cart snapshot on load, on tab-hide/unload, and when the cart changes.
+   Reuses the anonymous visitor id (memi_vid) and forwards the auth token so the
+   backend links logged-in customers. Fire-and-forget, never blocks the page. */
+(function () {
+  if (window.__memiCartBeacon) return; window.__memiCartBeacon = true;
+  try {
+    var API = (window.MEMI && window.MEMI._base) || window.MEMI_API_URL || '/api';
+    function vid() {
+      try { var v = localStorage.getItem('memi_vid'); if (!v) { v = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('memi_vid', v); } return v; }
+      catch (_) { return null; }
+    }
+    function readCart() { try { var a = JSON.parse(localStorage.getItem('memi_cart') || '[]'); return Array.isArray(a) ? a : []; } catch (_) { return []; } }
+    function token() { try { return localStorage.getItem('memi_token'); } catch (_) { return null; } }
+    var lastSent = null;
+    function send(force) {
+      var cart = readCart();
+      var serial = JSON.stringify(cart);
+      if (!force && serial === lastSent) return;
+      lastSent = serial;
+      var total = cart.reduce(function (s, i) { return s + (Number(i.price) || 0) * (parseInt(i.qty) || 1); }, 0);
+      var items = cart.map(function (i) { return { id: i.id, name: i.name, qty: parseInt(i.qty) || 1, price: Number(i.price) || 0, taglia: i.taglia || i.size || null }; });
+      var headers = { 'content-type': 'application/json' };
+      var t = token(); if (t) headers['Authorization'] = 'Bearer ' + t;
+      try { fetch(API + '/cart', { method: 'POST', headers: headers, body: JSON.stringify({ token: vid(), items: items, total: total }), keepalive: true }).catch(function () {}); } catch (_) {}
+    }
+    if (document.readyState !== 'loading') send(true);
+    else document.addEventListener('DOMContentLoaded', function () { send(true); });
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') send(true); });
+    window.addEventListener('pagehide', function () { send(true); });
+    setInterval(function () { send(false); }, 8000);
+  } catch (_) {}
+})();
