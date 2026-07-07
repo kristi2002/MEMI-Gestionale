@@ -186,6 +186,21 @@ const STATEMENTS = [
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      KEY idx_pv_created (created_at)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Automations (Marketing · Automazioni) — trigger → action rules ──────────
+  `CREATE TABLE IF NOT EXISTS automations (
+     id            INT AUTO_INCREMENT PRIMARY KEY,
+     nome          VARCHAR(150) NOT NULL,
+     trigger_event VARCHAR(40)  NOT NULL,
+     azione        VARCHAR(30)  NOT NULL,
+     oggetto       VARCHAR(200) NULL,
+     messaggio     TEXT NULL,
+     attivo        TINYINT(1)   NOT NULL DEFAULT 1,
+     run_count     INT NOT NULL DEFAULT 0,
+     last_run      TIMESTAMP NULL,
+     created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_auto_trigger (trigger_event, attivo)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');

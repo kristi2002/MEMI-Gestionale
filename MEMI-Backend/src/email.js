@@ -377,4 +377,18 @@ async function sendRefundNotification(data) {
   }
 }
 
-module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification };
+/**
+ * Generic email sender for automations. No-ops silently when SMTP is not
+ * configured (same guard as the typed senders), and never throws to the caller
+ * beyond the awaited promise.
+ */
+async function sendGenericEmail(opts) {
+  const t = getTransporter();
+  if (!t) return;                       // SMTP not configured — skip silently
+  const { to, subject, html, text } = opts || {};
+  if (!to) return;
+  const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
+  await t.sendMail({ from, to, subject: subject || 'Notifica Memi', html: html || undefined, text: text || undefined });
+}
+
+module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification, sendGenericEmail };

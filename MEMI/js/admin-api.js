@@ -315,6 +315,14 @@
     delete: function(id)    { return del('/admin/popups/' + id); },
   };
 
+  var automations = {
+    list:   function()      { return get('/admin/automations'); },
+    create: function(d)     { return post('/admin/automations', d); },
+    update: function(id, d) { return put('/admin/automations/' + id, d); },
+    delete: function(id)    { return del('/admin/automations/' + id); },
+    test:   function(id, d) { return post('/admin/automations/' + id + '/test', d || {}); },
+  };
+
   /* ================================================================
      STAFF
      ================================================================ */
@@ -353,7 +361,7 @@
 
 
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups, automations };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {

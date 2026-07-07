@@ -742,7 +742,32 @@ VIEWS.marketing = function(){
     </div>`}
   `;
 };
-VIEWS.automations = ()=> VIEWS.marketing();
+VIEWS.automations = function(){
+  const data = DATA.automations;
+  const list = (data && data.automations) || [];
+  const trigLabel = { ordine_pagato:'Ordine pagato', ordine_spedito:'Ordine spedito', ordine_consegnato:'Ordine consegnato', ordine_annullato:'Ordine annullato' };
+  const actLabel  = { email_cliente:'Email al cliente', email_admin:'Email all’admin' };
+  return `${pageHead("Automazioni","Regole trigger → azione. Eseguite automaticamente sugli eventi degli ordini.",`<button class="btn btn-primary btn-sm js-new-automation">+ Nuova automazione</button>`)}
+    <div class="table-card"><div class="table-wrap"><table class="data">
+      <thead><tr><th>Nome</th><th>Quando</th><th>Azione</th><th>Stato</th><th style="text-align:center">Eseguita</th><th></th></tr></thead>
+      <tbody>
+        ${list.length ? list.map(a=>`<tr data-id="${a.id}">
+          <td><strong>${(a.nome||'').replace(/</g,'&lt;')}</strong>${a.oggetto?`<div style="font-size:11px;color:var(--muted)">${(a.oggetto||'').replace(/</g,'&lt;')}</div>`:''}</td>
+          <td>${trigLabel[a.trigger_event]||a.trigger_event}</td>
+          <td>${actLabel[a.azione]||a.azione}</td>
+          <td>${a.attivo?'<span class="status-pill ok">Attiva</span>':'<span class="status-pill neutral">Disattiva</span>'}</td>
+          <td style="text-align:center">${a.run_count||0}${a.last_run?`<div style="font-size:10px;color:var(--muted)">${new Date(a.last_run).toLocaleDateString('it-IT')}</div>`:''}</td>
+          <td class="row-actions">
+            <button class="js-test-automation" data-id="${a.id}" title="Esegui test"><i class="ti ti-player-play"></i></button>
+            <button class="js-toggle-automation" data-id="${a.id}" data-attivo="${a.attivo?1:0}" title="${a.attivo?'Disattiva':'Attiva'}"><i class="ti ti-${a.attivo?'pause':'bolt'}"></i></button>
+            <button class="js-edit-automation" data-json="${encodeURIComponent(JSON.stringify(a))}" title="Modifica"><i class="ti ti-pencil"></i></button>
+            <button class="js-del-automation" data-id="${a.id}" title="Elimina"><i class="ti ti-trash"></i></button>
+          </td>
+        </tr>`).join('') : `<tr><td colspan="6" class="empty">${data===undefined?'Caricamento…':'Nessuna automazione. Creane una con “+ Nuova automazione” (es. quando un ordine è spedito, invia email al cliente).'}</td></tr>`}
+      </tbody>
+    </table></div></div>
+    <p style="color:var(--muted);font-size:11px;margin-top:10px">Le email partono solo se lo SMTP è configurato. Variabili disponibili nel testo: <code>{order_number}</code>, <code>{nome}</code>. Usa “Esegui test” per provare una regola subito.</p>`;
+};
 VIEWS.newsletter = function(){
   const nl = DATA.newsletter;
   const total       = nl ? nl.total       : '—';
@@ -4147,6 +4172,51 @@ $(function(){
       .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
   });
 
+  /* ── Automations (trigger → action rules) ── */
+  function automationForm(formId, a){
+    a=a||{};
+    var trigs=[['ordine_pagato','Ordine pagato'],['ordine_spedito','Ordine spedito'],['ordine_consegnato','Ordine consegnato'],['ordine_annullato','Ordine annullato']];
+    var acts=[['email_cliente','Email al cliente'],['email_admin','Email all’admin']];
+    return modalForm(formId,
+      fieldRow('Nome *','<input name="nome" required value="'+((a.nome||'').replace(/"/g,'&quot;'))+'" style="'+inputCss+'"/>')+
+      fieldRow('Quando (trigger)','<select name="trigger_event" style="'+inputCss+'">'+trigs.map(function(t){return '<option value="'+t[0]+'"'+(a.trigger_event===t[0]?' selected':'')+'>'+t[1]+'</option>';}).join('')+'</select>')+
+      fieldRow('Azione','<select name="azione" style="'+inputCss+'">'+acts.map(function(o){return '<option value="'+o[0]+'"'+(a.azione===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>')+
+      fieldRow('Oggetto email','<input name="oggetto" value="'+((a.oggetto||'').replace(/"/g,'&quot;'))+'" placeholder="Aggiornamento ordine {order_number}" style="'+inputCss+'"/>')+
+      fieldRow('Messaggio','<textarea name="messaggio" rows="4" style="'+inputCss+'" placeholder="Ciao {nome}, il tuo ordine {order_number}...">'+((a.messaggio||'').replace(/</g,'&lt;'))+'</textarea>')+
+      fieldRow('Attiva','<select name="attivo" style="'+inputCss+'"><option value="1"'+(a.attivo||a.id===undefined?' selected':'')+'>Sì</option><option value="0"'+(a.id!==undefined&&!a.attivo?' selected':'')+'>No</option></select>'),
+      a.id?'Salva':'Crea');
+  }
+  $(document).on('click','.js-new-automation', function(){
+    openModal('Nuova automazione', automationForm('newAutoForm'), null, 'lg');
+    $('#newAutoForm').on('submit', function(ev){ ev.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this)); fd.attivo = fd.attivo==='1';
+      AdminAPI.automations.create(fd).done(function(){ toast('Automazione creata','success'); closeModal(); renderView('automations'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); }); });
+  });
+  $(document).on('click','.js-edit-automation', function(){
+    var a={}; try{ a=JSON.parse(decodeURIComponent($(this).data('json'))); }catch(_){}
+    openModal('Modifica automazione', automationForm('editAutoForm', a), null, 'lg');
+    $('#editAutoForm').on('submit', function(ev){ ev.preventDefault(); if(!apiReady()) return;
+      var fd=Object.fromEntries(new FormData(this)); fd.attivo = fd.attivo==='1';
+      AdminAPI.automations.update(a.id, fd).done(function(){ toast('Automazione aggiornata','success'); closeModal(); renderView('automations'); })
+        .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); }); });
+  });
+  $(document).on('click','.js-toggle-automation', function(){
+    if(!apiReady()) return; var id=$(this).data('id'); var active=String($(this).data('attivo'))==='1';
+    AdminAPI.automations.update(id, { attivo: !active }).done(function(){ toast('Automazione aggiornata','success'); renderView('automations'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+  $(document).on('click','.js-test-automation', function(){
+    if(!apiReady()) return;
+    AdminAPI.automations.test($(this).data('id'), {}).done(function(r){ toast('Test eseguito'+(r&&r.sent_to?(' → '+r.sent_to):'')+' (email inviata solo se SMTP configurato)','success'); renderView('automations'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore test','error'); });
+  });
+  $(document).on('click','.js-del-automation', function(){
+    if(!apiReady()) return; if(!confirm('Eliminare questa automazione?')) return;
+    AdminAPI.automations.delete($(this).data('id')).done(function(){ toast('Automazione eliminata','success'); renderView('automations'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+
   /* ── Reports: export CSV from already-loaded / freshly-fetched data ── */
   $(document).on('click','.js-run-report', function(){
     if(!apiReady()) return;
@@ -4620,11 +4690,18 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { DATA.giftcards = DATA.giftcards || []; _apiFail(name); });
 
-    } else if (name === 'marketing' || name === 'automations') {
+    } else if (name === 'marketing') {
       api.campaigns.list().done(function(list) {
         DATA.campaigns = Array.isArray(list) ? list : [];
         _origRenderView(name);
       }).fail(function() { DATA.campaigns = DATA.campaigns || []; _apiFail(name); });
+
+    } else if (name === 'automations') {
+      DATA.automations = undefined;
+      api.automations.list().done(function(res) {
+        DATA.automations = res || { automations: [] };
+        _origRenderView(name);
+      }).fail(function() { DATA.automations = { automations: [] }; _apiFail(name); });
 
     } else if (name === 'content') {
       DATA.pages = null;

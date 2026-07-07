@@ -564,6 +564,8 @@ router.put('/admin/:id/status', requireAdmin, async (req, res) => {
       action: cancelling ? 'order.cancel' : 'order.status_update',
       entityType: 'order', entityId: req.params.id, details: { order_status, payment_status },
     }).catch(() => {});
+    // Fire marketing automations for this transition (best-effort, never blocks).
+    try { require('../automations').runOrderStatusAutomations(pool, order.id, { order_status, payment_status }); } catch (_) {}
     return res.json({ ok: true, cancelled: !!cancelling });
   } catch (err) {
     await conn.rollback();
@@ -605,6 +607,8 @@ router.put('/admin/:id/ship', requireAdmin, async (req, res) => {
       adminId: req.admin.id, adminEmail: req.admin.email, action: 'order.ship',
       entityType: 'order', entityId: req.params.id, details: { courier_code, tracking_number, eta, destinazione },
     }).catch(() => {});
+    // Order just became 'spedito' → fire automations (best-effort, never blocks).
+    try { require('../automations').runOrderStatusAutomations(pool, req.params.id, { order_status: 'spedito' }); } catch (_) {}
 
     // Fetch order for email (non-blocking)
     pool.execute('SELECT order_number, customer_nome AS nome, customer_email AS email FROM orders WHERE id = ?', [req.params.id])
