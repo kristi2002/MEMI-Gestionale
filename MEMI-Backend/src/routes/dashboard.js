@@ -39,10 +39,17 @@ router.get('/kpis', requireAdmin, async (req, res) => {
         AND YEAR(created_at)  = YEAR(DATE_SUB(NOW(), INTERVAL 1 MONTH))
     `);
 
-    const [[visitors]] = await pool.execute(`
-      SELECT COUNT(*) AS total FROM customers
-      WHERE MONTH(created_at) = MONTH(NOW()) AND YEAR(created_at) = YEAR(NOW())
-    `);
+    // Real visitors = distinct tracked sessions (page_views beacon), today vs
+    // yesterday. Falls back to 0 if the tracking table isn't present yet.
+    let visitorsToday = 0, visitorsYest = 0;
+    try {
+      const [[vt]] = await pool.execute(
+        "SELECT COUNT(DISTINCT session_id) AS n FROM page_views WHERE DATE(created_at) = CURDATE()");
+      visitorsToday = vt.n || 0;
+      const [[vy]] = await pool.execute(
+        "SELECT COUNT(DISTINCT session_id) AS n FROM page_views WHERE DATE(created_at) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)");
+      visitorsYest = vy.n || 0;
+    } catch (_) { /* page_views may not exist yet on an older DB */ }
 
     const pctChange = (curr, prev) => {
       if (!prev) return curr > 0 ? '+100%' : '0%';
@@ -53,7 +60,7 @@ router.get('/kpis', requireAdmin, async (req, res) => {
     return res.json({
       revenue:  { value: `€ ${Number(curr.revenue).toFixed(2)}`,  delta: pctChange(Number(curr.revenue), Number(prev.revenue)),  up: Number(curr.revenue) >= Number(prev.revenue) },
       orders:   { value: `${curr.orders}`,                         delta: pctChange(Number(curr.orders), Number(prev.orders)),    up: Number(curr.orders) >= Number(prev.orders) },
-      visitors: { value: `${visitors.total}`,                      delta: '',                                     up: true },
+      visitors: { value: `${visitorsToday}`,                       delta: pctChange(visitorsToday, visitorsYest),  up: visitorsToday >= visitorsYest },
       aov:      { value: `€ ${Number(curr.aov).toFixed(2)}`,      delta: pctChange(Number(curr.aov), Number(prev.aov)),          up: Number(curr.aov) >= Number(prev.aov) },
     });
   } catch (err) {

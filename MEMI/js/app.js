@@ -1180,251 +1180,11 @@ VIEWS.pickup = function(){
 /* ===========================================================
    ⭐ CHAT CLIENTI
    =========================================================== */
-const CHATS = [
-  { id:"ch1", nome:"Sofia Bianchi",     online:true,  ultimo:"Grazie mille!", ora:"14:42", unread:0, ordine:"#10254",
-    msgs:[
-      {t:"in",  txt:"Ciao, ho fatto un ordine ieri ma non ho ricevuto il tracking",ts:"14:30"},
-      {t:"out", txt:"Ciao Sofia! Controllo subito 👀",ts:"14:31"},
-      {t:"note",txt:"Cliente VIP - 8 ordini totali"},
-      {t:"out", txt:"Ho trovato l'ordine #10254, è stato preso in carico da SDA stamattina. Il tracking è SDA9981200001",ts:"14:35"},
-      {t:"in",  txt:"Perfetto! E quanto ci mette ad arrivare?",ts:"14:38"},
-      {t:"out", txt:"La consegna stimata è per il 16/05 entro le 18:00 🚚",ts:"14:40"},
-      {t:"in",  txt:"Grazie mille!",ts:"14:42"}
-    ]
-  },
-  { id:"ch2", nome:"Marco Rossi",       online:true,  ultimo:"Va bene aspetto", ora:"14:20", unread:2, ordine:"#10253",
-    msgs:[
-      {t:"in", txt:"Buongiorno, posso cambiare l'indirizzo di spedizione?",ts:"14:10"},
-      {t:"out",txt:"Buongiorno Marco, certo. Qual è il nuovo indirizzo?",ts:"14:12"},
-      {t:"in", txt:"Via Garibaldi 22, Roma 00100",ts:"14:15"},
-      {t:"in", txt:"Va bene aspetto",ts:"14:20"}
-    ]
-  },
-  { id:"ch3", nome:"Giulia Verdi",      online:false, ultimo:"Foto allegata", ora:"13:08", unread:1, ordine:"#10252",
-    msgs:[
-      {t:"in", txt:"Ciao, la felpa che ho ricevuto ha un difetto",ts:"12:55"},
-      {t:"in", txt:"Foto allegata 📷",ts:"13:08"}
-    ]
-  },
-  { id:"ch4", nome:"Luca Neri",         online:false, ultimo:"Ottimo, grazie", ora:"Ieri", unread:0, ordine:"#10251",
-    msgs:[
-      {t:"in", txt:"Le sneakers sono perfette, grazie!",ts:"Ieri 18:30"},
-      {t:"out",txt:"Grazie a te Luca! Ci farebbe piacere una recensione ⭐",ts:"Ieri 18:35"},
-      {t:"in", txt:"Ottimo, grazie",ts:"Ieri 18:40"}
-    ]
-  },
-  { id:"ch5", nome:"Anna Greco",        online:true,  ultimo:"Quanto costa la spedizione?", ora:"12:14", unread:1, ordine:null,
-    msgs:[
-      {t:"in", txt:"Salve, vorrei sapere se spedite in Sardegna",ts:"12:10"},
-      {t:"in", txt:"Quanto costa la spedizione?",ts:"12:14"}
-    ]
-  },
-  { id:"ch6", nome:"Paolo Conti",       online:false, ultimo:"Risolto, grazie", ora:"Lun", unread:0, ordine:"#10249",
-    msgs:[
-      {t:"in", txt:"Ho un problema con il pagamento",ts:"Lun 09:15"},
-      {t:"out",txt:"Mi spiace Paolo, può inviarmi uno screenshot?",ts:"Lun 09:18"},
-      {t:"in", txt:"Risolto, grazie",ts:"Lun 10:02"}
-    ]
-  }
-];
-
-let activeChatId = "ch1";
-
-const QUICK_REPLIES = [
-  "Ciao! Come posso aiutarti? 😊",
-  "Sto verificando, un attimo...",
-  "L'ordine è in fase di preparazione",
-  "Spedizione gratuita sopra €79",
-  "Grazie del messaggio!"
-];
-
-const AUTO_REPLIES = [
-  "Perfetto, grazie mille! 🙏",
-  "Ok ricevuto",
-  "Posso avere maggiori dettagli?",
-  "Grazie per la risposta veloce 👍",
-  "Va bene, attendo conferma",
-  "Grazie, gentilissimi come sempre"
-];
-
-VIEWS.chat = function(){
-  return `
-    ${pageHead("Chat clienti","Conversazioni in tempo reale con i tuoi clienti.",`
-      <button class="btn btn-soft btn-sm" onclick="toast('Conversazioni: '+CHATS.length+' · Non lette: '+CHATS.reduce(function(s,c){return s+(c.unread||0);},0),'info')">📊 Statistiche</button>
-      <button class="btn btn-ghost btn-sm" onclick="renderView('settings');setActiveNav('settings')">⚙ Impostazioni chat</button>
-    `)}
-    <div class="chat-wrap">
-      <!-- LISTA CONVERSAZIONI -->
-      <div class="chat-list">
-        <div class="chat-search">
-          <input type="text" id="chatSearch" placeholder="Cerca conversazione..."/>
-        </div>
-        <div class="chat-tabs">
-          <button class="active" data-tab="all">Tutte (${CHATS.length})</button>
-          <button data-tab="unread">Non lette (${CHATS.filter(c=>c.unread>0).length})</button>
-          <button data-tab="online">Online (${CHATS.filter(c=>c.online).length})</button>
-        </div>
-        <div class="chat-conversations" id="chatConvList"></div>
-      </div>
-
-      <!-- CHAT ATTIVA -->
-      <div class="chat-main">
-        <div class="chat-header" id="chatHeader"></div>
-        <div class="chat-body" id="chatBody"></div>
-        <div class="quick-replies" id="quickReplies">
-          ${QUICK_REPLIES.map(r=>`<span class="qr">${r}</span>`).join('')}
-        </div>
-        <form class="chat-input" id="chatForm">
-          <button type="button" class="icon-btn" title="Allegato">📎</button>
-          <button type="button" class="icon-btn" title="Emoji">😊</button>
-          <input type="text" id="chatInput" placeholder="Scrivi un messaggio..." autocomplete="off"/>
-          <button type="submit" class="send" title="Invia">➤</button>
-        </form>
-      </div>
-
-      <!-- INFO CLIENTE -->
-      <div class="chat-info" id="chatInfo"></div>
-    </div>
-  `;
-};
-
-function renderConvList(filter){
-  filter = filter || "all";
-  let list = CHATS.slice();
-  if(filter==="unread") list = list.filter(c=>c.unread>0);
-  if(filter==="online") list = list.filter(c=>c.online);
-
-  const html = list.map(c=>`
-    <div class="chat-conv ${c.id===activeChatId?'active':''}" data-id="${c.id}">
-      <div class="avatar">${c.nome.charAt(0)}</div>
-      <div class="presence ${c.online?'online':''}"></div>
-      <div class="info">
-        <div class="top">
-          <strong>${c.nome}</strong>
-          <small>${c.ora}</small>
-        </div>
-        <p>${c.ultimo}</p>
-      </div>
-      ${c.unread?`<span class="unread">${c.unread}</span>`:''}
-    </div>
-  `).join('');
-  $('#chatConvList').html(html || '<div class="empty">Nessuna conversazione</div>');
-}
-
-function renderActiveChat(){
-  const c = CHATS.find(x=>x.id===activeChatId);
-  if(!c) return;
-
-  // Header
-  $('#chatHeader').html(`
-    <div class="avatar">${c.nome.charAt(0)}</div>
-    <div>
-      <h4>${c.nome}</h4>
-      <small>${c.online?'<span style="color:var(--green-strong)">● Online</span>':'Visto poco fa'} ${c.ordine?'· Ordine '+c.ordine:''}</small>
-    </div>
-    <div class="actions">
-      <button class="icon-btn" title="Chiama">📞</button>
-      <button class="icon-btn" title="Video">📹</button>
-      <button class="icon-btn" title="Info">ℹ</button>
-      <button class="icon-btn" title="Altro">⋮</button>
-    </div>
-  `);
-
-  // Body
-  const ord = c.ordine ? DATA.orders.find(o=>o.id===c.ordine) : null;
-  const cust = DATA.customers.find(cu=>cu.nome===c.nome);
-
-  let bodyHtml = '<div class="chat-day">Oggi</div>';
-  c.msgs.forEach(m=>{
-    if(m.t==="note"){
-      bodyHtml += `<div class="chat-msg note">📝 ${m.txt}</div>`;
-    } else {
-      bodyHtml += `<div class="chat-msg ${m.t}">${m.txt}<span class="ts">${m.ts||''}</span></div>`;
-    }
-  });
-  $('#chatBody').html(bodyHtml);
-  scrollChatToBottom();
-
-  // Info cliente
-  $('#chatInfo').html(`
-    <div class="ci-section" style="text-align:center;padding-bottom:10px;border-bottom:1px solid var(--line-2);margin-bottom:14px">
-      <div class="avatar" style="width:64px;height:64px;font-size:24px;margin:0 auto 10px">${c.nome.charAt(0)}</div>
-      <strong style="font-size:14px">${c.nome}</strong>
-      <small style="display:block;color:var(--muted);margin-top:2px">${cust?cust.email:'cliente@mail.it'}</small>
-      ${cust&&cust.vip?'<span class="badge badge-pink" style="margin-top:6px;display:inline-block">⭐ VIP</span>':''}
-    </div>
-
-    <div class="ci-section">
-      <h4>Dettagli cliente</h4>
-      <div class="kv" style="grid-template-columns:90px 1fr">
-        <div class="k">Ordini</div><div class="v">${cust?cust.ordini:0}</div>
-        <div class="k">Totale</div><div class="v">${cust?cust.speso:'€ 0'}</div>
-        <div class="k">Ultimo</div><div class="v">${cust?cust.ultimo:'-'}</div>
-      </div>
-    </div>
-
-    ${ord?`
-    <div class="ci-section">
-      <h4>Ordine collegato</h4>
-      <div class="card" style="padding:10px;box-shadow:none">
-        <strong>${ord.id}</strong>
-        <small style="display:block;color:var(--muted);margin:2px 0 6px">${ord.data} · ${ord.totale}</small>
-        ${statusPill(ord.stato)}
-        ${ord.tracking!=='-'?`<small style="display:block;margin-top:6px">📦 ${ord.tracking}</small>`:''}
-      </div>
-    </div>`:''}
-
-    <div class="ci-section">
-      <h4>Azioni rapide</h4>
-      <button class="btn btn-soft btn-sm js-chat-discount" style="width:100%;margin-bottom:6px"><i class="ti ti-gift"></i> Invia sconto -10%</button>
-      <button class="btn btn-soft btn-sm js-chat-goorder" data-order="${ord?ord.id:''}" style="width:100%;margin-bottom:6px">📦 Vai all'ordine</button>
-      <button class="btn btn-ghost btn-sm js-chat-block" style="width:100%">🚫 Blocca cliente</button>
-    </div>
-
-    <div class="ci-section">
-      <h4>Tag</h4>
-      <span class="badge badge-green">Italia</span>
-      <span class="badge badge-pink">Newsletter</span>
-      <span class="badge badge-soft">App mobile</span>
-    </div>
-  `);
-
-  // Reset unread
-  c.unread = 0;
-  renderConvList($('.chat-tabs button.active').data('tab'));
-}
+let activeChatId = null;
 
 function scrollChatToBottom(){
   const $b = $('#chatBody');
   if($b.length) $b.scrollTop($b[0].scrollHeight);
-}
-
-function sendChatMessage(text){
-  if(!text || !text.trim()) return;
-  const c = CHATS.find(x=>x.id===activeChatId);
-  const now = new Date();
-  const ts = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
-  c.msgs.push({t:"out",txt:text,ts:ts});
-  c.ultimo = text.length>30?text.slice(0,30)+'...':text;
-  c.ora = ts;
-  renderActiveChat();
-
-  // Risposta simulata
-  setTimeout(()=>{
-    $('#chatBody').append('<div class="chat-typing" id="typingIndicator"><span></span><span></span><span></span></div>');
-    scrollChatToBottom();
-    setTimeout(()=>{
-      $('#typingIndicator').remove();
-      const reply = AUTO_REPLIES[Math.floor(Math.random()*AUTO_REPLIES.length)];
-      const now2 = new Date();
-      const ts2 = now2.getHours().toString().padStart(2,'0')+':'+now2.getMinutes().toString().padStart(2,'0');
-      c.msgs.push({t:"in",txt:reply,ts:ts2});
-      c.ultimo = reply;
-      c.ora = ts2;
-      renderActiveChat();
-      toast('Nuovo messaggio da '+c.nome, 'info');
-    }, 1400);
-  }, 600);
 }
 
 /* ---------- FINANZA ---------- */
@@ -1524,7 +1284,7 @@ VIEWS["online-store"] = function(){
     <div class="grid grid-3">
       <div class="card"><h3>Tema attivo</h3><p style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:14px;border-radius:50%;background:${color};display:inline-block"></span>${theme}</p><small style="color:var(--muted)">Colore primario ${color}</small></div>
       <div class="card"><h3>Dominio</h3><p>${domain}</p><small style="color:var(--muted)">SSL attivo</small></div>
-      <div class="card"><h3>Velocità</h3><p>Score: <strong>—</strong></p><small style="color:var(--muted)">Richiede analisi performance</small></div>
+      <div class="card"><h3>Velocità</h3><p style="font-size:13px;color:var(--muted);margin-bottom:8px">Misura le prestazioni reali del sito con Google.</p><a class="btn btn-soft btn-sm" href="https://pagespeed.web.dev/analysis?url=${encodeURIComponent('https://'+String(domain).replace(/^https?:\/\//,''))}" target="_blank" rel="noopener"><i class="ti ti-gauge"></i> Analizza su PageSpeed</a></div>
     </div>`;
 };
 /* Shared settings-input builder for the config-stub pages (saved by
@@ -1919,9 +1679,9 @@ $(function(){
   });
 
   // ── Topbar: aiuto / notifiche / messaggi ─────────────────────
-  var _notif = { orders: 0, reviews: 0, resi: 0 };
+  var _notif = { orders: 0, reviews: 0, resi: 0, chat: 0 };
   function paintNotifDot() {
-    var tot = _notif.orders + _notif.reviews + _notif.resi;
+    var tot = _notif.orders + _notif.reviews + _notif.resi + _notif.chat;
     $('#notifDot').toggle(tot > 0);
     $('#notifBtn').attr('title', tot > 0 ? (tot + ' cose da gestire') : 'Notifiche');
   }
@@ -1933,6 +1693,11 @@ $(function(){
     AdminAPI.resi.list({ limit: 200 }).done(function (d) {
       var l = (d && d.resi) || [];
       _notif.resi = l.filter(function (r) { return r.stato === 'aperto' || r.stato === 'in_analisi'; }).length;
+      paintNotifDot();
+    });
+    if (AdminAPI.chat) AdminAPI.chat.list().done(function (d) {
+      _notif.chat = (d && d.unread_total) || 0;
+      setSideBadge('badgeChat', _notif.chat);
       paintNotifDot();
     });
   };
@@ -1955,6 +1720,7 @@ $(function(){
     if (_notif.orders)  items.push({ label: '🧾 ' + _notif.orders + ' ordini da evadere', view: 'orders' });
     if (_notif.reviews) items.push({ label: '⭐ ' + _notif.reviews + ' recensioni da moderare', view: 'reviews' });
     if (_notif.resi)    items.push({ label: '↩️ ' + _notif.resi + ' resi da gestire', view: 'returns' });
+    if (_notif.chat)    items.push({ label: '💬 ' + _notif.chat + ' messaggi non letti', view: 'chat' });
     var html = items.length
       ? items.map(function (i) { return '<div class="notif-item" data-view="' + i.view + '" style="padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--line)">' + i.label + '</div>'; }).join('')
       : '<div style="padding:14px;font-size:13px;color:var(--muted)">Nessuna notifica — tutto sotto controllo ✓</div>';
@@ -4051,25 +3817,6 @@ $(function(){
   });
 
   /* ── Apps: open / app store ── */
-  $(document).on('click','.js-open-app', function(){
-    var nome=$(this).data('nome'), cat=$(this).data('cat'), stato=$(this).data('stato');
-    openModal(nome,
-      '<div class="kv" style="grid-template-columns:120px 1fr;gap:8px">'+
-        '<div class="k">Categoria</div><div class="v">'+cat+'</div>'+
-        '<div class="k">Stato</div><div class="v">'+statusPill(stato)+'</div>'+
-      '</div><p style="margin-top:12px;color:var(--muted);font-size:13px">Configurazione e log dell\'app. Gestisci chiavi API e webhook dalla sezione Integrazioni.</p>'+
-      '<div style="margin-top:14px;display:flex;justify-content:flex-end"><button class="btn btn-primary btn-sm" onclick="closeModal()">Chiudi</button></div>');
-  });
-  $(document).on('click','.js-app-store', function(){
-    var avail=[['Mailchimp','Marketing'],['Yotpo Reviews','Recensioni'],['ShipStation','Spedizioni'],['QuickBooks','Fatturazione'],['TikTok Pixel','Marketing'],['Algolia Search','Ricerca']];
-    openModal('App Store',
-      '<p style="color:var(--muted);font-size:13px;margin-bottom:10px">App disponibili da installare:</p><div class="grid grid-2" style="gap:10px">'+
-      avail.map(function(a){ return '<div class="card" style="box-shadow:none;border:1px solid var(--line)"><strong>'+a[0]+'</strong><small style="display:block;color:var(--muted)">'+a[1]+'</small><button class="btn btn-soft btn-sm js-install-app" data-nome="'+a[0]+'" style="margin-top:8px">Installa</button></div>'; }).join('')+
-      '</div>');
-  });
-  $(document).on('click','.js-install-app', function(){
-    toast('“'+$(this).data('nome')+'” installata','success'); closeModal();
-  });
 
   /* ── Segments: live analysis from customer data ── */
   /* ── Segments (saved, rule-based, live counts) ── */
@@ -4290,15 +4037,6 @@ $(function(){
       AdminAPI.chat.list().done(function(res){ DATA.chat=res||{conversations:[]}; renderConvList($('.chat-tabs button.active').data('tab')||'all'); });
     }).fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
   });
-  $(document).on('click','.js-chat-goorder', function(){
-    var ordId=$(this).data('order');
-    if(ordId){ renderView('orders'); setActiveNav('orders'); toast('Apertura ordine '+ordId,'info'); }
-    else { toast('Nessun ordine collegato a questa chat','info'); }
-  });
-  $(document).on('click','.js-chat-block', function(){
-    var c=CHATS.find(function(x){ return x.id===activeChatId; });
-    if(c && confirm('Bloccare '+c.nome+'? Non potrà più scriverti.')){ toast(c.nome+' bloccato','success'); }
-  });
 
   // ── Sidebar badges driven by real data (no hardcoded numbers) ──
   function setSideBadge(id, n){
@@ -4324,9 +4062,7 @@ $(function(){
       l = Array.isArray(l) ? l : [];
       setSideBadge('badgeDiscounts', l.filter(function(x){ return x.stato==='attivo'; }).length);
     }).fail(function(){ setSideBadge('badgeDiscounts',0); });
-    // Chat (frontend demo data) — count unread; abandoned carts: no data source
-    try { setSideBadge('badgeChat', (typeof CHATS!=='undefined'?CHATS:[]).reduce(function(s,c){ return s+(c.unread||0); },0)); } catch(_){}
-    setSideBadge('badgeAbandoned', 0);
+    // Chat unread badge is set by refreshNotifCounters() (real /admin/chat data).
   }
 
   // ── Initial data load from API, then render dashboard ──
@@ -4822,13 +4558,6 @@ $(function(){
       loadDashboardData();
     } else {
       _origRenderView(name);
-      if ([].indexOf(name) !== -1) {
-        $('#viewContainer').prepend(
-          '<div style="background:#fff8e6;color:#7a5b00;border:1px solid #f0dfa8;border-radius:10px;' +
-          'padding:10px 16px;margin:0 0 14px;font-size:13px"><strong>Vista dimostrativa.</strong> ' +
-          'Questa sezione non è ancora collegata ai dati reali del negozio.</div>'
-        );
-      }
     }
   };
 
