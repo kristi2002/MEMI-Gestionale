@@ -902,17 +902,6 @@ VIEWS.files = function(){
       </div>`; }).join('')}
     </div>`}`;
 };
-VIEWS.menus = function(){
-  return `${pageHead("Menu di navigazione","Configura header e footer del sito.","")}
-    <div class="grid grid-2">
-      <div class="card"><h3>Header</h3><ul class="list-clean">
-        <li>Home</li><li>Catalogo</li><li>Collezioni</li><li>Saldi</li><li>Contatti</li>
-      </ul></div>
-      <div class="card"><h3>Footer</h3><ul class="list-clean">
-        <li>Chi siamo</li><li>Spedizioni</li><li>Resi</li><li>Termini</li><li>Privacy</li>
-      </ul></div>
-    </div>`;
-};
 
 /* ===========================================================
    ⭐ SPEDIZIONI - sezione completa stile SDA
@@ -4462,7 +4451,7 @@ $(function(){
       loadDashboardData();
     } else {
       _origRenderView(name);
-      if (['bills','liveview','menus','popups','reports','chat'].indexOf(name) !== -1) {
+      if (['bills','liveview','popups','reports','chat'].indexOf(name) !== -1) {
         $('#viewContainer').prepend(
           '<div style="background:#fff8e6;color:#7a5b00;border:1px solid #f0dfa8;border-radius:10px;' +
           'padding:10px 16px;margin:0 0 14px;font-size:13px"><strong>Vista dimostrativa.</strong> ' +

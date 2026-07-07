@@ -95,7 +95,7 @@ Sidebar groups (from `dashboard.html`). ✅ = API-backed & working,
 | Contenuti | Pagine | `content` | ✅ | `/admin/cms/pages` |
 | Contenuti | Blog | `blog` | ✅ | `/admin/cms/blog` |
 | Contenuti | File | `files` | ✅ | **real upload** → `POST/DELETE /admin/settings/media` (sharp→WebP, uploads volume); list in `store_settings['media_library']` |
-| Contenuti | ~~Menu~~ | `menus` | 🚫👻 | static list, no backend |
+| Contenuti | ~~Menu~~ | — | ❌ removed | deleted (was a dead static placeholder) |
 | Spedizioni | Corrieri | `couriers` | ✅ | `/shipping/couriers` |
 | Spedizioni | Spedizioni in corso | `shipments` | ✅ | `/shipping/shipments` |
 | Spedizioni | Tracking | `tracking` | ✅ | searches `DATA.shipments` |
@@ -179,7 +179,7 @@ Grouped by view:
    full-screen on phones; order detail promoted to a full **page (scheda)**; the
    scheda scaffold is reusable for the other entities (deferred).
 3. ~~**Auth 401 redirect is disabled**~~ **FIXED** — re-enabled in `admin-api.js`.
-4. **Ghost views still shipped**: `bills`, `pos`, `social`, `menus`, `transfers`,
+4. **Ghost views still shipped**: `bills`, `pos`, `social`, `transfers`,
    `reports`, `liveview`, `segments`, `popups`, `apps` render empty/static content.
    `chat` is a full front-end mock with no backend. Some are hidden in nav, some not.
 5. **Display-only screens** (`taxes` OSS block, `online-store` speed score) show
