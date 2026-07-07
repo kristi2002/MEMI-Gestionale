@@ -79,6 +79,7 @@
     recentOrders: function() { return get('/admin/dashboard/recent-orders'); },
     finance:      function() { return get('/admin/dashboard/finance'); },
     catalogKpis:  function() { return get('/admin/dashboard/catalog-kpis'); },
+    liveview:     function() { return get('/admin/liveview'); },
   };
 
   /* ═══════════════════════════════════════════════════════

@@ -872,14 +872,26 @@ VIEWS.reports = function(){
     </div>`;
 };
 VIEWS.liveview = function(){
-  return `${pageHead("Live View","Cosa succede in questo momento sul tuo store.","")}
-    <div class="grid grid-4">
-      <div class="card kpi green"><span class="label">Visitatori ora</span><span class="value">—</span></div>
-      <div class="card kpi pink"><span class="label">Carrelli attivi</span><span class="value">—</span></div>
-      <div class="card kpi soft"><span class="label">Checkout in corso</span><span class="value">—</span></div>
-      <div class="card kpi green"><span class="label">Vendite (1h)</span><span class="value">—</span></div>
+  const d = DATA.liveview;
+  const top = (d && d.top_paths) || [];
+  const recent = (d && d.recent) || [];
+  const val = v => (d===undefined ? '—' : (v!=null ? v : 0));
+  const ago = ts => { if(!ts) return ''; var s=Math.max(0,Math.floor((Date.now()-new Date(ts).getTime())/1000)); return s<60?(s+'s fa'):(s<3600?(Math.floor(s/60)+'m fa'):(Math.floor(s/3600)+'h fa')); };
+  return `${pageHead("Live View","Visitatori sul negozio in tempo reale (traffico self-hosted).",`<button class="btn btn-ghost btn-sm js-refresh-live"><i class="ti ti-refresh"></i> Aggiorna</button>`)}
+    <div class="grid grid-3">
+      <div class="card kpi green"><div class="icon-wrap"><i class="ti ti-eye"></i></div><span class="label">Online ora (5 min)</span><span class="value">${val(d&&d.online)}</span></div>
+      <div class="card kpi pink"><div class="icon-wrap"><i class="ti ti-activity"></i></div><span class="label">Visite (30 min)</span><span class="value">${val(d&&d.views_30m)}</span></div>
+      <div class="card kpi soft"><div class="icon-wrap"><i class="ti ti-calendar"></i></div><span class="label">Visite oggi</span><span class="value">${val(d&&d.views_today)}</span></div>
     </div>
-    <div class="card" style="margin-top:16px;padding:40px;text-align:center;color:var(--muted)">Il monitoraggio in tempo reale richiede l'integrazione di un servizio di analytics (es. Google Analytics 4) configurato nelle Impostazioni.</div>`;
+    <div class="grid grid-2" style="margin-top:16px">
+      <div class="card"><h3>Pagine più viste (30 min)</h3>
+        ${top.length ? `<ul class="list-clean">${top.map(p=>`<li><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%"><code style="font-size:11px">${(p.path||'/').replace(/</g,'&lt;')}</code></span><strong>${p.views}</strong></li>`).join('')}</ul>` : `<p style="color:var(--muted);font-size:13px">${d===undefined?'Caricamento…':'Nessuna visita di recente.'}</p>`}
+      </div>
+      <div class="card"><h3>Attività recente</h3>
+        ${recent.length ? `<ul class="list-clean" style="max-height:280px;overflow:auto">${recent.map(r=>`<li><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%"><code style="font-size:11px">${(r.path||'/').replace(/</g,'&lt;')}</code></span><small style="color:var(--muted)">${ago(r.created_at)}</small></li>`).join('')}</ul>` : `<p style="color:var(--muted);font-size:13px">${d===undefined?'Caricamento…':'Nessuna attività. Le visite compaiono qui quando il negozio riceve traffico.'}</p>`}
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:11px;margin-top:10px">Il tracciamento è self-hosted: ogni pagina del negozio invia un beacon a <code>/api/track</code>. Nessun servizio esterno.</p>`;
 };
 
 /* ---------- CONTENUTI ---------- */
@@ -4674,11 +4686,18 @@ $(function(){
         _origRenderView(name);
       }).fail(function() { DATA.popups = []; _apiFail(name); });
 
+    } else if (name === 'liveview') {
+      DATA.liveview = undefined;
+      api.dashboard.liveview().done(function(res) {
+        DATA.liveview = res || {};
+        _origRenderView(name);
+      }).fail(function() { DATA.liveview = {}; _apiFail(name); });
+
     } else if (name === 'dashboard') {
       loadDashboardData();
     } else {
       _origRenderView(name);
-      if (['liveview','reports','chat'].indexOf(name) !== -1) {
+      if (['chat'].indexOf(name) !== -1) {
         $('#viewContainer').prepend(
           '<div style="background:#fff8e6;color:#7a5b00;border:1px solid #f0dfa8;border-radius:10px;' +
           'padding:10px 16px;margin:0 0 14px;font-size:13px"><strong>Vista dimostrativa.</strong> ' +
@@ -4821,3 +4840,8 @@ window.paintAdminIdentity = function(me){
     if (me && me.role === 'staff') jQuery('.sidebar-footer .user-mini strong').append(' <span class="badge badge-soft" style="margin-left:6px">Staff</span>');
   } catch (_) {}
 };
+
+/* ── Live view manual refresh ── */
+jQuery(function ($) {
+  $(document).on('click', '.js-refresh-live', function () { if (window.renderView) renderView('liveview'); });
+});

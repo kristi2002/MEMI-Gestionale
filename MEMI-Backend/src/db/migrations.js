@@ -176,6 +176,16 @@ const STATEMENTS = [
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      KEY idx_popup_attivo (attivo)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Page views (Statistiche · Live view) — lightweight visitor beacon ───────
+  `CREATE TABLE IF NOT EXISTS page_views (
+     id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+     session_id VARCHAR(64)  NULL,
+     path       VARCHAR(255) NULL,
+     referrer   VARCHAR(255) NULL,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_pv_created (created_at)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');

@@ -2692,3 +2692,23 @@
 
 })();
   
+/* ── Visitor beacon → self-hosted Live view (POST /api/track) ─────────────────
+   Fire-and-forget, never throws, never blocks. One ping per page load with the
+   path + an anonymous visitor id (separate from the auth session). */
+(function () {
+  try {
+    var base = (window.MEMI && window.MEMI._base) || window.MEMI_API_URL || '/api';
+    var vid = null;
+    try {
+      vid = localStorage.getItem('memi_vid');
+      if (!vid) { vid = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('memi_vid', vid); }
+    } catch (_) {}
+    var payload = JSON.stringify({ path: location.pathname, session: vid, referrer: document.referrer || '' });
+    var url = base + '/track';
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+    } else {
+      fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
+    }
+  } catch (_) {}
+})();

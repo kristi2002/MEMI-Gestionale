@@ -56,6 +56,7 @@ const expensesRoutes      = require('./routes/expenses');
 const segmentsRoutes      = require('./routes/segments');
 const transfersRoutes     = require('./routes/transfers');
 const popupsRoutes        = require('./routes/popups');
+const analyticsTrackRoutes = require('./routes/analytics-track');
 const { ensureDir: ensureUploadsDir, UPLOADS_DIR } = require('./images');
 const { requestLogger }  = require('./logger');
 
@@ -239,6 +240,7 @@ app.use('/api/admin/segments',    segmentsRoutes);
 app.use('/api/admin/transfers',   transfersRoutes);
 app.use('/api/admin/popups',      popupsRoutes);
 app.use('/api/popups',            popupsRoutes);   // public /published for storefront
+app.use('/api',                   analyticsTrackRoutes);   // POST /api/track (public) + GET /api/admin/liveview
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));
