@@ -173,3 +173,27 @@ Fatti nuovi veri nel codice:
   notifiche con contatori reali, "Rimborso manuale" nel dettaglio reso, viste demo etichettate
   (bills/liveview/menus/popups/reports/chat), conferme esplicite su annulla/elimina.
 - Test: `test/compensation-logic.test.cjs` (10 sim, verify sez. 6b) + smoke `[8] Order lifecycle`.
+
+## Update Luglio 2026 — Admin mobile + UX pass (frontend only)
+
+Docs: `docs/ADMIN-PANEL.md` (full admin reference), `docs/ADMIN-GAP-ANALYSIS-AND-PLAN.md`
+(phased plan), `docs/ADMIN-CHANGES-JULY-2026.md` (implementation report).
+
+New facts true in the admin (`MEMI/`) code — **no backend changes**:
+- **Mobile nav is an off-canvas drawer** (≤900px), not the old bottom-bar. The
+  `#mobileMenu` hamburger toggles `.sidebar.mobile-open`; a `.nav-backdrop` dims +
+  closes it; picking a leaf/child auto-closes, parent headers keep it open. The full
+  nav tree (previously unreachable children) works on phones.
+- **Modals**: default width 560→640px, `.modal-lg`/`.modal-xl` variants, and
+  **full-screen sheet on phones**. `openModal(title, body, footer, size)` — 4th arg
+  optional (`'lg'`/`'xl'`).
+- **Order detail is a full page** (`VIEWS['order-detail']` + `window.openOrderDetail`),
+  a reusable "scheda" pattern (CSS: `.detail-grid/.detail-main/.detail-side/.detail-back`).
+  The order-row eye opens it; it reuses the delegated `.js-save-order-status` /
+  `.js-open-ship-modal` / `.js-print-order` handlers.
+- **401 → login redirect re-enabled** in `admin-api.js` (was a dev bypass).
+- **Real admin identity** painted from `/admin/auth/me` into sidebar/topbar
+  (`window.paintAdminIdentity`).
+- Admin cache-bust auto-hashes assets at Docker build, so the edited
+  `app.js`/`admin-api.js`/`style.css` deploy correctly without manual `?v=` bumps
+  (verified). `bash verify/run.sh` stays green.

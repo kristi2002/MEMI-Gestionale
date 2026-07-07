@@ -126,9 +126,14 @@ function toast(msg, type){
   setTimeout(()=> $t.removeClass('show'), 2200);
 }
 
-function openModal(title, body, footer){
+function openModal(title, body, footer, size){
   $('#modalTitle').text(title);
   $('#modalBody').html(body + (footer ? '<div class="modal-foot" style="margin-top:16px;display:flex;justify-content:flex-end;gap:8px">' + footer + '</div>' : ''));
+  // Optional size: 'lg' | 'xl' — roomier detail/builder modals on desktop
+  // (full-screen sheet on phones is handled by CSS). Reset each open.
+  var $m = $('#modalBackdrop .modal').removeClass('modal-lg modal-xl');
+  if (size === 'lg') $m.addClass('modal-lg');
+  else if (size === 'xl') $m.addClass('modal-xl');
   $('#modalBackdrop').addClass('show');
 }
 function closeModal(){ $('#modalBackdrop').removeClass('show'); }
@@ -2015,16 +2020,17 @@ $(function(){
       `;
     }
 
-    // Show modal immediately with loading placeholder for items
-    openModal(`Ordine ${o.id}`, buildOrderBody(null));
-
-    // Load line items from API
-    if (dbId && window.AdminAPI) {
-      AdminAPI.orders.get(dbId).done(function(res){
-        $('#modalBody').html(buildOrderBody(res.items || []));
-      }).fail(function(){
-        // Modal already showing, just leave without items
-      });
+    // Open the full-page order "scheda" (detail view) instead of a cramped modal.
+    if (window.openOrderDetail) {
+      openOrderDetail(o, dbId);
+    } else {
+      // Defensive fallback to the legacy modal if the page renderer is missing.
+      openModal(`Ordine ${o.id}`, buildOrderBody(null), null, 'lg');
+      if (dbId && window.AdminAPI) {
+        AdminAPI.orders.get(dbId).done(function(res){
+          $('#modalBody').html(buildOrderBody(res.items || []));
+        });
+      }
     }
   });
 
@@ -4463,7 +4469,7 @@ $(function(){
   // an expired token before the first data request fires.
   if (window.AdminAPI && AdminAPI.auth.isLoggedIn()) {
     AdminAPI.auth.me()
-      .done(function(me) { window.CURRENT_ADMIN = me || {}; applyRolePermissions(); updateSidebarBadges(); handleRoute(); })
+      .done(function(me) { window.CURRENT_ADMIN = me || {}; if (window.paintAdminIdentity) paintAdminIdentity(me); applyRolePermissions(); updateSidebarBadges(); handleRoute(); })
       .fail(function() {
         // redirect is already handled inside admin-api.js request()
         // but belt-and-suspenders: ensure we land on login
@@ -4474,3 +4480,119 @@ $(function(){
     window.location.href = 'index.html';
   }
 });
+
+/* ── Mobile drawer nav: backdrop + auto-close (added Luglio 2026) ──────────
+   The topbar hamburger (#mobileMenu) toggles .sidebar.mobile-open (existing
+   handler). This adds the dimming backdrop, closes the drawer when a
+   destination is chosen (but keeps it open when merely expanding a parent
+   group), and closes on Escape. Purely additive. */
+jQuery(function ($) {
+  if (!$('.nav-backdrop').length) $('.app').append('<div class="nav-backdrop" aria-hidden="true"></div>');
+  function closeNav(){ $('.sidebar').removeClass('mobile-open'); }
+  $(document).on('click', '.nav-backdrop', closeNav);
+  $(document).on('click', '.side-nav a.nav-item', function () {
+    // Parent group headers have a .nav-children sibling — keep the drawer open
+    // so the user can reach the children. Leaves/children close it.
+    if ($(this).next('.nav-children').length) return;
+    if (window.matchMedia('(max-width:900px)').matches) closeNav();
+  });
+  $(document).on('keydown', function (e) { if (e.key === 'Escape') closeNav(); });
+});
+
+/* ── Order detail "scheda" (full page, replaces the cramped order modal) ──────
+   Reuses the document-delegated action handlers (.js-save-order-status,
+   .js-open-ship-modal, .js-print-order) by rendering buttons with the same
+   classes / ids / data-attrs, so no handler logic is duplicated. */
+function _orderItemsHtml(items){
+  if (items === null || typeof items === 'undefined')
+    return '<h3>Prodotti ordinati</h3><p style="color:var(--muted);font-size:13px">Caricamento prodotti…</p>';
+  if (!items.length)
+    return '<h3>Prodotti ordinati</h3><p style="color:var(--muted);font-size:13px">Nessun prodotto associato a questo ordine.</p>';
+  return '<h3>Prodotti ordinati</h3>' +
+    '<div class="table-wrap"><table class="data" style="width:100%">' +
+    '<thead><tr><th>Prodotto</th><th style="text-align:center">Taglia</th><th style="text-align:center">Qtà</th><th style="text-align:right">Prezzo</th></tr></thead><tbody>' +
+    items.map(function(i){
+      return '<tr><td>'+(i.product_name||'—')+'</td>' +
+        '<td style="text-align:center;color:var(--muted)">'+(i.taglia||'—')+'</td>' +
+        '<td style="text-align:center">'+(i.qty||1)+'</td>' +
+        '<td style="text-align:right">€ '+parseFloat(i.price||0).toFixed(2).replace('.',',')+'</td></tr>';
+    }).join('') +
+    '</tbody></table></div>';
+}
+
+VIEWS['order-detail'] = function(){
+  var d = DATA.orderDetail;
+  if (!d || !d.o) {
+    return pageHead('Ordine','') + '<div class="card"><p class="empty">Ordine non trovato. Torna alla lista ordini.</p></div>';
+  }
+  var o = d.o, dbId = d.dbId || o._db_id || null;
+  var statusOpts = ['in_attesa','in_preparazione','spedito','consegnato','annullato'].map(function(s){
+    return '<option value="'+s+'"'+(o._raw_status===s?' selected':'')+'>'+(window.AdminAPI?AdminAPI.statusLabel(s):s)+'</option>';
+  }).join('');
+  return ''
+    + '<button class="detail-back" onclick="renderView(\'orders\');setActiveNav(\'orders\')"><i class="ti ti-arrow-left"></i> Torna agli ordini</button>'
+    + pageHead('Ordine '+o.id, (o.data||'')+' · '+(o.cliente||''),
+        '<button class="btn btn-ghost btn-sm js-print-order"><i class="ti ti-printer"></i> Stampa</button>')
+    + '<div class="detail-grid">'
+    +   '<div class="detail-main">'
+    +     '<div class="card" id="orderDetailItems">'+_orderItemsHtml(d.items)+'</div>'
+    +   '</div>'
+    +   '<div class="detail-side">'
+    +     '<div class="card"><h3>Riepilogo</h3><div class="kv">'
+    +       '<div class="k">Stato</div><div class="v">'+statusPill(o.stato)+'</div>'
+    +       '<div class="k">Pagamento</div><div class="v">'+statusPill(o.pagamento)+'</div>'
+    +       '<div class="k">Totale</div><div class="v"><strong>'+o.totale+'</strong></div>'
+    +       '<div class="k">Corriere</div><div class="v">'+(o.corriere||'—')+(o.tracking&&o.tracking!=='-'?' · <code>'+o.tracking+'</code>':'')+'</div>'
+    +     '</div></div>'
+    +     '<div class="card"><h3>Cliente</h3><div class="kv">'
+    +       '<div class="k">Nome</div><div class="v">'+(o.cliente||'—')+'</div>'
+    +       '<div class="k">Data ordine</div><div class="v">'+(o.data||'—')+'</div>'
+    +     '</div></div>'
+    +     '<div class="card"><h3>Azioni</h3>'
+    +       '<label style="font-size:12px;color:var(--muted)">Cambia stato ordine</label>'
+    +       '<select id="modalOrderStatus" style="width:100%;border:1px solid var(--line);border-radius:6px;padding:8px;font-size:13px;margin:6px 0 12px">'+statusOpts+'</select>'
+    +       '<div style="display:flex;flex-direction:column;gap:8px">'
+    +         (dbId?'<button class="btn btn-primary btn-sm js-save-order-status" data-id="'+dbId+'"><i class="ti ti-device-floppy"></i> Salva stato</button>':'')
+    +         (dbId?'<button class="btn btn-soft btn-sm js-open-ship-modal" data-id="'+dbId+'" data-order="'+o.id+'" data-payment="'+o.pagamento+'">🚚 Spedisci</button>':'')
+    +         '<button class="btn btn-ghost btn-sm js-print-order"><i class="ti ti-printer"></i> Stampa ordine</button>'
+    +       '</div>'
+    +     '</div>'
+    +   '</div>'
+    + '</div>';
+};
+
+window.openOrderDetail = function(o, dbId){
+  if (!o) return;
+  DATA.orderDetail = { o: o, dbId: dbId || o._db_id || null, items: null };
+  if (typeof setActiveNav === 'function') setActiveNav('orders');
+  renderView('order-detail');
+  var id = DATA.orderDetail.dbId;
+  if (id && window.AdminAPI) {
+    AdminAPI.orders.get(id).done(function(res){
+      DATA.orderDetail.items = (res && res.items) ? res.items : [];
+      DATA.orderDetail.full  = res || null;
+      $('#orderDetailItems').html(_orderItemsHtml(DATA.orderDetail.items));
+    }).fail(function(){
+      DATA.orderDetail.items = [];
+      $('#orderDetailItems').html(_orderItemsHtml([]));
+    });
+  } else {
+    DATA.orderDetail.items = [];
+    $('#orderDetailItems').html(_orderItemsHtml([]));
+  }
+};
+
+/* ── Real logged-in admin identity in the sidebar/topbar (was hardcoded) ──── */
+window.paintAdminIdentity = function(me){
+  try {
+    var nm = (me && (me.nome || me.name)) ? String(me.nome || me.name) : 'Admin';
+    var em = (me && me.email) ? String(me.email) : '';
+    var initial = (nm || 'A').charAt(0).toUpperCase();
+    jQuery('.sidebar-footer .user-mini strong').text(nm);
+    if (em) jQuery('.sidebar-footer .user-mini small').text(em);
+    jQuery('.sidebar-footer .avatar').text(initial);
+    jQuery('.topbar .user-mini .lbl-name').text(nm);
+    jQuery('.topbar .avatar.small').text(initial);
+    if (me && me.role === 'staff') jQuery('.sidebar-footer .user-mini strong').append(' <span class="badge badge-soft" style="margin-left:6px">Staff</span>');
+  } catch (_) {}
+};

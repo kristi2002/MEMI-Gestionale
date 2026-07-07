@@ -358,7 +358,7 @@ table.data tr:last-child td{border-bottom:none}
 .modal-backdrop{display:none;position:fixed;inset:0;background:rgba(23,27,34,.42);backdrop-filter:blur(2px);
   z-index:50;align-items:center;justify-content:center;padding:20px}
 .modal-backdrop.show{display:flex}
-.modal{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:560px;max-height:90vh;
+.modal{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:640px;max-height:92vh;
   overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-md);animation:modalIn .18s ease}
 @keyframes modalIn{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line-2)}
@@ -462,40 +462,72 @@ table.data tr:last-child td{border-bottom:none}
 @media(max-width:1100px){.chat-wrap{grid-template-columns:260px 1fr}.chat-info{display:none}}
 @media(max-width:780px){.chat-wrap{grid-template-columns:1fr;height:auto}.chat-list{display:none}}
 
-/* ===== RESPONSIVE ===== */
-@media(max-width:600px){
-  .sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;width:100%;height:56px;flex:0 0 56px;
-    flex-direction:row;border-right:none;border-top:1px solid var(--line);z-index:100;overflow-x:auto;overflow-y:hidden;scrollbar-width:none}
-  .sidebar::-webkit-scrollbar{display:none}
-  .sidebar-brand,.store-switch,.nav-divider,.nav-group-title,.sidebar-footer,.nav-parent .nav-children{display:none!important}
-  .side-nav{display:flex;flex-direction:row;padding:0;flex:1;overflow-x:auto}
-  .nav-item{flex-direction:column;padding:6px 12px;min-width:60px;gap:2px;font-size:9px;border-radius:0;justify-content:center;align-items:center}
-  .nav-item.active::before{left:0;top:auto;bottom:0;right:0;width:auto;height:2px;border-radius:0}
-  .nav-item .ic{font-size:18px}
-  .nav-item span:not(.ic):not(.badge){display:block!important;font-size:9px}
-  .nav-item .badge{display:none}
-  .main{padding-bottom:60px}
-  .topbar{padding:10px 12px}
+/* ============================================================
+   RESPONSIVE — off-canvas drawer nav + mobile polish
+   (replaces the old bottom-bar + icon-rail behavior, which hid
+    every child view and made half the app unreachable on phones)
+   ============================================================ */
+
+/* Hamburger shows only on small screens; backdrop dims + closes the drawer */
+.mobile-menu{display:none}
+.nav-backdrop{position:fixed;inset:0;background:rgba(23,27,34,.44);z-index:99;
+  opacity:0;visibility:hidden;transition:opacity .2s ease}
+.sidebar.mobile-open ~ .nav-backdrop{opacity:1;visibility:visible}
+
+/* Modal size variants (desktop) */
+.modal.modal-lg{max-width:760px}
+.modal.modal-xl{max-width:1000px}
+
+/* Detail page ("scheda") scaffold — full-page entity views */
+.detail-back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;
+  margin-bottom:10px;background:none;border:none;cursor:pointer}
+.detail-back:hover{color:var(--text)}
+.detail-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px;align-items:start}
+.detail-main{display:flex;flex-direction:column;gap:16px;min-width:0}
+.detail-side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.detail-hero{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+
+@media(max-width:1000px){.detail-grid{grid-template-columns:1fr}}
+
+@media(max-width:900px){
+  .mobile-menu{display:inline-flex}
+  /* Sidebar becomes an off-canvas drawer overlaying the content */
+  .sidebar{position:fixed;top:0;left:0;right:auto;bottom:auto;height:100vh;height:100dvh;
+    width:264px;flex-basis:264px;flex-direction:column;border-right:1px solid var(--line);border-top:none;
+    z-index:100;transform:translateX(-100%);transition:transform .24s ease;
+    box-shadow:8px 0 40px rgba(23,27,34,.18)}
+  .sidebar.mobile-open{transform:none}
+  .sidebar .side-nav{flex-direction:column}
+  .collapse-btn{display:none}
+  .main{padding-bottom:0}
+  .topbar{padding:10px 12px;gap:8px}
+  .search{max-width:none}
+  #helpBtn{display:none}
+  .view-container{padding:16px}
+  table.data{font-size:12.5px}
+}
+
+@media(max-width:640px){
   .view-container{padding:12px}
-  .page-head{flex-direction:column;align-items:flex-start;gap:8px}
+  .page-head{flex-direction:column;align-items:flex-start;gap:10px}
   .page-head h2{font-size:18px}
-  .page-actions{width:100%}.page-actions .btn{flex:1;text-align:center}
-  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table.data{min-width:520px}
-  .table-head{flex-direction:column;align-items:flex-start;gap:8px}
-  .table-tools{width:100%}.table-tools select,.table-tools input{flex:1;min-width:0}
+  .page-actions{width:100%}
+  .page-actions .btn{flex:1;justify-content:center;text-align:center}
   .grid-4,.grid-3,.grid-2{grid-template-columns:1fr!important}
   .card{padding:14px}
-  .form-row{flex-direction:column}
-  .modal{margin:8px;max-width:calc(100vw - 16px)}
-  .modal-body{padding:16px}
-}
-@media(min-width:601px) and (max-width:920px){
-  .sidebar{width:64px;flex:0 0 64px}
-  .sidebar .sidebar-brand strong,.sidebar .sidebar-brand small,.sidebar .store-switch strong,
-  .sidebar .store-switch small,.sidebar .nav-item span:not(.ic),.sidebar .nav-item .badge,
-  .sidebar .nav-group-title,.sidebar .nav-children,.sidebar .user-mini strong,.sidebar .user-mini small{display:none!important}
-  .sidebar .nav-item{justify-content:center}
-  .view-container{padding:16px}
-  table.data{font-size:12px}
+  .form-row{flex-direction:column;gap:0}
+  .table-head{flex-direction:column;align-items:stretch;gap:10px}
+  .table-tools{width:100%;flex-wrap:wrap}
+  .table-tools select,.table-tools input{flex:1;min-width:120px}
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.data{min-width:560px}
+  .user-mini.compact .lbl-name{display:none}
+  /* Modal → full-screen sheet on phones (sticky head/foot, scrollable body) */
+  .modal-backdrop{padding:0;align-items:stretch}
+  .modal,.modal.modal-lg,.modal.modal-xl{max-width:none;width:100%;height:100dvh;max-height:100dvh;
+    border-radius:0;margin:0}
+  .modal-head{position:sticky;top:0;background:var(--surface);z-index:2}
+  .modal-body{padding:16px;flex:1}
+  .modal-foot{position:sticky;bottom:0;background:var(--surface);padding-top:12px}
+  .drawer{width:100vw}
 }
