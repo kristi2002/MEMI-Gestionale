@@ -76,3 +76,50 @@ and in-browser render checks. See [10-testing-and-runbook.md](10-testing-and-run
 ## Non-goals
 - Multi-tenant / marketplace features. This is one brand's store.
 - Replacing Stripe/SMTP with heavier managed platforms.
+
+## Architectural upgrades (4-phase pass, all on `main`)
+
+Executed as an explicit 4-phase plan; each phase additive & backward-compatible,
+tested (endpoint suites + in-browser render checks + `verify/run.sh`), committed
+separately.
+
+**Phase 1 — Security & Concurrency**
+- Admin JWT moved out of `localStorage` into an **HttpOnly, SameSite=Lax,
+  secure-in-prod cookie** (`memi_admin_token`). `requireAdmin` accepts cookie OR
+  the legacy `Authorization` header (no lockout during rollout); new
+  `POST /admin/auth/logout` clears it; the client stores only a non-secret session
+  flag and sends `withCredentials`. No `cookie-parser` dependency (manual parse).
+- Transactional locking: `PUT /products/:id/stock` and loyalty `applyPoints` now use
+  `SELECT … FOR UPDATE`; order status/delete + resi already did; checkout uses an
+  atomic conditional decrement.
+
+**Phase 2 — Scalability & Maintainability**
+- Pagination: `orders/admin/list` returns `{orders,total}`; `products` list surfaces
+  the total via an **`X-Total-Count`** header (body stays an array; CORS exposes it).
+  `AdminAPI.products.listPaged()` reads it. Orders/products/inventory render a
+  **"Carica altri"** button that appends the next page via `window.__rerender`.
+- Monolith split: extracted **`MEMI/js/modules/`** — `order-detail.js`, `chat.js`,
+  `pagination.js` (later `audit-log.js`, `variants.js`, `purchasing.js`). Classic
+  scripts sharing app.js's global scope, loaded after it; `cache-bust.js` auto-hashes
+  them. The interleaved core+handler layer stays in `app.js` (splitting it unattended
+  without a live-stack test was judged too risky).
+
+**Phase 3 — Audit Log UI + Granular RBAC**
+- `VIEWS['audit-log']` (scheda layout) wired to `/admin/audit-log`.
+- `admin_users.permissions` JSON column (additive; `NULL` = derive from role).
+  `src/permissions.js` presets (admin/staff/warehouse/customer_service/marketing);
+  login+`/me` embed the resolved permission array (`null` = full). `canAccessView`
+  and `applyRolePermissions` honor an explicit set and fall back to the legacy
+  admin/staff model. Staff forms assign a permission **Profile**.
+
+**Phase 4 — Product Variants + Purchase Orders**
+- `product_variants` (parent/child, multidimensional `options` JSON) with CRUD at
+  `/api/products/:id/variants`; managed from the Magazzino row ("Varianti").
+  Legacy `products.colore` + `product_sizes` stay valid.
+- `suppliers` + `purchase_orders` + `po_items`; `/api/admin/suppliers` &
+  `/api/admin/purchase-orders` (create draft, **receive → adds to stock**
+  transactionally, idempotent). New **Acquisti** nav group (Fornitori + Ordini
+  fornitori), admin-only.
+
+New tables this pass: `product_variants`, `suppliers`, `purchase_orders`, `po_items`
+(+ `admin_users.permissions` column). All self-heal on boot.
