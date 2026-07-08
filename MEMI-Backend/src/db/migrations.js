@@ -397,6 +397,9 @@ async function runMigrations(pool) {
     await ensureColumn(pool, 'customer_addresses', 'nome_campanello', "nome_campanello VARCHAR(80) NULL");
     await ensureIndex(pool, 'order_items', 'idx_oi_product', 'product_id');
     await ensureIndex(pool, 'products', 'idx_products_cat_status', 'categoria, status');
+    // ── Granular RBAC: optional per-user permission set. NULL = derive from role
+    //    (admin=full, staff=operational) so existing accounts are unaffected. ──
+    await ensureColumn(pool, 'admin_users', 'permissions', 'permissions JSON NULL');
     // Per-courier tracking deep-link template ({tracking} → the tracking number)
     await ensureColumn(pool, 'couriers', 'tracking_url_template', 'tracking_url_template VARCHAR(255) NULL');
     // Store the Stripe PaymentIntent id per order and prevent it being replayed across orders.

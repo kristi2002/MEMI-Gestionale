@@ -1421,7 +1421,7 @@ VIEWS.staff = function(){
           <td>${roleB(u.role)}</td>
           <td style="color:var(--muted);font-size:12px">${new Date(u.created_at).toLocaleDateString('it-IT')}</td>
           <td style="text-align:right">
-            <button class="btn btn-ghost btn-sm js-edit-staff" data-id="${u.id}" data-nome="${u.nome||''}" data-email="${u.email}" data-role="${u.role}" title="Modifica"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-ghost btn-sm js-edit-staff" data-id="${u.id}" data-nome="${u.nome||''}" data-email="${u.email}" data-role="${u.role}" data-perms="${encodeURIComponent(typeof u.permissions==='string'?u.permissions:JSON.stringify(u.permissions||null))}" title="Modifica"><i class="ti ti-pencil"></i></button>
             <button class="btn btn-ghost btn-sm js-del-staff" data-id="${u.id}" data-nome="${u.nome||u.email}" style="color:var(--red)" title="Elimina"><i class="ti ti-trash"></i></button>
           </td>
         </tr>`).join('') : `<tr><td colspan="5" class="empty">${DATA.staff===null?'Caricamento…':'Nessun account staff'}</td></tr>`}
@@ -1476,13 +1476,29 @@ VIEWS.settings = function(){
 /* ── Role-based permissions ─────────────────────────────────
    'admin' = full access. 'staff' = operational sections only
    (no finance, statistiche, staff management, settings, integrations). */
-var ADMIN_ONLY_VIEWS = ['analytics','reports','liveview','finance','payouts','bills','taxes','integrations','staff','settings'];
+var ADMIN_ONLY_VIEWS = ['analytics','reports','liveview','finance','payouts','bills','taxes','integrations','staff','settings','audit-log'];
 function currentRole(){ return (window.CURRENT_ADMIN && window.CURRENT_ADMIN.role) || 'admin'; }
-function canAccessView(name){ return currentRole()==='admin' || ADMIN_ONLY_VIEWS.indexOf(name)===-1; }
+/* Effective permissions: an array of allowed view names, or null = full access.
+   null + role 'admin' → full; null + role 'staff' → legacy operational set. */
+function currentPermissions(){
+  var a = window.CURRENT_ADMIN || {};
+  if (Array.isArray(a.permissions)) return a.permissions;   // explicit granular set
+  return null;                                              // null → derive from role
+}
+function canAccessView(name){
+  if (name === 'dashboard') return true;
+  var perms = currentPermissions();
+  if (perms === null) return currentRole()==='admin' || ADMIN_ONLY_VIEWS.indexOf(name)===-1;
+  return perms.indexOf(name) !== -1 || perms.indexOf('*') !== -1;
+}
 function applyRolePermissions(){
-  if (currentRole()==='admin') return;            // full access — nothing to hide
-  ADMIN_ONLY_VIEWS.forEach(function(v){
-    document.querySelectorAll('[data-view="'+v+'"]').forEach(function(el){ el.style.display='none'; });
+  var perms = currentPermissions();
+  if (perms === null && currentRole()==='admin') return;   // full access — nothing to hide
+  // Hide every nav destination the user can't reach (works for both the legacy
+  // role model and explicit granular permission sets).
+  document.querySelectorAll('.nav-item[data-view]').forEach(function(el){
+    var v = el.getAttribute('data-view');
+    if (v && v !== 'dashboard' && !canAccessView(v)) el.style.display = 'none';
   });
   // collapse parent groups left with no visible children
   document.querySelectorAll('.nav-parent').forEach(function(p){
@@ -1493,6 +1509,35 @@ function applyRolePermissions(){
   });
 }
 window.applyRolePermissions = applyRolePermissions;
+
+/* Permission profiles for the Staff form (mirrors backend src/permissions.js).
+   null = derive from role (admin=full, staff=operational default). */
+var PERMISSION_PRESETS = {
+  admin:            { role: 'admin', permissions: null, label: 'Admin (accesso completo)' },
+  staff:            { role: 'staff', permissions: null, label: 'Staff (operativo completo)' },
+  warehouse:        { role: 'staff', label: 'Magazzino', permissions: ['dashboard','products','inventory','transfers','collections','categories','giftcards','couriers','shipments','tracking','shipping-zones','pickup','orders','orders-drafts','orders-abandoned'] },
+  customer_service: { role: 'staff', label: 'Servizio clienti', permissions: ['dashboard','orders','orders-drafts','orders-abandoned','returns','invoices','customers','loyalty','segments','reviews','chat','newsletter'] },
+  marketing:        { role: 'staff', label: 'Marketing', permissions: ['dashboard','marketing','automations','newsletter','popups','discounts','content','blog','files','analytics','reports','reviews'] },
+};
+function profileSelectHtml(selected){
+  return '<select name="profile" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">' +
+    Object.keys(PERMISSION_PRESETS).map(function(k){ return '<option value="'+k+'"'+(selected===k?' selected':'')+'>'+PERMISSION_PRESETS[k].label+'</option>'; }).join('') +
+    '</select>';
+}
+function profileToPayload(profile){
+  var p = PERMISSION_PRESETS[profile] || PERMISSION_PRESETS.staff;
+  return { role: p.role, permissions: p.permissions || null };
+}
+function deriveProfile(role, perms){
+  if (role === 'admin') return 'admin';
+  if (!Array.isArray(perms) || !perms.length) return 'staff';
+  var keys = Object.keys(PERMISSION_PRESETS);
+  for (var i = 0; i < keys.length; i++) {
+    var pr = PERMISSION_PRESETS[keys[i]].permissions;
+    if (pr && pr.length === perms.length && pr.every(function(v){ return perms.indexOf(v) !== -1; })) return keys[i];
+  }
+  return 'staff';
+}
 
 function renderView(name){
   const fn = VIEWS[name] || VIEWS.dashboard;
@@ -3296,7 +3341,7 @@ $(function(){
       '<div class="k">Nome</div><div class="v"><input type="text" name="nome" placeholder="Nome cognome" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
       '<div class="k">Email *</div><div class="v"><input type="email" name="email" required placeholder="staff@memi.it" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
       '<div class="k">Password *</div><div class="v"><input type="password" name="password" required placeholder="Min 8 caratteri" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
-      '<div class="k">Ruolo</div><div class="v"><select name="role" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"><option value="staff">Staff</option><option value="admin">Admin</option></select></div>'+
+      '<div class="k">Profilo permessi</div><div class="v">'+profileSelectHtml('staff')+'</div>'+
       '</div><div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'+
       '<button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>'+
       '<button type="submit" class="btn btn-primary btn-sm">Crea account</button></div></form>'
@@ -3305,9 +3350,10 @@ $(function(){
       e.preventDefault();
       if (!window.AdminAPI) return;
       var fd = Object.fromEntries(new FormData(this));
+      var perm = profileToPayload(fd.profile);
       var $btn = $(this).find('[type=submit]');
       $btn.prop('disabled', true).text('Creazione...');
-      AdminAPI.staff.create({ nome: fd.nome, email: fd.email, password: fd.password, role: fd.role })
+      AdminAPI.staff.create({ nome: fd.nome, email: fd.email, password: fd.password, role: perm.role, permissions: perm.permissions })
         .done(function(){ toast('Account creato', 'success'); closeModal(); renderView('staff'); })
         .fail(function(xhr){ var msg=(xhr.responseJSON&&xhr.responseJSON.error)||'Errore'; toast(msg,'error'); $btn.prop('disabled',false).text('Crea account'); });
     });
@@ -3321,15 +3367,14 @@ $(function(){
     var nome  = $(this).data('nome');
     var email = $(this).data('email');
     var role  = $(this).data('role');
+    var perms = null; try { perms = JSON.parse(decodeURIComponent($(this).data('perms')||'null')); } catch(_) {}
+    var profile = deriveProfile(role, perms);
     openModal('Modifica staff',
       '<form id="editStaffForm"><div class="kv" style="grid-template-columns:120px 1fr;gap:10px">'+
       '<div class="k">Nome</div><div class="v"><input type="text" name="nome" value="'+nome+'" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
       '<div class="k">Email</div><div class="v"><input type="email" name="email" value="'+email+'" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
       '<div class="k">Nuova password</div><div class="v"><input type="password" name="password" placeholder="(lascia vuoto per non cambiare)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>'+
-      '<div class="k">Ruolo</div><div class="v"><select name="role" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">'+
-        '<option value="staff"'+(role==='staff'?' selected':'')+'>Staff</option>'+
-        '<option value="admin"'+(role==='admin'?' selected':'')+'>Admin</option>'+
-      '</select></div>'+
+      '<div class="k">Profilo permessi</div><div class="v">'+profileSelectHtml(profile)+'</div>'+
       '</div><div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">'+
       '<button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>'+
       '<button type="submit" class="btn btn-primary btn-sm">Salva</button></div></form>'
@@ -3338,7 +3383,8 @@ $(function(){
       e.preventDefault();
       if (!window.AdminAPI) return;
       var fd = Object.fromEntries(new FormData(this));
-      var payload = { nome: fd.nome, email: fd.email, role: fd.role };
+      var perm = profileToPayload(fd.profile);
+      var payload = { nome: fd.nome, email: fd.email, role: perm.role, permissions: perm.permissions };
       if (fd.password) payload.password = fd.password;
       var $btn = $(this).find('[type=submit]');
       $btn.prop('disabled', true).text('Salvataggio...');
@@ -4404,6 +4450,13 @@ $(function(){
         DATA.staff = (data && data.staff) ? data.staff : [];
         _origRenderView(name);
       }).fail(function() { DATA.staff = DATA.staff || []; _apiFail(name); });
+
+    } else if (name === 'audit-log') {
+      DATA.auditLog = undefined;
+      api.auditLog.list(DATA.auditFilter ? { entity_type: DATA.auditFilter, limit: 200 } : { limit: 200 }).done(function(rows) {
+        DATA.auditLog = Array.isArray(rows) ? rows : [];
+        _origRenderView(name);
+      }).fail(function() { DATA.auditLog = []; _apiFail(name); });
 
     } else if (name === 'settings') {
       api.settings.get().done(function(data) {

@@ -121,12 +121,14 @@ const staffCreateSchema = z.object({
   nome:     z.string().trim().min(1).max(120),
   password: z.string().min(8, 'Minimo 8 caratteri').max(200),
   role:     z.enum(['admin', 'staff']).optional(),
+  permissions: z.array(z.string().max(40)).max(80).nullish(),   // granular RBAC (optional)
 });
 const staffUpdateSchema = z.object({
   email:    emailSchema.optional(),
   nome:     z.string().trim().min(1).max(120).optional(),
   password: z.string().min(8, 'Minimo 8 caratteri').max(200).optional().or(z.literal('').transform(() => undefined)),
   role:     z.enum(['admin', 'staff']).optional(),
+  permissions: z.array(z.string().max(40)).max(80).nullish(),
 }).passthrough();
 
 /* ── POST /api/payments/create-intent ── */

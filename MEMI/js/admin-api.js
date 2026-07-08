@@ -375,6 +375,10 @@
     delete:  function(id)     { return del('/admin/carts/' + id); },
   };
 
+  var auditLog = {
+    list: function(params) { return get('/admin/audit-log' + (params ? '?' + $.param(params) : '')); },
+  };
+
   /* ================================================================
      STAFF
      ================================================================ */
@@ -414,7 +418,7 @@
 
 
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups, automations, chat, carts };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups, automations, chat, carts, auditLog };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {

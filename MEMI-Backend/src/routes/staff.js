@@ -20,7 +20,7 @@ const { validateBody, staffCreateSchema, staffUpdateSchema } = require('../valid
 router.get('/', requireAdmin, async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      'SELECT id, email, nome, role, created_at FROM admin_users ORDER BY created_at ASC'
+      'SELECT id, email, nome, role, permissions, created_at FROM admin_users ORDER BY created_at ASC'
     );
     return res.json({ staff: rows, total: rows.length });
   } catch (err) {
@@ -34,20 +34,21 @@ router.post('/', requireAdmin, validateBody(staffCreateSchema), async (req, res)
   if (req.admin.role !== 'admin')
     return res.status(403).json({ error: 'Solo admin può creare account staff' });
 
-  const { email, nome, password, role = 'staff' } = req.body;
+  const { email, nome, password, role = 'staff', permissions } = req.body;
   if (!email || !password)
     return res.status(400).json({ error: 'Email e password obbligatori' });
   if (password.length < 8)
     return res.status(400).json({ error: 'La password deve contenere almeno 8 caratteri' });
 
+  const permsJson = (Array.isArray(permissions) && permissions.length) ? JSON.stringify(permissions) : null;
   try {
     const hash = await bcrypt.hash(password, 10);
     const [result] = await pool.execute(
-      'INSERT INTO admin_users (email, nome, password_hash, role) VALUES (?, ?, ?, ?)',
-      [email, nome || '', hash, role === 'admin' ? 'admin' : 'staff']
+      'INSERT INTO admin_users (email, nome, password_hash, role, permissions) VALUES (?, ?, ?, ?, ?)',
+      [email, nome || '', hash, role === 'admin' ? 'admin' : 'staff', permsJson]
     );
     const [[user]] = await pool.execute(
-      'SELECT id, email, nome, role, created_at FROM admin_users WHERE id = ?',
+      'SELECT id, email, nome, role, permissions, created_at FROM admin_users WHERE id = ?',
       [result.insertId]
     );
     logAdminAction({
@@ -68,13 +69,17 @@ router.put('/:id', requireAdmin, validateBody(staffUpdateSchema), async (req, re
   if (req.admin.role !== 'admin')
     return res.status(403).json({ error: 'Solo admin può modificare account staff' });
 
-  const { nome, email, role, password } = req.body;
+  const { nome, email, role, password, permissions } = req.body;
   const fields = [];
   const vals   = [];
 
   if (nome  !== undefined) { fields.push('nome = ?');  vals.push(nome); }
   if (email !== undefined) { fields.push('email = ?'); vals.push(email); }
   if (role  !== undefined) { fields.push('role = ?');  vals.push(role === 'admin' ? 'admin' : 'staff'); }
+  if (permissions !== undefined) {
+    fields.push('permissions = ?');
+    vals.push((Array.isArray(permissions) && permissions.length) ? JSON.stringify(permissions) : null);
+  }
   if (password) {
     if (password.length < 8)
       return res.status(400).json({ error: 'La password deve contenere almeno 8 caratteri' });
@@ -90,7 +95,7 @@ router.put('/:id', requireAdmin, validateBody(staffUpdateSchema), async (req, re
     vals.push(req.params.id);
     await pool.execute(`UPDATE admin_users SET ${fields.join(', ')} WHERE id = ?`, vals);
     const [[user]] = await pool.execute(
-      'SELECT id, email, nome, role, created_at FROM admin_users WHERE id = ?',
+      'SELECT id, email, nome, role, permissions, created_at FROM admin_users WHERE id = ?',
       [req.params.id]
     );
     if (!user) return res.status(404).json({ error: 'Utente non trovato' });

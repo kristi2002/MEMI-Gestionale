@@ -13,6 +13,7 @@ const jwt    = require('jsonwebtoken');
 const { pool }        = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const { logAdminAction } = require('../audit');
+const { resolvePermissions } = require('../permissions');
 
 function signAdminToken(payload) {
   return jwt.sign(payload, process.env.JWT_ADMIN_SECRET, {
@@ -43,7 +44,7 @@ router.post('/login', async (req, res) => {
 
   try {
     const [[admin]] = await pool.execute(
-      'SELECT id, email, nome, role, password_hash FROM admin_users WHERE email = ?',
+      'SELECT id, email, nome, role, permissions, password_hash FROM admin_users WHERE email = ?',
       [email.toLowerCase().trim()]
     );
     if (!admin) return res.status(401).json({ error: 'Credenziali non valide' });
@@ -51,13 +52,14 @@ router.post('/login', async (req, res) => {
     const match = await bcrypt.compare(password, admin.password_hash);
     if (!match) return res.status(401).json({ error: 'Credenziali non valide' });
 
-    const token = signAdminToken({ id: admin.id, email: admin.email, nome: admin.nome, role: admin.role });
+    const permissions = resolvePermissions(admin.role, admin.permissions);   // array | null(full)
+    const token = signAdminToken({ id: admin.id, email: admin.email, nome: admin.nome, role: admin.role, permissions });
     setAdminCookie(req, res, token);
     return res.json({
       // token kept for backward compatibility only; the client no longer stores it.
       token,
       cookie: true,
-      admin: { id: admin.id, email: admin.email, nome: admin.nome, role: admin.role },
+      admin: { id: admin.id, email: admin.email, nome: admin.nome, role: admin.role, permissions },
     });
   } catch (err) {
     console.error('admin login error', err);
@@ -75,10 +77,11 @@ router.post('/logout', (req, res) => {
 router.get('/me', requireAdmin, async (req, res) => {
   try {
     const [[admin]] = await pool.execute(
-      'SELECT id, email, nome, role, created_at FROM admin_users WHERE id = ?',
+      'SELECT id, email, nome, role, permissions, created_at FROM admin_users WHERE id = ?',
       [req.admin.id]
     );
     if (!admin) return res.status(404).json({ error: 'Admin non trovato' });
+    admin.permissions = resolvePermissions(admin.role, admin.permissions);   // array | null(full)
     return res.json(admin);
   } catch (err) {
     console.error('admin me error', err);
