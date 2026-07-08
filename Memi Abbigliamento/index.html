@@ -177,18 +177,19 @@
       justify-content: center;
       pointer-events: none;
     }
-    .hero-brand-wordmark {
-      font-family: var(--font-serif);
-      font-size: clamp(2.5rem, 6vw, 5rem);
-      font-weight: 300;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: rgba(255,255,255,.92);
-      text-shadow: 0 2px 24px rgba(0,0,0,.18);
+    .hero-brand-center { --hero-logo-w: clamp(180px, 26vw, 340px); }
+    .hero-brand-logo {
+      width: var(--hero-logo-w);
+      height: auto;
+      /* logo.svg is black: invert to white so it reads over the video */
+      filter: brightness(0) invert(1) drop-shadow(0 2px 22px rgba(0,0,0,.30));
+      /* the square SVG carries ~12% transparent padding at the bottom:
+         pull the season line back up so the lockup stays tight */
+      margin-bottom: calc(var(--hero-logo-w) * -0.08);
       opacity: 0;
-      animation: heroFadeIn 1.2s ease-out 0.4s forwards;
+      animation: heroLogoIn 1.2s ease-out 0.4s forwards;
     }
-    .hero-brand-wordmark span { color: rgba(241,240,248,.9); }
+    @keyframes heroLogoIn { to { opacity: .94; } }
     .hero-brand-season {
       font-family: var(--font-serif);
       font-style: italic;
@@ -1277,7 +1278,7 @@
 
     <!-- Centered wordmark watermark -->
     <div class="hero-brand-center" aria-hidden="true">
-      <div class="hero-brand-wordmark">Memi <span>A.</span></div>
+      <img src="/logo.svg" alt="" class="hero-brand-logo" />
       <div class="hero-brand-season">Estate 2025</div>
     </div>
 
