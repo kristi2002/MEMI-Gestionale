@@ -176,8 +176,11 @@ Fatti nuovi veri nel codice:
 
 ## Update Luglio 2026 — Admin mobile + UX pass (frontend only)
 
-Docs: `docs/ADMIN-PANEL.md` (full admin reference), `docs/ADMIN-GAP-ANALYSIS-AND-PLAN.md`
-(phased plan), `docs/ADMIN-CHANGES-JULY-2026.md` (implementation report).
+Docs: the admin is fully documented in **`docs/admin/`** — a consolidated 10-file set
+(`01-overview` → `10-testing-and-runbook`): overview, architecture, feature catalog,
+API reference, data model, frontend guide, integrations, deployment, strategy/roadmap,
+testing/runbook. Start at `docs/admin/01-overview.md`. (The earlier `docs/ADMIN-*.md`
+files were folded into this set.)
 
 New facts true in the admin (`MEMI/`) code — **no backend changes**:
 - **Mobile nav is an off-canvas drawer** (≤900px), not the old bottom-bar. The
