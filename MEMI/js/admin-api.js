@@ -379,6 +379,29 @@
     list: function(params) { return get('/admin/audit-log' + (params ? '?' + $.param(params) : '')); },
   };
 
+  var variants = {
+    list:   function(pid)        { return get('/products/' + encodeURIComponent(pid) + '/variants'); },
+    create: function(pid, d)     { return post('/products/' + encodeURIComponent(pid) + '/variants', d); },
+    update: function(pid, vid, d) { return put('/products/' + encodeURIComponent(pid) + '/variants/' + vid, d); },
+    delete: function(pid, vid)   { return del('/products/' + encodeURIComponent(pid) + '/variants/' + vid); },
+  };
+
+  var suppliers = {
+    list:   function()      { return get('/admin/suppliers'); },
+    create: function(d)     { return post('/admin/suppliers', d); },
+    update: function(id, d) { return put('/admin/suppliers/' + id, d); },
+    delete: function(id)    { return del('/admin/suppliers/' + id); },
+  };
+
+  var purchaseOrders = {
+    list:    function()      { return get('/admin/purchase-orders'); },
+    get:     function(id)    { return get('/admin/purchase-orders/' + id); },
+    create:  function(d)     { return post('/admin/purchase-orders', d); },
+    update:  function(id, d) { return put('/admin/purchase-orders/' + id, d); },
+    delete:  function(id)    { return del('/admin/purchase-orders/' + id); },
+    receive: function(id)    { return post('/admin/purchase-orders/' + id + '/receive', {}); },
+  };
+
   /* ================================================================
      STAFF
      ================================================================ */
@@ -418,7 +441,7 @@
 
 
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups, automations, chat, carts, auditLog };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups, automations, chat, carts, auditLog, variants, suppliers, purchaseOrders };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {

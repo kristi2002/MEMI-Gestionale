@@ -63,6 +63,8 @@ const chatPublicRoutes    = require('./routes/chat-public');
 const feedRoutes          = require('./routes/feed');
 const cartsRoutes         = require('./routes/carts');
 const cartPublicRoutes    = require('./routes/cart-public');
+const productVariantsRoutes = require('./routes/product-variants');
+const purchasingRoutes    = require('./routes/purchasing');
 const { ensureDir: ensureUploadsDir, UPLOADS_DIR } = require('./images');
 const { requestLogger }  = require('./logger');
 
@@ -220,6 +222,7 @@ app.get('/health', async (req, res) => {
 app.use('/api/auth',              authRoutes);
 app.use('/api/auth',              accountRoutes);   // wishlist, addresses, newsletter (customer)
 app.use('/api/admin/auth',        adminAuthRoutes);
+app.use('/api/products',          productVariantsRoutes);   // /:id/variants* (before flat products router)
 app.use('/api/products',          productsRoutes);
 app.use('/api/admin/products',    productsImportRoutes);   // bulk CSV import (admin)
 app.use('/api/orders',            ordersRoutes);
@@ -254,6 +257,7 @@ app.use('/api/chat',              chatPublicRoutes);   // public storefront widg
 app.use('/api/feed',              feedRoutes);         // public product feed (Meta/Google)
 app.use('/api/admin/carts',       cartsRoutes);
 app.use('/api/cart',              cartPublicRoutes);   // public cart beacon (storefront)
+app.use('/api/admin',             purchasingRoutes);   // /suppliers* + /purchase-orders*
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));

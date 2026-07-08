@@ -228,6 +228,57 @@ const STATEMENTS = [
      KEY idx_msg_conv (conversation_id, id)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
+  // ── Product variants (Prodotti · Varianti) — true parent/child variants ─────
+  //  Additive: a parent product (products.id) can have N variants, each a
+  //  combination of option values (options JSON, e.g. {colore,taglia,materiale})
+  //  with its own SKU / optional price override / stock. The legacy flat
+  //  products.colore + product_sizes remain valid for products without variants.
+  `CREATE TABLE IF NOT EXISTS product_variants (
+     id         INT AUTO_INCREMENT PRIMARY KEY,
+     product_id VARCHAR(100) NOT NULL,
+     sku        VARCHAR(100) NULL,
+     options    JSON NULL,
+     price      DECIMAL(10,2) NULL,
+     stock      INT NOT NULL DEFAULT 0,
+     image_url  VARCHAR(255) NULL,
+     attivo     TINYINT(1) NOT NULL DEFAULT 1,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_pv_product (product_id)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Suppliers + Purchase Orders (Acquisti) — draft POs, receive stock ───────
+  `CREATE TABLE IF NOT EXISTS suppliers (
+     id         INT AUTO_INCREMENT PRIMARY KEY,
+     nome       VARCHAR(150) NOT NULL,
+     email      VARCHAR(255) NULL,
+     telefono   VARCHAR(40)  NULL,
+     note       TEXT NULL,
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  `CREATE TABLE IF NOT EXISTS purchase_orders (
+     id          INT AUTO_INCREMENT PRIMARY KEY,
+     numero      VARCHAR(30) NULL,
+     supplier_id INT NULL,
+     stato       VARCHAR(20) NOT NULL DEFAULT 'bozza',
+     note        TEXT NULL,
+     totale      DECIMAL(12,2) NOT NULL DEFAULT 0,
+     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     received_at TIMESTAMP NULL,
+     KEY idx_po_stato (stato),
+     KEY idx_po_supplier (supplier_id)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  `CREATE TABLE IF NOT EXISTS po_items (
+     id             INT AUTO_INCREMENT PRIMARY KEY,
+     po_id          INT NOT NULL,
+     prodotto       VARCHAR(100) NOT NULL,
+     taglia         VARCHAR(20)  NULL,
+     quantita       INT NOT NULL DEFAULT 0,
+     costo_unitario DECIMAL(10,2) NOT NULL DEFAULT 0,
+     KEY idx_poi_po (po_id)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
   // ── Carts (Ordini · Carrelli abbandonati) — storefront cart snapshots ───────
   `CREATE TABLE IF NOT EXISTS carts (
      id          INT AUTO_INCREMENT PRIMARY KEY,

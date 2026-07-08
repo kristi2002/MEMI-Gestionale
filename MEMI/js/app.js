@@ -473,6 +473,7 @@ VIEWS.inventory = function(){
           <td>${statusPill(p.stock===0?'Esaurito':p.stock<10?'Scorta bassa':'OK')}</td>
           <td class="row-actions">
             <button class="btn btn-soft btn-sm js-update-stock" data-id="${p.id}" data-nome="${p.nome}" title="Aggiorna stock"><i class="ti ti-pencil"></i> Stock</button>
+            <button class="btn btn-ghost btn-sm js-variants" data-id="${p.id}" data-nome="${(p.nome||'').replace(/"/g,'&quot;')}" title="Gestisci varianti"><i class="ti ti-versions"></i> Varianti</button>
           </td>
         </tr>`).join('')}
       </tbody>
@@ -1476,7 +1477,7 @@ VIEWS.settings = function(){
 /* ── Role-based permissions ─────────────────────────────────
    'admin' = full access. 'staff' = operational sections only
    (no finance, statistiche, staff management, settings, integrations). */
-var ADMIN_ONLY_VIEWS = ['analytics','reports','liveview','finance','payouts','bills','taxes','integrations','staff','settings','audit-log'];
+var ADMIN_ONLY_VIEWS = ['analytics','reports','liveview','finance','payouts','bills','taxes','integrations','staff','settings','audit-log','suppliers','purchase-orders'];
 function currentRole(){ return (window.CURRENT_ADMIN && window.CURRENT_ADMIN.role) || 'admin'; }
 /* Effective permissions: an array of allowed view names, or null = full access.
    null + role 'admin' → full; null + role 'staff' → legacy operational set. */
@@ -4457,6 +4458,22 @@ $(function(){
         DATA.auditLog = Array.isArray(rows) ? rows : [];
         _origRenderView(name);
       }).fail(function() { DATA.auditLog = []; _apiFail(name); });
+
+    } else if (name === 'suppliers') {
+      DATA.suppliers = undefined;
+      api.suppliers.list().done(function(rows) {
+        DATA.suppliers = Array.isArray(rows) ? rows : [];
+        _origRenderView(name);
+      }).fail(function() { DATA.suppliers = []; _apiFail(name); });
+
+    } else if (name === 'purchase-orders') {
+      DATA.purchaseOrders = undefined;
+      // Suppliers are needed for the "new order" dropdown — fetch both.
+      $.when(api.purchaseOrders.list(), api.suppliers.list()).done(function(poRes, supRes) {
+        DATA.purchaseOrders = Array.isArray(poRes[0]) ? poRes[0] : [];
+        DATA.suppliers      = Array.isArray(supRes[0]) ? supRes[0] : (DATA.suppliers || []);
+        _origRenderView(name);
+      }).fail(function() { DATA.purchaseOrders = []; _apiFail(name); });
 
     } else if (name === 'settings') {
       api.settings.get().done(function(data) {
