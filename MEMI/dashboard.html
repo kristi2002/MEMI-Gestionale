@@ -247,6 +247,11 @@
   <!-- Admin API client — must load before app.js -->
   <script src="js/admin-api.js?v=17"></script>
   <script src="js/app.js?v=28"></script>
+  <!-- Domain modules — classic scripts sharing app.js's global scope; must load
+       AFTER app.js. Extracted from the monolith for maintainability. -->
+  <script src="js/modules/order-detail.js?v=1"></script>
+  <script src="js/modules/chat.js?v=1"></script>
+  <script src="js/modules/pagination.js?v=1"></script>
 </body>
 
 </html>
