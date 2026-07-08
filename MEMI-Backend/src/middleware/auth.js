@@ -2,6 +2,21 @@
 
 const jwt = require('jsonwebtoken');
 
+/** Read a single cookie value from the raw Cookie header (no cookie-parser dep). */
+function readCookie(req, name) {
+  const header = req.headers['cookie'];
+  if (!header) return null;
+  const parts = header.split(';');
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i].trim();
+    const eq = p.indexOf('=');
+    if (eq > -1 && p.slice(0, eq) === name) {
+      try { return decodeURIComponent(p.slice(eq + 1)); } catch (_) { return p.slice(eq + 1); }
+    }
+  }
+  return null;
+}
+
 /**
  * requireCustomer
  * Validates a customer JWT from the Authorization header.
@@ -40,8 +55,11 @@ function optionalCustomer(req, res, next) {
  * Sets req.admin = { id, email, nome, role } on success.
  */
 function requireAdmin(req, res, next) {
+  // Prefer the HttpOnly cookie; fall back to the Authorization header so any
+  // still-active header-based session keeps working during the migration.
   const header = req.headers['authorization'] || '';
-  const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const bearer = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token  = readCookie(req, 'memi_admin_token') || bearer;
   if (!token) return res.status(401).json({ error: 'Token admin mancante' });
 
   try {
@@ -66,4 +84,4 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireCustomer, optionalCustomer, requireAdmin, requireRole };
+module.exports = { requireCustomer, optionalCustomer, requireAdmin, requireRole, readCookie };

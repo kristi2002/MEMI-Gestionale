@@ -20,6 +20,21 @@ function signAdminToken(payload) {
   });
 }
 
+/** Set the admin JWT as an HttpOnly cookie. `secure` is derived from the actual
+ *  request protocol (via the proxy's X-Forwarded-Proto) so it works over HTTPS in
+ *  production and over http://localhost in dev. SameSite=Lax is fine because the
+ *  admin talks to /api same-origin through its nginx proxy. */
+function setAdminCookie(req, res, token) {
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  res.cookie('memi_admin_token', token, {
+    httpOnly: true,
+    secure:   isHttps,
+    sameSite: 'lax',
+    path:     '/',
+    maxAge:   8 * 60 * 60 * 1000, // 8h, matches JWT_ADMIN_EXPIRES_IN default
+  });
+}
+
 /* ── POST /api/admin/auth/login ── */
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -37,14 +52,23 @@ router.post('/login', async (req, res) => {
     if (!match) return res.status(401).json({ error: 'Credenziali non valide' });
 
     const token = signAdminToken({ id: admin.id, email: admin.email, nome: admin.nome, role: admin.role });
+    setAdminCookie(req, res, token);
     return res.json({
+      // token kept for backward compatibility only; the client no longer stores it.
       token,
+      cookie: true,
       admin: { id: admin.id, email: admin.email, nome: admin.nome, role: admin.role },
     });
   } catch (err) {
     console.error('admin login error', err);
     return res.status(500).json({ error: 'Errore server' });
   }
+});
+
+/* ── POST /api/admin/auth/logout ── clears the HttpOnly cookie ── */
+router.post('/logout', (req, res) => {
+  res.clearCookie('memi_admin_token', { path: '/' });
+  return res.json({ ok: true });
 });
 
 /* ── GET /api/admin/auth/me ── */

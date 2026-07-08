@@ -2358,8 +2358,11 @@ $(function(){
   // Logout — clear token before redirecting
   $(document).on('click','.logout-btn', function(e){
     e.preventDefault();
-    if (window.AdminAPI) AdminAPI.auth.logout();
-    window.location.href = 'index.html';
+    function go(){ window.location.href = 'index.html'; }
+    // Wait for the backend to clear the HttpOnly cookie before navigating away
+    // (JS can't clear it itself). Redirect regardless on completion/failure.
+    if (window.AdminAPI) { AdminAPI.auth.logout().always(go); }
+    else { go(); }
   });
 
   /* ===== CHAT EVENTS ===== */

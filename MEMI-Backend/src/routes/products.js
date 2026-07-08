@@ -266,16 +266,32 @@ router.put('/:id/stock', requireAdmin, async (req, res) => {
   const { taglia, stock } = req.body;
   if (!taglia || stock === undefined)
     return res.status(400).json({ error: 'taglia e stock obbligatori' });
+  const val = parseInt(stock, 10);
+  if (!Number.isInteger(val) || val < 0)
+    return res.status(400).json({ error: 'Stock non valido' });
+
+  const conn = await pool.getConnection();
   try {
-    await pool.execute(
-      `INSERT INTO product_sizes (product_id, taglia, stock) VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE stock = ?`,
-      [req.params.id, taglia, stock, stock]
+    await conn.beginTransaction();
+    // Lock the size row so concurrent stock writes to the same product/taglia
+    // serialize (no lost updates against checkout's conditional decrement).
+    await conn.execute(
+      'SELECT stock FROM product_sizes WHERE product_id = ? AND taglia = ? FOR UPDATE',
+      [req.params.id, taglia]
     );
+    await conn.execute(
+      `INSERT INTO product_sizes (product_id, taglia, stock) VALUES (?, ?, ?)
+       ON DUPLICATE KEY UPDATE stock = VALUES(stock)`,
+      [req.params.id, taglia, val]
+    );
+    await conn.commit();
     return res.json({ ok: true });
   } catch (err) {
+    await conn.rollback();
     console.error('stock update error', err);
     return res.status(500).json({ error: 'Errore server' });
+  } finally {
+    conn.release();
   }
 });
 

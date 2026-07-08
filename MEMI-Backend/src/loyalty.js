@@ -47,6 +47,11 @@ async function getConfig(conn) {
 /** Apply a points delta to a customer and write a ledger row, atomically. */
 async function applyPoints(conn, customerId, delta, reason, orderId) {
   if (!customerId || !delta) return;
+  // Lock the customer row first so concurrent point mutations serialize: the
+  // increment below is already atomic (no lost points), and this also makes the
+  // recorded balance_after exact within a transaction. Harmless when `conn` is a
+  // pooled connection (the lock simply releases at statement end).
+  await conn.execute('SELECT points FROM customers WHERE id = ? FOR UPDATE', [customerId]);
   await conn.execute(
     'UPDATE customers SET points = GREATEST(0, COALESCE(points,0) + ?) WHERE id = ?',
     [delta, customerId]

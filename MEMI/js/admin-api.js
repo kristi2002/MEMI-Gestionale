@@ -19,10 +19,16 @@
   var metaEl   = document.querySelector('meta[name="memi-api"]');
   var API_BASE = (metaEl && metaEl.content) || '/api';
 
-  /* ── Token helpers ─────────────────────────────────────────── */
-  function getToken()   { try { return localStorage.getItem('memi_admin_token');       } catch(_){ return null; } }
-  function setToken(t)  { try { localStorage.setItem('memi_admin_token', t);           } catch(_){} }
-  function clearToken() { try { localStorage.removeItem('memi_admin_token');            } catch(_){} }
+  /* ── Auth state ────────────────────────────────────────────────
+     The JWT now lives in an HttpOnly cookie the browser sends automatically on
+     same-origin /api calls — it is NOT readable/stored by JS. We keep a plain
+     non-secret "session" flag in localStorage only to answer isLoggedIn() before
+     the /me check runs. getToken() still reads any legacy localStorage JWT so a
+     session created before this migration keeps working until the next login. */
+  function getToken()     { try { return localStorage.getItem('memi_admin_token');   } catch(_){ return null; } }
+  function clearToken()   { try { localStorage.removeItem('memi_admin_token');        } catch(_){} }
+  function setSession()   { try { localStorage.setItem('memi_admin_session', '1');    } catch(_){} }
+  function clearSession() { try { localStorage.removeItem('memi_admin_session');      } catch(_){} }
 
   /* ── Core request ──────────────────────────────────────────── */
   function request(method, path, data) {
@@ -37,13 +43,14 @@
       data:        (data !== undefined) ? JSON.stringify(data) : undefined,
       headers:     headers,
       dataType:    'json',
+      xhrFields:   { withCredentials: true },   // send/receive the HttpOnly auth cookie
     }).fail(function(xhr) {
       var msg = (xhr.responseJSON && xhr.responseJSON.error) || xhr.statusText || 'Errore di rete';
       // If 401 on any admin request, the token is expired/invalid — clear it and
       // return to login. Guarded to the dashboard so login-page 401s (wrong
       // password) surface their message instead of looping a redirect.
       if (xhr.status === 401 && window.location.pathname.indexOf('dashboard') !== -1) {
-        clearToken();
+        clearToken(); clearSession();
         window.location.href = 'index.html?session=expired';
       }
       return $.Deferred().reject({ error: msg });
@@ -61,12 +68,26 @@
   var auth = {
     login: function(email, password) {
       return post('/admin/auth/login', { email: email, password: password })
-        .done(function(data) { if (data.token) setToken(data.token); });
+        .done(function() {
+          // The JWT is now in the HttpOnly cookie set by the response — do NOT
+          // store it in localStorage. Drop any legacy token and mark the session.
+          clearToken();
+          setSession();
+        });
     },
-    logout:    function() { clearToken(); },
+    logout: function() {
+      clearToken(); clearSession();
+      // Best-effort: ask the backend to clear the HttpOnly cookie.
+      return post('/admin/auth/logout', {});
+    },
     me:        function() { return get('/admin/auth/me'); },
     changePassword: function(current, nw) { return put('/admin/auth/password', { current_password: current, new_password: nw }); },
-    isLoggedIn: function() { return !!getToken(); },
+    // Logged-in if the session flag is set (new cookie flow) or a legacy token
+    // still exists (pre-migration session). The /me call is the real verification.
+    isLoggedIn: function() {
+      try { return !!(localStorage.getItem('memi_admin_session') || localStorage.getItem('memi_admin_token')); }
+      catch(_) { return false; }
+    },
   };
 
   /* ═══════════════════════════════════════════════════════
@@ -108,6 +129,7 @@
         processData: false,
         contentType: false,
         headers:     token ? { Authorization: 'Bearer ' + token } : {},
+        xhrFields:   { withCredentials: true },
         dataType:    'json',
       });
     },
@@ -126,6 +148,7 @@
         processData: false,
         contentType: false,
         headers:     token ? { Authorization: 'Bearer ' + token } : {},
+        xhrFields:   { withCredentials: true },
         dataType:    'json',
       });
     },
@@ -146,6 +169,7 @@
         processData: false,
         contentType: false,
         headers:     token ? { Authorization: 'Bearer ' + token } : {},
+        xhrFields:   { withCredentials: true },
         dataType:    'json',
       });
     },
@@ -368,6 +392,7 @@
         processData: false,
         contentType: false,
         headers:     token ? { Authorization: 'Bearer ' + token } : {},
+        xhrFields:   { withCredentials: true },
         dataType:    'json',
       });
     },

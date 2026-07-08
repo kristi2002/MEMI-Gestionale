@@ -54,17 +54,22 @@
       contentType: 'application/json',
       data:        JSON.stringify({ email: email, password: password }),
       dataType:    'json',
+      xhrFields:   { withCredentials: true },   // accept the Set-Cookie auth cookie
     });
   }
 
   $(function(){
-    // If already logged in, skip to dashboard
-    var existingToken = localStorage.getItem('memi_admin_token');
-    if (existingToken) {
-      // Quick verify — if token is good, go directly to dashboard
-      $.ajax({ url: API_BASE + '/admin/auth/me', headers: { Authorization: 'Bearer ' + existingToken } })
+    // If a session already exists (cookie or legacy token), verify and skip to dashboard.
+    var legacyToken = localStorage.getItem('memi_admin_token');
+    var hasSession  = localStorage.getItem('memi_admin_session') || legacyToken;
+    if (hasSession) {
+      $.ajax({
+        url: API_BASE + '/admin/auth/me',
+        headers: legacyToken ? { Authorization: 'Bearer ' + legacyToken } : {},
+        xhrFields: { withCredentials: true },
+      })
         .done(function() { window.location.href = 'dashboard.html'; })
-        .fail(function() { localStorage.removeItem('memi_admin_token'); });
+        .fail(function() { localStorage.removeItem('memi_admin_token'); localStorage.removeItem('memi_admin_session'); });
     }
 
     // Show "sessione scaduta" message if redirected after expiry
@@ -83,8 +88,9 @@
       $msg.removeClass('error success').text('');
 
       adminLogin(email, pass)
-        .done(function(data) {
-          try { localStorage.setItem('memi_admin_token', data.token); } catch(_) {}
+        .done(function() {
+          // JWT is in the HttpOnly cookie now — store only a non-secret session flag.
+          try { localStorage.removeItem('memi_admin_token'); localStorage.setItem('memi_admin_session', '1'); } catch(_) {}
           $msg.addClass('success').text('Accesso effettuato. Reindirizzamento...');
           setTimeout(function() { window.location.href = 'dashboard.html'; }, 500);
         })
