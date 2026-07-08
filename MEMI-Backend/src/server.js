@@ -125,6 +125,7 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['X-Total-Count'],   // pagination total for the products list
 }));
 
 // ── Stripe webhook (needs the RAW body for signature verification) ────────────

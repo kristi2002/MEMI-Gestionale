@@ -110,6 +110,19 @@
   var products = {
     list:        function(params) { return get('/products?' + $.param(Object.assign({ status: 'all' }, params || {}))); },
     listAll:     function()       { return get('/products?status=all'); },
+    // Paginated list — resolves { products, total } by reading the X-Total-Count
+    // header. Body stays an array (storefront-compatible).
+    listPaged:   function(params) {
+      var dfd = $.Deferred();
+      $.ajax({
+        url:       API_BASE + '/products?' + $.param(Object.assign({ status: 'all' }, params || {})),
+        method:    'GET', dataType: 'json', xhrFields: { withCredentials: true },
+      }).done(function(list, _status, xhr) {
+        var total = parseInt(xhr.getResponseHeader('X-Total-Count'), 10);
+        dfd.resolve({ products: Array.isArray(list) ? list : [], total: isNaN(total) ? (Array.isArray(list) ? list.length : 0) : total });
+      }).fail(function(xhr) { dfd.reject(xhr); });
+      return dfd.promise();
+    },
     get:         function(id)     { return get('/products/' + encodeURIComponent(id)); },
     create:      function(data)   { return post('/products', data); },
     update:      function(id, data) { return put('/products/' + encodeURIComponent(id), data); },

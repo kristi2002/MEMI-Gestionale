@@ -56,27 +56,35 @@ router.get('/', async (req, res) => {
   try {
     const { categoria, colore, saldi, novita, q, collection, status, limit = 100, offset = 0 } = req.query;
 
-    let sql    = 'SELECT p.*, GROUP_CONCAT(ps.taglia ORDER BY ps.taglia SEPARATOR ",") AS taglie_str, COALESCE(SUM(ps.stock), 0) AS stock_total FROM products p LEFT JOIN product_sizes ps ON ps.product_id = p.id WHERE 1=1';
+    // Build the filter once so it can be reused for the COUNT (pagination total).
+    let filter = '';
     const params = [];
-
-    if (categoria) { sql += ' AND p.categoria = ?'; params.push(categoria); }
-    if (colore)    { sql += ' AND p.colore = ?';    params.push(colore); }
-    if (saldi === '1') { sql += ' AND p.discount_pct > 0'; }
-    if (novita === '1') { sql += ' AND p.is_new = TRUE'; }
-    if (q)  { sql += ' AND (p.name LIKE ? OR p.categoria LIKE ?)'; params.push(`%${q}%`, `%${q}%`); }
-    if (collection) { sql += ' AND JSON_CONTAINS(p.collections, ?)'; params.push(JSON.stringify(collection)); }
-
+    if (categoria) { filter += ' AND p.categoria = ?'; params.push(categoria); }
+    if (colore)    { filter += ' AND p.colore = ?';    params.push(colore); }
+    if (saldi === '1') { filter += ' AND p.discount_pct > 0'; }
+    if (novita === '1') { filter += ' AND p.is_new = TRUE'; }
+    if (q)  { filter += ' AND (p.name LIKE ? OR p.categoria LIKE ?)'; params.push(`%${q}%`, `%${q}%`); }
+    if (collection) { filter += ' AND JSON_CONTAINS(p.collections, ?)'; params.push(JSON.stringify(collection)); }
     // status=all → no filter (admin view); specific value → filter by it; default → "attivo" only
     if (status === 'all') { /* no filter */ }
-    else if (status && status !== 'attivo') { sql += ' AND p.status = ?'; params.push(status); }
-    else { sql += ' AND p.status = "attivo"'; }
-    sql += ' GROUP BY p.id';
-    sql += ' ORDER BY p.popularity DESC';
+    else if (status && status !== 'attivo') { filter += ' AND p.status = ?'; params.push(status); }
+    else { filter += ' AND p.status = "attivo"'; }
+
     const safeLimit  = parseInt(limit)  || 100;
     const safeOffset = parseInt(offset) || 0;
-    sql += ` LIMIT ${safeLimit} OFFSET ${safeOffset}`;
 
+    const sql = 'SELECT p.*, GROUP_CONCAT(ps.taglia ORDER BY ps.taglia SEPARATOR ",") AS taglie_str, '
+      + 'COALESCE(SUM(ps.stock), 0) AS stock_total FROM products p '
+      + 'LEFT JOIN product_sizes ps ON ps.product_id = p.id WHERE 1=1' + filter
+      + ` GROUP BY p.id ORDER BY p.popularity DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
     const [rows] = await pool.execute(sql, params);
+
+    // Total for pagination — as a response header so the array body stays
+    // backward-compatible for the storefront catalog loader.
+    try {
+      const [[cnt]] = await pool.execute('SELECT COUNT(*) AS total FROM products p WHERE 1=1' + filter, params);
+      res.setHeader('X-Total-Count', String(cnt.total));
+    } catch (_) {}
 
     // Parse JSON fields and split taglie
     const products = rows.map(r => ({
