@@ -21,18 +21,21 @@ function signAdminToken(payload) {
   });
 }
 
-/** Set the admin JWT as an HttpOnly cookie. `secure` is derived from the actual
- *  request protocol (via the proxy's X-Forwarded-Proto) so it works over HTTPS in
- *  production and over http://localhost in dev. SameSite=Lax is fine because the
- *  admin talks to /api same-origin through its nginx proxy. */
-function setAdminCookie(req, res, token) {
+/** Cookie attributes shared by set + clear. `secure` is derived from the actual request
+ *  protocol (via the proxy's X-Forwarded-Proto) so it works over HTTPS in production and over
+ *  http://localhost in dev. SameSite=Lax is fine because the admin talks to /api same-origin
+ *  through its nginx proxy. The clear MUST use the SAME attributes as the set, or browsers
+ *  (esp. Chrome on an HTTPS `Secure` cookie) won't actually delete it — which is why "logout"
+ *  used to leave a valid cookie and the login page bounced you straight back in. */
+function adminCookieOpts(req) {
   const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  return { httpOnly: true, secure: isHttps, sameSite: 'lax', path: '/' };
+}
+
+function setAdminCookie(req, res, token) {
   res.cookie('memi_admin_token', token, {
-    httpOnly: true,
-    secure:   isHttps,
-    sameSite: 'lax',
-    path:     '/',
-    maxAge:   8 * 60 * 60 * 1000, // 8h, matches JWT_ADMIN_EXPIRES_IN default
+    ...adminCookieOpts(req),
+    maxAge: 8 * 60 * 60 * 1000, // 8h, matches JWT_ADMIN_EXPIRES_IN default
   });
 }
 
@@ -69,7 +72,9 @@ router.post('/login', async (req, res) => {
 
 /* ── POST /api/admin/auth/logout ── clears the HttpOnly cookie ── */
 router.post('/logout', (req, res) => {
-  res.clearCookie('memi_admin_token', { path: '/' });
+  // Clear with the SAME attributes it was set with (secure/sameSite/path) so the browser
+  // actually deletes it — otherwise the cookie survives and /me keeps succeeding after logout.
+  res.clearCookie('memi_admin_token', adminCookieOpts(req));
   return res.json({ ok: true });
 });
 

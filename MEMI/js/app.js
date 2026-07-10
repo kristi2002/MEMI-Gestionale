@@ -2528,9 +2528,12 @@ $(function(){
   // .logout-btn class for styling — without this, opening "Cambia password" would also log out.
   $(document).on('click','.logout-btn:not(.js-change-password)', function(e){
     e.preventDefault();
-    function go(){ window.location.href = 'index.html'; }
-    // Wait for the backend to clear the HttpOnly cookie before navigating away
-    // (JS can't clear it itself). Redirect regardless on completion/failure.
+    // ?loggedout=1 tells the login page to show the form instead of auto-redirecting — a
+    // belt-and-braces guard so a failed cookie/localStorage clear can never bounce you back in.
+    function go(){ window.location.href = 'index.html?loggedout=1'; }
+    // Always drop the client-side session flag/legacy token, even if AdminAPI is unavailable.
+    try { localStorage.removeItem('memi_admin_session'); localStorage.removeItem('memi_admin_token'); } catch(_){}
+    // Ask the backend to clear the HttpOnly cookie (JS can't), then navigate regardless.
     if (window.AdminAPI) { AdminAPI.auth.logout().always(go); }
     else { go(); }
   });

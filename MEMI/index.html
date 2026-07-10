@@ -59,10 +59,18 @@
   }
 
   $(function(){
+    var params = new URLSearchParams(window.location.search);
+    // Just logged out: force the login form and drop any residual client state — never
+    // auto-redirect back to the dashboard (this is what caused the logout→back-in loop).
+    var justLoggedOut = params.get('loggedout') === '1';
+    if (justLoggedOut) {
+      try { localStorage.removeItem('memi_admin_token'); localStorage.removeItem('memi_admin_session'); } catch(_){}
+    }
+
     // If a session already exists (cookie or legacy token), verify and skip to dashboard.
     var legacyToken = localStorage.getItem('memi_admin_token');
     var hasSession  = localStorage.getItem('memi_admin_session') || legacyToken;
-    if (hasSession) {
+    if (hasSession && !justLoggedOut) {
       $.ajax({
         url: API_BASE + '/admin/auth/me',
         headers: legacyToken ? { Authorization: 'Bearer ' + legacyToken } : {},
@@ -73,7 +81,7 @@
     }
 
     // Show "sessione scaduta" message if redirected after expiry
-    if (new URLSearchParams(window.location.search).get('session') === 'expired') {
+    if (params.get('session') === 'expired') {
       $('#loginMsg').addClass('error').text('Sessione scaduta. Accedi di nuovo.');
     }
 
