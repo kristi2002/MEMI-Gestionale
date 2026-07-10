@@ -1,6 +1,13 @@
 # MEMI Integrations
 How the e-commerce, admin, and backend connect.
 
+> **Updated 2026-07-10.** For the complete endpoint list use **`docs/api.md`** (~150 endpoints,
+> regenerated from code); the route map below covers the core flows and may lag the newest routes
+> (variants, purchasing/suppliers, chat, carts, analytics-track, automations, popups, expenses,
+> segments, transfers, feed). **Admin auth is an HttpOnly cookie `memi_admin_token`** (8h, SameSite=Lax)
+> with a legacy `Authorization: Bearer` fallback — not plain localStorage. Customer auth stays a
+> Bearer JWT (`memi_token`). Health endpoint: `GET /health`.
+
 ---
 
 ## E-commerce ↔ Backend
@@ -147,6 +154,18 @@ In development (running files locally without Docker), set the meta content to `
 - Requires `STRIPE_SECRET_KEY` env var
 - Creates PaymentIntents with `stripe.paymentIntents.create()`
 - `orders.js` verifies PaymentIntents with `stripe.paymentIntents.retrieve()` before saving orders
+
+## Backend ↔ PayPal & Klarna (scaffolding, config-gated)
+
+`src/payment-providers.js` (used by `payments.js` + `orders.js`), added 2026-07-10:
+- Config-gated like Stripe — with `PAYPAL_*`/`KLARNA_*` unset, `GET /api/payments/config` reports
+  `providers.paypal/klarna:false`, the checkout hides the option, and `/api/payments/paypal|klarna/*`
+  return **503**.
+- Routes: `POST /paypal/create-order`, `POST /paypal/capture`, `POST /klarna/create-session`,
+  `POST /klarna/create-order`, plus `POST /paypal/webhook` + `POST /klarna/webhook`.
+- `orders.js` re-verifies the provider transaction amount server-side (`verifyPaypalOrder` /
+  `verifyKlarnaOrder`) before marking `pagato`; the reference is stored in the UNIQUE
+  `orders.payment_intent_id`. Klarna's frontend widget is `TODO(klarna-live)`. See `docs/ENVIRONMENT.md`.
 
 ## Backend ↔ SMTP (Email)
 

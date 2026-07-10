@@ -289,10 +289,15 @@ Documented in Phase 7's go-live notes; the clean fix (a startup DB-retry loop, o
 `start_period`) is a candidate there.
 
 ## Phase 7 — Hetzner go-live readiness package
-- [ ] Installable backup script (DB dump + uploads tarball + rotation) and health-check monitor
-      script, ready for the Hetzner box's crontab (currently only documented as a manual template).
-- [ ] Final env/secrets checklist reconciled against `docker-compose.yml` and both `.env.example`
-      files (including new `STRIPE_WEBHOOK_SECRET`).
+- [x] Installable backup + restore + health-monitor scripts — **done**: `deploy/backup.sh`,
+      `deploy/restore.sh`, `deploy/healthcheck-monitor.sh` (label-discovery, rotation, alert
+      flap-suppression). `docs/PRODUCTION-READINESS.md` §6–§7 now point cron at them.
+- [x] Env/secrets reference reconciled — **done**: `docs/ENVIRONMENT.md` is the canonical superset
+      (30 vars, incl. `STRIPE_WEBHOOK_SECRET`); both `.env.example` files being reconciled to it in
+      the go-live pass. See `docs/GO-LIVE-PLAN-2026-07.md` for the remaining Phase B–H work.
+
+> **Note (2026-07-10):** the go-live effort continues in **`docs/GO-LIVE-PLAN-2026-07.md`**, which
+> is the current live plan (this file is the prior Agosto-2026 roadmap; Phases 1–6 done as recorded).
 - Actual deployment execution happens on the client's real Hetzner/Coolify instance — outside
   what can be done without server access.
 

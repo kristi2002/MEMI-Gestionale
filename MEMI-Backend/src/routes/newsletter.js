@@ -153,16 +153,36 @@ router.post('/send', requireAdmin, async (req, res) => {
       return res.json({ ok: true, sent: 0, recipients: subs.length, smtp: false,
                         message: 'SMTP non configurato — nessuna email inviata' });
 
-    let sent = 0, failed = 0;
-    for (const s of subs) {
+    // Respond immediately, then send in the background with bounded concurrency. Awaiting
+    // one SMTP round-trip per subscriber inside the request would time out on any real list
+    // (and hold the HTTP connection open for minutes). The admin UI shows "invio avviato".
+    res.json({ ok: true, recipients: subs.length, smtp: true, queued: true,
+               message: `Invio avviato in background a ${subs.length} iscritti` });
+    sendNewsletterInBackground(subs, subject, html);
+  } catch (err) {
+    console.error('newsletter send error', err);
+    if (!res.headersSent) return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/** Send to all subscribers with a small fixed concurrency so a large list doesn't hammer the
+ *  SMTP server or block the event loop. Every send is caught per-recipient; never throws. */
+async function sendNewsletterInBackground(subs, subject, html) {
+  const CONCURRENCY = 5;
+  let sent = 0, failed = 0, idx = 0;
+  async function worker() {
+    while (idx < subs.length) {
+      const s = subs[idx++];
       try { await sendGenericEmail({ to: s.email, subject, html }); sent++; }
       catch (e) { failed++; console.error('newsletter send fail', s.email, e.message); }
     }
-    return res.json({ ok: true, sent, failed, recipients: subs.length, smtp: true });
-  } catch (err) {
-    console.error('newsletter send error', err);
-    return res.status(500).json({ error: 'Errore server' });
   }
-});
+  try {
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, subs.length) }, worker));
+    console.log(`[newsletter] batch complete — sent ${sent}, failed ${failed}, total ${subs.length}`);
+  } catch (e) {
+    console.error('[newsletter] background batch error:', e.message);
+  }
+}
 
 module.exports = router;

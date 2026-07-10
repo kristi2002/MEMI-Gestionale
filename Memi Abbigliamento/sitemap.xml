@@ -1,66 +1,66 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Static sitemap. Regenerate when the catalog changes (see scripts/), or replace
      with a dynamic /sitemap.xml backend route for full automation. Domain: update to
-     the final production host if it differs from memiabbigliamento.it. -->
+     the final production host if it differs from memi.testdemo.it. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
   <!-- Core -->
-  <url><loc>https://memiabbigliamento.it/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
-  <url><loc>https://memiabbigliamento.it/shop</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://memiabbigliamento.it/look</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/best-seller.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://memi.testdemo.it/shop</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://memi.testdemo.it/look</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/best-seller.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
 
   <!-- Collections -->
-  <url><loc>https://memiabbigliamento.it/collections/shop-all/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/novita/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/saldi/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/vestiti/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/top/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/gonne/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/pantaloni/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/blazer/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/set/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/borse/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/scarpe/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/gioielli/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/cinture/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/accessori/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://memiabbigliamento.it/collections/estate-2025/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/shop-all/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/novita/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/saldi/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/vestiti/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/top/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/gonne/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/pantaloni/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/blazer/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/set/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/borse/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/scarpe/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/gioielli/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/cinture/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/accessori/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/estate-2025/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
 
   <!-- Products -->
-  <url><loc>https://memiabbigliamento.it/product?id=vestito-lino-cannes</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=blazer-sartoriale-mia</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=top-seta-lucida-aria</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=gonna-plisse-nuvola</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=camicia-cotone-brisa</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=giacca-kimono-fresca</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=set-coordinato-viola</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=pantalone-culotte-zen</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=vestito-midi-fiori</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=gonna-wrap-salvia</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=maxi-cardigan-nuvola</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=top-bustier-perla</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=borsa-tote-lino</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=borsa-tracolla-luna</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=borsa-bucket-sabbia</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=collana-perla-aurora</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=anello-filo-dorato</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=orecchini-goccia-rosa</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=sandalo-listino-estate</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=mocassino-pelle-soft</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=sneaker-tela-salvia</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=cintura-pelle-sottile</loc><priority>0.7</priority></url>
-  <url><loc>https://memiabbigliamento.it/product?id=set-bijoux-estate</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=vestito-lino-cannes</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=blazer-sartoriale-mia</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=top-seta-lucida-aria</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=gonna-plisse-nuvola</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=camicia-cotone-brisa</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=giacca-kimono-fresca</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=set-coordinato-viola</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=pantalone-culotte-zen</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=vestito-midi-fiori</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=gonna-wrap-salvia</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=maxi-cardigan-nuvola</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=top-bustier-perla</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=borsa-tote-lino</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=borsa-tracolla-luna</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=borsa-bucket-sabbia</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=collana-perla-aurora</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=anello-filo-dorato</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=orecchini-goccia-rosa</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=sandalo-listino-estate</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=mocassino-pelle-soft</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=sneaker-tela-salvia</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=cintura-pelle-sottile</loc><priority>0.7</priority></url>
+  <url><loc>https://memi.testdemo.it/product?id=set-bijoux-estate</loc><priority>0.7</priority></url>
 
   <!-- Editorials & content -->
-  <url><loc>https://memiabbigliamento.it/editoriali/primavera-estate-2026/</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://memiabbigliamento.it/editoriali/estate-2025/</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://memiabbigliamento.it/editoriali/autunno-inverno-2025/</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://memiabbigliamento.it/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://memiabbigliamento.it/valori</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
-  <url><loc>https://memiabbigliamento.it/blog</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://memiabbigliamento.it/size-guide.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://memiabbigliamento.it/returns</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://memiabbigliamento.it/privacy</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
+  <url><loc>https://memi.testdemo.it/editoriali/primavera-estate-2026/</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://memi.testdemo.it/editoriali/estate-2025/</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://memi.testdemo.it/editoriali/autunno-inverno-2025/</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://memi.testdemo.it/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://memi.testdemo.it/valori</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://memi.testdemo.it/blog</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://memi.testdemo.it/size-guide.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://memi.testdemo.it/returns</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://memi.testdemo.it/privacy</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
 
 </urlset>

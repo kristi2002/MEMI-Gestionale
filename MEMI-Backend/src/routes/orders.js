@@ -24,6 +24,7 @@ const { compensateOrder } = require('../order-compensation');
 const { ensureInvoiceForOrder } = require('../invoicing');
 const { validateBody, createOrderSchema } = require('../validation');
 const { logAdminAction } = require('../audit');
+const providers = require('../payment-providers');   // PayPal / Klarna (config-gated)
 
 /* ── enum whitelists (mirror schema.sql ENUM definitions) ── */
 const PAYMENT_STATUSES = ['in_attesa', 'pagato', 'rimborsato', 'fallito'];
@@ -59,6 +60,7 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
     gift_card_code, // optional — redeemed against the total, see step 2b below
     payment_method = 'carta',
     payment_intent_id,      // Stripe PaymentIntent ID (if card payment)
+    payment_reference,      // PayPal order id / Klarna order id (non-Stripe providers)
   } = req.body;
 
   if (!nome || !cognome || !email || !indirizzo || !citta || !cap)
@@ -166,9 +168,15 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
 
     const total = Math.round(Math.max(0, preGiftTotal - giftCardAmount) * 100) / 100;
 
-    /* 3. Verify payment BEFORE writing anything. Card + Stripe configured ⇒ must match.
-       Skipped entirely when the gift card already covers the full total — nothing to charge. */
+    /* 3. Verify payment BEFORE writing anything. The provider transaction must match the
+       server-computed total. Skipped entirely when the gift card already covers the full total.
+       `paymentRef` is the generic transaction reference persisted in orders.payment_intent_id
+       (UNIQUE → cross-provider replay protection). A provider selected but not configured is
+       refused (503) rather than creating a silent unpaid order. */
+    const expectedCents = Math.round(total * 100);
     let paymentStatus = 'in_attesa';
+    let paymentRef = payment_intent_id || null;
+    let paypalCaptureAfterCommit = false;   // PayPal: capture only after the order is persisted
     if (total === 0 && (giftCard || discountCode)) {
       paymentStatus = 'pagato';
     } else if (payment_method === 'carta' && process.env.STRIPE_SECRET_KEY) {
@@ -179,10 +187,9 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
         const pi = await stripe.paymentIntents.retrieve(payment_intent_id);
         if (pi.status !== 'succeeded')
           return res.status(402).json({ error: 'Pagamento non completato. Riprova.' });
-        const expected = Math.round(total * 100);
-        if (pi.currency !== 'eur' || Number(pi.amount) !== expected) {
+        if (pi.currency !== 'eur' || Number(pi.amount) !== expectedCents) {
           (req.log || console).error(
-            { paymentIntentId: payment_intent_id, piAmount: pi.amount, piCurrency: pi.currency, expectedCents: expected },
+            { paymentIntentId: payment_intent_id, piAmount: pi.amount, piCurrency: pi.currency, expectedCents },
             'Stripe amount mismatch — possible tampering attempt'
           );
           return res.status(402).json({ error: 'Importo del pagamento non corrisponde. Riprova.' });
@@ -191,6 +198,40 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
       } catch (stripeErr) {
         (req.log || console).error({ err: stripeErr, paymentIntentId: payment_intent_id }, 'Stripe verify error');
         return res.status(402).json({ error: 'Impossibile verificare il pagamento. Riprova.' });
+      }
+    } else if (payment_method === 'paypal') {
+      if (!providers.paypalConfigured())
+        return res.status(503).json({ error: 'PayPal non disponibile al momento.' });
+      if (!payment_reference)
+        return res.status(402).json({ error: 'Dati di pagamento PayPal mancanti. Riprova.' });
+      try {
+        // Verify the buyer approved the correct amount, but DON'T capture yet — the capture
+        // happens AFTER the order (and its atomic stock decrement) commits, so a concurrent
+        // oversell 409 can't leave a buyer charged with no order (reviewer finding #2).
+        const info = await providers.inspectPaypalOrder(String(payment_reference));
+        if (info.status !== 'APPROVED' && info.status !== 'COMPLETED')
+          throw new Error('PayPal order not payable (status ' + info.status + ')');
+        if (info.currency !== 'EUR' || Number(info.amountCents) !== expectedCents)
+          throw new Error('PayPal amount/currency mismatch');
+        paymentRef = String(payment_reference);
+        if (info.status === 'COMPLETED') paymentStatus = 'pagato';   // already captured (idempotent retry)
+        else paypalCaptureAfterCommit = true;                        // APPROVED → capture post-commit
+      } catch (ppErr) {
+        (req.log || console).error({ err: ppErr, ref: payment_reference }, 'PayPal verify error');
+        return res.status(402).json({ error: 'Impossibile verificare il pagamento PayPal. Riprova.' });
+      }
+    } else if (payment_method === 'klarna') {
+      if (!providers.klarnaConfigured())
+        return res.status(503).json({ error: 'Klarna non disponibile al momento.' });
+      if (!payment_reference)
+        return res.status(402).json({ error: 'Dati di pagamento Klarna mancanti. Riprova.' });
+      try {
+        await providers.verifyKlarnaOrder(String(payment_reference), expectedCents);
+        paymentStatus = 'pagato';
+        paymentRef = String(payment_reference);
+      } catch (klErr) {
+        (req.log || console).error({ err: klErr, ref: payment_reference }, 'Klarna verify error');
+        return res.status(402).json({ error: 'Impossibile verificare il pagamento Klarna. Riprova.' });
       }
     }
 
@@ -229,7 +270,7 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
          subtotal, shippingCost, discountAmount, total,
          discountCode ? discountCode.code : null, giftCard ? giftCard.code : null,
          giftCardAmount, payment_method,
-         paymentStatus, payment_intent_id || null]
+         paymentStatus, paymentRef]
       );
       const orderId = result.insertId;
 
@@ -274,6 +315,25 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
       try { await awardPurchasePoints(conn, email, total, orderId); } catch (_) {}
 
       await conn.commit();
+
+      // PayPal: capture NOW that the order + its atomic stock decrement are safely committed.
+      // If capture fails, the order stays 'in_attesa' (buyer NOT charged) for admin/webhook
+      // follow-up — the buyer is never charged without an order. On success, promote to 'pagato'
+      // so the invoice fires below.
+      if (paypalCaptureAfterCommit) {
+        try {
+          const cap = await providers.capturePaypalOrder(paymentRef);
+          if (cap.status === 'COMPLETED' && cap.currency === 'EUR' && Number(cap.amountCents) === expectedCents) {
+            await pool.execute("UPDATE orders SET payment_status = 'pagato' WHERE id = ?", [orderId]);
+            paymentStatus = 'pagato';
+          } else {
+            (req.log || console).error({ orderId, cap }, 'PayPal capture after order returned an unexpected result — order left in_attesa');
+          }
+        } catch (capErr) {
+          (req.log || console).error({ err: capErr, orderId, ref: paymentRef },
+            'CRITICAL: PayPal order persisted but capture failed — order in_attesa, follow up manually');
+        }
+      }
 
       // Fiscal document must follow the payment (fire-and-forget; never blocks the order)
       if (paymentStatus === 'pagato') ensureInvoiceForOrder(pool, orderId).catch(() => {});
@@ -484,8 +544,10 @@ router.post('/admin', requireAdmin, async (req, res) => {
       }
     }
 
-    // Award loyalty points for the purchase (if the email matches a customer)
-    try { await awardPurchasePoints(conn, email, total); } catch (_) {}
+    // Award loyalty points for the purchase (if the email matches a customer).
+    // Pass orderId so the ledger row is tied to this order and reverseOrderPoints() can
+    // undo it on cancel/refund (previously omitted here → admin-order points were unreversible).
+    try { await awardPurchasePoints(conn, email, total, orderId); } catch (_) {}
 
     await conn.commit();
 

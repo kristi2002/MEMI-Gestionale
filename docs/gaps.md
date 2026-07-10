@@ -1,5 +1,10 @@
 # MEMI Gaps & Known Issues
 
+> ⚠️ **Historical log.** For current, code-verified gaps and status see
+> **`docs/GO-LIVE-PLAN-2026-07.md`** and **`docs/STATUS.md`**. Several "Missing/❌" items below
+> (order tracking, reviews, image upload, dynamic collections, self-service returns) are now
+> **implemented** — this file is kept as a change-history record.
+
 Status key: ✅ Fixed | ⚠️ Known limitation | ❌ Missing | 🔄 Workaround in place
 
 ---

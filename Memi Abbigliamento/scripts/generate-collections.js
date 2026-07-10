@@ -6,7 +6,7 @@ var ROOT = path.join(__dirname, '..');
 
 // Live catalog now lives in MySQL, served via the backend API — no more reading
 // the stale local productsData.js. Override the base URL with MEMI_API_BASE to
-// point this at a deployed backend (e.g. MEMI_API_BASE=https://api.memiabbigliamento.it/api).
+// point this at a deployed backend (e.g. MEMI_API_BASE=https://api.memi.testdemo.it/api).
 var API_BASE = process.env.MEMI_API_BASE || 'http://localhost:3000/api';
 
 async function fetchProducts() {
@@ -238,10 +238,10 @@ renderFilterPanel(productsInCollection, !!meta.includeCategoryFilter) + '\n\n' +
 // collections/<slug>/index.html, or regenerating a page would silently break it (no
 // catalog-loader.js -> empty product grid forever). Keep the app.js?v= in sync with
 // CLAUDE.md's current cache-bust version when that changes.
-'<script src="../../app.js?v=14"></script>\n' +
+'<script src="../../app.js?v=21"></script>\n' +
 '<script src="../../shop-filters.js"></script>\n' +
 '<script>window.MEMI_CATALOG={collection:\'' + meta.slug + '\'};</script>\n' +
-'<script src="../../catalog-loader.js?v=2"></script>\n' +
+'<script src="../../catalog-loader.js?v=3"></script>\n' +
 '</body>\n' +
 '</html>\n';
 }

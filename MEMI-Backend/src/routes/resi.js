@@ -187,6 +187,9 @@ router.post('/:id/refund', requireAdmin, async (req, res) => {
     amount = Math.min(amount, orderTotal);
     const amountCents = Math.round(amount * 100);
     if (amountCents < 1) return res.status(400).json({ error: 'Importo rimborso non valido' });
+    // A partial refund (less than the full order total) must NOT reverse stock / gift card /
+    // loyalty points / the full total — we don't know which items came back. See the branch below.
+    const isPartial = amountCents < Math.round(orderTotal * 100);
 
     let refund = null;
     if (!manual) {
@@ -205,12 +208,27 @@ router.post('/:id/refund', requireAdmin, async (req, res) => {
         'SELECT * FROM orders WHERE id = ? FOR UPDATE', [row.order_id]
       );
       await conn.execute("UPDATE resi SET stato = 'rimborsato', rimborso_amount = ? WHERE id = ?", [amount, req.params.id]);
-      await conn.execute("UPDATE orders SET payment_status = 'rimborsato' WHERE id = ?", [row.order_id]);
-      // Goods come back: restock every item, restore the gift-card portion,
-      // reverse loyalty points, subtract from the customer's total speso.
-      // (Skipped when the order was annullato — the cancel already did it.)
-      if (orderRow && orderRow.order_status !== 'annullato') {
-        await compensateOrder(conn, orderRow, 'refund');
+      if (!isPartial) {
+        // FULL refund: the whole order is refunded. Mark it 'rimborsato' (drops out of paid
+        // revenue, which is correct) and — unless the order was already annullato (cancel
+        // compensated it) — restock every item, restore the gift-card portion, reverse loyalty
+        // points, and subtract the full total from the customer's total speso.
+        await conn.execute("UPDATE orders SET payment_status = 'rimborsato' WHERE id = ?", [row.order_id]);
+        if (orderRow && orderRow.order_status !== 'annullato') {
+          await compensateOrder(conn, orderRow, 'refund');
+        }
+      } else if (orderRow && orderRow.order_status !== 'annullato') {
+        // PARTIAL refund: the order is still a paid order (net of the refunded slice), so it must
+        // STAY 'pagato' — marking it 'rimborsato' would wipe its FULL total from every
+        // payment_status='pagato' revenue metric in dashboard.js. We don't know which items came
+        // back, so only reduce the customer's total speso by the refunded amount; the admin
+        // adjusts inventory manually from Prodotti → Magazzino.
+        if (orderRow.customer_id) {
+          await conn.execute(
+            'UPDATE customers SET total_spent = GREATEST(0, total_spent - ?) WHERE id = ?',
+            [amount, orderRow.customer_id]
+          );
+        }
       }
       await conn.commit();
 

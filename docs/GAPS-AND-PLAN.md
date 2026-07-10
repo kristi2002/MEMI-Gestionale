@@ -1,5 +1,9 @@
 # MEMI — Gap analysis & phased plan (2026-07-05)
 
+> ⚠️ **Historical snapshot.** Current gap analysis: **`docs/GO-LIVE-PLAN-2026-07.md`**; current
+> feature status: **`docs/STATUS.md`**. The "ghost views mock" framing here is superseded (those
+> features are built).
+
 Derived from the full code audit (see STATUS.md). Goal: a credible, full-fledged e-commerce platform on
 Hetzner/Coolify. The platform core (catalog, checkout with verified Stripe, orders, shipping, returns,
 invoices, discounts, gift cards, loyalty, reviews, staff, settings, audit) is already WIRED and deployed.

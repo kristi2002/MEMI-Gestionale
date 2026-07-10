@@ -411,9 +411,23 @@ async function bootstrapAdmin(pool) {
     if (rows.length) {
       const who = rows.map(r => r.email).join(', ');
       const msg = `Default admin credentials still active for: ${who} (password "memi2026admin"). `
-                + 'Set ADMIN_EMAIL / ADMIN_PASSWORD (or change the password in-app) before go-live.';
-      if (process.env.NODE_ENV === 'production') console.error('🔴  SECURITY: ' + msg);
-      else console.warn('⚠️  ' + msg);
+                + 'Set ADMIN_EMAIL=' + (rows[0].email) + ' + ADMIN_PASSWORD to rotate it, remove the '
+                + 'default admin, or change the password in-app.';
+      if (process.env.NODE_ENV === 'production') {
+        // Secure-by-default: a public production deploy must not run with a publicly-known
+        // admin password. Refuse to boot (like the JWT secret fail-fast) unless the operator
+        // has explicitly opted in with ALLOW_DEFAULT_ADMIN=1 (e.g. a throwaway staging box).
+        if (process.env.ALLOW_DEFAULT_ADMIN === '1') {
+          console.error('🔴  SECURITY (bypassed via ALLOW_DEFAULT_ADMIN=1): ' + msg);
+        } else {
+          console.error('❌  SECURITY: ' + msg);
+          console.error('    Refusing to start in production with default admin credentials. '
+                      + 'Set ADMIN_EMAIL/ADMIN_PASSWORD, or ALLOW_DEFAULT_ADMIN=1 to override (not recommended).');
+          process.exit(1);
+        }
+      } else {
+        console.warn('⚠️  ' + msg);
+      }
     }
   } catch (_) { /* admin_users may not exist yet on a brand-new DB */ }
 }

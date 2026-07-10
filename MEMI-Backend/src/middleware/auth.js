@@ -1,6 +1,7 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
+const { resolvePermissions } = require('../permissions');
 
 /** Read a single cookie value from the raw Cookie header (no cookie-parser dep). */
 function readCookie(req, name) {
@@ -84,4 +85,24 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireCustomer, optionalCustomer, requireAdmin, requireRole, readCookie };
+/**
+ * requirePermission(...views)
+ * Server-side enforcement of the same granular RBAC the admin UI uses. MUST be chained
+ * after requireAdmin (reads req.admin). A full admin (role 'admin' → permissions null)
+ * passes everything; a staff account passes only if its resolved permission set includes
+ * at least one of the given view names. This is what stops, e.g., a "marketing" staffer
+ * from calling the returns-refund or audit-log endpoints even though the UI hides them.
+ *
+ * The mapping (mount → view) lives centrally in server.js so it's auditable in one place.
+ */
+function requirePermission(...views) {
+  return function (req, res, next) {
+    if (!req.admin) return res.status(401).json({ error: 'Non autenticato' });
+    const perms = resolvePermissions(req.admin.role, req.admin.permissions); // array | null(full)
+    if (perms === null) return next();                                       // full admin
+    if (Array.isArray(perms) && views.some(v => perms.includes(v))) return next();
+    return res.status(403).json({ error: 'Permessi insufficienti per questa sezione' });
+  };
+}
+
+module.exports = { requireCustomer, optionalCustomer, requireAdmin, requireRole, requirePermission, readCookie };

@@ -1,4 +1,12 @@
 # MEMI — Gap Analysis Completo
+
+> ⚠️ **Nota storica (2026-07-10).** Questo è uno snapshot precedente. Per lo stato corrente e la
+> gap analysis verificata sul codice usa **`docs/GO-LIVE-PLAN-2026-07.md`** e **`docs/STATUS.md`**.
+> **Correzione importante:** dove questo documento dice che *Chat clienti / Pop-up / Automazioni /
+> carrelli abbandonati / Live view* sono "nessun backend" o "nascoste", è **superato** — quelle
+> funzioni sono costruite, montate e collegate all'API (vedi STATUS.md). L'auth admin è un cookie
+> HttpOnly `memi_admin_token` (non localStorage). Health endpoint: `GET /health`.
+
 *Aggiornato: Agosto 2026 — audit di documentazione + piano pre-produzione. Vedi anche
 `docs/PRODUCTION-ROADMAP.md` per il piano a fasi verso il deploy Hetzner.*
 

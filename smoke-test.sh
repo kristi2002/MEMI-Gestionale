@@ -225,6 +225,21 @@ else
 fi
 
 echo
+# 10 — Payments config + PayPal/Klarna provider gating (go-live pass)
+echo "[10] Payments config + provider gating"
+CFG="$(curl -fsS "$BASE/api/payments/config" 2>/dev/null)"
+if echo "$CFG" | grep -q '"providers"'; then
+  ok "GET /api/payments/config -> providers advertised"
+else
+  ko "GET /api/payments/config missing providers object"
+fi
+# With no PayPal creds set, the provider endpoints must fail safe with 503 (never a silent order).
+C="$(code -X POST -H 'Content-Type: application/json' -d '{"amount_cents":5000}' "$BASE/api/payments/paypal/create-order")"
+[ "$C" = "503" ] && ok "POST /paypal/create-order unconfigured -> 503" || ko "paypal/create-order -> HTTP $C (expected 503 when PAYPAL_* unset)"
+C="$(code -X POST -H 'Content-Type: application/json' -d '{"amount_cents":5000}' "$BASE/api/payments/klarna/create-session")"
+[ "$C" = "503" ] && ok "POST /klarna/create-session unconfigured -> 503" || ko "klarna/create-session -> HTTP $C (expected 503 when KLARNA_* unset)"
+
+echo
 echo "------------------------------"
 echo "  passed: $pass   failed: $fail"
 echo "------------------------------"

@@ -388,5 +388,25 @@ const ADMIN = { admin: { id: 1, email: 'admin@memi.it' } };
   assert.strictEqual(db.invoices.length, 2, 'T10b invoice auto-created when admin marks pagato');
   n++; console.log('  ✓ T10 invoices auto-emitted on paid checkout and on pagato transition');
 
+  /* T11 — PARTIAL refund keeps the order 'pagato' (revenue not zeroed) and does NOT restock */
+  db.orders[12] = { id:12, order_number:'MEMI-12', customer_id:null, customer_nome:'Ida', customer_cognome:'',
+    customer_email:'i@b.it', total:50, discount_code:null, gift_card_code:null, gift_card_amount:0,
+    payment_status:'pagato', order_status:'consegnato', payment_intent_id:'pi_12',
+    shipping_address:'x', shipping_citta:'y', shipping_cap:'z', shipping_paese:'IT' };
+  db.orderItems[12] = [ { product_id:'p3', taglia:'m', qty:1 } ];
+  db.resi[12] = { id:12, order_id:12, stato:'approvato', rimborso_amount:null };
+  db.stock['p3|m'] = 7;
+  const refundsBefore = stripeRefunds.length;   // STRIPE_SECRET_KEY still set from T10
+  res = mockRes();
+  await refundReso({ ...ADMIN, params: { id: 12 }, body: { amount: 10 } }, res);
+  await flush();
+  assert.strictEqual(res.code, 200, 'T11 partial refund code ' + res.code + ' ' + JSON.stringify(res.body));
+  assert.strictEqual(stripeRefunds.length, refundsBefore + 1, 'T11 partial Stripe refund issued');
+  assert.strictEqual(stripeRefunds[stripeRefunds.length - 1].amount, 1000, 'T11 refund amount = €10 (1000 cents)');
+  assert.strictEqual(db.resi[12].stato, 'rimborsato', 'T11 reso marked rimborsato');
+  assert.strictEqual(db.orders[12].payment_status, 'pagato', 'T11 order STAYS pagato on partial refund (revenue not zeroed)');
+  assert.strictEqual(db.stock['p3|m'], 7, 'T11 partial refund does NOT restock');
+  n++; console.log('  ✓ T11 partial refund keeps order pagato + does not restock');
+
   console.log(`\nALL ${n} compensation-logic tests passed.`);
 })().catch(e => { console.error('\n✗ FAILED:', e.message); process.exit(1); });

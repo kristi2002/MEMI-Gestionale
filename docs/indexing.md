@@ -1,5 +1,8 @@
 # MEMI File Index
 
+> ⚠️ **Historical inventory** (point-in-time; drifts as files are added/removed). For current
+> structure see `docs/ARCHITECTURE.md` + `docs/STOREFRONT.md` + `docs/admin/`.
+
 Complete inventory of every file and what it does.
 
 ---

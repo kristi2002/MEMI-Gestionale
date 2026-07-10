@@ -1,5 +1,9 @@
 # MEMI Modules
 
+> ⚠️ **Historical inventory** (drifts fastest — per-file). For current architecture see
+> `docs/ARCHITECTURE.md`, `docs/STOREFRONT.md`, and `docs/admin/`. Does not reflect the newer
+> `MEMI/js/modules/*` (order-detail, chat, pagination, audit-log, variants, purchasing).
+
 Breakdown of every major JavaScript module.
 
 ---

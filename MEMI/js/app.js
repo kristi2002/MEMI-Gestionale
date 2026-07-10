@@ -2523,8 +2523,10 @@ $(function(){
     }
   } catch(_){}
 
-  // Logout — clear token before redirecting
-  $(document).on('click','.logout-btn', function(e){
+  // Logout — clear the server-side cookie before redirecting.
+  // Scoped with :not(.js-change-password) because the change-password button shares the
+  // .logout-btn class for styling — without this, opening "Cambia password" would also log out.
+  $(document).on('click','.logout-btn:not(.js-change-password)', function(e){
     e.preventDefault();
     function go(){ window.location.href = 'index.html'; }
     // Wait for the backend to clear the HttpOnly cookie before navigating away

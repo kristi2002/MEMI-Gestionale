@@ -1,6 +1,15 @@
 # MEMI — Architecture
 
 > Regenerated 2026-07-05 from the actual code. Three apps, one repo, one MySQL database.
+>
+> **Addendum 2026-07-10 (post-audit).** Since this was written the platform gained four
+> architectural upgrades now live in code: (1) **admin auth moved to an HttpOnly cookie**
+> `memi_admin_token` (SameSite=Lax, 8h) with a legacy Bearer fallback; (2) **API pagination**
+> via `X-Total-Count` + "load more"; (3) **RBAC** via `src/permissions.js` (presets
+> admin/staff/warehouse/customer_service/marketing — UI-gated; backend enforces the coarse role,
+> see `docs/SECURITY.md`); (4) **product variants** (`/api/products/:id/variants`) and
+> **purchasing** (suppliers + purchase-orders with receive-to-stock). Health check is `GET /health`
+> (root, DB-aware). Canonical domain: `memi.testdemo.it`. Full route list: `docs/api.md`.
 
 ## System map
 

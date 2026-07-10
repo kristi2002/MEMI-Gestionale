@@ -22,7 +22,7 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 | `DB_PASSWORD` | password forte | |
 | `DB_NAME` | `memi_db` | |
 | `MYSQL_ROOT_PASSWORD` | password forte | Solo MySQL |
-| `ADMIN_EMAIL` | es. `admin@memiabbigliamento.it` | Sovrascrive il default seeded |
+| `ADMIN_EMAIL` | es. `admin@memi.testdemo.it` | Sovrascrive il default seeded |
 | `ADMIN_PASSWORD` | password forte | Min 12 char |
 | `STRIPE_SECRET_KEY` | `sk_live_...` | Live in prod, `sk_test_...` in staging |
 | `STRIPE_PUBLISHABLE_KEY` | `pk_live_...` | Idem |
@@ -31,9 +31,9 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 | `SMTP_SECURE` | `false` (587) / `true` (465) | |
 | `SMTP_USER` | email mittente | |
 | `SMTP_PASS` | password app specifica | |
-| `SMTP_FROM` | `"Memi Abbigliamento <info@memiabbigliamento.it>"` | |
-| `ALLOWED_ORIGINS` | `https://memiabbigliamento.it,https://admin.memiabbigliamento.it` | |
-| `FRONTEND_URL` | `https://memiabbigliamento.it` | Usato nei link email |
+| `SMTP_FROM` | `"Memi Abbigliamento <info@memi.testdemo.it>"` | |
+| `ALLOWED_ORIGINS` | `https://memi.testdemo.it,https://admin.memi.testdemo.it` | |
+| `FRONTEND_URL` | `https://memi.testdemo.it` | Usato nei link email |
 | `NODE_ENV` | `production` | Abilita logging errori red |
 | `MAX_UPLOAD_MB` | `8` (default) | Limite upload immagini |
 
@@ -45,10 +45,10 @@ Punta al Hetzner server IP:
 
 | Record | Tipo | Valore |
 |---|---|---|
-| `memiabbigliamento.it` | A | `<server-ip>` |
-| `www.memiabbigliamento.it` | A | `<server-ip>` |
-| `api.memiabbigliamento.it` | A | `<server-ip>` |
-| `admin.memiabbigliamento.it` | A | `<server-ip>` |
+| `memi.testdemo.it` | A | `<server-ip>` |
+| `www.memi.testdemo.it` | A | `<server-ip>` |
+| `api.memi.testdemo.it` | A | `<server-ip>` |
+| `admin.memi.testdemo.it` | A | `<server-ip>` |
 
 ---
 
@@ -58,9 +58,9 @@ Punta al Hetzner server IP:
 2. **Compose file path:** `docker-compose.yml`
 3. **Environment Variables:** inserisci tutti i secrets dalla sezione 1
 4. **Domains per servizio:**
-   - `backend` → `api.memiabbigliamento.it`
-   - `ecommerce` → `memiabbigliamento.it`, `www.memiabbigliamento.it`
-   - `admin` → `admin.memiabbigliamento.it`
+   - `backend` → `api.memi.testdemo.it`
+   - `ecommerce` → `memi.testdemo.it`, `www.memi.testdemo.it`
+   - `admin` → `admin.memi.testdemo.it`
 5. **Deploy** → Coolify builda le immagini Docker + provisiona TLS automaticamente
 
 ---
@@ -69,15 +69,15 @@ Punta al Hetzner server IP:
 
 ```bash
 # Health check
-curl https://api.memiabbigliamento.it/health
+curl https://api.memi.testdemo.it/health
 # → {"status":"ok","ts":"..."}
 
 # Prodotti
-curl https://api.memiabbigliamento.it/api/products | head -c 500
+curl https://api.memi.testdemo.it/api/products | head -c 500
 # → JSON array con 23 prodotti
 
 # Login admin (solo per verifica — poi cambia credenziali)
-curl -X POST https://api.memiabbigliamento.it/api/admin/auth/login \
+curl -X POST https://api.memi.testdemo.it/api/admin/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"<ADMIN_EMAIL>","password":"<ADMIN_PASSWORD>"}'
 # → {"token":"...","admin":{...}}
@@ -106,14 +106,16 @@ Deve apparire:
 - [ ] `STRIPE_SECRET_KEY` live (`sk_live_...`) + `STRIPE_PUBLISHABLE_KEY` (`pk_live_...`)
 - [ ] `SMTP_*` configurati → email ordini funzionanti
 - [ ] `ALLOWED_ORIGINS` = domini produzione
-- [ ] `FRONTEND_URL` = `https://memiabbigliamento.it`
+- [ ] `FRONTEND_URL` = `https://memi.testdemo.it`
 - [ ] `NODE_ENV=production`
 - [ ] Log boot: tutti e 3 i ✅, nessun 🔴
 
 ### Storefront
-- [ ] `app.js?v=13` referenziato uniformemente in tutti gli HTML
-- [ ] `api-client.js?v=3` uniforme
-- [ ] `<meta name="memi-api" content="/api">` presente in tutte le pagine (o nginx proxia `/api`)
+- [ ] Cache-bust automatico: `scripts/cache-bust.js` gira nel build Docker e riscrive `?v=` in hash
+      di contenuto — **non** serve bumpare `?v=N` a mano; i valori sorgente devono solo essere
+      coerenti (`bash verify/run.sh` §2 lo verifica). nginx serve HTML `no-cache`.
+- [ ] La chiave pubblica Stripe è disponibile: `checkout.html` la legge da `GET /api/payments/config`
+      (quindi `STRIPE_PUBLISHABLE_KEY` **deve** essere impostata sul backend, altrimenti la carta non parte)
 - [ ] Checkout funzionante con carta Stripe live (test con carta reale a basso importo)
 - [ ] Email conferma ordine ricevuta
 - [ ] `robots.txt` + `sitemap.xml` accessibili
@@ -123,7 +125,7 @@ Deve apparire:
 - [ ] Login con le credenziali definite in env
 - [ ] Dashboard mostra dati reali (dopo aver creato almeno un ordine di test)
 - [ ] Caricamento immagine prodotto funzionante
-- [ ] `app.js?v=23` e `admin-api.js?v=15` referenziati in `dashboard.html`
+- [ ] Cache-bust admin automatico via `MEMI/scripts/cache-bust.js` nel build (nessun bump `?v=N` manuale)
 
 ### Volumi Docker
 - [ ] `mysql_data` volume: persiste il DB tra i restart
@@ -134,36 +136,35 @@ Deve apparire:
 
 ## 6. Backup
 
+**Usa gli script pronti in `deploy/`** — scoprono container/volumi tramite la **label** del servizio
+Docker Compose (`com.docker.compose.service=...`), quindi funzionano a prescindere dal prefisso che
+Compose deriva dal nome cartella. Non hardcodare mai il nome del volume (es. `memi_uploads_data`): il
+prefisso reale dipende dal progetto.
+
 ```bash
-# Aggiungi al crontab del server Hetzner:
-
-# Backup MySQL giornaliero alle 3:00
-0 3 * * * docker exec $(docker ps -qf name=mysql) \
-  mysqldump -u root -p${MYSQL_ROOT_PASSWORD} memi_db \
-  | gzip > /backups/memi_db_$(date +%Y%m%d).sql.gz
-
-# Backup immagini settimanale
-0 4 * * 0 docker run --rm \
-  -v memi_uploads_data:/data \
-  -v /backups:/backup \
-  alpine tar czf /backup/uploads_$(date +%Y%m%d).tgz -C /data .
-
-# Cleanup: mantieni 30 giorni
-0 5 * * * find /backups -name "*.sql.gz" -mtime +30 -delete
-0 5 * * * find /backups -name "*.tgz" -mtime +30 -delete
+# Crontab del server Hetzner (vedi header di deploy/backup.sh per tutte le env):
+0 3 * * *  MYSQL_ROOT_PASSWORD='...' BACKUP_DIR=/backups /path/to/deploy/backup.sh db      >> /var/log/memi-backup.log 2>&1
+0 4 * * 0  BACKUP_DIR=/backups /path/to/deploy/backup.sh uploads                            >> /var/log/memi-backup.log 2>&1
+# backup.sh gestisce già dump MySQL --single-transaction, tar del volume uploads, e rotazione (RETENTION_DAYS, default 30).
 ```
+
+Ripristino testato: **`deploy/restore.sh db|uploads <archivio>`** (distruttivo, chiede conferma salvo `FORCE=1`).
+Sincronizza gli archivi off-box (Hetzner Storage Box / S3) — un backup sullo stesso disco non è un backup.
 
 ---
 
 ## 7. Monitoraggio
 
+**Usa `deploy/healthcheck-monitor.sh`** — fa il polling di `/health` (che verifica anche il DB),
+allerta una sola volta quando va down + una nota di recovery (niente spam), via email (`mail`) e/o webhook:
+
 ```bash
-# Health check da cron (opzionale — per alerting via email)
-*/5 * * * * curl -sf https://api.memiabbigliamento.it/health || \
-  echo "MEMI API down $(date)" | mail -s "ALERT: MEMI API" admin@memiabbigliamento.it
+# Ogni 5 minuti:
+*/5 * * * * HEALTH_URL=https://api.memi.testdemo.it/health \
+            ALERT_EMAIL=admin@memi.testdemo.it /path/to/deploy/healthcheck-monitor.sh >> /var/log/memi-health.log 2>&1
 ```
 
-Alternativa consigliata: **UptimeRobot** (gratuito) o **Better Uptime** — monitora `/health` ogni 5 minuti con notifica SMS/email.
+Alternativa/complemento: **UptimeRobot** (gratuito) o **Better Uptime** — monitora `/health` ogni 5 minuti con notifica SMS/email.
 
 ---
 
@@ -194,8 +195,8 @@ Ogni `git push origin main` triggera rebuild e redeploy automatico.
 
 ## 10. Post-Deploy: SEO
 
-1. **Google Search Console:** aggiungi proprietà per `memiabbigliamento.it`
-2. **Sitemap:** sottometti `https://memiabbigliamento.it/sitemap.xml`
-3. **Robots.txt:** verifica `https://memiabbigliamento.it/robots.txt` accessibile
+1. **Google Search Console:** aggiungi proprietà per `memi.testdemo.it`
+2. **Sitemap:** sottometti `https://memi.testdemo.it/sitemap.xml`
+3. **Robots.txt:** verifica `https://memi.testdemo.it/robots.txt` accessibile
 4. **Core Web Vitals:** testa con PageSpeed Insights
 5. **Structured data:** testa con Rich Results Test di Google

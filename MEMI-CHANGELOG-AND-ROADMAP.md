@@ -8,6 +8,50 @@ design & SEO sprint (storefront), **(3)** the admin → React roadmap. Verify ba
 
 ---
 
+# Go-live hardening pass (Luglio 2026 — `docs/GO-LIVE-PLAN-2026-07.md`)
+
+Full read of all three apps + infra + ~30 docs, then a phased production-hardening pass toward a
+real Hetzner/Coolify go-live on **`memi.testdemo.it`**. Offline suite green (`bash verify/run.sh`):
+now **69 simulations** incl. a new §7b (21 RBAC + PayPal/Klarna-gating tests) and a partial-refund
+test. Live Docker walkthrough deferred (Docker Desktop not running here).
+
+**Documentation truth-pass** — regenerated `docs/api.md` (~150 endpoints) & `docs/STATUS.md`;
+created `docs/{ENVIRONMENT,SECURITY,STOREFRONT,GO-LIVE-PLAN-2026-07}.md`; rewrote the Caddy-fiction
+`Memi Abbigliamento/COOLIFY-DEPLOY.md` (it's nginx); corrected the big "ghost-views are mock" drift
+(chat/popups/automations/carts/liveview/segments/expenses/transfers/feed/variants/purchasing are all
+**real**), admin-auth-is-a-cookie, `/health` path, cache-bust automation, and the domain across
+~14 docs; fixed a duplicated paragraph in `CLAUDE.md`.
+
+**Backend security & correctness**
+- **Server-side RBAC enforced** (`src/middleware/auth.js` `requirePermission`, mapped per admin
+  mount in `src/server.js`): a staff account can no longer reach a section its permission set
+  excludes — including the **Stripe-refund** endpoint (gated to the `returns` view) and
+  audit-log/bills/liveview (admin-only). Previously the backend only checked coarse role.
+- **Default-admin boot guard**: production now **refuses to boot** if any admin still carries the
+  shipped default password, unless `ALLOW_DEFAULT_ADMIN=1` (`src/db/migrations.js`).
+- **Newsletter `/send`** no longer blocks the request — sends in the background with bounded
+  concurrency (was an await-per-recipient loop that timed out on real lists).
+- **Partial refunds** no longer over-restock or zero revenue: a partial refund keeps the order
+  `pagato` and only reduces `total_spent` by the refunded amount (`src/routes/resi.js`).
+- **Loyalty**: admin-created orders now pass `orderId` so points are reversible on cancel/refund.
+
+**PayPal & Klarna scaffolding** (config-gated, per owner decision) — `src/payment-providers.js`
++ routes/webhooks in `payments.js`; the order handler re-verifies the amount server-side and, for
+PayPal, **captures only after the order is persisted** (no charge-without-order on an oversell).
+Inert (503/hidden) until `PAYPAL_*`/`KLARNA_*` are set. Checkout shows real PayPal Buttons when
+configured, else "presto disponibile" (no more dead-end tabs). Klarna frontend widget = `TODO`.
+
+**Storefront/SEO** — domain standardized to `memi.testdemo.it` across sitemap/robots/canonicals/
+JSON-LD (Instagram handle preserved); `indexOLD.html` set `noindex`; `checkout.html` Stripe mount
+race fixed; `generate-products.js` rewritten to emit redirect stubs from the live API (was
+regressing them to stale frozen PDPs); `generate-collections.js` versions synced.
+
+**Adversarial self-review** by a reviewer agent (3 findings; 2 fixed + regression-tested — the
+partial-refund revenue bug and the PayPal capture-before-persist bug). Env reconciled: both
+`.env.example` + `docker-compose.yml` + `docs/ENVIRONMENT.md` now agree.
+
+---
+
 # Part 0 — Area Personale (customer account) sprint (Luglio 2026)
 
 Goal: turn the thin customer account page into a full **Area Personale** and persist all of it

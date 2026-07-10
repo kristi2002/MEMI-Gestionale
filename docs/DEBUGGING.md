@@ -2,6 +2,13 @@
 
 This document covers the most likely failure modes, how to diagnose them, and how to fix them. Keep it open during production incidents.
 
+> **Updated 2026-07-10.** Two things below are stale: (1) **cache-busting is automated** at Docker
+> build via each app's `scripts/cache-bust.js` (content-hash rewrite of `?v=`) — you do **not**
+> manually bump `?v=N` for deploys; source `?v=` values only need to stay internally consistent
+> (`bash verify/run.sh` §2 checks this). Any reference to `app.js?v=7` here is illustrative only.
+> (2) The base `docker-compose.yml` uses the **default compose network** (no named `memi_net`).
+> Health endpoint is `GET /health`.
+
 ---
 
 ## Architecture in 30 seconds

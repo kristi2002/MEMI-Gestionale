@@ -60,7 +60,7 @@ was validated three ways — this is the recommended pattern:
 
 | Symptom | Likely cause / fix |
 |---|---|
-| Red "API non raggiungibile" banner | Backend down or CORS. Check `GET /api/health`; ensure `ALLOWED_ORIGINS` includes the admin domain. |
+| Red "API non raggiungibile" banner | Backend down or CORS. Check `GET /health` (root, DB-aware); ensure `ALLOWED_ORIGINS` includes the admin domain. |
 | List endpoints 500 "table missing" | Schema not yet ensured — restart the backend (self-heals on boot). |
 | Backend won't boot | Missing `JWT_SECRET`/`JWT_ADMIN_SECRET` (fails fast by design) or DB unreachable. |
 | Emails never arrive | `SMTP_*` unset → emails are silent no-ops. Set SMTP. |

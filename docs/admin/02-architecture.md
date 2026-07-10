@@ -76,8 +76,12 @@ A single `const DATA = { ... }` object is the client-side cache. Keys map to vie
 
 ## 5. Auth & roles
 
-- Login (`index.html`) → `POST /api/admin/auth/login` → JWT saved as
-  `localStorage['memi_admin_token']`, sent on every request as `Authorization: Bearer`.
+- Login (`index.html`) → `POST /api/admin/auth/login` → JWT delivered as an **HttpOnly cookie
+  `memi_admin_token`** (SameSite=Lax, 8h, `secure` derived from `x-forwarded-proto`), sent
+  automatically with `xhrFields:{withCredentials:true}`. A non-secret `localStorage['memi_admin_session']='1'`
+  flag answers `isLoggedIn()` before `/me` verifies. A legacy `Authorization: Bearer` from
+  `localStorage['memi_admin_token']` is still accepted for pre-migration sessions but new logins
+  use the cookie. (See `docs/SECURITY.md`.)
 - On dashboard boot, a startup guard calls `GET /api/admin/auth/me`. On success it
   sets `window.CURRENT_ADMIN`, paints the real identity into the sidebar/topbar
   (`paintAdminIdentity`), applies role permissions, and routes. On failure it

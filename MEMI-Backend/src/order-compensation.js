@@ -97,8 +97,10 @@ async function rollbackCustomerTotals(conn, order, mode) {
  *                   reverse points + (-speso); the discount stays consumed.
  * Loyalty reversal is ledger-based (nets to zero on a repeat call); the other
  * steps rely on the caller's status-transition guard for idempotence.
- * NOTE: partial refunds still restock ALL items — if the customer keeps part
- * of the order, adjust stock manually from Prodotti → Magazzino.
+ * NOTE: this performs a FULL reversal — call it only for full refunds/cancels.
+ * PARTIAL refunds are handled by the caller (resi.js), which skips this and only
+ * reduces the customer's total speso by the refunded amount (we can't know which
+ * items came back), leaving inventory for the admin to adjust manually.
  */
 async function compensateOrder(conn, order, kind) {
   const restocked = await restockItems(conn, order.id);

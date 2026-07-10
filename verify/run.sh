@@ -62,6 +62,9 @@ NODE_PATH="$NP" node MEMI-Backend/test/compensation-logic.test.cjs || FAIL=1
 sec "7. Input-validation (zod) schema tests"
 NODE_PATH="$NP" node MEMI-Backend/test/validation.test.cjs || FAIL=1
 
+sec "7b. Go-live hardening (RBAC + PayPal/Klarna gating)"
+NODE_PATH="$NP" node MEMI-Backend/test/hardening-golive.test.cjs || FAIL=1
+
 sec "8. File-integrity (anti-truncation) checks"
 # Every HTML file must end with </html> — catches the silent file-truncation
 # corruption this repo has suffered (files cut mid-write by a sync tool).

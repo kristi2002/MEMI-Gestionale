@@ -71,7 +71,7 @@ API_DOMAIN SHOP_DOMAIN ADMIN_DOMAIN                              # Traefik host 
   warning.
 
 ## Health & monitoring
-- `GET /api/health` → `{"status":"ok",...}`. Compose healthchecks gate `backend`
+- `GET /health` (root path, DB-aware; 503 if DB unreachable) → `{"status":"ok","db":"ok",...}`. Compose healthchecks gate `backend`
   (HTTP 200) and `mysql` (`mysqladmin ping`); `admin`/`ecommerce` depend on
   `backend` healthy.
 - `deploy/` has `backup.sh`, `restore.sh`, `healthcheck-monitor.sh`.

@@ -509,6 +509,8 @@
             Sarai reindirizzata al sito di PayPal per completare il pagamento in modo sicuro.<br>
             <span style="font-size:var(--text-xs);color:var(--brown-light);">Puoi usare il tuo conto PayPal o una carta di credito/debito.</span>
           </p>
+          <!-- PayPal Buttons render here when PayPal is configured server-side (GET /api/payments/config). -->
+          <div id="paypalButtons" style="margin-top:var(--space-4);"></div>
         </div>
 
         <!-- Klarna BNPL (hidden by default) -->
@@ -1058,47 +1060,28 @@
       el('klarnaPanel').style.display = idx === 2 ? 'block' : 'none';
       el('klarnaHint').style.display  = idx === 2 ? 'none'  : 'flex';
       if (el('paymentError')) el('paymentError').style.display = 'none';
+      // PayPal uses its own Buttons widget; hide the generic Conferma button on that tab
+      // when PayPal is actually configured (otherwise the tab shows a "presto disponibile" note).
+      var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
+      var paypalActive = idx === 1 && window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers.paypal;
+      if (confirmBtn) confirmBtn.style.display = paypalActive ? 'none' : '';
     }
 
-    function confirmOrder() {
-      var tabs      = document.querySelectorAll('.pay-tab');
-      var activeIdx = Array.from(tabs).findIndex(function(t) { return t.classList.contains('active'); });
-      var payMethod = ['carta', 'paypal', 'klarna'][activeIdx] || 'carta';
-      var isLocalDev = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+    function showPaymentError(msg) {
+      var errEl = el('paymentError');
+      if (errEl) { errEl.textContent = msg; errEl.style.display = 'flex'; } else if (msg) alert(msg);
+    }
 
-      // Never let an empty cart place an order.
-      if (!cartItems.length) {
-        var emptyErr = el('paymentError');
-        if (emptyErr) { emptyErr.textContent = 'Il carrello è vuoto.'; emptyErr.style.display = 'flex'; }
-        return;
-      }
-
-      // Gather shipping fields
-      var nome     = ((el('firstName') || {}).value || '').trim();
-      var cognome  = ((el('lastName')  || {}).value || '').trim();
-      var emailVal = ((el('email')     || {}).value || '').trim();
-      var address  = ((el('address')   || {}).value || '').trim();
-      var cityVal  = ((el('city')      || {}).value || '').trim();
-      var capVal   = ((el('cap')       || {}).value || '').trim();
-      var telEl    = el('phone');
-      var telefono = telEl ? telEl.value.trim() : '';
-      var countryEl = el('country');
-      var paese    = countryEl ? countryEl.options[countryEl.selectedIndex].text : 'Italia';
-
-      // Build order items from cart
+    // Build the order payload from the shipping form + cart. `payMethod` = 'carta'|'paypal'|'klarna'.
+    // Shared by the card flow and the PayPal Buttons flow (which runs outside confirmOrder).
+    function collectOrderData(payMethod) {
+      var telEl = el('phone'), countryEl = el('country');
       var orderItems = cartItems.map(function(item) {
-        // Prefer the clean product_id/taglia fields. Fall back for carts saved
-        // before those fields existed: the cart line id is "<productId>-<size>"
-        // and the size is the last segment of "colore · taglia" in variant.
         var taglia = item.taglia;
-        if (taglia == null) {
-          var v = item.variant || '';
-          taglia = v.indexOf(' · ') >= 0 ? v.split(' · ').pop().trim() : '';
-        }
+        if (taglia == null) { var v = item.variant || ''; taglia = v.indexOf(' · ') >= 0 ? v.split(' · ').pop().trim() : ''; }
         var productId = item.product_id;
         if (!productId) {
           productId = item.id || '';
-          // Strip a trailing "-<size>" suffix if the size is known.
           if (taglia && String(productId).toLowerCase().slice(-('-' + taglia).length) === ('-' + taglia).toLowerCase()) {
             productId = String(productId).slice(0, -('-' + taglia).length);
           }
@@ -1112,69 +1095,73 @@
           qty:          parseInt(item.qty) || 1,
         };
       });
-
-      var orderData = {
-        nome:           nome,
-        cognome:        cognome,
-        email:          emailVal,
-        telefono:       telefono || undefined,
-        indirizzo:      address,
-        citta:          cityVal,
-        cap:            capVal,
-        paese:          paese,
+      return {
+        nome:           ((el('firstName') || {}).value || '').trim(),
+        cognome:        ((el('lastName')  || {}).value || '').trim(),
+        email:          ((el('email')     || {}).value || '').trim(),
+        telefono:       (telEl ? telEl.value.trim() : '') || undefined,
+        indirizzo:      ((el('address')   || {}).value || '').trim(),
+        citta:          ((el('city')      || {}).value || '').trim(),
+        cap:            ((el('cap')        || {}).value || '').trim(),
+        paese:          countryEl ? countryEl.options[countryEl.selectedIndex].text : 'Italia',
         items:          orderItems,
         discount_code:  appliedCode ? appliedCode.code : undefined,
         gift_card_code: appliedGiftCard ? appliedGiftCard.code : undefined,
         payment_method: payMethod,
       };
+    }
 
-      // Disable confirm button to prevent double-submit
+    function shippingFilled(orderData) {
+      var o = orderData || collectOrderData('carta');
+      return !!(o.nome && o.cognome && o.email && o.indirizzo && o.citta && o.cap && o.items.length);
+    }
+
+    // Send an order payload to the API and route to confirmation. onErr(msg) shows the error.
+    function submitOrder(orderData, onErr) {
+      if (window.MemiAPI) {
+        window.MemiAPI.orders.place(orderData)
+          .then(function(data) {
+            try { sessionStorage.setItem('memi_last_order', JSON.stringify({ order_number: data.order_number, total: data.total, email: orderData.email })); } catch(_) {}
+            try { sessionStorage.setItem('memi_confirm_cart', JSON.stringify(cartItems)); } catch(_) {}
+            try { localStorage.removeItem('memi_cart'); sessionStorage.removeItem('memi_cart'); } catch(_) {}
+            window.location.href = 'order-confirm.html';
+          })
+          .catch(function(err) { if (onErr) onErr((err && err.error) || 'Errore durante il checkout. Riprova.'); });
+      } else {
+        try { sessionStorage.setItem('memi_last_order', JSON.stringify({ order_number: '#DEMO', total: subtotal })); } catch(_) {}
+        window.location.href = 'order-confirm.html';
+      }
+    }
+
+    function confirmOrder() {
+      var tabs      = document.querySelectorAll('.pay-tab');
+      var activeIdx = Array.from(tabs).findIndex(function(t) { return t.classList.contains('active'); });
+      var payMethod = ['carta', 'paypal', 'klarna'][activeIdx] || 'carta';
+      var isLocalDev = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+
+      if (!cartItems.length) { showPaymentError('Il carrello è vuoto.'); return; }
+
+      var orderData = collectOrderData(payMethod);
+
       var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
       function setLoading(on) {
-        if (confirmBtn) {
-          confirmBtn.disabled = on;
-          confirmBtn.textContent = on ? 'Elaborazione…' : 'Conferma ordine';
-        }
+        if (confirmBtn) { confirmBtn.disabled = on; confirmBtn.textContent = on ? 'Elaborazione…' : 'Conferma ordine'; }
       }
-      function placeOrder(piId) {
+      function placeOrder(piId, providerRef) {
         if (piId) orderData.payment_intent_id = piId;
-        if (window.MemiAPI) {
-          window.MemiAPI.orders.place(orderData)
-            .then(function(data) {
-              try { sessionStorage.setItem('memi_last_order', JSON.stringify({ order_number: data.order_number, total: data.total, email: orderData.email })); } catch(_) {}
-              try { sessionStorage.setItem('memi_confirm_cart', JSON.stringify(cartItems)); } catch(_) {}
-              try { localStorage.removeItem('memi_cart'); sessionStorage.removeItem('memi_cart'); } catch(_) {}
-              window.location.href = 'order-confirm.html';
-            })
-            .catch(function(err) {
-              setLoading(false);
-              var msg = (err && err.error) || 'Errore durante il checkout. Riprova.';
-              var errEl = el('paymentError');
-              if (errEl) { errEl.textContent = msg; errEl.style.display = 'flex'; }
-              else alert(msg);
-            });
-        } else {
-          // Graceful degradation — dev without backend
-          try { sessionStorage.setItem('memi_last_order', JSON.stringify({ order_number: '#DEMO', total: subtotal })); } catch(_) {}
-          window.location.href = 'order-confirm.html';
-        }
+        if (providerRef) orderData.payment_reference = providerRef;
+        submitOrder(orderData, function(msg) { setLoading(false); showPaymentError(msg); });
       }
 
       setLoading(true);
 
-      // A gift card (or a 100% discount) can bring the amount due to zero — nothing to
-      // charge through any payment method, so place the order directly. The backend applies
-      // the same rule server-side (never trusts this client-side zero on its own).
-      if (currentAmountCents() === 0 && (appliedGiftCard || appliedCode)) {
-        placeOrder(null);
-        return;
-      }
+      // A gift card (or 100% discount) can bring the amount due to zero — nothing to charge,
+      // so place the order directly. The backend re-applies this rule server-side.
+      if (currentAmountCents() === 0 && (appliedGiftCard || appliedCode)) { placeOrder(null); return; }
 
-      // Card payment: go through Stripe.
       if (activeIdx === 0) {
+        // Card payment: go through Stripe.
         var wantCents = currentAmountCents();
-        // Reuse the current PaymentIntent only if it was built for the CURRENT total;
-        // otherwise rebuild it so the card is never charged a stale (pre-discount) amount.
         var ensureSecret = (stripeInstance && stripeCardEl && stripeClientSecret && stripeIntentAmount === wantCents)
           ? Promise.resolve(stripeClientSecret)
           : (stripeInstance && stripeCardEl ? fetchPaymentIntent() : Promise.resolve(null));
@@ -1182,42 +1169,95 @@
         ensureSecret.then(function(secret) {
           if (stripeInstance && stripeCardEl && secret) {
             stripeInstance.confirmCardPayment(secret, {
-              payment_method: {
-                card: stripeCardEl,
-                billing_details: { name: nome + ' ' + cognome, email: emailVal },
-              },
+              payment_method: { card: stripeCardEl, billing_details: { name: orderData.nome + ' ' + orderData.cognome, email: orderData.email } },
             }).then(function(result) {
-              if (result.error) {
-                setLoading(false);
-                var errEl = el('paymentError');
-                if (errEl) { errEl.textContent = result.error.message; errEl.style.display = 'flex'; }
-              } else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
-                placeOrder(result.paymentIntent.id);
-              } else {
-                setLoading(false);
-                var errEl = el('paymentError');
-                if (errEl) { errEl.textContent = 'Pagamento non completato. Riprova.'; errEl.style.display = 'flex'; }
-              }
+              if (result.error) { setLoading(false); showPaymentError(result.error.message); }
+              else if (result.paymentIntent && result.paymentIntent.status === 'succeeded') { placeOrder(result.paymentIntent.id); }
+              else { setLoading(false); showPaymentError('Pagamento non completato. Riprova.'); }
             });
           } else if (isLocalDev) {
-            // Local dev without Stripe keys — allow an unverified order so the flow is testable.
-            placeOrder(null);
+            placeOrder(null);   // local dev without Stripe keys — allow an unverified order so the flow is testable
           } else {
-            // Production without a working PaymentIntent: never create an unpaid order.
             setLoading(false);
-            var errEl = el('paymentError');
-            if (errEl) { errEl.textContent = 'Pagamento non disponibile al momento. Riprova tra poco.'; errEl.style.display = 'flex'; }
+            showPaymentError('Pagamento non disponibile al momento. Riprova tra poco.');
           }
         });
       } else {
-        // PayPal / Klarna — not yet integrated; block submission to prevent unpaid orders
+        // PayPal / Klarna — driven by GET /api/payments/config availability.
+        var provKey = activeIdx === 1 ? 'paypal' : 'klarna';
+        var available = window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers[provKey];
         setLoading(false);
-        var errEl = el('paymentError');
-        if (errEl) {
-          errEl.textContent = 'Questo metodo di pagamento non è ancora disponibile. Seleziona Carta di credito per completare l\'acquisto.';
-          errEl.style.display = 'flex';
+        if (!available) {
+          showPaymentError('Questo metodo di pagamento non è ancora disponibile. Seleziona Carta di credito per completare l\'acquisto.');
+        } else if (provKey === 'paypal') {
+          // Handled by the PayPal Buttons (initPaypalButtons); the generic Conferma button is
+          // hidden on this tab. This branch only fires if the buttons haven't rendered yet.
+          showPaymentError('Usa il pulsante PayPal qui sopra per completare il pagamento.');
+        } else {
+          // Klarna configured server-side. TODO(klarna-live): mount the Klarna Web SDK widget with
+          // the client_token from POST /api/payments/klarna/create-session, then on authorization
+          // POST /api/payments/klarna/create-order and submitOrder({payment_reference: order_id}).
+          showPaymentError('Klarna è in fase di attivazione. Seleziona Carta di credito per completare l\'acquisto.');
         }
       }
+    }
+
+    // ── Payment provider availability (PayPal / Klarna) ──────────────────────
+    // Driven by GET /api/payments/config. Providers with no server credentials show a
+    // "presto disponibile" note instead of dead-ending; PayPal, when configured, renders
+    // its official Buttons (loaded on demand) so the popup opens from a real user gesture.
+    function applyPaymentProviders(cfg) {
+      var prov = (cfg && cfg.providers) || {};
+      window.MEMI_PAY = { providers: prov, paypal: (cfg && cfg.paypal) || null };
+      markProviderTab('paypalPanel', prov.paypal);
+      markProviderTab('klarnaPanel', prov.klarna);
+      if (prov.paypal) initPaypalButtons();
+    }
+    function markProviderTab(panelId, available) {
+      if (available) return;
+      var panel = el(panelId);
+      if (panel && !panel.querySelector('.provider-soon')) {
+        var note = document.createElement('p');
+        note.className = 'provider-soon';
+        note.style.cssText = 'margin-top:var(--space-4);font-size:var(--text-xs);color:var(--brown-light);';
+        note.textContent = 'Presto disponibile — al momento completa l\'acquisto con Carta di credito.';
+        panel.appendChild(note);
+      }
+    }
+    function initPaypalButtons() {
+      var cfg = window.MEMI_PAY && window.MEMI_PAY.paypal;
+      if (!cfg || !cfg.clientId || window.__paypalLoaded) return;
+      window.__paypalLoaded = true;
+      var apiBase = (window.MemiAPI && window.MemiAPI._base) || '/api';
+      var s = document.createElement('script');
+      s.src = 'https://www.paypal.com/sdk/js?client-id=' + encodeURIComponent(cfg.clientId) + '&currency=EUR&intent=capture';
+      s.onload = function() {
+        if (!window.paypal || !window.paypal.Buttons) return;
+        window.paypal.Buttons({
+          style: { layout: 'vertical', color: 'gold', shape: 'pill', label: 'paypal' },
+          onClick: function(data, actions) {
+            if (!shippingFilled()) { showPaymentError('Completa i dati di spedizione prima di pagare con PayPal.'); return actions.reject(); }
+            return actions.resolve();
+          },
+          createOrder: function() {
+            return fetch(apiBase + '/payments/paypal/create-order', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+              body: JSON.stringify({ amount_cents: currentAmountCents() }),
+            }).then(function(r) { return r.json(); })
+              .then(function(d) { if (!d || !d.id) throw new Error('create-order failed'); return d.id; });
+          },
+          onApprove: function(data) {
+            // The backend re-captures + verifies the amount in POST /orders (verifyPaypalOrder),
+            // so we just place the order with the PayPal order id as the transaction reference.
+            var orderData = collectOrderData('paypal');
+            orderData.payment_reference = data.orderID;
+            submitOrder(orderData, function(msg) { showPaymentError(msg); });
+          },
+          onError: function() { showPaymentError('Errore PayPal. Riprova o usa un altro metodo.'); },
+        }).render('#paypalButtons');
+      };
+      s.onerror = function() { showPaymentError('Impossibile caricare PayPal. Riprova più tardi.'); };
+      document.head.appendChild(s);
     }
 
     // ── Card Input Formatting ─────────────────────────────────────────────────
@@ -1367,7 +1407,14 @@
           .then(function(data) {
             if (data && data.publishableKey) {
               window.MEMI_STRIPE_PK = data.publishableKey;
+              // Mount now that the key is available. #stripeCardElement is a static
+              // element in the DOM, so this is safe even on step 1 — and it closes the
+              // race where the user reaches the payment step before this fetch resolves
+              // (the step-3 setTimeout would otherwise find no key and silently bail).
+              if (typeof initStripeElements === 'function') initStripeElements();
             }
+            // Show/hide PayPal & Klarna based on whether the server has their credentials.
+            if (typeof applyPaymentProviders === 'function') applyPaymentProviders(data || {});
           })
           .catch(function() { /* no-op — Stripe will fail gracefully at mount time */ });
       })();

@@ -67,14 +67,26 @@ services:
       FRONTEND_URL:          ${FRONTEND_URL:-https://memi.testdemo.it}
       # Admin bootstrap — set these in Coolify to create/rotate the admin login on boot.
       # If set, the backend upserts this admin with a freshly hashed password at startup.
+      # In production the backend REFUSES TO BOOT if the shipped default admin password is
+      # still active; set ADMIN_PASSWORD (or ALLOW_DEFAULT_ADMIN=1 to bypass — not recommended).
       ADMIN_EMAIL:           ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD:        ${ADMIN_PASSWORD:-}
+      ALLOW_DEFAULT_ADMIN:   ${ALLOW_DEFAULT_ADMIN:-}
       # Stripe — set real keys in Coolify env vars
       STRIPE_SECRET_KEY:     ${STRIPE_SECRET_KEY:-}
       STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
       # Stripe webhook signing secret — from the Stripe dashboard webhook endpoint
       # (https://dashboard.stripe.com/webhooks) pointed at https://<api-domain>/api/payments/webhook
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # PayPal & Klarna (scaffolding — leave unset until the client provides merchant accounts;
+      # the checkout hides the option and the API returns 503 until credentials exist).
+      PAYPAL_CLIENT_ID:      ${PAYPAL_CLIENT_ID:-}
+      PAYPAL_SECRET:         ${PAYPAL_SECRET:-}
+      PAYPAL_ENV:            ${PAYPAL_ENV:-sandbox}
+      KLARNA_USERNAME:       ${KLARNA_USERNAME:-}
+      KLARNA_PASSWORD:       ${KLARNA_PASSWORD:-}
+      KLARNA_REGION:         ${KLARNA_REGION:-eu}
+      KLARNA_ENV:            ${KLARNA_ENV:-playground}
       # SMTP / nodemailer — set in Coolify env vars
       SMTP_HOST:             ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT:             ${SMTP_PORT:-587}

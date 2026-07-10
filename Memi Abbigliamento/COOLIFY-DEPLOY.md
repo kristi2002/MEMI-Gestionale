@@ -1,71 +1,29 @@
-# Deploying Memi Abbigliamento to Coolify on Hetzner
+# Deploying the MEMI storefront (Coolify on Hetzner)
 
-The repo (`kristi2002/Memi-Abbigliamento--1-`, branch `main`) now includes:
+> **Rewritten 2026-07-10.** The previous version of this file described a **Caddy** image with a
+> `Caddyfile` and a `server.py` — none of which exist in this repo. The storefront is actually
+> served by **nginx** (`Memi Abbigliamento/Dockerfile` → `nginx:alpine` + `nginx.conf`), and the
+> whole platform (mysql + backend + ecommerce + admin) deploys together from the root
+> `docker-compose.yml`. The stale single-service instructions were removed to avoid confusion.
 
-- `Dockerfile` — builds a tiny Caddy-based image that serves the site.
-- `Caddyfile` — replicates `server.py`'s clean-URL behavior (`/shop` → `shop.html`, directory → `index.html`) plus gzip and cache headers.
-- `.dockerignore` — keeps dev-only files out of the image.
+## Canonical deployment references
+- **`docs/DEPLOYMENT.md`** — full topology, deploy flow, persistence, post-deploy verification (Coolify/Traefik on Hetzner).
+- **`docs/ENVIRONMENT.md`** — the complete, authoritative environment-variable reference.
+- **`docs/PRODUCTION-READINESS.md`** — Italian go-live checklist (DNS, first-boot, backup/monitoring cron).
+- **`docs/GO-LIVE-PLAN-2026-07.md`** — the current go-live plan and gap analysis.
+- **`deploy/`** — `backup.sh`, `restore.sh`, `healthcheck-monitor.sh` (crontab-ready).
 
-These are already committed and pushed to GitHub.
+## How this app actually builds & serves
+- `Dockerfile`: build stage `node:20-alpine` runs `scripts/cache-bust.js .` (content-hash rewrite
+  of `?v=` on local JS/CSS — no manual version bumps needed for deploys); serve stage
+  `nginx:alpine` copies `nginx.conf` → `/etc/nginx/conf.d/default.conf` and the tree →
+  `/usr/share/nginx/html`. Listens on **port 80**.
+- `nginx.conf`: proxies `^~ /api/` → `backend:3000` (same-origin, so no CORS in prod), serves HTML
+  `no-cache, must-revalidate`, hashed assets `immutable 30d`, full security-header set + gzip.
+- **Canonical domain:** `memi.testdemo.it` (admin `admin.memi.testdemo.it`, api `api.memi.testdemo.it`).
+  Traefik/Let's Encrypt labels live in the root `docker-compose.yml`.
 
-## 1. Create the resource in Coolify
-
-1. Open your Coolify dashboard.
-2. Pick the project/server where you want this deployed (your Hetzner server).
-3. **New Resource → Application → Public Repository** (or **GitHub App** if you've connected your GitHub account for private repo access).
-4. Repository URL: `https://github.com/kristi2002/Memi-Abbigliamento--1-.git`
-5. Branch: `main`
-6. Build Pack: **Dockerfile** — Coolify should auto-detect it since `Dockerfile` is at the repo root. If it defaults to Nixpacks/static, switch it to Dockerfile manually.
-7. Port: **80** (that's what Caddy listens on inside the container; Coolify's proxy maps it to 443/HTTPS automatically).
-
-## 2. Deploy
-
-1. Click **Deploy**. Coolify will clone the repo, build the image, and start the container.
-2. Watch the build logs — it should be fast since the image is just `caddy:2-alpine` plus your static files.
-3. Once it's running, Coolify gives you a default URL (something like `https://<random>.sslip.io` or your server's domain pattern). Open it and check:
-   - Homepage loads
-   - `/shop`, `/about`, `/look`, `/checkout` resolve without `.html`
-   - A product page like `/products/vestito-lino-cannes/` loads
-   - A bad URL shows your custom `404.html`
-
-## 3. Turn on auto-deploy (recommended)
-
-In the resource's **Settings → Webhooks** (or "Automatic Deployment"), enable the GitHub webhook so every push to `main` redeploys automatically. Since Cowork auto-commits and pushes your edits to this repo as you work, this means changes you make here go live without any manual redeploy step.
-
-## 4. Add a custom domain later
-
-When you have a domain:
-
-1. In your DNS provider, add an **A record** pointing the domain (or subdomain) to your Hetzner server's IP address.
-2. In Coolify, go to the resource's **Domains** tab and add the domain.
-3. Coolify provisions a Let's Encrypt SSL certificate automatically once DNS resolves.
-
-## 5. Backend environment variables (required for full functionality)
-
-When deploying the full stack (backend + e-commerce + admin), add these in Coolify's **Environment Variables** tab for the backend service:
-
-**Database**
-- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `MYSQL_ROOT_PASSWORD`
-
-**Auth**
-- `JWT_SECRET` — 64-char random hex (customer tokens)
-- `JWT_ADMIN_SECRET` — 64-char random hex (admin tokens, must differ from JWT_SECRET)
-
-**Stripe (payment processing)**
-- `STRIPE_SECRET_KEY` — `sk_live_...` in production, `sk_test_...` for testing
-- `STRIPE_PUBLISHABLE_KEY` — `pk_live_...` or `pk_test_...`
-- If not set: checkout shows "Servizio pagamenti non disponibile" but site works otherwise
-
-**Email (order confirmation)**
-- `SMTP_HOST` — e.g. `smtp.gmail.com`
-- `SMTP_PORT` — `587` (STARTTLS) or `465` (SSL)
-- `SMTP_SECURE` — `false` for port 587, `true` for 465
-- `SMTP_USER` — your sending email address
-- `SMTP_PASS` — SMTP password or Google app password
-- `SMTP_FROM` — `"Memi Abbigliamento <info@memi.it>"`
-- If not set: orders save correctly but no confirmation email is sent
-
-## Notes
-
-- The e-commerce frontend (`Memi Abbigliamento/`) is a static site — no env vars needed for the nginx container itself. All dynamic logic hits the backend via `/api/` proxy.
-- `app.js` is currently at version `?v=7`. Always bump this version in all HTML files after modifying `app.js`.
+For the recommended Coolify flow, deploy the root `docker-compose.yml` as a single Docker-Compose
+resource (or one resource per service pointing at the same file) and set the environment variables
+from `docs/ENVIRONMENT.md` on the `backend` service. Enable the GitHub webhook for auto-deploy on
+push. Add domains + SSL in Coolify's **Domains** tab once DNS resolves.

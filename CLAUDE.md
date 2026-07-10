@@ -117,12 +117,6 @@ Key facts now true in the code (both sprints combined):
   longer needed for deploys — source values just need to stay consistent. Admin `nginx.conf` now
   also sends `Cache-Control: no-cache, must-revalidate` on HTML (parity with the storefront), so
   browsers revalidate pages on every load and deploys show up on plain refresh.
-- **Admin cache-busting is now automated too** (Luglio 2026): `MEMI/scripts/cache-bust.js` runs in
-  `MEMI/Dockerfile` at build time and rewrites every local `.js`/`.css` `?v=` in admin HTML to a
-  content hash (auto-discovers assets, no hardcoded list). Manual `?v=N` bumps in `MEMI/` are no
-  longer needed for deploys — source values just need to stay consistent. Admin `nginx.conf` now
-  also sends `Cache-Control: no-cache, must-revalidate` on HTML (parity with the storefront), so
-  browsers revalidate pages on every load and deploys show up on plain refresh.
 
 **Verification:** `bash verify/run.sh` exits 0 — 36/36 JS syntax, version consistency, 14 route-contract checks, 6/6 order-flow simulations.
 
@@ -200,3 +194,28 @@ New facts true in the admin (`MEMI/`) code — **no backend changes**:
 - Admin cache-bust auto-hashes assets at Docker build, so the edited
   `app.js`/`admin-api.js`/`style.css` deploy correctly without manual `?v=` bumps
   (verified). `bash verify/run.sh` stays green.
+
+## Update Luglio 2026 — Go-live truth-pass (Hetzner/Coolify)
+
+Live checklist and full gap analysis: **`docs/GO-LIVE-PLAN-2026-07.md`**. Canonical docs
+regenerated against actual code this pass — trust these over the older Jul-5 docs:
+`docs/api.md`, `docs/STATUS.md`, `docs/ENVIRONMENT.md`, `docs/SECURITY.md`,
+`docs/STOREFRONT.md`, `docs/DEMO-RUNBOOK.md`, `docs/admin/*`.
+
+**Canonical production domain (settled):** shop `memi.testdemo.it` · admin
+`admin.memi.testdemo.it` · api `api.memi.testdemo.it` (matches `docker-compose.yml`
+defaults). The older `memi.it` / `memiabbigliamento.it` placeholders are retired.
+
+**"Ghost views" are REAL** — the biggest historical doc drift. `chat` (`/api/admin/chat`
++ `/api/chat`), `popups` (`/api/admin/popups` + `/api/popups`), `automations`
+(`/api/admin/automations`), abandoned `carts` (`/api/admin/carts` + `/api/cart`),
+`liveview` (`/api/admin/liveview` + `POST /api/track`), `segments`, `expenses`,
+`transfers`, `feed` (`/api/feed/meta.csv`), product `variants`
+(`/api/products/:id/variants`), and `suppliers`/`purchase-orders` are all **built,
+mounted, and API-backed**. Any older doc calling them "mock/hidden/nessun backend" is stale.
+
+**Health endpoint is `GET /health`** (root), not `/api/health`.
+
+**Admin auth is an HttpOnly cookie** `memi_admin_token` (SameSite=Lax, 8h) with a legacy
+`Authorization: Bearer` fallback — not plain localStorage. Customer auth stays a Bearer JWT
+(`memi_token`, 7d, no revocation).

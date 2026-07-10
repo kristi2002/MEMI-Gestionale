@@ -13,7 +13,7 @@
 
 const router           = require('express').Router();
 const { pool }         = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, requirePermission } = require('../middleware/auth');
 
 /* ── POST /api/track (public) ── */
 router.post('/track', async (req, res) => {
@@ -37,8 +37,8 @@ router.post('/track', async (req, res) => {
   }
 });
 
-/* ── GET /api/admin/liveview (admin) ── */
-router.get('/admin/liveview', requireAdmin, async (req, res) => {
+/* ── GET /api/admin/liveview (admin — 'liveview' is an admin-only view) ── */
+router.get('/admin/liveview', requireAdmin, requirePermission('liveview'), async (req, res) => {
   try {
     const [[online]]  = await pool.execute(
       'SELECT COUNT(DISTINCT session_id) AS n FROM page_views WHERE created_at > NOW() - INTERVAL 5 MINUTE');

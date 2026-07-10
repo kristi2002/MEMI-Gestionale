@@ -69,7 +69,7 @@ backup video, walk in with the stack already running.
 11. **Products / Inventory** — show the **stock was deducted** by that purchase. (This lands well.)
 12. **Customers** — the customer you just registered is here (VIP flag if spend > €300).
 13. **Discounts** and **Shipping → Zones / Couriers** — all real data.
-14. Resize the window → **admin is mobile-responsive** (bottom nav under 600px).
+14. Resize the window → **admin is mobile-responsive** (off-canvas drawer nav ≤900px; hamburger toggles `.sidebar.mobile-open`).
 
 ### Act 3 — Close the loop (back to storefront)
 15. Storefront → **Account** → the order now shows a **tracking badge** because admin shipped it.
@@ -80,25 +80,30 @@ That arc proves the complete real system. End there.
 
 ## ⛔ DANGER ZONE — do NOT click / do NOT promise
 
-**Admin tabs that are mock or empty** (will look unfinished):
-- Marketing / Newsletter (mock), Chat / Messaggi (mock), Analytics (static SVG, fake),
-  Finanza, CMS, Canali (not implemented). **Stay out of these.**
+> **Corrected 2026-07-10.** The old danger list was stale — chat, newsletter, analytics
+> (live view), abandoned carts, pop-ups, automations, guest order tracking, returns, product
+> reviews and product image upload are all **real and working** now. The genuinely-incomplete
+> surfaces are much narrower:
 
-**Storefront pages with stale hardcoded counts** (numbers won't match the real catalog):
-- The 15 static `/collections/{slug}/` pages, `best-seller.html`, `estate-2025.html`,
-  the pre-rendered `products/{slug}/` pages. **Drive everything through `/shop?categoria=…`**
-  instead. If a sharp client clicks a collection and sees "9 articoli" that doesn't match,
-  it's an awkward moment. Avoid the mixed-link paths (some "vedi tutto"/footer links still
-  point at static `/collections/`).
+**Not integrated — will dead-end (avoid on screen):**
+- **PayPal / Klarna at checkout** — the tabs/buttons show but aren't wired (scaffolding in
+  progress). Demo card payment (Stripe) only.
+- **POS / Apps store / Social auto-sync** — config-only shells: you can enter keys but nothing
+  syncs to a third party. Don't promise a live Mailchimp/Meta push.
+- **Analytics → "Fonti traffico"** — placeholder pending a GA key. The **Live View** visitor
+  feed IS real (self-hosted beacons); show that instead.
 
-**Things that don't exist yet — don't promise them on screen:**
-- Guest order tracking (no `order-tracking.html`), returns (`returns.html`), product reviews.
-- Live product image upload: your docs disagree on whether it works (GAPS says no, DEPLOYMENT
-  Phase 6 says yes). **Verify tonight** (overnight prompt step 3). If unconfirmed, don't add a
-  product live — demo the seeded catalog.
+**Card checkout prerequisite:** `checkout.html` needs `<meta name="stripe-pk">` present (or the
+go-live fix that reads `GET /api/payments/config`) — without a publishable key the card form is
+disabled. Set Stripe TEST keys (step 3) before demoing checkout.
 
-If asked about any of the above: *"that's on the roadmap for the next sprint"* — true, it's in
-your gap doc — and move on. Don't improvise it live.
+**Catalog-count nuance (mostly self-correcting):** the 15 `/collections/{slug}/` pages and the
+23 pre-rendered `products/{slug}/` pages bake a count/price at build time that JS re-hydrates
+from the live API on load — a fast client could see a flash of a stale number before JS runs.
+Driving through `/shop?categoria=…` (the primary nav path) avoids it entirely.
+
+If asked about the not-integrated items: *"that's the next integration step — it needs your
+merchant/analytics accounts"* — true — and move on. Don't improvise it live.
 
 ---
 

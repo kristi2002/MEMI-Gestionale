@@ -20,4 +20,4 @@ Disallow: /search?
 Disallow: /*?*sort=
 Disallow: /*?*page=
 
-Sitemap: https://memiabbigliamento.it/sitemap.xml
+Sitemap: https://memi.testdemo.it/sitemap.xml

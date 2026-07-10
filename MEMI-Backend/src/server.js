@@ -67,6 +67,7 @@ const productVariantsRoutes = require('./routes/product-variants');
 const purchasingRoutes    = require('./routes/purchasing');
 const { ensureDir: ensureUploadsDir, UPLOADS_DIR } = require('./images');
 const { requestLogger }  = require('./logger');
+const { requireAdmin, requirePermission } = require('./middleware/auth');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -219,45 +220,52 @@ app.get('/health', async (req, res) => {
 });
 
 // ── API routes ─────────────────────────────────────────────────
+// Server-side RBAC: pure-admin mounts below are gated with `requireAdmin, requirePermission(view)`
+// so a staff account can only reach the sections its assigned permission set (the same one the
+// UI uses) allows — this is what stops, e.g., a "marketing" staffer from hitting the returns/refund
+// or audit-log endpoints. The mount → view map lives here, in one auditable place. Routers that
+// also serve PUBLIC routes (products, orders, shipping, newsletter, reviews, cms/popups public
+// mounts, analytics /track) are NOT gated at the mount — they keep their own per-route requireAdmin,
+// and their admin-only sub-routes are gated internally where needed (e.g. liveview below).
 app.use('/api/auth',              authRoutes);
 app.use('/api/auth',              accountRoutes);   // wishlist, addresses, newsletter (customer)
 app.use('/api/admin/auth',        adminAuthRoutes);
 app.use('/api/products',          productVariantsRoutes);   // /:id/variants* (before flat products router)
 app.use('/api/products',          productsRoutes);
-app.use('/api/admin/products',    productsImportRoutes);   // bulk CSV import (admin)
+app.use('/api/admin/products',    requireAdmin, requirePermission('products'), productsImportRoutes);   // bulk CSV import (admin)
 app.use('/api/orders',            ordersRoutes);
-app.use('/api/admin/customers',   customersRoutes);
-app.use('/api/admin/discounts',   discountsRoutes);
+app.use('/api/admin/customers',   requireAdmin, requirePermission('customers'), customersRoutes);
+app.use('/api/admin/discounts',   requireAdmin, requirePermission('discounts'), discountsRoutes);
 app.use('/api/shipping',          shippingRoutes);
-app.use('/api/admin/dashboard',   dashboardRoutes);
+app.use('/api/admin/dashboard',   dashboardRoutes);   // /finance is admin-only internally; other KPIs are the shared 'dashboard' view
 app.use('/api/payments',          paymentsRoutes);
 app.use('/api/newsletter',        newsletterRoutes);
-app.use('/api/admin/invoices',    invoicesRoutes);
-app.use('/api/admin/resi',        resiRoutes);
+app.use('/api/admin/invoices',    requireAdmin, requirePermission('invoices'), invoicesRoutes);
+app.use('/api/admin/resi',        requireAdmin, requirePermission('returns'), resiRoutes);   // gates the Stripe refund endpoint to returns-permitted staff
 app.use('/api/resi',              resiPublicRoutes);
 app.use('/api/reviews',           reviewsRoutes);
-app.use('/api/admin/settings',    settingsRoutes);
-app.use('/api/admin/staff',       staffRoutes);
-app.use('/api/admin/giftcards',   giftcardsRoutes);
+app.use('/api/admin/settings',    requireAdmin, requirePermission('settings'), settingsRoutes);
+app.use('/api/admin/staff',       requireAdmin, requirePermission('staff'), staffRoutes);
+app.use('/api/admin/giftcards',   requireAdmin, requirePermission('giftcards'), giftcardsRoutes);
 app.use('/api/giftcards',         giftcardsPublicRoutes);   // public validate for checkout
-app.use('/api/admin/campaigns',   campaignsRoutes);
-app.use('/api/admin/cms',         cmsRoutes);
+app.use('/api/admin/campaigns',   requireAdmin, requirePermission('marketing'), campaignsRoutes);
+app.use('/api/admin/cms',         requireAdmin, requirePermission('content', 'blog'), cmsRoutes);
 app.use('/api/cms',               cmsRoutes);   // public /published/* routes for the storefront
-app.use('/api/admin/loyalty',     loyaltyRoutes);
-app.use('/api/admin/audit-log',   auditLogRoutes);
-app.use('/api/admin/expenses',    expensesRoutes);
-app.use('/api/admin/segments',    segmentsRoutes);
-app.use('/api/admin/transfers',   transfersRoutes);
-app.use('/api/admin/popups',      popupsRoutes);
+app.use('/api/admin/loyalty',     requireAdmin, requirePermission('loyalty'), loyaltyRoutes);
+app.use('/api/admin/audit-log',   requireAdmin, requirePermission('audit-log'), auditLogRoutes);
+app.use('/api/admin/expenses',    requireAdmin, requirePermission('bills'), expensesRoutes);
+app.use('/api/admin/segments',    requireAdmin, requirePermission('segments'), segmentsRoutes);
+app.use('/api/admin/transfers',   requireAdmin, requirePermission('transfers'), transfersRoutes);
+app.use('/api/admin/popups',      requireAdmin, requirePermission('popups'), popupsRoutes);
 app.use('/api/popups',            popupsRoutes);   // public /published for storefront
-app.use('/api',                   analyticsTrackRoutes);   // POST /api/track (public) + GET /api/admin/liveview
-app.use('/api/admin/automations', automationsRoutes);
-app.use('/api/admin/chat',        chatRoutes);
+app.use('/api',                   analyticsTrackRoutes);   // POST /api/track (public) + GET /api/admin/liveview (gated internally)
+app.use('/api/admin/automations', requireAdmin, requirePermission('automations'), automationsRoutes);
+app.use('/api/admin/chat',        requireAdmin, requirePermission('chat'), chatRoutes);
 app.use('/api/chat',              chatPublicRoutes);   // public storefront widget
 app.use('/api/feed',              feedRoutes);         // public product feed (Meta/Google)
-app.use('/api/admin/carts',       cartsRoutes);
+app.use('/api/admin/carts',       requireAdmin, requirePermission('orders-abandoned'), cartsRoutes);
 app.use('/api/cart',              cartPublicRoutes);   // public cart beacon (storefront)
-app.use('/api/admin',             purchasingRoutes);   // /suppliers* + /purchase-orders*
+app.use('/api/admin',             requireAdmin, requirePermission('inventory'), purchasingRoutes);   // /suppliers* + /purchase-orders* (procurement ~ inventory)
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));
