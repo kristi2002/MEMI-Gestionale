@@ -1,4 +1,4 @@
-# Project: MEMI Abbigliamento
+# Project: MEMI Abbigliamento//
 
 E-commerce platform, three apps in one repo, Italian-language product/UI.
 
