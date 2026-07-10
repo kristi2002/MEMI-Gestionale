@@ -1087,10 +1087,26 @@
 
       // Build order items from cart
       var orderItems = cartItems.map(function(item) {
+        // Prefer the clean product_id/taglia fields. Fall back for carts saved
+        // before those fields existed: the cart line id is "<productId>-<size>"
+        // and the size is the last segment of "colore · taglia" in variant.
+        var taglia = item.taglia;
+        if (taglia == null) {
+          var v = item.variant || '';
+          taglia = v.indexOf(' · ') >= 0 ? v.split(' · ').pop().trim() : '';
+        }
+        var productId = item.product_id;
+        if (!productId) {
+          productId = item.id || '';
+          // Strip a trailing "-<size>" suffix if the size is known.
+          if (taglia && String(productId).toLowerCase().slice(-('-' + taglia).length) === ('-' + taglia).toLowerCase()) {
+            productId = String(productId).slice(0, -('-' + taglia).length);
+          }
+        }
         return {
-          product_id:   item.id || item.product_id || '',
+          product_id:   productId,
           product_name: item.name || item.product_name || '',
-          taglia:       item.taglia || item.variant || '',
+          taglia:       taglia || '',
           colore:       item.colore || item.color || '',
           price:        parseFloat(item.price) || 0,
           qty:          parseInt(item.qty) || 1,
@@ -1358,7 +1374,7 @@
     });
   </script>
   <script src="api-client.js?v=5"></script>
-  <script src="app.js?v=20"></script>
+  <script src="app.js?v=21"></script>
   <script src="checkout-autofill.js?v=1"></script>
 </body>
 </html>

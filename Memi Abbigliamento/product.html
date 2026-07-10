@@ -864,6 +864,8 @@
               if (typeof window.addToCart === 'function') {
                 window.addToCart({
                   id: P.id + (selectedSize ? '-' + selectedSize.toLowerCase() : ''),
+                  product_id: P.id,
+                  taglia: selectedSize || null,
                   name: P.name,
                   variant: [selectedColor, selectedSize].filter(Boolean).join(' · '),
                   price: P.price,
@@ -1157,6 +1159,6 @@
   </script>
 
   <script src="api-client.js?v=5"></script>
-  <script src="app.js?v=20"></script>
+  <script src="app.js?v=21"></script>
 </body>
 </html>

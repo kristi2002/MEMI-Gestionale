@@ -1712,7 +1712,7 @@
         chip.style.color = 'var(--white)';
         chip.style.borderColor = 'var(--espresso)';
         chip.setAttribute('data-selected', 'true');
-        addToCart({ id: id, name: name, variant: color + ' · ' + size, price: price, color: getCardColor(card) });
+        addToCart({ id: id, product_id: baseId, taglia: size, name: name, variant: color + ' · ' + size, price: price, color: getCardColor(card) });
         openCart();
       });
     });
