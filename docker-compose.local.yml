@@ -21,6 +21,8 @@ services:
   backend:
     ports:
       - "3000:3000"
+    environment:
+      ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:8081"
   ecommerce:
     ports:
       - "8080:80"
