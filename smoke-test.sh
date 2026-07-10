@@ -190,6 +190,40 @@ else
   ko "skipped — no admin token"
 fi
 
+# 9 — Colors (dynamic palette + product color_hex join + AI suggest)
+echo
+echo "[9] Colors (dynamic palette)"
+NCOL="$(curl -fsS "$BASE/api/colors" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const j=JSON.parse(d);console.log(Array.isArray(j)?j.length:0)}catch(e){console.log(0)}})' 2>/dev/null)"
+[ "${NCOL:-0}" -ge 7 ] && ok "GET /api/colors -> $NCOL colors (seed present)" || ko "GET /api/colors -> ${NCOL:-0} (expected >= 7)"
+C="$(code -X POST -H 'Content-Type: application/json' -d '{"name":"x","hex":"#112233"}' "$BASE/api/admin/colors")"
+[ "$C" = "401" ] && ok "POST /api/admin/colors without token -> 401" || ko "colors create unauth -> HTTP $C"
+if [ -n "${ADMIN_TOKEN:-}" ]; then
+  CSLUG="smoke-color-$"
+  CID="$(curl -fsS -X POST "$BASE/api/admin/colors" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"name\":\"Smoke Oliva\",\"hex\":\"#556B2F\",\"slug\":\"$CSLUG\"}" 2>/dev/null | jget id)"
+  [ -n "$CID" ] && ok "color created (id $CID)" || ko "color create failed"
+  C="$(code -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d "{\"name\":\"Dup\",\"hex\":\"#000000\",\"slug\":\"$CSLUG\"}" "$BASE/api/admin/colors")"
+  [ "$C" = "409" ] && ok "duplicate color slug -> 409" || ko "duplicate slug -> HTTP $C (expected 409)"
+  C="$(code -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$CSLUG-prod\",\"name\":\"Smoke Color Prod\",\"categoria\":\"vestiti\",\"price\":10,\"colore\":\"$CSLUG\",\"color_label\":\"Smoke Oliva\"}" "$BASE/api/products")"
+  [ "$C" = "201" ] || ko "color product create -> HTTP $C"
+  CHEX="$(curl -fsS "$BASE/api/products/$CSLUG-prod" 2>/dev/null | jget color_hex)"
+  [ "$CHEX" = "#556B2F" ] && ok "product detail exposes color_hex ($CHEX)" || ko "color_hex = '$CHEX' (expected #556B2F)"
+  C="$(code -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/colors/$CID")"
+  [ "$C" = "409" ] && ok "delete color in use -> 409" || ko "delete in-use color -> HTTP $C (expected 409)"
+  PNG9="smoke-color-$.png"
+  printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' | base64 -d > "$PNG9" 2>/dev/null
+  SUG="$(curl -fsS -X POST "$BASE/api/admin/colors/suggest-from-image" -H "Authorization: Bearer $ADMIN_TOKEN" -F "image=@$PNG9;type=image/png" 2>/dev/null)"
+  rm -f "$PNG9" 2>/dev/null
+  echo "$SUG" | grep -q '"hex":"#' && ok "suggest-from-image returns dominant hex" || ko "suggest-from-image: $SUG"
+  C="$(code -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/products/$CSLUG-prod")"
+  [ "$C" = "200" ] || ko "color product cleanup -> HTTP $C"
+  C="$(code -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/colors/$CID")"
+  [ "$C" = "200" ] && ok "unused color deleted (cleanup)" || ko "color delete -> HTTP $C"
+else
+  ko "skipped colors admin checks — no admin token"
+fi
+
 echo
 echo "------------------------------"
 echo "  passed: $pass   failed: $fail"

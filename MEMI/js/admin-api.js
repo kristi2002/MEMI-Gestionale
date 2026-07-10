@@ -284,6 +284,10 @@
   var newsletter = {
     list:      function(params) { return get('/newsletter' + (params ? '?' + $.param(params) : '')); },
     subscribe: function(email, fonte) { return post('/newsletter/subscribe', { email: email, fonte: fonte || 'admin' }); },
+    add:       function(email, fonte) { return post('/newsletter', { email: email, fonte: fonte || 'admin' }); },
+    setStatus: function(id, unsubscribed) { return put('/newsletter/' + id, { unsubscribed: unsubscribed ? 1 : 0 }); },
+    remove:    function(id) { return del('/newsletter/' + id); },
+    send:      function(payload) { return post('/newsletter/send', payload); },
   };
 
   /* ═══════════════════════════════════════════════════════

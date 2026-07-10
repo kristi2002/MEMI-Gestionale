@@ -289,10 +289,15 @@ table.data tr:last-child td{border-bottom:none}
 .status-pill.fail{background:var(--danger-bg);color:var(--danger)}
 .status-pill.neutral{background:var(--line-2);color:var(--muted)}
 
-.row-actions{display:flex;gap:4px}
-.row-actions button{width:28px;height:28px;border-radius:6px;background:transparent;
+.row-actions{display:flex;gap:6px;align-items:center;flex-wrap:nowrap}
+/* Icon-only action buttons (eye/print/trash): fixed 28px square */
+.row-actions button:not(.btn){width:28px;height:28px;flex:0 0 28px;border-radius:6px;background:transparent;
   display:inline-flex;align-items:center;justify-content:center;color:var(--muted);transition:.12s}
-.row-actions button:hover{background:var(--line-2);color:var(--text)}
+.row-actions button:not(.btn):hover{background:var(--line-2);color:var(--text)}
+/* Labeled action buttons (.btn btn-sm, e.g. Magazzino "Stock"/"Varianti"): equal-height pills, never squished */
+.row-actions .btn{height:28px;padding:0 10px;font-size:12px;line-height:1;border-radius:6px;
+  display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;flex:0 0 auto;width:auto}
+.row-actions .btn i.ti{font-size:14px}
 
 /* PRODUCT GRID */
 .prod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}

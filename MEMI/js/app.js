@@ -884,6 +884,7 @@ VIEWS.discounts = function(){
             <td>${statusPill(d.stato)}</td>
             <td class="row-actions">
               <button class="js-copy-code" data-code="${d.code}" title="Copia codice">📋</button>
+              <button class="js-edit-discount" data-id="${d._db_id||''}" title="Modifica"><i class="ti ti-pencil"></i></button>
               <button class="js-del-discount" data-id="${d._db_id||''}" data-code="${d.code}" title="Elimina"><i class="ti ti-trash"></i></button>
             </td>
           </tr>
@@ -2143,13 +2144,130 @@ $(function(){
   }
   var PRODUCT_COLORS = [['blush','Rosa cipria'],['salvia','Salvia'],['lavanda','Lavanda'],['avorio','Avorio'],['menta','Menta'],['antico','Rosa antico'],['espresso','Espresso']];
   function colorLabelFor(key){ for(var i=0;i<PRODUCT_COLORS.length;i++){ if(PRODUCT_COLORS[i][0]===key) return PRODUCT_COLORS[i][1]; } return ''; }
+  function colorHexFor(key){ for(var i=0;i<PRODUCT_COLORS.length;i++){ if(PRODUCT_COLORS[i][0]===key) return PRODUCT_COLORS[i][2]||''; } return ''; }
+  function colorSelectOptions(current){
+    current = (current||'').toLowerCase();
+    var known = PRODUCT_COLORS.some(function(c){ return c[0]===current; });
+    return '<option value="">— nessuno —</option>'
+      + PRODUCT_COLORS.map(function(c){ return '<option value="'+c[0]+'" data-hex="'+(c[2]||'')+'"'+(c[0]===current?' selected':'')+'>'+c[1]+'</option>'; }).join('')
+      + (current && !known ? '<option value="'+current+'" selected>'+current+' (non in palette)</option>' : '')
+      + '<option value="__new__">+ Nuovo colore…</option>';
+  }
   function colorSelect(current){
     current = (current||'').toLowerCase();
-    return '<select class="field-input" name="colore" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">'
-      + '<option value="">— nessuno —</option>'
-      + PRODUCT_COLORS.map(function(c){ return '<option value="'+c[0]+'"'+(c[0]===current?' selected':'')+'>'+c[1]+'</option>'; }).join('')
-      + '</select>';
+    return '<div class="color-field" style="display:flex;flex-direction:column;gap:6px">'
+      + '<div style="display:flex;align-items:center;gap:8px">'
+      +   '<span class="js-color-dot" style="width:16px;height:16px;border-radius:50%;border:1px solid var(--line);flex:0 0 16px;background:'+(colorHexFor(current)||'transparent')+'"></span>'
+      +   '<select class="field-input js-color-select" name="colore" style="flex:1;padding:6px 10px;border:1px solid var(--line);border-radius:6px">'+colorSelectOptions(current)+'</select>'
+      +   '<button type="button" class="btn btn-ghost btn-sm js-delete-color" style="display:none;padding:6px 8px;white-space:nowrap" title="Elimina colore dalla palette"><i class="ti ti-trash"></i> Elimina</button>'
+      + '</div>'
+      + '<div class="js-new-color-form" style="display:none;gap:8px;align-items:center;padding:8px;border:1px dashed var(--line);border-radius:6px">'
+      +   '<input type="text" class="js-new-color-name" placeholder="Nome colore (es. Verde oliva)" style="flex:1;min-width:0;padding:6px 10px;border:1px solid var(--line);border-radius:6px">'
+      +   '<input type="color" class="js-new-color-hex" value="#C4D4C0" title="Scegli la tinta" style="width:44px;height:34px;border:1px solid var(--line);border-radius:6px;padding:2px;background:none">'
+      +   '<button type="button" class="btn btn-primary btn-sm js-save-new-color">Salva</button>'
+      +   '<button type="button" class="btn btn-ghost btn-sm js-cancel-new-color">Annulla</button>'
+      + '</div>'
+      + '</div>';
   }
+  // "Trova colore da immagine" — edit form only (needs an already-uploaded photo).
+  function aiColorButton(p){
+    var first = (p && Array.isArray(p.images) && p.images.length) ? p.images[0] : null;
+    var url = !first ? null : (typeof first === 'string' ? first : (first.card || first.full || first.thumb));
+    if (!url) return '';
+    return '<button type="button" class="btn btn-ghost btn-sm js-suggest-color" data-img="'+String(url).replace(/"/g,'&quot;')+'" style="margin-top:6px"><i class="ti ti-color-picker"></i> Trova colore da immagine</button>';
+  }
+  function syncColorFieldUI($wrap){
+    var $sel = $wrap.find('.js-color-select');
+    var val = ($sel.val() || '').toString();
+    var known = PRODUCT_COLORS.some(function(c){ return c[0]===val; });
+    if (val === '__new__') {
+      $wrap.find('.js-new-color-form').css('display','flex');
+      $wrap.find('.js-delete-color').hide();
+      $wrap.find('.js-new-color-name').trigger('focus');
+    } else {
+      $wrap.find('.js-new-color-form').hide();
+      $wrap.find('.js-color-dot').css('background', $sel.find('option:selected').attr('data-hex') || 'transparent');
+      if (val && known) {
+        $wrap.find('.js-delete-color').show();
+      } else {
+        $wrap.find('.js-delete-color').hide();
+      }
+    }
+  }
+  // Delegated wiring — works in both the create and edit product modals.
+  $(document).on('change', '.js-color-select', function(){
+    syncColorFieldUI($(this).closest('.color-field'));
+  });
+  $(document).on('click', '.js-cancel-new-color', function(){
+    var $wrap = $(this).closest('.color-field');
+    $wrap.find('.js-new-color-form').hide();
+    $wrap.find('.js-color-select').val('');
+    $wrap.find('.js-color-dot').css('background','transparent');
+    $wrap.find('.js-delete-color').hide();
+  });
+  $(document).on('click', '.js-delete-color', function(){
+    var $btn = $(this), $wrap = $btn.closest('.color-field');
+    var $sel = $wrap.find('.js-color-select');
+    var slug = $sel.val();
+    var color = null;
+    for (var i = 0; i < PRODUCT_COLORS.length; i++) {
+      if (PRODUCT_COLORS[i][0] === slug) { color = PRODUCT_COLORS[i]; break; }
+    }
+    if (!slug || !color || !color[3]) return;
+    if (!confirm('Eliminare il colore "' + (color[1] || slug) + '" dalla palette?')) return;
+    $btn.prop('disabled', true).html('<i class="ti ti-loader"></i> Elimina…');
+    AdminAPI.colors.delete(color[3]).done(function(){
+      loadProductColors().then(function(){
+        $sel.html(colorSelectOptions(''));
+        $wrap.find('.js-color-dot').css('background','transparent');
+        $wrap.find('.js-new-color-form').hide();
+        $wrap.find('.js-delete-color').hide();
+        toast('Colore eliminato','success');
+      });
+    }).fail(function(xhr){
+      toast((xhr.responseJSON && xhr.responseJSON.error) || 'Impossibile eliminare il colore','error');
+    }).always(function(){
+      $btn.prop('disabled', false).html('<i class="ti ti-trash"></i> Elimina');
+    });
+  });
+  $(document).on('click', '.js-save-new-color', function(){
+    var $btn  = $(this), $wrap = $btn.closest('.color-field');
+    var name  = ($wrap.find('.js-new-color-name').val()||'').trim();
+    var hex   = $wrap.find('.js-new-color-hex').val() || '';
+    if (!name) { toast('Inserisci il nome del colore','error'); return; }
+    $btn.prop('disabled', true).text('Salvataggio…');
+    AdminAPI.colors.create({ name: name, hex: hex }).done(function(c){
+      loadProductColors().then(function(){
+        var $sel = $wrap.find('.js-color-select');
+        $sel.html($(colorSelect(c.slug)).find('select').html());
+        $wrap.find('.js-color-dot').css('background', c.hex || hex);
+        $wrap.find('.js-new-color-form').hide();
+        $wrap.find('.js-new-color-name').val('');
+        toast('Colore "'+c.name+'" creato','success');
+      });
+    }).fail(function(xhr){
+      toast((xhr.responseJSON && xhr.responseJSON.error) || 'Errore creazione colore','error');
+    }).always(function(){ $btn.prop('disabled', false).text('Salva'); });
+  });
+  $(document).on('click', '.js-suggest-color', function(){
+    var $btn = $(this), url = $btn.attr('data-img');
+    var $wrap = $btn.closest('.v').find('.color-field');
+    $btn.prop('disabled', true).html('<i class="ti ti-loader"></i> Analisi…');
+    AdminAPI.colors.suggestFromUrl(url).done(function(r){
+      if (r && r.nearest && r.isClose) {
+        $wrap.find('.js-color-select').val(r.nearest.slug).trigger('change');
+        toast('Colore suggerito: '+r.nearest.name+' ('+r.nearest.hex+')','success');
+      } else if (r && r.hex) {
+        $wrap.find('.js-color-select').val('__new__').trigger('change');
+        $wrap.find('.js-new-color-hex').val(String(r.hex).toLowerCase());
+        toast('Nessun colore simile in palette — dominante '+r.hex+': salvalo come nuovo colore','info');
+      } else {
+        toast('Analisi non conclusiva','error');
+      }
+    }).fail(function(){ toast('Analisi immagine non riuscita','error'); })
+      .always(function(){ $btn.prop('disabled', false).html('<i class="ti ti-color-picker"></i> Trova colore da immagine'); });
+  });
+  loadProductColors();
   function categorySelect(current){
     var cats = _catalogCategories();
     current = (current||'').toLowerCase().trim();
@@ -2196,6 +2314,7 @@ $(function(){
         </form>
       `);
       wireProductGallery(id, p.images);
+      setTimeout(function(){ $('.color-field').each(function(){ syncColorFieldUI($(this)); }); }, 0);
       $('#editProductForm').on('submit', function(e){
         e.preventDefault();
         const fd = Object.fromEntries(new FormData(this));
@@ -2676,6 +2795,67 @@ $(function(){
     } else {
       toast(code, 'info');
     }
+  });
+
+  /* Edit discount */
+  $(document).on('click','.js-edit-discount', function(e){
+    e.stopPropagation();
+    const id = $(this).data('id');
+    if (!id || !window.AdminAPI) return;
+    const row  = (DATA.discounts || []).find(function(x){ return String(x._db_id) === String(id); });
+    const d    = (row && row._raw) || {};
+    const scad = d.scadenza ? String(d.scadenza).slice(0,10) : '';
+    openModal('Modifica codice sconto', `
+      <form id="editDiscountForm">
+        <div class="kv" style="grid-template-columns:130px 1fr;gap:10px">
+          <div class="k">Codice</div><div class="v"><input type="text" value="${d.code||''}" disabled style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);opacity:.7"/></div>
+          <div class="k">Tipo *</div><div class="v">
+            <select name="tipo" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">
+              <option value="percentuale" ${d.tipo==='percentuale'?'selected':''}>Percentuale %</option>
+              <option value="fisso" ${d.tipo==='fisso'?'selected':''}>Fisso EUR</option>
+              <option value="spedizione" ${d.tipo==='spedizione'?'selected':''}>Spedizione gratuita</option>
+            </select>
+          </div>
+          <div class="k">Valore</div><div class="v"><input type="number" name="valore" step="0.01" min="0" value="${d.valore!=null?d.valore:''}" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Ordine min. EUR</div><div class="v"><input type="number" name="min_order" step="0.01" min="0" value="${d.min_order!=null?d.min_order:0}" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Max utilizzi</div><div class="v"><input type="number" name="max_utilizzi" min="1" value="${d.max_utilizzi||''}" placeholder="(illimitato)" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Scadenza</div><div class="v"><input type="date" name="scadenza" value="${scad}" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px"/></div>
+          <div class="k">Stato</div><div class="v">
+            <select name="stato" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">
+              <option value="attivo" ${d.stato==='attivo'?'selected':''}>Attivo</option>
+              <option value="pianificato" ${d.stato==='pianificato'?'selected':''}>Pianificato</option>
+              <option value="disattivo" ${d.stato==='disattivo'?'selected':''}>Disattivo</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal()">Annulla</button>
+          <button type="submit" class="btn btn-primary btn-sm">Salva modifiche</button>
+        </div>
+      </form>
+    `);
+    $('#editDiscountForm').on('submit', function(ev){
+      ev.preventDefault();
+      const fd   = Object.fromEntries(new FormData(this));
+      const $btn = $(this).find('[type=submit]');
+      $btn.prop('disabled', true).text('Salvataggio...');
+      AdminAPI.discounts.update(id, {
+        tipo:         fd.tipo,
+        valore:       parseFloat(fd.valore) || 0,
+        min_order:    parseFloat(fd.min_order) || 0,
+        max_utilizzi: fd.max_utilizzi ? parseInt(fd.max_utilizzi) : null,
+        scadenza:     fd.scadenza || null,
+        stato:        fd.stato,
+      }).done(function(){
+        toast('Sconto aggiornato', 'success');
+        closeModal();
+        renderView('discounts');
+      }).fail(function(xhr){
+        const msg = (xhr.responseJSON && xhr.responseJSON.error) || 'Errore aggiornamento';
+        toast(msg, 'error');
+        $btn.prop('disabled', false).text('Salva modifiche');
+      });
+    });
   });
 
   /* Delete discount */
@@ -4341,6 +4521,7 @@ $(function(){
                                                'Spedizione gratuita';
           return {
             _db_id:  d.id,
+            _raw:    d,
             code:    d.code,
             tipo:    tipo,
             utilizzi: (d.utilizzi || 0) + '/' + (d.max_utilizzi || '-'),
