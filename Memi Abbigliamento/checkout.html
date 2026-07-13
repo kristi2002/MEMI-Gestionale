@@ -475,6 +475,17 @@
       <div class="form-panel step-panel" id="panel3">
         <h2 class="panel-title">Pagamento</h2>
 
+        <!-- Express checkout — Apple Pay / Google Pay (Stripe Payment Request Button).
+             Hidden unless the device/browser has a usable wallet (canMakePayment). -->
+        <div id="expressCheckout" style="display:none;margin-bottom:var(--space-5);">
+          <div id="paymentRequestButton"></div>
+          <div style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-4);color:var(--brown-light);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em;">
+            <span style="flex:1;height:1px;background:var(--beige);"></span>
+            oppure paga con
+            <span style="flex:1;height:1px;background:var(--beige);"></span>
+          </div>
+        </div>
+
         <div class="payment-tabs">
           <button class="pay-tab active" onclick="selectPayTab(this)">
             <svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
@@ -1013,6 +1024,9 @@
 
       // Create PaymentIntent as soon as Elements mounts (deferred)
       fetchPaymentIntent();
+
+      // Wallet express checkout (Apple Pay / Google Pay) — rendered only if available.
+      initPaymentRequestButton(elements);
     }
 
     // Current order total in cents, mirroring updateTotals()'s math exactly.
@@ -1034,6 +1048,7 @@
     // confirmOrder can detect a stale secret after a discount changes the total.
     function fetchPaymentIntent() {
       var amountCents = currentAmountCents();
+      syncExpressCheckoutTotal(amountCents);
       if (!amountCents) { stripeClientSecret = null; stripeIntentAmount = null; return Promise.resolve(null); }
       return fetch('/api/payments/create-intent', {
         method: 'POST',
@@ -1048,6 +1063,114 @@
           return stripeClientSecret;
         })
         .catch(function() { stripeClientSecret = null; stripeIntentAmount = null; return null; });
+    }
+
+    // ── Wallet express checkout — Apple Pay / Google Pay via Stripe Payment Request ──
+    // One integration covers both wallets: Safari offers Apple Pay (only on domains
+    // verified in the Stripe dashboard, HTTPS required), Chrome offers Google Pay.
+    // canMakePayment() decides whether the button appears, so devices without a wallet
+    // (and keyless dev environments) silently fall back to the card form below.
+    var walletPaymentRequest = null;
+
+    function syncExpressCheckoutTotal(amountCents) {
+      if (!walletPaymentRequest) return;
+      try {
+        if (amountCents > 0) walletPaymentRequest.update({ total: { label: 'Memi Abbigliamento', amount: amountCents } });
+        var ec = el('expressCheckout');
+        if (ec && ec.dataset.walletReady === '1') ec.style.display = amountCents > 0 ? 'block' : 'none';
+      } catch (_) { /* update() throws while the wallet sheet is open — safe to ignore */ }
+    }
+
+    // Opt-in diagnostic: /checkout.html?walletdebug=1 paints wallet-detection status
+    // into the payment panel so availability problems can be read without DevTools.
+    function walletDebug(msg) {
+      if (!/[?&]walletdebug/.test(location.search)) return;
+      var box = el('walletDebugBox');
+      if (!box) {
+        box = document.createElement('div');
+        box.id = 'walletDebugBox';
+        box.style.cssText = 'margin-bottom:12px;padding:10px 14px;background:#f3f0ea;border:1px dashed #b8a99a;border-radius:8px;font-size:12px;color:#5a4a3a;font-family:monospace;white-space:pre-wrap;';
+        var panel = el('panel3');
+        if (panel) panel.insertBefore(box, panel.children[1] || null);
+      }
+      box.textContent += msg + '\n';
+    }
+
+    function initPaymentRequestButton(elements) {
+      walletDebug('wallet init — Stripe.js: ' + !!window.Stripe + ' · key: ' + (getStripePK() ? 'ok' : 'MISSING') + ' · total cents: ' + currentAmountCents() + ' · secure context: ' + window.isSecureContext);
+      if (walletPaymentRequest || !stripeInstance) { walletDebug('stopped: ' + (walletPaymentRequest ? 'already initialised' : 'no Stripe instance')); return; }
+      var amount = currentAmountCents();
+      if (!amount) { walletDebug('stopped: cart total is 0 — nothing to charge'); return; } // wallet button stays hidden
+      var pr = stripeInstance.paymentRequest({
+        country: 'IT',
+        currency: 'eur',
+        total: { label: 'Memi Abbigliamento', amount: amount },
+        requestPayerName: true,
+        requestPayerEmail: true,
+      });
+
+      pr.on('paymentmethod', function(ev) { handleWalletPayment(ev); });
+
+      pr.canMakePayment().then(function(result) {
+        walletDebug('canMakePayment: ' + JSON.stringify(result) + (result ? ' → SHOWING wallet button' : ' → Chrome/Safari reports NO usable wallet (no card in Google Pay / Apple Wallet) — button stays hidden'));
+        if (!result) return; // no Apple Pay / Google Pay available here — keep hidden
+        walletPaymentRequest = pr;
+        var prButton = elements.create('paymentRequestButton', {
+          paymentRequest: pr,
+          style: { paymentRequestButton: { type: 'buy', theme: 'dark', height: '46px' } },
+        });
+        prButton.mount('#paymentRequestButton');
+        var ec = el('expressCheckout');
+        if (ec) { ec.dataset.walletReady = '1'; ec.style.display = 'block'; }
+      });
+    }
+
+    function handleWalletPayment(ev) {
+      var orderData = collectOrderData('carta');
+      // The wallet sheet supplies name/email — use them for anything the form is missing.
+      if (!orderData.email && ev.payerEmail) orderData.email = ev.payerEmail.trim();
+      if ((!orderData.nome || !orderData.cognome) && ev.payerName) {
+        var parts = ev.payerName.trim().split(/\s+/);
+        if (!orderData.nome)    orderData.nome    = parts[0] || '';
+        if (!orderData.cognome) orderData.cognome = parts.slice(1).join(' ') || parts[0] || '';
+      }
+      if (!shippingFilled(orderData)) {
+        ev.complete('fail');
+        showPaymentError('Completa i dati di spedizione prima di pagare con il wallet.');
+        return;
+      }
+
+      var wantCents = currentAmountCents();
+      var ensureSecret = (stripeClientSecret && stripeIntentAmount === wantCents)
+        ? Promise.resolve(stripeClientSecret)
+        : fetchPaymentIntent();
+
+      ensureSecret.then(function(secret) {
+        if (!secret) { ev.complete('fail'); showPaymentError('Pagamento non disponibile al momento. Riprova tra poco.'); return; }
+        // handleActions:false → close the wallet sheet immediately; run 3DS after, if the bank asks.
+        stripeInstance.confirmCardPayment(secret, { payment_method: ev.paymentMethod.id }, { handleActions: false })
+          .then(function(result) {
+            if (result.error) { ev.complete('fail'); showPaymentError(result.error.message || 'Pagamento non riuscito.'); return; }
+            ev.complete('success');
+            var pi = result.paymentIntent;
+            if (pi && pi.status === 'requires_action') {
+              stripeInstance.confirmCardPayment(secret).then(function(r2) {
+                if (r2.error) { showPaymentError(r2.error.message || 'Autenticazione non riuscita.'); }
+                else if (r2.paymentIntent && r2.paymentIntent.status === 'succeeded') { finishWalletOrder(orderData, r2.paymentIntent.id); }
+                else { showPaymentError('Pagamento non completato. Riprova.'); }
+              });
+            } else if (pi && pi.status === 'succeeded') {
+              finishWalletOrder(orderData, pi.id);
+            } else {
+              showPaymentError('Pagamento non completato. Riprova.');
+            }
+          });
+      });
+    }
+
+    function finishWalletOrder(orderData, paymentIntentId) {
+      orderData.payment_intent_id = paymentIntentId;
+      submitOrder(orderData, function(msg) { showPaymentError(msg); });
     }
 
     // ── Payment ───────────────────────────────────────────────────────────────

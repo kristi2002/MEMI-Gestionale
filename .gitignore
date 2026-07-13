@@ -5,3 +5,6 @@ node_modules/
 **/.claude/
 _sync_probe.txt
 *.log
+
+# local env with real keys — never commit
+.env
