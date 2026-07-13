@@ -1107,6 +1107,9 @@
         total: { label: 'Memi Abbigliamento', amount: amount },
         requestPayerName: true,
         requestPayerEmail: true,
+        // The button shows ONE wallet; without this, Stripe's Link can win over
+        // Google Pay on mobile. Boss wants Apple Pay / Google Pay — keep those first.
+        disableWallets: ['link', 'browserCard'],
       });
 
       pr.on('paymentmethod', function(ev) { handleWalletPayment(ev); });
