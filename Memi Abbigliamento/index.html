@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="tokens.css?v=4" />
+  <link rel="stylesheet" href="tokens.css?v=70c280df" />
   <style>
     /* ── Reset ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -952,6 +952,9 @@
     }
     @media (min-width: 900px) { .looks-home-grid { grid-template-columns: repeat(4, 1fr); gap: var(--space-4); } }
     .instagram-section .section-title em { color: var(--lavender-dark); }
+    .instagram-section .section-title { font-size: clamp(2.25rem, 5vw, 4rem); letter-spacing: 0.01em; }
+    .instagram-section .section-title em { position: relative; display: inline-block; padding: 0 .12em; }
+    .instagram-section .section-title em::after { content: ""; position: absolute; left: .12em; right: .12em; bottom: .04em; height: 5px; background: var(--lavender-dark); opacity: .28; z-index: -1; }
     .look-tile {
       --accent-strong: var(--lavender-dark);
       --accent-on-dark: #C9C9EC;
@@ -1247,7 +1250,7 @@
     .reveal-delay-2 { transition-delay: 0.22s; }
     .reveal-delay-3 { transition-delay: 0.34s; }
   </style>
-  <link rel="stylesheet" href="app.css?v=5" />
+  <link rel="stylesheet" href="app.css?v=ece23419" />
   <!-- Home-specific overrides: caricato dopo app.css così vince sui default condivisi -->
   <style>
     /* Footer un po' più viola (stessa tinta del brand, intensità contenuta) —
@@ -1441,7 +1444,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
 
     <div class="editorial-panel">
       <img
-        src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80"
+        src="https://images.pexels.com/photos/37166936/pexels-photo-37166936.jpeg?auto=compress&cs=tinysrgb&w=1200"
         alt="Look linen estate"
         loading="lazy"
       />
@@ -1460,7 +1463,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
 
     <div class="editorial-panel">
       <img
-        src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1000&q=80"
+        src="https://images.pexels.com/photos/29278726/pexels-photo-29278726.jpeg?auto=compress&cs=tinysrgb&w=1200"
         alt="Nuovi arrivi"
         loading="lazy"
       />
@@ -1586,7 +1589,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
 
       <div class="trio-item">
         <img
-          src="/media/home-4.jpg"
+          src="https://images.pexels.com/photos/4820233/pexels-photo-4820233.jpeg?auto=compress&cs=tinysrgb&w=1200"
           alt="Accessori"
           loading="lazy"
         />
@@ -1609,7 +1612,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
        ============================================================ -->
   <section class="video-feature" aria-label="Estate 2025 in movimento">
     <video class="video-feature-bg" id="homeFeatureVideo" autoplay muted loop playsinline
-      poster="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=1920&q=85">
+      poster="https://images.pexels.com/photos/18221948/pexels-photo-18221948.jpeg?auto=compress&cs=tinysrgb&w=1920">
     </video>
     <div class="video-feature-overlay" aria-hidden="true"></div>
     <div class="video-feature-content">
@@ -1660,7 +1663,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
 
       <div class="looks-home-grid">
         <a class="look-tile" href="/look?look=1" aria-label="Shop the Look 1 — Estate Cipria, 3 capi, totale €193">
-          <img src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80" alt="Look Estate Cipria" loading="lazy"/>
+          <img src="https://images.pexels.com/photos/5799648/pexels-photo-5799648.jpeg?auto=compress&cs=tinysrgb&w=700" alt="Look Estate Cipria" loading="lazy"/>
           <div class="look-tile-overlay"></div>
           <div class="look-tile-body">
             <p class="look-tile-num">Look 01 · 3 capi</p>
@@ -1673,7 +1676,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
           </div>
         </a>
         <a class="look-tile tile-verde" href="/look?look=2" aria-label="Shop the Look 2 — Verde Salvia, 2 capi, totale €184">
-          <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80" alt="Look Verde Salvia" loading="lazy"/>
+          <img src="https://images.pexels.com/photos/18054776/pexels-photo-18054776.jpeg?auto=compress&cs=tinysrgb&w=700" alt="Look Verde Salvia" loading="lazy"/>
           <div class="look-tile-overlay"></div>
           <div class="look-tile-body">
             <p class="look-tile-num">Look 02 · 2 capi</p>
@@ -1686,7 +1689,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
           </div>
         </a>
         <a class="look-tile" href="/look?look=3" aria-label="Shop the Look 3 — Lavanda Night, 2 capi, totale €135">
-          <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=700&q=80" alt="Look Lavanda Night" loading="lazy"/>
+          <img src="https://images.pexels.com/photos/31575142/pexels-photo-31575142.jpeg?auto=compress&cs=tinysrgb&w=700" alt="Look Lavanda Night" loading="lazy"/>
           <div class="look-tile-overlay"></div>
           <div class="look-tile-body">
             <p class="look-tile-num">Look 03 · 2 capi</p>
@@ -1699,7 +1702,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
           </div>
         </a>
         <a class="look-tile tile-verde" href="/look?look=4" aria-label="Shop the Look 4 — Total Cream, 2 capi, totale €178">
-          <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=700&q=80" alt="Look Total Cream" loading="lazy"/>
+          <img src="https://images.pexels.com/photos/8499032/pexels-photo-8499032.jpeg?auto=compress&cs=tinysrgb&w=700" alt="Look Total Cream" loading="lazy"/>
           <div class="look-tile-overlay"></div>
           <div class="look-tile-body">
             <p class="look-tile-num">Look 04 · 2 capi</p>
@@ -1740,7 +1743,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
       </div>
       <div class="ig-feed reveal">
         <a class="ig-card" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Vedi su Instagram">
-          <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — look del giorno in boutique" loading="lazy"/>
+          <img src="https://images.pexels.com/photos/35086540/pexels-photo-35086540.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Post Instagram — look del giorno in boutique" loading="lazy"/>
           <div class="ig-card-overlay" aria-hidden="true">
             <svg class="ig-glyph" viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
             <div class="ig-card-stats">
@@ -1750,7 +1753,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
           </div>
         </a>
         <a class="ig-card" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Vedi su Instagram">
-          <img src="https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — look del giorno" loading="lazy"/>
+          <img src="https://images.pexels.com/photos/15037837/pexels-photo-15037837.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Post Instagram — look del giorno" loading="lazy"/>
           <div class="ig-card-overlay" aria-hidden="true">
             <svg class="ig-glyph" viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
             <div class="ig-card-stats">
@@ -1760,7 +1763,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
           </div>
         </a>
         <a class="ig-card" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Vedi su Instagram">
-          <img src="https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — editoriale" loading="lazy"/>
+          <img src="https://images.pexels.com/photos/28397702/pexels-photo-28397702.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Post Instagram — editoriale" loading="lazy"/>
           <div class="ig-card-overlay" aria-hidden="true">
             <svg class="ig-glyph" viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
             <div class="ig-card-stats">
@@ -1777,7 +1780,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
           <span class="ig-cta-pill">Seguici →</span>
         </a>
         <a class="ig-card" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Vedi su Instagram">
-          <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — dettagli" loading="lazy"/>
+          <img src="https://images.pexels.com/photos/13570925/pexels-photo-13570925.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Post Instagram — dettagli" loading="lazy"/>
           <div class="ig-card-overlay" aria-hidden="true">
             <svg class="ig-glyph" viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
             <div class="ig-card-stats">
@@ -1787,7 +1790,7 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
           </div>
         </a>
         <a class="ig-card" href="https://instagram.com/memiabbigliamento" target="_blank" rel="noopener" aria-label="Vedi su Instagram">
-          <img src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=600&q=80" alt="Post Instagram — street style" loading="lazy"/>
+          <img src="https://images.pexels.com/photos/38561629/pexels-photo-38561629.jpeg?auto=compress&cs=tinysrgb&w=600" alt="Post Instagram — street style" loading="lazy"/>
           <div class="ig-card-overlay" aria-hidden="true">
             <svg class="ig-glyph" viewBox="0 0 24 24"><path d="M12 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227-.224.562-.479.96-.899 1.382-.419.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421-.569-.224-.96-.479-1.379-.899-.421-.419-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.57.479-.96.9-1.381.419-.419.81-.689 1.379-.898.42-.166 1.051-.361 2.221-.421 1.275-.045 1.65-.06 4.859-.06zM12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 5.838c-3.405 0-6.162 2.76-6.162 6.162 0 3.405 2.76 6.162 6.162 6.162 3.405 0 6.162-2.76 6.162-6.162 0-3.405-2.76-6.162-6.162-6.162zM12 16c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm7.846-10.405c0 .795-.646 1.44-1.44 1.44-.795 0-1.44-.646-1.44-1.44 0-.794.646-1.439 1.44-1.439.793-.001 1.44.645 1.44 1.439z"/></svg>
             <div class="ig-card-stats">
@@ -1890,7 +1893,6 @@ c-16 -15 -155 -92 -310 -172 l-281 -145 0 -92 0 -93 1288 2 1287 3 0 80 0 80
   <!-- MEMI API client — must load before app.js -->
   <script src="api-client.js?v=7"></script>
   <script src="app.js?v=28"></script>
-
   <!-- Dynamic "Nuovi Arrivi" — loads real products from the API; shows an
        empty message when the catalogue has none (no more hardcoded cards). -->
   <script>

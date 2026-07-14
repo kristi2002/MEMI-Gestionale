@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>DEMO Area Personale</title>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="tokens.css?v=4" />
-  <link rel="stylesheet" href="account.css?v=4" />
+  <link rel="stylesheet" href="tokens.css?v=70c280df" />
+  <link rel="stylesheet" href="account.css?v=8dc43f78" />
   <style>
     /* DEMO-ONLY: preview the new 2-colour palette (violet + mint) without
        touching the shared tokens.css. Mirrors the live token values. */
@@ -79,6 +79,6 @@ window.MemiAPI={auth:{isLoggedIn:function(){return true;},logout:function(){},me
 var _origFetch=window.fetch;
 window.fetch=function(u){ if(String(u).indexOf('/api/products')>-1){ return _p({json:function(){return _p({products:[]});}}); } return _origFetch.apply(window,arguments); };
 </script>
-<script src="account-core.js?v=1"></script>
+<script src="account-core.js?v=ee92fd44"></script>
 </body>
 </html>
