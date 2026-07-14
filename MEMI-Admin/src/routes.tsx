@@ -33,11 +33,18 @@ import { LoyaltyPage } from '@/pages/loyalty';
 import { SettingsPage } from '@/pages/settings';
 import { LifecyclePage } from '@/pages/lifecycle';
 import { CategoriesPage, CollectionsPage } from '@/pages/taxonomy';
+import { FinancePage } from '@/pages/finance';
+import { AnalyticsPage } from '@/pages/analytics';
+import { TaxesPage } from '@/pages/taxes';
+import { LiveviewPage } from '@/pages/liveview';
+import { IntegrationsPage } from '@/pages/integrations';
+import { FilesPage } from '@/pages/files';
 
 /** Concrete React pages ported in this delivery, keyed by route path. */
 const READY_PAGES: Record<string, ReactElement> = {
   '/': <DashboardPage />,
   '/orders': <OrdersPage />,
+  '/orders/drafts': <OrdersPage initialTab="unpaid" title="Bozze / Non pagati" subtitle="Ordini non ancora pagati." />,
   '/orders/abandoned': <AbandonedCartsPage />,
   '/returns': <ReturnsPage />,
   '/invoices': <InvoicesPage />,
@@ -70,6 +77,13 @@ const READY_PAGES: Record<string, ReactElement> = {
   '/staff': <StaffPage />,
   '/audit-log': <AuditLogPage />,
   '/settings': <SettingsPage />,
+  '/analytics': <AnalyticsPage />,
+  '/liveview': <LiveviewPage />,
+  '/finance': <FinancePage />,
+  '/payouts': <FinancePage />,
+  '/taxes': <TaxesPage />,
+  '/files': <FilesPage />,
+  '/integrations': <IntegrationsPage />,
 };
 
 export interface AppRoute {

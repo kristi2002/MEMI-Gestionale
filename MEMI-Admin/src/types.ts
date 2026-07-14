@@ -504,3 +504,60 @@ export interface LifecycleData {
 }
 
 export type StoreSettings = Record<string, string>;
+
+export interface FinanceData {
+  summary: {
+    revenue_total: number;
+    revenue_month: number;
+    revenue_today: number;
+    pending_amount: number;
+    refunded_amount: number;
+    shipping_collected: number;
+    paid_count: number;
+    aov: number;
+  };
+  by_method: { method: string; count: number; total: number }[];
+  recent: {
+    order_number: string;
+    customer: string;
+    total: number;
+    method: string;
+    payment_status: PaymentStatus;
+    created_at: string;
+  }[];
+}
+
+export interface TaxStats {
+  oss_ytd: number;
+  foreign_orders: number;
+  threshold: number;
+  over: boolean;
+}
+
+export interface Integration {
+  key: string;
+  nome: string;
+  categoria: string;
+  icona: string;
+  connesso: boolean;
+  dettaglio: string;
+}
+export interface IntegrationsResponse {
+  integrations: Integration[];
+}
+
+export interface LiveView {
+  online: number;
+  views_30m: number;
+  views_today: number;
+  top_paths: { path: string; views: number }[];
+  recent: { path: string; session_id: string | null; created_at: string }[];
+}
+
+export interface MediaItem {
+  nome: string;
+  url: string;
+  thumb: string;
+  full: string;
+  created_at: string;
+}

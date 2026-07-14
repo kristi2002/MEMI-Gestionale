@@ -47,7 +47,7 @@ export const NAV: NavGroup[] = [
     icon: ShoppingBag,
     children: [
       { label: 'Tutti gli ordini', to: '/orders', ready: true },
-      { label: 'Bozze', to: '/orders/drafts' },
+      { label: 'Bozze', to: '/orders/drafts' , ready: true },
       { label: 'Carrelli abbandonati', to: '/orders/abandoned', ready: true },
       { label: 'Resi', to: '/returns', ready: true },
       { label: 'Fatture', to: '/invoices', ready: true },
@@ -92,9 +92,9 @@ export const NAV: NavGroup[] = [
     icon: BarChart3,
     adminOnly: true,
     children: [
-      { label: 'Panoramica', to: '/analytics', adminOnly: true },
+      { label: 'Panoramica', to: '/analytics', adminOnly: true , ready: true },
       { label: 'Report', to: '/reports', adminOnly: true },
-      { label: 'Live view', to: '/liveview', adminOnly: true },
+      { label: 'Live view', to: '/liveview', adminOnly: true , ready: true },
     ],
   },
   {
@@ -103,7 +103,7 @@ export const NAV: NavGroup[] = [
     children: [
       { label: 'Pagine', to: '/content' , ready: true },
       { label: 'Blog', to: '/blog' , ready: true },
-      { label: 'File', to: '/files' },
+      { label: 'File', to: '/files' , ready: true },
     ],
   },
   {
@@ -122,10 +122,10 @@ export const NAV: NavGroup[] = [
     icon: CreditCard,
     adminOnly: true,
     children: [
-      { label: 'Panoramica', to: '/finance', adminOnly: true },
-      { label: 'Pagamenti ricevuti', to: '/payouts', adminOnly: true },
+      { label: 'Panoramica', to: '/finance', adminOnly: true , ready: true },
+      { label: 'Pagamenti ricevuti', to: '/payouts', adminOnly: true , ready: true },
       { label: 'Fatture & Spese', to: '/bills', adminOnly: true, ready: true },
-      { label: 'Tasse', to: '/taxes', adminOnly: true },
+      { label: 'Tasse', to: '/taxes', adminOnly: true , ready: true },
     ],
   },
   {
@@ -149,7 +149,7 @@ export const NAV: NavGroup[] = [
 ];
 
 export const NAV_TOOLS: NavGroup[] = [
-  { label: 'Integrazioni', icon: Plug, to: '/integrations', adminOnly: true },
+  { label: 'Integrazioni', icon: Plug, to: '/integrations', adminOnly: true , ready: true },
   { label: 'App esterne', icon: AppWindow, to: '/apps' },
   { label: 'Staff & Permessi', icon: UserCog, to: '/staff', adminOnly: true, ready: true },
   { label: 'Registro attività', icon: History, to: '/audit-log', adminOnly: true, ready: true },
