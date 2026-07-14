@@ -171,6 +171,10 @@ export const useLoyaltyConfig = () => useQuery({ queryKey: ['loyalty', 'config']
 export const useLoyaltyCustomers = () => useQuery({ queryKey: ['loyalty', 'customers'], queryFn: () => api.loyalty.customers({ limit: 200 }) });
 export const useLifecycle = () => useQuery({ queryKey: ['lifecycle'], queryFn: () => api.lifecycle.get() });
 export const useSettings = () => useQuery({ queryKey: ['settings'], queryFn: () => api.settings.get() });
+export const useFinance = () => useQuery({ queryKey: ['finance'], queryFn: () => api.dashboard.finance() });
+export const useTaxStats = () => useQuery({ queryKey: ['tax-stats'], queryFn: () => api.dashboard.taxStats() });
+export const useIntegrations = () => useQuery({ queryKey: ['integrations'], queryFn: () => api.settings.integrations() });
+export const useLiveview = () => useQuery({ queryKey: ['liveview'], queryFn: () => api.dashboard.liveview(), refetchInterval: 15_000 });
 
 /* Flatten helpers for the infinite pages. */
 export const flattenOrders = (pages?: { orders: OrderRow[] }[]): OrderRow[] =>

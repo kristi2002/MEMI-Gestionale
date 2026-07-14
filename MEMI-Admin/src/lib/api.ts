@@ -113,6 +113,9 @@ import type {
   LoyaltyCustomersResponse,
   LifecycleData,
   StoreSettings,
+  FinanceData,
+  TaxStats,
+  IntegrationsResponse,
 } from '@/types';
 
 export const api = {
@@ -133,6 +136,9 @@ export const api = {
       get<{ product_id: string; product_name: string; units_sold: string; revenue: string }[]>(
         '/admin/dashboard/top-products',
       ),
+    finance: () => get<FinanceData>('/admin/dashboard/finance'),
+    taxStats: () => get<TaxStats>('/admin/dashboard/tax-stats'),
+    liveview: () => get<import('@/types').LiveView>('/admin/liveview'),
   },
   orders: {
     list: (params?: Query) => get<OrderListResponse>('/orders/admin/list' + qs(params)),
@@ -290,5 +296,12 @@ export const api = {
   settings: {
     get: () => get<StoreSettings>('/admin/settings'),
     update: (d: unknown) => put('/admin/settings', d),
+    integrations: () => get<IntegrationsResponse>('/admin/settings/integrations'),
+    uploadMedia: (files: FileList | File[]) => {
+      const fd = new FormData();
+      for (const f of Array.from(files)) fd.append('file', f);
+      return upload<{ added: number; media: import('@/types').MediaItem[] }>('/admin/settings/media', fd);
+    },
+    deleteMedia: (url: string) => del<{ removed: number; media: import('@/types').MediaItem[] }>('/admin/settings/media', { url }),
   },
 };
