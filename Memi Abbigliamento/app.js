@@ -48,9 +48,23 @@
       { href: '/shop?categoria=gioielli',  label: 'Gioielli' },
     ] },
     { href: 'shop?saldi=1',             label: 'Saldi' },
+    { href: 'shop?categoria=novita', label: 'Collezioni', children: [
+      { href: '/shop?categoria=novita', label: 'Nuovi Arrivi' },
+      { href: '/shop?saldi=1',          label: 'Saldi' },
+      { href: '/estate-2025',           label: 'Estate 2025' },
+      { href: '/look',                  label: 'Shop the Look' },
+      { href: '/best-seller',           label: 'Best Sellers' },
+    ] },
     { href: 'look',        label: 'Shop the Look' },
-    { href: 'editoriali/primavera-estate-2026/', label: 'Editoriali' },
-    { href: 'about',       label: 'Chi Siamo' },
+    { href: 'editoriali/primavera-estate-2026/', label: 'Editoriali', children: [
+      { href: '/editoriali/primavera-estate-2026/', label: 'Primavera Estate 2026' },
+      { href: '/editoriali/estate-2025/',           label: 'Estate 2025' },
+      { href: '/editoriali/autunno-inverno-2025/',  label: 'Autunno Inverno 2025' },
+    ] },
+    { href: 'about',       label: 'Chi Siamo', children: [
+      { href: '/about',  label: 'La Nostra Storia' },
+      { href: '/valori', label: 'I Nostri Valori' },
+    ] },
   ];
 
   function currentHrefKey() {
@@ -708,7 +722,6 @@
             return `
             <a href="${href}" class="mobile-nav-link${isActive ? ' active' : ''}">
               ${item.label}
-              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
             </a>
           `;
           }).join('')}
