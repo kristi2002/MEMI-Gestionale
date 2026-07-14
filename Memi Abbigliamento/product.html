@@ -786,7 +786,7 @@
 
       /* ── "Completa il look" — complementary products from the live catalog ── */
       var OUTFIT_MAP = {
-        vestiti:   ['scarpe', 'borse', 'gioielli', 'cinture'],
+        vestiti:   ['scarpe', 'borse', 'gioielli'],
         top:       ['gonne', 'pantaloni', 'scarpe', 'borse'],
         gonne:     ['top', 'scarpe', 'borse', 'gioielli'],
         pantaloni: ['top', 'blazer', 'scarpe', 'borse'],
@@ -794,9 +794,7 @@
         set:       ['scarpe', 'borse', 'gioielli', 'blazer'],
         scarpe:    ['vestiti', 'borse', 'gonne', 'gioielli'],
         borse:     ['vestiti', 'scarpe', 'gioielli', 'blazer'],
-        gioielli:  ['vestiti', 'top', 'borse', 'scarpe'],
-        cinture:   ['vestiti', 'pantaloni', 'blazer', 'borse']
-      };
+        gioielli:  ['vestiti', 'top', 'borse', 'scarpe'],      };
       function loadRelated(current) {
         var section = document.getElementById('relatedSection');
         var grid = document.getElementById('relatedGrid');
@@ -1159,6 +1157,6 @@
   </script>
 
   <script src="api-client.js?v=5"></script>
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>

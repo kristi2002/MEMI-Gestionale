@@ -103,14 +103,13 @@
               '<a href="/shop?categoria=gonne" class="mega-link">Gonne</a>' +
               '<a href="/shop?categoria=blazer" class="mega-link">Blazer</a>' +
               '<a href="/shop?categoria=set" class="mega-link">Set Coordinati</a>' +
+              '<a href="/shop?categoria=scarpe" class="mega-link">Scarpe</a>' +
             '</div>' +
             '<div class="mega-col">' +
               '<p class="mega-col-title">Accessori</p>' +
               '<a href="/shop?categoria=accessori" class="mega-link">Tutti gli accessori</a>' +
               '<a href="/shop?categoria=borse" class="mega-link">Borse</a>' +
-              '<a href="/shop?categoria=gioielli" class="mega-link">Gioielli</a>' +
-              '<a href="/shop?categoria=scarpe" class="mega-link">Scarpe</a>' +
-              '<a href="/shop?categoria=cinture" class="mega-link">Cinture &amp; Bijoux</a>' +
+              '<a href="/shop?categoria=gioielli" class="mega-link">Gioielli</a>' +
             '</div>' +
             '<div class="mega-col">' +
               '<p class="mega-col-title">Collezioni</p>' +

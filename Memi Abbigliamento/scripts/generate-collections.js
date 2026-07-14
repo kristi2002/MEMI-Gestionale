@@ -71,9 +71,7 @@ var COLLECTIONS = [
   { slug: 'accessori',   label: 'Accessori',          heroType: 'accessori', includeCategoryFilter: true },
   { slug: 'borse',       label: 'Borse',              heroTitleHTML: 'Le nostre <em>Borse</em>',       eyebrow: 'Accessori', heroType: 'editorial', bg: BG_DEFAULT },
   { slug: 'gioielli',    label: 'Gioielli',           heroTitleHTML: 'I nostri <em>Gioielli</em>',     eyebrow: 'Accessori', heroType: 'editorial', bg: BG_DEFAULT },
-  { slug: 'scarpe',      label: 'Scarpe',             heroTitleHTML: 'Le nostre <em>Scarpe</em>',      eyebrow: 'Accessori', heroType: 'editorial', bg: BG_DEFAULT },
-  { slug: 'cinture',     label: 'Cinture & Bijoux',   heroTitleHTML: 'Cinture <em>&amp; Bijoux</em>',  eyebrow: 'Accessori', heroType: 'editorial', bg: BG_DEFAULT },
-  { slug: 'saldi',       label: 'Saldi',              heroType: 'saldi', includeCategoryFilter: true },
+  { slug: 'scarpe',      label: 'Scarpe',             heroTitleHTML: 'Le nostre <em>Scarpe</em>',      eyebrow: 'Accessori', heroType: 'editorial', bg: BG_DEFAULT },  { slug: 'saldi',       label: 'Saldi',              heroType: 'saldi', includeCategoryFilter: true },
   { slug: 'estate-2025', label: 'Estate 2025',        heroTitleHTML: 'Estate <em>2025</em>',           eyebrow: 'Collezione in evidenza', heroType: 'editorial', bg: BG_DEFAULT, includeCategoryFilter: true }
 ];
 
@@ -85,8 +83,8 @@ var ICONS = {
   belt:  '<rect x="14" y="100" width="92" height="16" rx="4" fill="white" opacity=".45"/><rect x="47" y="88" width="26" height="40" rx="4" stroke="white" stroke-width="5" opacity=".45"/>'
 };
 
-var CATEGORIA_LABEL = { vestiti: 'Vestiti', top: 'Top & Bluse', pantaloni: 'Pantaloni', gonne: 'Gonne', blazer: 'Blazer', set: 'Set Coordinati', borse: 'Borse', gioielli: 'Gioielli', scarpe: 'Scarpe', cinture: 'Cinture & Bijoux' };
-var CATEGORIA_COUNT_ORDER = ['vestiti', 'top', 'pantaloni', 'gonne', 'blazer', 'set', 'borse', 'gioielli', 'scarpe', 'cinture'];
+var CATEGORIA_LABEL = { vestiti: 'Vestiti', top: 'Top & Bluse', pantaloni: 'Pantaloni', gonne: 'Gonne', blazer: 'Blazer', set: 'Set Coordinati', borse: 'Borse', gioielli: 'Gioielli', scarpe: 'Scarpe' };
+var CATEGORIA_COUNT_ORDER = ['vestiti', 'top', 'pantaloni', 'gonne', 'blazer', 'set', 'borse', 'gioielli', 'scarpe'];
 
 var WISHLIST_SVG = '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
 
