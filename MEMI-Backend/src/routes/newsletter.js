@@ -15,7 +15,7 @@
 const router = require('express').Router();
 const { pool }             = require('../db');
 const { requireAdmin }     = require('../middleware/auth');
-const { sendGenericEmail } = require('../email');
+const { sendGenericEmail, sendNewsletterWelcome } = require('../email');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -31,6 +31,8 @@ router.post('/subscribe', async (req, res) => {
        ON DUPLICATE KEY UPDATE unsubscribed = 0, subscribed_at = CURRENT_TIMESTAMP`,
       [email.toLowerCase().trim(), fonte]
     );
+    // Fire-and-forget welcome email — never block or fail the subscription on SMTP.
+    sendNewsletterWelcome(email.toLowerCase().trim()).catch(() => {});
     return res.json({ ok: true, message: 'Iscrizione confermata!' });
   } catch (err) {
     console.error('newsletter subscribe error', err);

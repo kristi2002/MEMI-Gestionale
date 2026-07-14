@@ -391,4 +391,48 @@ async function sendGenericEmail(opts) {
   await t.sendMail({ from, to, subject: subject || 'Notifica Memi', html: html || undefined, text: text || undefined });
 }
 
-module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification, sendGenericEmail };
+/**
+ * Send a confirmation / welcome email when someone subscribes to the newsletter.
+ * Best-effort: no-op when SMTP is unset, and never throws (caller stays fire-and-forget).
+ * @param {string} email  subscriber address
+ */
+async function sendNewsletterWelcome(email) {
+  const t = getTransporter();
+  if (!t || !email) return;
+
+  const from    = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
+  const baseUrl = (process.env.FRONTEND_URL || 'https://memiabbigliamento.it').replace(/\/+$/, '');
+
+  const html = `
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Iscrizione confermata</title></head>
+<body style="margin:0;padding:0;background:#faf7f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#3B2B2B;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.06);">
+    <div style="background:#3B2B2B;padding:32px 40px;text-align:center;">
+      <h1 style="color:#fff;font-size:28px;font-weight:300;letter-spacing:.12em;margin:0;">Memi<span style="color:#c9897a;">.</span></h1>
+    </div>
+    <div style="padding:36px 40px;">
+      <p style="font-size:22px;font-weight:300;font-family:Georgia,serif;margin:0 0 16px;">Iscrizione confermata</p>
+      <p style="color:#7a6060;font-size:15px;line-height:1.7;margin:0 0 20px;">Grazie per esserti iscritta alla newsletter Memi. Ti terremo aggiornata su nuovi arrivi, editoriali e offerte esclusive — con calma e senza spam.</p>
+      <a href="${baseUrl}/shop" style="display:inline-block;padding:14px 32px;background:#3B2B2B;color:#fff;text-decoration:none;font-size:13px;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-bottom:24px;">Scopri la collezione</a>
+      <p style="color:#a89090;font-size:12px;line-height:1.6;">Non volevi iscriverti? Puoi disiscriverti in qualsiasi momento dalla tua Area Personale o rispondendo a questa email.</p>
+    </div>
+    <div style="background:#faf7f4;padding:20px 40px;text-align:center;font-size:12px;color:#a89090;">
+      © 2026 Memi Abbigliamento · Milano, Italia
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `Iscrizione confermata\n\nGrazie per esserti iscritta alla newsletter Memi Abbigliamento.\nTi terremo aggiornata su nuovi arrivi, editoriali e offerte esclusive.\n\nScopri la collezione: ${baseUrl}/shop\n\nPuoi disiscriverti in qualsiasi momento dalla tua Area Personale.\n\nMemi Abbigliamento`;
+
+  try {
+    await t.sendMail({ from, to: email, subject: 'Iscrizione confermata — Memi Abbigliamento', text, html });
+    console.log(`[email] Sent newsletter welcome → ${email}`);
+  } catch (err) {
+    console.error('[email] Failed to send newsletter welcome:', err.message);
+  }
+}
+
+module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification, sendGenericEmail, sendNewsletterWelcome };
