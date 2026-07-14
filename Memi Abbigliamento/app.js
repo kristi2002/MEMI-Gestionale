@@ -474,6 +474,7 @@
           <input type="email" placeholder="La tua email" aria-label="Email newsletter" required />
           <button type="submit" aria-label="Iscriviti">→</button>
         </form>
+        <p class="sf2-nl-privacy" style="margin-top:.5rem;font-size:.65rem;line-height:1.5;opacity:.65;">Iscrivendoti autorizzi l'uso della tua email per l'invio della newsletter (<a href="/privacy" style="color:inherit;text-decoration:underline;">Privacy Policy</a>). Puoi disiscriverti in qualsiasi momento.</p>
       </div>
     </div>
     <div class="sf2-nav">
@@ -860,6 +861,16 @@
                     </button>
                   </div>
                   <span class="auth-field-hint" id="authRegPwdHint"></span>
+                </div>
+                <div class="auth-consent" style="margin:.25rem 0 .75rem;">
+                  <label style="display:flex;gap:.5rem;align-items:flex-start;font-size:.72rem;line-height:1.45;cursor:pointer;margin-bottom:.5rem;">
+                    <input type="checkbox" id="authRegPrivacy" style="margin-top:2px;flex-shrink:0;" />
+                    <span>Ho letto la <a href="/privacy" target="_blank" style="text-decoration:underline;">Privacy Policy</a> e autorizzo il trattamento dei miei dati personali per la creazione e la gestione dell'account (Reg. UE 2016/679). *</span>
+                  </label>
+                  <label style="display:flex;gap:.5rem;align-items:flex-start;font-size:.72rem;line-height:1.45;cursor:pointer;">
+                    <input type="checkbox" id="authRegMarketing" style="margin-top:2px;flex-shrink:0;" />
+                    <span>Autorizzo l'uso della mia email per newsletter e offerte (facoltativo, revocabile in ogni momento).</span>
+                  </label>
                 </div>
                 <p class="auth-error" id="authRegError"></p>
                 <button type="submit" class="btn-primary auth-submit" id="authRegBtn">
@@ -1896,10 +1907,10 @@
     }
   }
 
-  async function authRegister(name, email, password) {
+  async function authRegister(name, email, password, consents) {
     if (!window.MemiAPI) return { ok: false, msg: 'API non disponibile' };
     try {
-      var data = await window.MemiAPI.auth.register(name, email, password);
+      var data = await window.MemiAPI.auth.register(name, email, password, consents);
       _saveSession(data.user);
       return { ok: true, user: data.user };
     } catch(err) {
@@ -2116,10 +2127,20 @@
         return;
       }
 
+      var privacyEl   = document.getElementById('authRegPrivacy');
+      var marketingEl = document.getElementById('authRegMarketing');
+      if (privacyEl && !privacyEl.checked) {
+        errEl.textContent = 'Per creare l\'account devi accettare la Privacy Policy.';
+        return;
+      }
+
       /* Loading state */
       if (btn) btn.classList.add('is-loading');
 
-      authRegister(name, email, pwd).then(function(res) {
+      authRegister(name, email, pwd, {
+        privacy_consent:   true,
+        marketing_consent: !!(marketingEl && marketingEl.checked),
+      }).then(function(res) {
         if (btn) btn.classList.remove('is-loading');
         if (!res.ok) { errEl.textContent = res.msg; return; }
         closeAuthDrawer();

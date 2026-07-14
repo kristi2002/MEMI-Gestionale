@@ -79,8 +79,13 @@
      * Register a new customer.
      * On success: saves JWT, returns {token, user}.
      */
-    register: async function(nome, email, password) {
-      var data = await post('/auth/register', { nome: nome, email: email, password: password });
+    register: async function(nome, email, password, consents) {
+      var body = { nome: nome, email: email, password: password };
+      if (consents) {
+        body.privacy_consent   = !!consents.privacy_consent;
+        body.marketing_consent = !!consents.marketing_consent;
+      }
+      var data = await post('/auth/register', body);
       if (data.token) setToken(data.token);
       return data;
     },

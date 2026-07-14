@@ -200,7 +200,7 @@ async function exec(sql, params) {
   if (/SELECT MAX/i.test(S)) return [[{ max_n: 10254 }]];
   if (/^INSERT INTO orders/i.test(S)) {
     // store the row so post-commit hooks (auto-invoice) can read it back
-    if (params.length === 20) db.orders[99] = { id: 99, order_number: params[0], customer_id: params[1],
+    if (params.length === 21) db.orders[99] = { id: 99, order_number: params[0], customer_id: params[1],
       customer_nome: params[2], customer_cognome: params[3], customer_email: params[4],
       shipping_address: params[6], shipping_citta: params[7], shipping_cap: params[8],
       shipping_paese: params[9], total: params[13], payment_status: params[18], order_status: 'in_attesa' };

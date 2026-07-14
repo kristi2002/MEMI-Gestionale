@@ -263,14 +263,15 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
            (order_number, customer_id, customer_nome, customer_cognome, customer_email,
             customer_telefono, shipping_address, shipping_citta, shipping_cap, shipping_paese,
             subtotal, shipping_cost, discount_amount, total, discount_code, gift_card_code,
-            gift_card_amount, payment_method, payment_status, payment_intent_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            gift_card_amount, payment_method, payment_status, payment_intent_id, privacy_consent_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [orderNumber, customerId, nome, cognome, email, telefono || null,
          indirizzo, citta, cap, paese,
          subtotal, shippingCost, discountAmount, total,
          discountCode ? discountCode.code : null, giftCard ? giftCard.code : null,
          giftCardAmount, payment_method,
-         paymentStatus, paymentRef]
+         paymentStatus, paymentRef,
+         req.body.privacy_consent ? new Date() : null]
       );
       const orderId = result.insertId;
 
@@ -341,6 +342,15 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
       sendOrderConfirmation({
         order_number: orderNumber, nome, cognome, email, items: resolved, total,
       }).catch(() => {});
+
+      // Autorizzazione uso email dal checkout (casella facoltativa) — best-effort
+      if (req.body.newsletter_optin) {
+        pool.execute(
+          `INSERT INTO newsletter_subscribers (email, fonte) VALUES (?, 'checkout')
+           ON DUPLICATE KEY UPDATE unsubscribed = 0, subscribed_at = CURRENT_TIMESTAMP`,
+          [email]
+        ).catch(() => {});
+      }
 
       return res.status(201).json({ ok: true, order_number: orderNumber, total });
     } catch (err) {

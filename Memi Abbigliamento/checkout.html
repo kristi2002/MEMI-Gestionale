@@ -509,6 +509,17 @@
           Pagamento crittografato SSL. Non conserviamo i dati della carta.
         </div>
 
+        <div id="consentBlock" style="margin-top:var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);">
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:var(--text-xs);color:var(--brown-mid);line-height:1.5;cursor:pointer;">
+            <input type="checkbox" id="privacyConsent" style="margin-top:2px;flex-shrink:0;" />
+            <span>Ho letto la <a href="privacy.html" target="_blank" style="color:inherit;text-decoration:underline;">Privacy Policy</a> e i <a href="termini.html" target="_blank" style="color:inherit;text-decoration:underline;">Termini e condizioni</a> e autorizzo il trattamento dei miei dati per la gestione dell'ordine (Reg. UE 2016/679). *</span>
+          </label>
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:var(--text-xs);color:var(--brown-mid);line-height:1.5;cursor:pointer;">
+            <input type="checkbox" id="newsletterOptin" style="margin-top:2px;flex-shrink:0;" />
+            <span>Autorizzo l'uso della mia email per newsletter e offerte (facoltativo, revocabile in qualsiasi momento).</span>
+          </label>
+        </div>
+
         <div class="form-actions">
           <button class="btn-back" onclick="goToStep(2)">
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
@@ -1095,6 +1106,11 @@
         showPaymentError('Completa i dati di spedizione prima di pagare con il wallet.');
         return;
       }
+      if (!privacyOk()) {
+        ev.complete('fail');
+        showPaymentError('Per pagare devi prima accettare la Privacy Policy e i Termini e condizioni.');
+        return;
+      }
 
       var wantCents = currentAmountCents();
       var ensureSecret = (stripeClientSecret && stripeIntentAmount === wantCents)
@@ -1185,12 +1201,21 @@
         discount_code:  appliedCode ? appliedCode.code : undefined,
         gift_card_code: appliedGiftCard ? appliedGiftCard.code : undefined,
         payment_method: payMethod,
+        privacy_consent:  !!((el('privacyConsent')  || {}).checked) || undefined,
+        newsletter_optin: !!((el('newsletterOptin') || {}).checked) || undefined,
       };
     }
 
     function shippingFilled(orderData) {
       var o = orderData || collectOrderData('carta');
       return !!(o.nome && o.cognome && o.email && o.indirizzo && o.citta && o.cap && o.items.length);
+    }
+
+    // GDPR: the required privacy/termini checkbox on the payment step.
+    // Checked BEFORE charging on every path (card, wallet, PayPal).
+    function privacyOk() {
+      var c = el('privacyConsent');
+      return !c || c.checked;
     }
 
     // Send an order payload to the API and route to confirmation. onErr(msg) shows the error.
@@ -1219,6 +1244,7 @@
       if (!cartItems.length) { showPaymentError('Il carrello è vuoto.'); return; }
 
       var orderData = collectOrderData(payMethod);
+      if (!privacyOk()) { showPaymentError('Per completare l\'ordine devi accettare la Privacy Policy e i Termini e condizioni.'); return; }
 
       var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
       function setLoading(on) {
@@ -1307,6 +1333,7 @@
           style: { layout: 'vertical', color: 'gold', shape: 'pill', label: 'paypal' },
           onClick: function(data, actions) {
             if (!shippingFilled()) { showPaymentError('Completa i dati di spedizione prima di pagare con PayPal.'); return actions.reject(); }
+            if (!privacyOk()) { showPaymentError('Per pagare con PayPal devi prima accettare la Privacy Policy e i Termini e condizioni.'); return actions.reject(); }
             return actions.resolve();
           },
           createOrder: function() {
@@ -1490,8 +1517,8 @@
       })();
     });
   </script>
-  <script src="api-client.js?v=5"></script>
-  <script src="app.js?v=25"></script>
+  <script src="api-client.js?v=6"></script>
+  <script src="app.js?v=26"></script>
   <script src="checkout-autofill.js?v=1"></script>
 </body>
 </html>

@@ -452,6 +452,16 @@ async function runMigrations(pool) {
     await ensureColumn(pool, 'customers', 'sizes',       'sizes JSON NULL');             // fit profile {top,bottom,dress,shoe,notes}
     await ensureColumn(pool, 'customers', 'preferences', 'preferences JSON NULL');       // {categories[],colors[],email,sms}
     await ensureColumn(pool, 'customers', 'lang',        "lang VARCHAR(5) NULL");        // 'it' | 'en'
+    // GDPR — consenso privacy + autorizzazione all'uso dell'email (marketing)
+    await ensureColumn(pool, 'customers', 'privacy_accepted_at',  'privacy_accepted_at DATETIME NULL');
+    await ensureColumn(pool, 'customers', 'marketing_consent',    'marketing_consent TINYINT(1) NOT NULL DEFAULT 0');
+    await ensureColumn(pool, 'customers', 'marketing_consent_at', 'marketing_consent_at DATETIME NULL');
+    await ensureColumn(pool, 'orders',    'privacy_consent_at',   'privacy_consent_at DATETIME NULL');
+    // GDPR — consenso privacy + autorizzazione all'uso dell'email (marketing)
+    await ensureColumn(pool, 'customers', 'privacy_accepted_at',  'privacy_accepted_at DATETIME NULL');
+    await ensureColumn(pool, 'customers', 'marketing_consent',    'marketing_consent TINYINT(1) NOT NULL DEFAULT 0');
+    await ensureColumn(pool, 'customers', 'marketing_consent_at', 'marketing_consent_at DATETIME NULL');
+    await ensureColumn(pool, 'orders',    'privacy_consent_at',   'privacy_consent_at DATETIME NULL');
     // ── Newsletter: richer per-subscriber settings + link to a customer ──
     await ensureColumn(pool, 'newsletter_subscribers', 'customer_id', 'customer_id INT NULL');
     await ensureColumn(pool, 'newsletter_subscribers', 'frequenza',   "frequenza VARCHAR(20) NULL");

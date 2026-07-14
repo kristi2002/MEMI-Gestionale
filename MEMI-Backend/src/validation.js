@@ -25,6 +25,9 @@ const registerSchema = z.object({
   nome:     z.string().trim().min(1, 'Nome obbligatorio').max(120),
   email:    emailSchema,
   password: z.string().min(8, 'La password deve avere almeno 8 caratteri').max(200),
+  // GDPR consents (checkboxes in the auth drawer); recorded with timestamps on customers
+  privacy_consent:   z.coerce.boolean().optional(),
+  marketing_consent: z.coerce.boolean().optional(),
 });
 
 /* ── POST /api/auth/login ── */
@@ -57,6 +60,9 @@ const createOrderSchema = z.object({
   // Generic transaction reference for non-Stripe providers (PayPal order id / Klarna order id).
   // Stored in orders.payment_intent_id (UNIQUE → cross-provider replay protection).
   payment_reference: z.string().trim().max(255).optional().nullable(),
+  // GDPR consents from the checkout page (privacy required client-side; newsletter optional)
+  privacy_consent:  z.coerce.boolean().optional(),
+  newsletter_optin: z.coerce.boolean().optional(),
 });
 
 /* ── POST /api/admin/discounts ── */

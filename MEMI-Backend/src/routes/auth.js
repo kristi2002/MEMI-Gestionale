@@ -28,7 +28,7 @@ function signToken(payload) {
 
 /* ── POST /api/auth/register ── */
 router.post('/register', validateBody(registerSchema), async (req, res) => {
-  const { nome, email, password } = req.body;
+  const { nome, email, password, privacy_consent, marketing_consent } = req.body;
   if (!nome || !email || !password)
     return res.status(400).json({ error: 'Nome, email e password obbligatori' });
   if (password.length < 8)
@@ -37,8 +37,13 @@ router.post('/register', validateBody(registerSchema), async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 10);
     await pool.execute(
-      'INSERT INTO customers (nome, email, password_hash) VALUES (?, ?, ?)',
-      [nome.trim(), email.toLowerCase().trim(), hash]
+      `INSERT INTO customers
+         (nome, email, password_hash, privacy_accepted_at, marketing_consent, marketing_consent_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [nome.trim(), email.toLowerCase().trim(), hash,
+       privacy_consent ? new Date() : null,
+       marketing_consent ? 1 : 0,
+       marketing_consent ? new Date() : null]
     );
 
     const [[user]] = await pool.execute(
@@ -48,6 +53,17 @@ router.post('/register', validateBody(registerSchema), async (req, res) => {
 
     // Award the signup loyalty bonus (best-effort — never blocks registration)
     try { await loyalty.awardRegistrationPoints(pool, user.id); } catch (_) {}
+
+    // Autorizzazione all'uso dell'email → enrol in the newsletter too (best-effort)
+    if (marketing_consent) {
+      try {
+        await pool.execute(
+          `INSERT INTO newsletter_subscribers (email, fonte) VALUES (?, 'registrazione')
+           ON DUPLICATE KEY UPDATE unsubscribed = 0, subscribed_at = CURRENT_TIMESTAMP`,
+          [user.email]
+        );
+      } catch (_) {}
+    }
 
     const token = signToken({ id: user.id, email: user.email, nome: user.nome });
     // Send welcome email (non-blocking)
