@@ -65,6 +65,11 @@ NODE_PATH="$NP" node MEMI-Backend/test/validation.test.cjs || FAIL=1
 sec "7b. Go-live hardening (RBAC + PayPal gating)"
 NODE_PATH="$NP" node MEMI-Backend/test/hardening-golive.test.cjs || FAIL=1
 
+sec "7c. Checkout/server shipping parity"
+# The storefront picks the amount charged; the server recomputes and 402s on any mismatch.
+# Drift here breaks EVERY card order, so diff the two implementations directly.
+NODE_PATH="$NP" node verify/shipping-parity.cjs || FAIL=1
+
 sec "8. File-integrity (anti-truncation) checks"
 # Every HTML file must end with </html> — catches the silent file-truncation
 # corruption this repo has suffered (files cut mid-write by a sync tool).

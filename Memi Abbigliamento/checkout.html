@@ -423,16 +423,16 @@
         <h2 class="panel-title">Metodo di spedizione</h2>
 
         <div class="shipping-options">
-          <label class="shipping-option selected" data-cost="0">
+          <label class="shipping-option selected" data-method="standard">
             <input type="radio" name="shipping" checked />
             <div class="shipping-info">
               <p class="shipping-name">Standard — 2/3 giorni lavorativi</p>
               <p class="shipping-desc">Tracciata con BRT / GLS</p>
             </div>
-            <span class="shipping-price" style="color:var(--sage-dark);">Gratis</span>
+            <span class="shipping-price" id="standardShippingPrice">€5,90</span>
           </label>
 
-          <label class="shipping-option" data-cost="8.9">
+          <label class="shipping-option" data-method="express">
             <input type="radio" name="shipping" />
             <div class="shipping-info">
               <p class="shipping-name">Express — 1 giorno lavorativo</p>
@@ -441,7 +441,7 @@
             <span class="shipping-price">€8,90</span>
           </label>
 
-          <label class="shipping-option" data-cost="0">
+          <label class="shipping-option" data-method="ritiro">
             <input type="radio" name="shipping" />
             <div class="shipping-info">
               <p class="shipping-name">Ritiro in negozio</p>
@@ -650,7 +650,41 @@
     var subtotal        = 0;
     var appliedCode     = null;
     var appliedGiftCard = null;   // { code, balance } — amount actually applied is capped live in updateTotals()
-    var shippingCost    = 0;
+    var shippingMethod  = 'standard';   // standard | express | ritiro
+
+    // Mirrors MEMI-Backend/src/shipping-rates.js. The server ALWAYS recomputes the price and
+    // rejects a mismatched payment (402), so these values exist only to show the customer the
+    // right number - keep them in sync with the backend.
+    var FREE_SHIPPING_THRESHOLD = 100;
+    var SHIPPING_RATES = { standard: 5.90, express: 8.90, ritiro: 0 };
+
+    function shippingFor(method, goodsTotal) {
+      if (method === 'ritiro')  return 0;
+      if (method === 'express') return SHIPPING_RATES.express;
+      return goodsTotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_RATES.standard;
+    }
+
+    /* Single source of truth for every money figure on this page. updateTotals() (what the
+       customer sees) and currentAmountCents() (what Stripe is charged) MUST agree - them
+       drifting apart is what made every card order fail with "Importo non corrisponde". */
+    function computeTotals() {
+      var discountAmt = 0;
+      if (appliedCode && appliedCode.type === 'percent')    discountAmt = subtotal * (appliedCode.value / 100);
+      else if (appliedCode && appliedCode.type === 'fixed') discountAmt = Math.min(appliedCode.value, subtotal);
+
+      var goods    = Math.max(0, subtotal - discountAmt);
+      var shipping = (appliedCode && appliedCode.type === 'shipping') ? 0 : shippingFor(shippingMethod, goods);
+      var preGift  = Math.max(0, goods + shipping);
+      var giftAmt  = appliedGiftCard ? Math.min(appliedGiftCard.balance, preGift) : 0;
+      return {
+        discountAmt:  discountAmt,
+        goods:        goods,
+        shipping:     shipping,
+        preGiftTotal: preGift,
+        giftAmt:      giftAmt,
+        total:        Math.max(0, preGift - giftAmt),
+      };
+    }
 
     // ── Utilities ─────────────────────────────────────────────────────────────
     function formatPrice(n) {
@@ -714,17 +748,19 @@
     var appliedGiftCardAmount = 0; // recomputed here every call — authoritative amount actually applied
 
     function updateTotals() {
-      var discountAmt = 0;
-      if (appliedCode && appliedCode.type === 'percent') {
-        discountAmt = subtotal * (appliedCode.value / 100);
-      } else if (appliedCode && appliedCode.type === 'fixed') {
-        discountAmt = Math.min(appliedCode.value, subtotal);
-      }
-      var shipping     = (appliedCode && appliedCode.type === 'shipping') ? 0 : shippingCost;
-      var preGiftTotal = Math.max(0, subtotal - discountAmt + shipping);
+      var t = computeTotals();
+      var discountAmt = t.discountAmt;
+      var shipping    = t.shipping;
+      appliedGiftCardAmount = t.giftAmt;
+      var total = t.total;
 
-      appliedGiftCardAmount = appliedGiftCard ? Math.min(appliedGiftCard.balance, preGiftTotal) : 0;
-      var total = Math.max(0, preGiftTotal - appliedGiftCardAmount);
+      // Standard is free only over the threshold - keep its label honest as the cart changes.
+      var stdPriceEl = el('standardShippingPrice');
+      if (stdPriceEl) {
+        var stdCost = shippingFor('standard', t.goods);
+        stdPriceEl.textContent = stdCost === 0 ? 'Gratis' : formatPrice(stdCost);
+        stdPriceEl.style.color = stdCost === 0 ? 'var(--sage-dark)' : 'var(--espresso)';
+      }
 
       if (el('subtotalEl'))      el('subtotalEl').textContent      = formatPrice(subtotal);
       if (el('totalEl'))         el('totalEl').textContent         = formatPrice(total);
@@ -838,7 +874,7 @@
           document.querySelectorAll('.shipping-option').forEach(function(o) { o.classList.remove('selected'); });
           opt.classList.add('selected');
           opt.querySelector('input').checked = true;
-          shippingCost = parseFloat(opt.getAttribute('data-cost') || '0');
+          shippingMethod = opt.getAttribute('data-method') || 'standard';
           updateTotals();
         });
       });
@@ -1011,16 +1047,7 @@
 
     // Current order total in cents, mirroring updateTotals()'s math exactly.
     function currentAmountCents() {
-      var discountAmt = 0;
-      if (appliedCode && appliedCode.type === 'percent') {
-        discountAmt = subtotal * (appliedCode.value / 100);
-      } else if (appliedCode && appliedCode.type === 'fixed') {
-        discountAmt = Math.min(appliedCode.value, subtotal);
-      }
-      var effectiveShipping = (appliedCode && appliedCode.type === 'shipping') ? 0 : shippingCost;
-      var preGiftTotal = Math.max(0, subtotal - discountAmt + effectiveShipping);
-      var giftAmt = appliedGiftCard ? Math.min(appliedGiftCard.balance, preGiftTotal) : 0;
-      return Math.round(Math.max(0, preGiftTotal - giftAmt) * 100);
+      return Math.round(computeTotals().total * 100);
     }
 
     // Create/refresh a PaymentIntent for the CURRENT total. Returns a promise that
@@ -1217,6 +1244,7 @@
         discount_code:  appliedCode ? appliedCode.code : undefined,
         gift_card_code: appliedGiftCard ? appliedGiftCard.code : undefined,
         payment_method: payMethod,
+        shipping_method: shippingMethod,
         privacy_consent:  !!((el('privacyConsent')  || {}).checked) || undefined,
         newsletter_optin: !!((el('newsletterOptin') || {}).checked) || undefined,
       };

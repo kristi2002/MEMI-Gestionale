@@ -147,7 +147,7 @@ Enums: `payment_status` ∈ `in_attesa|pagato|rimborsato|fallito`; `order_status
 
 | Method | Path | Auth | Purpose | Notes |
 |---|---|---|---|---|
-| POST | `/api/orders` | Public (`optionalCustomer`) | Place an order | Prices re-resolved server-side; stock checked + atomically decremented (`WHERE stock>=?` → 409 oversell guard); discount + gift card + loyalty applied in one txn; Stripe intent verified (amount+currency+status) when card; `payment_intent_id` UNIQUE (replay → 409). Rate-limited 30/15min. 402 on payment mismatch |
+| POST | `/api/orders` | Public (`optionalCustomer`) | Place an order | Prices re-resolved server-side; stock checked + atomically decremented (`WHERE stock>=?` → 409 oversell guard); discount + gift card + loyalty applied in one txn; Stripe intent verified (amount+currency+status) when card; `payment_intent_id` UNIQUE (replay → 409). Rate-limited 30/15min. 402 on payment mismatch. Body takes `shipping_method` (`standard|express|ritiro`, default `standard`) — the **price is resolved server-side** (`src/shipping-rates.js`), never taken from the client: standard EUR5.90 and free from EUR100 of goods (after discount), express EUR8.90 (never free), ritiro EUR0. A configured `shipping_zones` row for the order country overrides the standard rate/threshold. A `spedizione` discount code forces EUR0 |
 | POST | `/api/orders/validate-discount` | Public | Preview a discount code vs subtotal | `{code, subtotal?, email?}`. Returns `{discount_amount, free_shipping, label}`; 404/400 invalid |
 | GET | `/api/orders/my` | Customer | List own orders | — |
 | GET | `/api/orders/my/:id` | Customer | Own order detail + items | 404 if not owned |

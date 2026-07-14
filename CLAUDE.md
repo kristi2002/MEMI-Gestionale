@@ -56,6 +56,14 @@ E-commerce platform, three apps in one repo, Italian-language product/UI.
 So Stripe/SMTP can stay unset for most work; don't add fake keys to make them "work".
 
 ## Gotchas (these waste hours if missed)
+- **Checkout totals live in two places and MUST agree.** `checkout.html` computes the amount
+  charged to Stripe; `POST /api/orders` recomputes the total server-side and rejects any
+  mismatch with **402 "Importo del pagamento non corrisponde"**. A one-cent drift breaks
+  *every* card order. Shipping prices are server-authoritative in
+  `MEMI-Backend/src/shipping-rates.js` (standard EUR5.90, **free from EUR100** of goods after
+  discount; express EUR8.90 never free; ritiro EUR0); the browser sends only
+  `shipping_method` and mirrors those constants for display. Change one side → change both,
+  then run `bash verify/run.sh` (section 7c diffs the two implementations).
 - **Cache busting:** `app.js` is referenced with `?v=N`. Storefront: ~56 HTML files;
   admin: `dashboard.html`. nginx serves JS as `immutable`. **If you edit `app.js`,
   bump `?v=N` everywhere it's referenced or changes won't show.** Then hard-refresh.

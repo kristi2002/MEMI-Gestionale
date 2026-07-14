@@ -56,6 +56,10 @@ const createOrderSchema = z.object({
   discount_code:   z.string().trim().max(60).optional().nullable(),
   gift_card_code:  z.string().trim().max(60).optional().nullable(),
   payment_method:  z.string().trim().max(20).optional(),
+  // Shipping METHOD only — the price is resolved server-side (src/shipping-rates.js).
+  // Loose string (not an enum) on purpose: an unknown value normalizes to 'standard'
+  // rather than 400-ing a customer whose page predates a new method.
+  shipping_method: z.string().trim().max(20).optional().nullable(),
   payment_intent_id: z.string().trim().max(255).optional().nullable(),
   // Generic transaction reference for non-Stripe providers (PayPal order id).
   // Stored in orders.payment_intent_id (UNIQUE → cross-provider replay protection).

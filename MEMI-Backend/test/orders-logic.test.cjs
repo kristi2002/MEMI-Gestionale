@@ -81,7 +81,7 @@ function mockRes(){ return { code:200, body:null, status(c){this.code=c;return t
   n++; console.log('  ✓ T1 price re-resolved from catalog; in_attesa without Stripe');
 
   process.env.STRIPE_SECRET_KEY = 'sk_test_x';
-  stripeBehavior = async () => ({ status:'succeeded', amount:18390, currency:'eur' });
+  stripeBehavior = async () => ({ status:'succeeded', amount:17800, currency:'eur' });
   sqlLog = []; res = mockRes();
   await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
     items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:2 }], payment_method:'carta', payment_intent_id:'pi_123' }}, res);
@@ -90,6 +90,28 @@ function mockRes(){ return { code:200, body:null, status(c){this.code=c;return t
   assert.ok(oo2.params.includes('pagato'), 'T2 payment_status pagato');
   assert.ok(oo2.params.includes('pi_123'), 'T2 payment_intent_id stored');
   n++; console.log('  ✓ T2 verified Stripe -> payment_status pagato (dashboard revenue works)');
+
+  // Shipping is server-authoritative: 89 < 100 -> standard shipping (5.90) is added, so the
+  // PaymentIntent must be 94.90. A client that paid only 89.00 is rejected.
+  stripeBehavior = async () => ({ status:'succeeded', amount:9490, currency:'eur' });
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:1 }], payment_method:'carta',
+    payment_intent_id:'pi_ship', shipping_method:'standard' }}, res);
+  assert.strictEqual(res.code, 201, 'T2b code '+res.code+' '+JSON.stringify(res.body));
+  const oo2b = sqlLog.find(e=>/INSERT INTO orders/i.test(e.sql));
+  assert.ok(oo2b.params.includes(5.9), 'T2b shipping_cost 5.90 persisted under threshold');
+  n++; console.log('  ✓ T2b under-threshold order charged 5.90 shipping (free only over 100)');
+
+  // Same cart, but the browser claims free shipping -> amounts disagree -> 402, no order.
+  stripeBehavior = async () => ({ status:'succeeded', amount:8900, currency:'eur' });
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:1 }], payment_method:'carta',
+    payment_intent_id:'pi_ship2', shipping_method:'standard' }}, res);
+  assert.strictEqual(res.code, 402, 'T2c must reject a client that skipped shipping');
+  assert.ok(!sqlLog.find(e=>/INSERT INTO orders/i.test(e.sql)), 'T2c no order written');
+  n++; console.log('  ✓ T2c client skipping shipping -> 402, no order written');
 
   stripeBehavior = async () => ({ status:'succeeded', amount:100, currency:'eur' });
   sqlLog = []; res = mockRes();

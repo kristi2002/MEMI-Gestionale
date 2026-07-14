@@ -24,7 +24,8 @@ const { compensateOrder } = require('../order-compensation');
 const { ensureInvoiceForOrder } = require('../invoicing');
 const { validateBody, createOrderSchema } = require('../validation');
 const { logAdminAction } = require('../audit');
-const providers = require('../payment-providers');   // PayPal (config-gated)
+const providers = require('../payment-providers');
+const { resolveShipping } = require('../shipping-rates');   // PayPal (config-gated)
 
 /* ── enum whitelists (mirror schema.sql ENUM definitions) ── */
 const PAYMENT_STATUSES = ['in_attesa', 'pagato', 'rimborsato', 'fallito'];
@@ -61,6 +62,7 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
     payment_method = 'carta',
     payment_intent_id,      // Stripe PaymentIntent ID (if card payment)
     payment_reference,      // PayPal order id (non-Stripe providers)
+    shipping_method,        // standard | express | ritiro — PRICE is resolved server-side
   } = req.body;
 
   if (!nome || !cognome || !email || !indirizzo || !citta || !cap)
@@ -119,7 +121,8 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
     /* 2. Validate & compute discount (read-only here; usage incremented in the txn below) */
     let discountAmount = 0;
     let discountCode   = null;
-    let shippingCost   = 5.90;
+    let shippingCost   = 0;      // resolved in 2c, once the discount + goods total are known
+    let freeShippingCode = false;
     if (discount_code) {
       const [[dc]] = await pool.execute(
         `SELECT * FROM discount_codes
@@ -145,8 +148,25 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
       const dcValore = Number(dc.valore);
       if (dc.tipo === 'percentuale')      discountAmount = subtotal * (dcValore / 100);
       else if (dc.tipo === 'fisso')       discountAmount = Math.min(dcValore, subtotal);
-      else if (dc.tipo === 'spedizione')  shippingCost = 0;
+      else if (dc.tipo === 'spedizione')  freeShippingCode = true;
     }
+
+    /* 2c. Shipping — server-authoritative. The browser sends only the method; the price is
+       computed here (a shipping_zones row if the admin configured one, else the built-in
+       rates in src/shipping-rates.js), so a tampered client amount can't lower the total.
+       Standard is free over the threshold; express is a paid upgrade; ritiro is free. */
+    const goodsTotal = Math.round(Math.max(0, subtotal - discountAmount) * 100) / 100;
+    let shippingZone = null;
+    try {
+      const [[z]] = await pool.execute(
+        'SELECT prezzo, spedizione_gratuita_da FROM shipping_zones WHERE paesi LIKE ? ORDER BY id LIMIT 1',
+        [`%${paese || 'Italia'}%`]
+      );
+      shippingZone = z || null;
+    } catch (_) {
+      shippingZone = null;   // table absent/empty → built-in rates
+    }
+    shippingCost = freeShippingCode ? 0 : resolveShipping(shipping_method, goodsTotal, shippingZone).cost;
 
     const preGiftTotal = Math.round(Math.max(0, subtotal - discountAmount + shippingCost) * 100) / 100;
 
