@@ -365,6 +365,15 @@
     test:   function(id, d) { return post('/admin/automations/' + id + '/test', d || {}); },
   };
 
+  /* Automated lifecycle / marketing emails (birthday, win-back, points, season). */
+  var lifecycle = {
+    get:      function()      { return get('/admin/lifecycle'); },
+    settings: function(d)     { return put('/admin/lifecycle/settings', d); },
+    run:      function(d)     { return post('/admin/lifecycle/run', d || {}); },
+    preview:  function(type)  { return post('/admin/lifecycle/' + encodeURIComponent(type) + '/preview', {}); },
+    season:   function(d)     { return post('/admin/lifecycle/season', d); },
+  };
+
   var chat = {
     list:   function()       { return get('/admin/chat'); },
     get:    function(id)     { return get('/admin/chat/' + id); },
@@ -445,7 +454,7 @@
 
 
   /* -- Expose ---------------------------------------------------- */
-  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, expenses, segments, transfers, popups, automations, chat, carts, auditLog, variants, suppliers, purchaseOrders };
+  root.AdminAPI = { auth, dashboard, products, orders, customers, discounts, shipping, newsletter, invoices, resi, reviews, staff, settings, giftcards, campaigns, pages, blog, loyalty, lifecycle, expenses, segments, transfers, popups, automations, chat, carts, auditLog, variants, suppliers, purchaseOrders };
 
   /* -- Status-to-display helpers --------------------------------- */
   root.AdminAPI.statusLabel = function(code) {

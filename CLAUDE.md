@@ -253,5 +253,14 @@ mounted, and API-backed**. Any older doc calling them "mock/hidden/nessun backen
   `PUT /api/admin/lifecycle/settings`, `POST /api/admin/lifecycle/run` (`{dryRun}`),
   `POST /api/admin/lifecycle/:type/preview`, `POST /api/admin/lifecycle/season`.
 - **Storefront:** registration drawer gained an optional "Data di nascita" field (app.js → api-client
-  → register). Cache-bust bumped: storefront `app.js?v=27`, `api-client.js?v=7`.
+  → register); Area Personale profile (`account-core.js`) can view/edit/clear it too. Cache-bust:
+  storefront `app.js?v=28`, `api-client.js?v=7`, `account-core.js?v=5`.
+- **Admin UI:** Marketing → **"Email automatiche"** view (`VIEWS.lifecycle` in `MEMI/js/app.js`,
+  `AdminAPI.lifecycle` in `admin-api.js`, nav in `dashboard.html`): stat cards + per-campaign
+  "Anteprima destinatari", editable settings, "Esegui ora"/"Anteprima batch", and a new-season
+  broadcast form. Gated by `requirePermission('marketing')`; `'lifecycle'` added to the marketing
+  RBAC preset (frontend `PERMISSION_PRESETS` + backend `permissions.js`).
 - **Tests:** `test/lifecycle-logic.test.cjs` (`verify/run.sh` sez. 6c) + smoke `[8b] Lifecycle emails`.
+  Live-verified against the Docker stack: migrations create `email_events`+`birthday`; scheduler's
+  boot run fired birthday + points_reminder for a test customer (minted a real code, wrote idempotency
+  rows); admin API get/run/preview/season all 200; register→/me→PUT birthday loop drives targeting 0→1→0.
