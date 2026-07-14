@@ -4,16 +4,72 @@ import { PlaceholderPage } from '@/pages/placeholder';
 import { DashboardPage } from '@/pages/dashboard';
 import { OrdersPage } from '@/pages/orders';
 import { ProductsPage } from '@/pages/products';
+import { InventoryPage } from '@/pages/inventory';
 import { CustomersPage } from '@/pages/customers';
 import { DiscountsPage } from '@/pages/discounts';
+import { ReturnsPage } from '@/pages/returns';
+import { InvoicesPage } from '@/pages/invoices';
+import { ReviewsPage } from '@/pages/reviews';
+import { NewsletterPage } from '@/pages/newsletter';
+import { GiftcardsPage } from '@/pages/giftcards';
+import { ShipmentsPage } from '@/pages/shipments';
+import { CouriersPage } from '@/pages/couriers';
+import { AbandonedCartsPage } from '@/pages/abandoned-carts';
+import { SuppliersPage } from '@/pages/suppliers';
+import { StaffPage } from '@/pages/staff';
+import { AuditLogPage } from '@/pages/audit-log';
+import { ExpensesPage } from '@/pages/expenses';
+import { ShippingZonesPage } from '@/pages/shipping-zones';
+import { PickupPage } from '@/pages/pickup';
+import { PopupsPage } from '@/pages/popups';
+import { SegmentsPage } from '@/pages/segments';
+import { TransfersPage } from '@/pages/transfers';
+import { CampaignsPage } from '@/pages/campaigns';
+import { PagesPage } from '@/pages/pages';
+import { BlogPage } from '@/pages/blog';
+import { AutomationsPage } from '@/pages/automations';
+import { PurchaseOrdersPage } from '@/pages/purchase-orders';
+import { LoyaltyPage } from '@/pages/loyalty';
+import { SettingsPage } from '@/pages/settings';
+import { LifecyclePage } from '@/pages/lifecycle';
+import { CategoriesPage, CollectionsPage } from '@/pages/taxonomy';
 
 /** Concrete React pages ported in this delivery, keyed by route path. */
 const READY_PAGES: Record<string, ReactElement> = {
   '/': <DashboardPage />,
   '/orders': <OrdersPage />,
+  '/orders/abandoned': <AbandonedCartsPage />,
+  '/returns': <ReturnsPage />,
+  '/invoices': <InvoicesPage />,
   '/products': <ProductsPage />,
+  '/inventory': <InventoryPage />,
+  '/transfers': <TransfersPage />,
+  '/collections': <CollectionsPage />,
+  '/categories': <CategoriesPage />,
+  '/giftcards': <GiftcardsPage />,
   '/customers': <CustomersPage />,
+  '/loyalty': <LoyaltyPage />,
+  '/segments': <SegmentsPage />,
+  '/reviews': <ReviewsPage />,
+  '/marketing': <CampaignsPage />,
+  '/automations': <AutomationsPage />,
+  '/lifecycle': <LifecyclePage />,
+  '/newsletter': <NewsletterPage />,
+  '/popups': <PopupsPage />,
   '/discounts': <DiscountsPage />,
+  '/content': <PagesPage />,
+  '/blog': <BlogPage />,
+  '/couriers': <CouriersPage />,
+  '/shipments': <ShipmentsPage />,
+  '/tracking': <ShipmentsPage title="Tracking" />,
+  '/shipping-zones': <ShippingZonesPage />,
+  '/pickup': <PickupPage />,
+  '/bills': <ExpensesPage />,
+  '/purchase-orders': <PurchaseOrdersPage />,
+  '/suppliers': <SuppliersPage />,
+  '/staff': <StaffPage />,
+  '/audit-log': <AuditLogPage />,
+  '/settings': <SettingsPage />,
 };
 
 export interface AppRoute {

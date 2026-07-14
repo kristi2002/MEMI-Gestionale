@@ -75,7 +75,6 @@ export {
   DropdownMenuPortal,
   DropdownMenuSub,
   DropdownMenuRadioGroup,
-  // re-exported icons used by consumers, keeps tree-shaking simple
   Check as DropdownCheck,
   ChevronRight as DropdownChevron,
   Circle as DropdownCircle,
