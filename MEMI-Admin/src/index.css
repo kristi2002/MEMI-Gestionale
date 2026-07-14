@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   MEMI Gestionale — design tokens (ported from MEMI/css/style.css)
+   Muted monochrome canvas + violet brand accent + semantic status.
+   Values are HSL channels so Tailwind's hsl(var(--x)) works and dark
+   mode is a token swap.
+   ============================================================ */
+@layer base {
+  :root {
+    --background: 228 27% 96%; /* page canvas #F4F5F8 */
+    --foreground: 218 20% 11%; /* text #171B22 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 218 20% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 218 20% 11%;
+
+    --primary: 240 24% 53%; /* violet accent #6B6BA3 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 228 20% 95%;
+    --secondary-foreground: 222 16% 30%;
+
+    --muted: 228 20% 95%;
+    --muted-foreground: 219 12% 59%; /* #8992A2 */
+
+    --accent: 246 43% 95%; /* violet tint #EDECF6 */
+    --accent-foreground: 240 24% 45%;
+
+    --destructive: 0 62% 53%; /* #D23B3B */
+    --destructive-foreground: 0 0% 100%;
+    --success: 150 74% 32%; /* #15925A */
+    --success-foreground: 0 0% 100%;
+    --warning: 34 93% 33%; /* #A66206 */
+    --warning-foreground: 0 0% 100%;
+    --info: 220 68% 51%; /* #2C63D6 */
+    --info-foreground: 0 0% 100%;
+
+    --border: 223 17% 92%; /* #E7E9EE */
+    --input: 223 17% 89%;
+    --ring: 240 24% 53%;
+
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222 16% 30%;
+    --sidebar-accent: 246 43% 95%;
+
+    --radius: 0.625rem; /* 10px, matches --radius */
+  }
+
+  .dark {
+    --background: 222 22% 9%;
+    --foreground: 220 14% 92%;
+
+    --card: 222 20% 12%;
+    --card-foreground: 220 14% 92%;
+    --popover: 222 20% 12%;
+    --popover-foreground: 220 14% 92%;
+
+    --primary: 244 42% 68%;
+    --primary-foreground: 222 30% 10%;
+
+    --secondary: 222 16% 18%;
+    --secondary-foreground: 220 14% 88%;
+
+    --muted: 222 16% 18%;
+    --muted-foreground: 220 10% 60%;
+
+    --accent: 244 30% 22%;
+    --accent-foreground: 244 42% 82%;
+
+    --destructive: 0 58% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 150 55% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 85% 55%;
+    --warning-foreground: 222 30% 10%;
+    --info: 218 75% 65%;
+    --info-foreground: 222 30% 10%;
+
+    --border: 222 16% 20%;
+    --input: 222 16% 22%;
+    --ring: 244 42% 68%;
+
+    --sidebar: 222 22% 11%;
+    --sidebar-foreground: 220 12% 78%;
+    --sidebar-accent: 244 30% 22%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
+  /* Nicer, thinner scrollbars to match the cockpit look */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+    border: 2px solid hsl(var(--background));
+  }
+}

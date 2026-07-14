@@ -1,0 +1,31 @@
+# ────────────────────────────────────────────────────────────────────
+# MEMI Admin (React) — additive compose overlay. Runs the new React admin
+# ALONGSIDE the legacy jQuery `admin` service, on its own subdomain, so you
+# can compare both before cutover. Nothing in docker-compose.yml is changed.
+#
+# Use:
+#   docker compose -f docker-compose.yml -f docker-compose.admin-next.yml up --build admin-next
+#
+# Cutover later = either point DNS/Traefik `ADMIN_DOMAIN` at this service, or
+# simply swap the `admin` service's build context to ./MEMI-Admin.
+# ────────────────────────────────────────────────────────────────────
+services:
+  admin-next:
+    build:
+      context: ./MEMI-Admin
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      # HTTPS router — separate subdomain from the legacy admin.
+      - "traefik.http.routers.memi-admin-next.rule=Host(`${ADMIN_NEXT_DOMAIN:-next.admin.memi.testdemo.it}`)"
+      - "traefik.http.routers.memi-admin-next.entrypoints=websecure"
+      - "traefik.http.routers.memi-admin-next.tls.certresolver=letsencrypt"
+      - "traefik.http.services.memi-admin-next.loadbalancer.server.port=80"
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.memi-admin-next-http.rule=Host(`${ADMIN_NEXT_DOMAIN:-next.admin.memi.testdemo.it}`)"
+      - "traefik.http.routers.memi-admin-next-http.entrypoints=web"
+      - "traefik.http.routers.memi-admin-next-http.middlewares=redirect-to-https"
