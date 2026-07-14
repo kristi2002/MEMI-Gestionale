@@ -62,6 +62,10 @@ if [ -n "$ADMIN_TOKEN" ]; then
   [ "$C" = "200" ] && ok "GET /api/admin/dashboard/kpis -> 200" || ko "kpis -> HTTP $C"
   C="$(code -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/dashboard/catalog-kpis")"
   [ "$C" = "200" ] && ok "GET /api/admin/dashboard/catalog-kpis -> 200" || ko "catalog-kpis -> HTTP $C"
+  for EP in reports online-store social pos apps; do
+    C="$(code -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/$EP")"
+    [ "$C" = "200" ] && ok "GET /api/admin/$EP -> 200" || ko "$EP -> HTTP $C"
+  done
   C="$(code -X PUT -H "Content-Type: application/json" -d '{"current_password":"x","new_password":"yyyyyyyy"}' "$BASE/api/admin/auth/password")"
   [ "$C" = "401" ] && ok "PUT /api/admin/auth/password without token -> 401" || ko "password change unauth -> HTTP $C"
   # Bulk photo import (ZIP): route exists + validates — no file should be 400, not 404

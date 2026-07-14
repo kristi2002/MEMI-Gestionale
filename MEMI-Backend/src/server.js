@@ -66,6 +66,11 @@ const cartsRoutes         = require('./routes/carts');
 const cartPublicRoutes    = require('./routes/cart-public');
 const productVariantsRoutes = require('./routes/product-variants');
 const purchasingRoutes    = require('./routes/purchasing');
+const reportsRoutes       = require('./routes/reports');
+const onlineStoreRoutes   = require('./routes/online-store');
+const socialRoutes        = require('./routes/social');
+const posRoutes           = require('./routes/pos');
+const appsRoutes          = require('./routes/apps');
 const { ensureDir: ensureUploadsDir, UPLOADS_DIR } = require('./images');
 const { requestLogger }  = require('./logger');
 const { requireAdmin, requirePermission } = require('./middleware/auth');
@@ -298,6 +303,11 @@ app.use('/api/feed',              feedRoutes);         // public product feed (M
 app.use('/api/admin/carts',       requireAdmin, requirePermission('orders-abandoned'), cartsRoutes);
 app.use('/api/cart',              cartPublicRoutes);   // public cart beacon (storefront)
 app.use('/api/admin',             requireAdmin, requirePermission('inventory'), purchasingRoutes);   // /suppliers* + /purchase-orders* (procurement ~ inventory)
+app.use('/api/admin/reports',      requireAdmin, requirePermission('reports'), reportsRoutes);
+app.use('/api/admin/online-store', requireAdmin, requirePermission('online-store'), onlineStoreRoutes);
+app.use('/api/admin/social',       requireAdmin, requirePermission('social'), socialRoutes);
+app.use('/api/admin/pos',          requireAdmin, requirePermission('pos'), posRoutes);
+app.use('/api/admin/apps',         requireAdmin, requirePermission('apps'), appsRoutes);
 
 // ── 404 catch-all ─────────────────────────────────────────────
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));

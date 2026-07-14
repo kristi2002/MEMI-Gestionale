@@ -561,3 +561,50 @@ export interface MediaItem {
   full: string;
   created_at: string;
 }
+
+export interface ReportsData {
+  summary: { revenue_ytd: number; orders_ytd: number; aov: number };
+  sales_by_month: { month: string; revenue: number; orders: number }[];
+  orders_by_status: { stato: string; count: number }[];
+  top_categories: { categoria: string; revenue: number; units: number }[];
+}
+
+export interface OnlineStoreData {
+  status: string;
+  name: string;
+  domain: string;
+  country: string;
+  products: { total: number; active: number; out_of_stock: number };
+  pages_published: number;
+  orders_today: number;
+}
+
+export interface SocialChannel {
+  key: string;
+  nome: string;
+  categoria: string;
+  icona: string;
+  connesso: boolean;
+  dettaglio: string;
+  url: string;
+}
+export interface SocialData {
+  channels: SocialChannel[];
+}
+
+export interface PosData {
+  enabled: boolean;
+  today: { orders: number; revenue: number };
+}
+
+export interface AppItem {
+  key: string;
+  nome: string;
+  categoria: string;
+  icona: string;
+  descrizione: string;
+  installed: boolean;
+}
+export interface AppsData {
+  apps: AppItem[];
+}
