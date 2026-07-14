@@ -703,17 +703,17 @@
 
       <div class="look-items" id="lookItems">
         <div class="look-item" id="item0">
-          <a class="look-item-link" href="/products/vestito-lino-cannes/">
+          <a class="look-item-link" href="/product?id=vestito-midi-fiori">
           <div class="look-item-img"><div class="ph-thumb" style="background:linear-gradient(145deg,#f2c4bd,#e8a8a0);border-radius:6px;"></div></div>
           <div class="look-item-info">
             <p class="look-item-tag">Vestito</p>
-            <p class="look-item-name">Vestito Lino Cannes</p>
+            <p class="look-item-name">Vestito Midi Fiori</p>
             <p class="look-item-color">Rosa cipria · Taglia M</p>
           </div>
           </a>
           <div class="look-item-right">
-            <span class="look-item-price">€89,00</span>
-            <button class="btn-item-cart" onclick="addToCartFromLook('Vestito Lino Cannes','€89,00')">
+            <span class="look-item-price">€115,00</span>
+            <button class="btn-item-cart" onclick="addToCartFromLook('Vestito Midi Fiori','€115,00','vestito-midi-fiori')">
               <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
               Aggiungi
             </button>
@@ -723,12 +723,12 @@
           <div class="look-item-img"><div class="ph-thumb" style="background:linear-gradient(145deg,#e8d5b5,#c8a87a);border-radius:6px;"></div></div>
           <div class="look-item-info">
             <p class="look-item-tag">Accessorio</p>
-            <p class="look-item-name">Cintura Intrecciata Oro</p>
+            <p class="look-item-name">Cintura Pelle Sottile</p>
             <p class="look-item-color">Oro naturale · Taglia unica</p>
           </div>
           <div class="look-item-right">
-            <span class="look-item-price">€39,00</span>
-            <button class="btn-item-cart" onclick="addToCartFromLook('Cintura Intrecciata Oro','€39,00')">
+            <span class="look-item-price">€32,00</span>
+            <button class="btn-item-cart" onclick="addToCartFromLook('Cintura Pelle Sottile','€32,00','cintura-pelle-sottile')">
               <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
               Aggiungi
             </button>
@@ -738,12 +738,12 @@
           <div class="look-item-img"><div class="ph-thumb" style="background:linear-gradient(145deg,#f5ddd5,#e0b8a8);border-radius:6px;"></div></div>
           <div class="look-item-info">
             <p class="look-item-tag">Scarpe</p>
-            <p class="look-item-name">Sandali Cipria Estivi</p>
+            <p class="look-item-name">Sandalo Listino Estate</p>
             <p class="look-item-color">Rosa cipria · Numero 38</p>
           </div>
           <div class="look-item-right">
-            <span class="look-item-price">€65,00</span>
-            <button class="btn-item-cart" onclick="addToCartFromLook('Sandali Cipria Estivi','€65,00')">
+            <span class="look-item-price">€98,00</span>
+            <button class="btn-item-cart" onclick="addToCartFromLook('Sandalo Listino Estate','€98,00','sandalo-listino-estate')">
               <svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>
               Aggiungi
             </button>
@@ -881,6 +881,33 @@
     var sec=document.getElementById('lookSection');if(sec)sec.scrollIntoView({behavior:'smooth',block:'start'});
   }
 
+  function fmtEur(n){return '€'+(Number(n)||0).toFixed(2).replace('.',',');}
+
+  /* Keep the lookbook honest against the live catalog. WHICH product appears in an outfit
+     stays curated here (an editorial choice), but the name, price and availability come
+     from the DB. Without this the page silently lies after any admin edit - it had already
+     drifted to referencing 5 products that no longer exist. Falls back to the static copy
+     when the API is unreachable, so the page always renders. */
+  function hydrateLooksFromCatalog(){
+    fetch('/api/products?limit=300')
+      .then(function(r){return r.ok?r.json():null;})
+      .then(function(list){
+        if(!list||!list.length)return;
+        var byId={};list.forEach(function(p){byId[p.id]=p;});
+        LOOKS.forEach(function(l){
+          var sum=0,found=0;
+          l.items.forEach(function(it){
+            var p=it.slug?byId[it.slug]:null;
+            if(p){it.name=p.name;it.price=fmtEur(p.price);it.missing=false;sum+=Number(p.price)||0;found++;}
+            else{it.missing=true;}
+          });
+          if(found)l.total=fmtEur(sum);
+        });
+        renderLook(currentLook);
+      })
+      .catch(function(){});
+  }
+
   function renderHotspots(idx){
     var l=LOOKS[idx];if(!l)return;
     var wrap=document.querySelector('.look-image-wrap');if(!wrap)return;
@@ -915,14 +942,14 @@
     container.innerHTML=l.items.map(function(item,i){
       var inner='<div class="look-item-img"><div class="ph-thumb" style="background:'+item.bg+';border-radius:6px;width:100%;height:100%;"></div></div>'
         +'<div class="look-item-info"><p class="look-item-tag">'+item.tag+'</p><p class="look-item-name">'+item.name+'</p><p class="look-item-color">'+item.color+'</p></div>';
-      var linked=item.slug
-        ?'<a class="look-item-link" href="/products/'+item.slug+'/">'+inner+'</a>'
+      var linked=(item.slug&&!item.missing)
+        ?'<a class="look-item-link" href="/product?id='+encodeURIComponent(item.slug)+'">'+inner+'</a>'
         :inner;
-      return '<div class="look-item" id="item'+i+'">'
-        +linked
-        +'<div class="look-item-right"><span class="look-item-price">'+item.price+'</span>'
-        +'<button class="btn-item-cart" onclick="addToCartFromLook(\''+item.name+'\',\''+item.price+'\')">'+PILL_SVG()+' Aggiungi</button></div>'
-        +'</div>';
+      var right=item.missing
+        ?'<div class="look-item-right"><span class="look-item-price" style="opacity:.55">Non disponibile</span></div>'
+        :'<div class="look-item-right"><span class="look-item-price">'+item.price+'</span>'
+          +'<button class="btn-item-cart" onclick="addToCartFromLook(\''+item.name+'\',\''+item.price+'\',\''+(item.slug||'')+'\')">'+PILL_SVG()+' Aggiungi</button></div>';
+      return '<div class="look-item" id="item'+i+'">'+linked+right+'</div>';
     }).join('');
     renderHotspots(idx);
   }
@@ -932,15 +959,19 @@
     var el=document.getElementById('item'+idx);if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});
     // Navigate to product page if item has a slug
     var item=LOOKS[currentLook]&&LOOKS[currentLook].items[idx];
-    if(item&&item.slug){window.location.href='/products/'+item.slug+'/';}
+    if(item&&item.slug&&!item.missing){window.location.href='/product?id='+encodeURIComponent(item.slug);}
   }
 
-  function addToCartFromLook(name,price){
+  function addToCartFromLook(name,price,slug){
     var btn=event.currentTarget;
     var priceNum=parseFloat(price.replace(/[€\s]/g,'').replace(',','.'));
     var lookItem=btn.closest('.look-item');
     var variant=lookItem?(lookItem.querySelector('.look-item-color')||{}).textContent||'':'';
-    var id=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+    // Use the catalog id. Slugifying the display name invented ids the DB never had
+    // (e.g. 'Gonna Plisse Nuvola' -> 'gonna-pliss-nuvola'); POST /api/orders rejects any
+    // line whose product_id it cannot resolve, so the cart looked fine and checkout 400'd.
+    var id=slug||name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+    if(!id)return;
     if(typeof window.addToCart==='function'){window.addToCart({id:id,name:name,price:priceNum,variant:variant,color:'ph-blush'});}
     var orig=btn.innerHTML;btn.textContent='✓ Aggiunto';btn.style.background='var(--sage)';
     setTimeout(function(){btn.innerHTML=orig;btn.style.background='';},1600);
@@ -982,6 +1013,8 @@
       // Render hotspots for the default Look #1 (pre-rendered in HTML)
       renderHotspots(0);
     }
+    // Refresh names/prices/availability from the live catalog (no-op if the API is down).
+    hydrateLooksFromCatalog();
   })();
   </script>
 

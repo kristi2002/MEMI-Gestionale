@@ -232,3 +232,26 @@ mounted, and API-backed**. Any older doc calling them "mock/hidden/nessun backen
 **Admin auth is an HttpOnly cookie** `memi_admin_token` (SameSite=Lax, 8h) with a legacy
 `Authorization: Bearer` fallback — not plain localStorage. Customer auth stays a Bearer JWT
 (`memi_token`, 7d, no revocation).
+
+## Update Luglio 2026 — Lifecycle / marketing emails (automatiche)
+
+- **Newsletter subscribe now sends a confirmation/welcome email** (`sendNewsletterWelcome` in
+  `src/email.js`, fired best-effort from `POST /api/newsletter/subscribe`). No-op without SMTP.
+- **Lifecycle email engine** — `src/lifecycle.js` (campaigns) + `src/scheduler.js` (in-process
+  daily runner, **no cron dependency**; hourly tick, batch at `LIFECYCLE_SEND_HOUR` local default
+  09:00; idle without SMTP or with `DISABLE_EMAIL_SCHEDULER=1`). Started from `server.js` after
+  migrations. Scheduled campaigns: `birthday`, `winback` (dormant), `points_reminder` (unused
+  loyalty points), `anniversary`; admin broadcast: `new_season`.
+- **Three invariants on every send:** GDPR-gated (`customers.marketing_consent = 1` only — season
+  broadcast may also include opted-in newsletter subscribers), idempotent (claim a row in
+  `email_events (type, dedup_key, email)` BEFORE sending → no double-send across restarts/instances;
+  claim precedes code minting → no orphan discount codes), best-effort (silent no-op without SMTP).
+- **New DB (via migrations.js):** `email_events` ledger + `customers.birthday DATE NULL` (collected
+  at registration, optional; also editable via `PUT /api/auth/me`). Tunables in `store_settings`
+  keys `lifecycle_*`. Personal codes minted into `discount_codes` (single-use, dated).
+- **Admin API** (`requireAdmin` + `requirePermission('marketing')`): `GET /api/admin/lifecycle`,
+  `PUT /api/admin/lifecycle/settings`, `POST /api/admin/lifecycle/run` (`{dryRun}`),
+  `POST /api/admin/lifecycle/:type/preview`, `POST /api/admin/lifecycle/season`.
+- **Storefront:** registration drawer gained an optional "Data di nascita" field (app.js → api-client
+  → register). Cache-bust bumped: storefront `app.js?v=27`, `api-client.js?v=7`.
+- **Tests:** `test/lifecycle-logic.test.cjs` (`verify/run.sh` sez. 6c) + smoke `[8b] Lifecycle emails`.
