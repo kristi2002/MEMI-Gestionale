@@ -143,7 +143,7 @@ All require **Customer** JWT.
 ## Orders (`orders.js`) — mounted `/api/orders`
 
 Enums: `payment_status` ∈ `in_attesa|pagato|rimborsato|fallito`; `order_status` ∈
-`in_attesa|in_preparazione|spedito|consegnato|annullato`; `payment_method` ∈ `carta|paypal|klarna`.
+`in_attesa|in_preparazione|spedito|consegnato|annullato`; `payment_method` ∈ `carta|paypal|klarna` (`klarna` retained for historical orders only — Klarna was removed Luglio 2026).
 
 | Method | Path | Auth | Purpose | Notes |
 |---|---|---|---|---|
@@ -165,10 +165,10 @@ Enums: `payment_status` ∈ `in_attesa|pagato|rimborsato|fallito`; `order_status
 | Method | Path | Auth | Purpose | Notes |
 |---|---|---|---|---|
 | POST | `/api/payments/create-intent` | Public | Create a PaymentIntent | Body `{amount_cents}` (number, **min 50** = €0.50). Returns `{client_secret, payment_intent_id}`. 503 if Stripe unconfigured; 400 invalid amount; 502 Stripe error. Rate-limited 30/15min |
-| GET | `/api/payments/config` | Public | Payment config the checkout uses | `{publishableKey, providers:{stripe,paypal,klarna}, paypal:{clientId,env}|null}`. `providers.*` = whether that method has server credentials (drives which checkout tabs show). Non-secret values only. |
+| GET | `/api/payments/config` | Public | Payment config the checkout uses | `{publishableKey, providers:{stripe,paypal}, paypal:{clientId,env}|null}`. `providers.*` = whether that method has server credentials (drives which checkout tabs show). Non-secret values only. |
 | POST | `/api/payments/webhook` | Stripe signature | Stripe event webhook | **Mounted directly on the app with raw body BEFORE `express.json`** (not on this router). Handles `payment_intent.succeeded` (reconciles `in_attesa`→`pagato` + emits invoice; loud warn if no matching order) and `charge.dispute.created` (logged). 503 unconfigured, 400 bad signature |
 
-### PayPal & Klarna (scaffolding, `payment-providers.js`) — config-gated
+### PayPal (scaffolding, `payment-providers.js`) — config-gated
 
 All return **503** when the provider's env credentials are unset (see `docs/ENVIRONMENT.md`). The order handler re-verifies the amount server-side before `pagato` (never trusts the client).
 
@@ -177,13 +177,10 @@ All return **503** when the provider's env credentials are unset (see `docs/ENVI
 | POST | `/api/payments/paypal/create-order` | Public | Create a PayPal Orders v2 order | Body `{amount_cents}`. Returns `{id, status}`. Called by the PayPal Buttons `createOrder`. |
 | POST | `/api/payments/paypal/capture` | Public | Capture an approved PayPal order | Body `{paypal_order_id}`. Returns `{status, amountCents, currency}`. |
 | POST | `/api/payments/paypal/webhook` | (TODO sig) | PayPal event webhook | Reconciles a known `in_attesa` order to `pagato` by transaction reference. Signature verification is `TODO(paypal-live)`. |
-| POST | `/api/payments/klarna/create-session` | Public | Create a Klarna Payments session | Body `{amount_cents}`. Returns `{session_id, client_token}`. |
-| POST | `/api/payments/klarna/create-order` | Public | Turn an authorized Klarna session into an order | Body `{authorization_token, amount_cents}`. Returns `{order_id, amountCents, currency}`. |
-| POST | `/api/payments/klarna/webhook` | (TODO sig) | Klarna push webhook | Reconciles by `order_id`. `TODO(klarna-live)`. |
 
-> `POST /api/orders` accepts an optional `payment_reference` (PayPal order id / Klarna order id),
+> `POST /api/orders` accepts an optional `payment_reference` (PayPal order id),
 > stored in the UNIQUE `orders.payment_intent_id` column (cross-provider replay protection). A
-> `paypal`/`klarna` order whose provider isn't configured is refused with **503** — never a silent
+> `paypal` order whose provider isn't configured is refused with **503** — never a silent
 > unpaid `in_attesa` order. For PayPal the handler **verifies the approved amount, persists the
 > order (atomic stock decrement), and only then captures** — so a concurrent oversell (409) can't
 > leave a buyer charged with no order; a post-commit capture failure leaves the order `in_attesa`

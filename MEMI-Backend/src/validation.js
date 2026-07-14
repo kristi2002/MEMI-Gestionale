@@ -57,7 +57,7 @@ const createOrderSchema = z.object({
   gift_card_code:  z.string().trim().max(60).optional().nullable(),
   payment_method:  z.string().trim().max(20).optional(),
   payment_intent_id: z.string().trim().max(255).optional().nullable(),
-  // Generic transaction reference for non-Stripe providers (PayPal order id / Klarna order id).
+  // Generic transaction reference for non-Stripe providers (PayPal order id).
   // Stored in orders.payment_intent_id (UNIQUE → cross-provider replay protection).
   payment_reference: z.string().trim().max(255).optional().nullable(),
   // GDPR consents from the checkout page (privacy required client-side; newsletter optional)

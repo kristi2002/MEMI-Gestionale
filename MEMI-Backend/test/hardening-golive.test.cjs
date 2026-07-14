@@ -2,7 +2,8 @@
 /* Go-live hardening tests (2026-07-10) — no DB/network needed.
    Covers the changes from the go-live pass (docs/GO-LIVE-PLAN-2026-07.md):
      - server-side RBAC: requirePermission() allow/deny matrix
-     - PayPal/Klarna config detection (unconfigured vs configured)
+     - PayPal config detection (unconfigured vs configured)
+     - boot-time JWT secret validation (placeholder / short / identical are refused)
      - the payments router returns 503 for provider endpoints when unconfigured,
        and GET /api/payments/config advertises provider availability.
    Run: (cd MEMI-Backend && node test/hardening-golive.test.cjs)                */
@@ -12,7 +13,7 @@ const http    = require('http');
 const express = require('express');
 
 // Deterministic: strip any provider/Stripe creds that might leak in from the shell.
-['PAYPAL_CLIENT_ID', 'PAYPAL_SECRET', 'PAYPAL_ENV', 'KLARNA_USERNAME', 'KLARNA_PASSWORD',
+['PAYPAL_CLIENT_ID', 'PAYPAL_SECRET', 'PAYPAL_ENV',
  'STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY'].forEach(k => { delete process.env[k]; });
 
 const { requirePermission } = require('../src/middleware/auth');
@@ -41,9 +42,8 @@ assert.ok(runPerm({ role: 'staff', permissions: null }, ['returns']).nexted, 'de
 }
 n += 5;
 
-// ── PayPal / Klarna config detection ─────────────────────────────
+// ── PayPal config detection ─────────────────────────────
 assert.strictEqual(providers.paypalConfigured(), false, 'paypal unconfigured by default');
-assert.strictEqual(providers.klarnaConfigured(), false, 'klarna unconfigured by default');
 process.env.PAYPAL_CLIENT_ID = 'test-id'; process.env.PAYPAL_SECRET = 'test-secret';
 assert.strictEqual(providers.paypalConfigured(), true, 'paypal configured when both env vars set');
 assert.strictEqual(providers.paypalEnv(), 'sandbox', 'paypal env defaults to sandbox');
@@ -51,7 +51,7 @@ process.env.PAYPAL_ENV = 'live';
 assert.strictEqual(providers.paypalEnv(), 'live', 'paypal env honours live');
 delete process.env.PAYPAL_CLIENT_ID; delete process.env.PAYPAL_SECRET; delete process.env.PAYPAL_ENV;
 assert.strictEqual(providers.paypalConfigured(), false, 'paypal back to unconfigured after unset');
-n += 6;
+n += 5;
 
 // ── payments router: 503 gating + /config providers shape ────────
 async function serverTests() {
@@ -86,31 +86,68 @@ async function serverTests() {
   assert.strictEqual(cfg.status, 200, 'GET /config → 200');
   assert.ok(cfg.json && cfg.json.providers, '/config exposes providers');
   assert.strictEqual(cfg.json.providers.paypal, false, 'providers.paypal false when unconfigured');
-  assert.strictEqual(cfg.json.providers.klarna, false, 'providers.klarna false when unconfigured');
   assert.strictEqual(cfg.json.providers.stripe, false, 'providers.stripe false when unconfigured');
   assert.strictEqual(cfg.json.paypal, null, 'no paypal client-id leaked when unconfigured');
-  n += 6;
+  n += 5;
 
   let r;
   r = await post('/paypal/create-order', { amount_cents: 5000 });
   assert.strictEqual(r.status, 503, 'paypal/create-order → 503 unconfigured');
   r = await post('/paypal/capture', { paypal_order_id: 'ABC' });
   assert.strictEqual(r.status, 503, 'paypal/capture → 503 unconfigured');
-  r = await post('/klarna/create-session', { amount_cents: 5000 });
-  assert.strictEqual(r.status, 503, 'klarna/create-session → 503 unconfigured');
-  r = await post('/klarna/create-order', { authorization_token: 't', amount_cents: 5000 });
-  assert.strictEqual(r.status, 503, 'klarna/create-order → 503 unconfigured');
-  n += 4;
+  n += 2;
 
   await new Promise(r2 => server.close(r2));
   // Drain the lazily-created mysql2 pool so nothing keeps the loop alive / races exit.
   try { await require('../src/db').pool.end(); } catch (_) {}
 }
 
+// ── Boot-time JWT secret validation ──────────────────────────────
+// server.js validates JWT secrets at module top level and exits before anything
+// listens, so each refusal is fast and needs no DB. Spawning a real child process
+// is the only honest way to test a process.exit() guard.
+const { spawnSync } = require('child_process');
+const path = require('path');
+const SERVER_JS = path.join(__dirname, '..', 'src', 'server.js');
+const STRONG_A  = 'a1'.repeat(32);   // 64 chars, not a placeholder
+const STRONG_B  = 'b2'.repeat(32);
+
+function boot(env, timeout) {
+  const r = spawnSync(process.execPath, ['-e', 'require(' + JSON.stringify(SERVER_JS) + ')'], {
+    env: Object.assign({}, process.env, { NODE_ENV: 'production', DB_HOST: '127.0.0.1' }, env),
+    encoding: 'utf8',
+    timeout: timeout || 8000,
+  });
+  return { code: r.status, out: (r.stderr || '') + (r.stdout || '') };
+}
+
+function refusesBoot(env, why) {
+  const { code, out } = boot(env);
+  assert.strictEqual(code, 1, 'should exit 1: ' + why);
+  assert.ok(/Refusing to start/.test(out), 'should explain refusal: ' + why);
+  n++;
+}
+
+function bootChecks() {
+  // The exact placeholder defaults docker-compose.yml ships.
+  refusesBoot({ JWT_SECRET: 'replace_me_64_char_secret', JWT_ADMIN_SECRET: 'replace_me_admin_secret' }, 'placeholder defaults');
+  refusesBoot({ JWT_SECRET: '', JWT_ADMIN_SECRET: STRONG_B }, 'unset secret');
+  refusesBoot({ JWT_SECRET: 'tooshort', JWT_ADMIN_SECRET: STRONG_B }, 'short secret');
+  refusesBoot({ JWT_SECRET: STRONG_A, JWT_ADMIN_SECRET: STRONG_A }, 'identical secrets');
+
+  // Strong, distinct secrets must NOT be refused. The child then blocks on the
+  // (absent) DB and is killed by the timeout — that it got past the guard is the point.
+  const ok = boot({ JWT_SECRET: STRONG_A, JWT_ADMIN_SECRET: STRONG_B }, 8000);
+  assert.ok(!/Refusing to start/.test(ok.out), 'strong distinct secrets must boot past the guard');
+  n++;
+}
+
 serverTests().then(() => {
+  bootChecks();
   console.log('  ✓ requirePermission allow/deny matrix (5)');
-  console.log('  ✓ PayPal/Klarna config detection (6)');
-  console.log('  ✓ payments router 503 gating + /config shape (10)');
+  console.log('  ✓ PayPal config detection (5)');
+  console.log('  ✓ payments router 503 gating + /config shape (7)');
+  console.log('  ✓ boot-time JWT secret validation (5)');
   console.log('\nALL ' + n + ' go-live hardening tests passed.');
   process.exitCode = 0;   // natural exit — no forced process.exit (avoids the Windows libuv assert)
 }).catch(err => {

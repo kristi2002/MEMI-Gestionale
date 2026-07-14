@@ -162,7 +162,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
    Amount priority: body.amount > stored rimborso_amount > full order total (capped at total).
    On success: marks the return 'rimborsato' and the order payment_status 'rimborsato'. */
 router.post('/:id/refund', requireAdmin, async (req, res) => {
-  // { manual: true } = the money was returned OUTSIDE Stripe (PayPal / Klarna /
+  // { manual: true } = the money was returned OUTSIDE Stripe (PayPal /
   // bonifico): skip the Stripe call but run the exact same bookkeeping.
   const manual = !!(req.body && req.body.manual === true);
   const stripe = getStripe();

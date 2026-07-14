@@ -24,12 +24,12 @@ const { compensateOrder } = require('../order-compensation');
 const { ensureInvoiceForOrder } = require('../invoicing');
 const { validateBody, createOrderSchema } = require('../validation');
 const { logAdminAction } = require('../audit');
-const providers = require('../payment-providers');   // PayPal / Klarna (config-gated)
+const providers = require('../payment-providers');   // PayPal (config-gated)
 
 /* ── enum whitelists (mirror schema.sql ENUM definitions) ── */
 const PAYMENT_STATUSES = ['in_attesa', 'pagato', 'rimborsato', 'fallito'];
 const ORDER_STATUSES   = ['in_attesa', 'in_preparazione', 'spedito', 'consegnato', 'annullato'];
-const PAYMENT_METHODS  = ['carta', 'paypal', 'klarna'];
+const PAYMENT_METHODS  = ['carta', 'paypal'];
 
 /* ── helpers ── */
 async function nextOrderNumber(conn) {
@@ -60,7 +60,7 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
     gift_card_code, // optional — redeemed against the total, see step 2b below
     payment_method = 'carta',
     payment_intent_id,      // Stripe PaymentIntent ID (if card payment)
-    payment_reference,      // PayPal order id / Klarna order id (non-Stripe providers)
+    payment_reference,      // PayPal order id (non-Stripe providers)
   } = req.body;
 
   if (!nome || !cognome || !email || !indirizzo || !citta || !cap)
@@ -219,19 +219,6 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
       } catch (ppErr) {
         (req.log || console).error({ err: ppErr, ref: payment_reference }, 'PayPal verify error');
         return res.status(402).json({ error: 'Impossibile verificare il pagamento PayPal. Riprova.' });
-      }
-    } else if (payment_method === 'klarna') {
-      if (!providers.klarnaConfigured())
-        return res.status(503).json({ error: 'Klarna non disponibile al momento.' });
-      if (!payment_reference)
-        return res.status(402).json({ error: 'Dati di pagamento Klarna mancanti. Riprova.' });
-      try {
-        await providers.verifyKlarnaOrder(String(payment_reference), expectedCents);
-        paymentStatus = 'pagato';
-        paymentRef = String(payment_reference);
-      } catch (klErr) {
-        (req.log || console).error({ err: klErr, ref: payment_reference }, 'Klarna verify error');
-        return res.status(402).json({ error: 'Impossibile verificare il pagamento Klarna. Riprova.' });
       }
     }
 

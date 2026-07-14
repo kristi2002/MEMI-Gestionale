@@ -72,14 +72,33 @@ const { requireAdmin, requirePermission } = require('./middleware/auth');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ── Fail fast if critical secrets are missing ─────────────────
+// ── Fail fast if critical secrets are missing, placeholder, or weak ──
 // jwt.sign/verify throw at request time if these are undefined, which
 // turns every login into an opaque 500. Catch it at boot instead.
-const requiredSecrets = ['JWT_SECRET', 'JWT_ADMIN_SECRET'];
-const missingSecrets  = requiredSecrets.filter(k => !process.env[k]);
-if (missingSecrets.length) {
-  console.error(`❌  Missing required environment variables: ${missingSecrets.join(', ')}`);
-  console.error('    Set them in your .env / deployment config before starting.');
+//
+// Presence alone is not enough: docker-compose.yml ships placeholder defaults so the
+// stack boots with no setup. A presence-only check passes on those, and every customer
+// and admin JWT then gets signed with a secret that is public in this repo.
+const PLACEHOLDER_RE = /^(replace_me|changeme|your_|placeholder)/i;
+const MIN_SECRET_LEN = 32;
+
+const secretProblems = [];
+for (const key of ['JWT_SECRET', 'JWT_ADMIN_SECRET']) {
+  const val = process.env[key];
+  if (!val) secretProblems.push(`${key} is not set`);
+  else if (PLACEHOLDER_RE.test(val)) secretProblems.push(`${key} is still a placeholder value`);
+  else if (val.length < MIN_SECRET_LEN) secretProblems.push(`${key} is only ${val.length} chars (minimum ${MIN_SECRET_LEN})`);
+}
+// Identical secrets collapse the customer/admin trust boundary: a customer token would
+// verify as an admin token.
+if (process.env.JWT_SECRET && process.env.JWT_SECRET === process.env.JWT_ADMIN_SECRET) {
+  secretProblems.push('JWT_SECRET and JWT_ADMIN_SECRET are identical — a customer token would validate as an admin token');
+}
+if (secretProblems.length) {
+  console.error('❌  Refusing to start — JWT secret configuration is unsafe:');
+  for (const p of secretProblems) console.error(`      • ${p}`);
+  console.error('    Generate one:  openssl rand -hex 64');
+  console.error('    Set JWT_SECRET and JWT_ADMIN_SECRET to two DIFFERENT values in your deployment config.');
   process.exit(1);
 }
 
@@ -96,6 +115,17 @@ if (process.env.NODE_ENV === 'production') {
   }
   if (!process.env.SMTP_USER) {
     console.error('🔴  WARNING: SMTP_USER not set — all transactional emails (order confirmation, shipping, welcome, password reset) are silent no-ops.');
+  }
+  // Test keys accept card numbers and issue receipts, so a test-key deploy looks healthy
+  // from the outside while taking exactly zero real money.
+  if ((process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test_')) {
+    console.error('🔴  WARNING: STRIPE_SECRET_KEY is a TEST key — checkout cannot take real payments.');
+  }
+  if (process.env.DB_PASSWORD && (PLACEHOLDER_RE.test(process.env.DB_PASSWORD) || process.env.DB_PASSWORD.length < 12)) {
+    console.error('🔴  WARNING: DB_PASSWORD is weak or still a placeholder — rotate it (see docs/GO-LIVE-PLAN-2026-07.md).');
+  }
+  if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.length < 12) {
+    console.error('🔴  WARNING: ADMIN_PASSWORD is shorter than 12 chars — the admin panel is internet-facing.');
   }
 }
 

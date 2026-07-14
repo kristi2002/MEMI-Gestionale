@@ -23,6 +23,11 @@ services:
       - "3000:3000"
     environment:
       ALLOWED_ORIGINS: "http://localhost:8080,http://localhost:8081"
+      # Dev-only JWT secrets. The boot check rejects the placeholder defaults in
+      # docker-compose.yml, so local dev supplies its own here and still needs no .env.
+      # These are public — production sets its own in Coolify.
+      JWT_SECRET:       "local_dev_only_jwt_secret_0123456789abcdef0123456789abcdef"
+      JWT_ADMIN_SECRET: "local_dev_only_admin_jwt_secret_fedcba9876543210fedcba987654"
   ecommerce:
     ports:
       - "8080:80"

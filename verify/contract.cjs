@@ -110,7 +110,7 @@ ok(/stock >= \?/.test(orders) && /affectedRows === 0/.test(orders), 'checkout st
 ok(orders.includes('ensureInvoiceForOrder(pool, orderId)'),      'auto-invoice on paid checkout/admin order');
 ok(/payment_status === 'pagato'[\s\S]{0,200}ensureInvoiceForOrder/.test(orders), 'auto-invoice on pagato transition');
 ok(resiRt.includes("compensateOrder(conn, orderRow, 'refund')"), 'Stripe refund restocks goods');
-ok(/manual === true/.test(resiRt) && /if \(!stripe && !manual\)/.test(resiRt), 'manual refund path (PayPal/Klarna/bonifico)');
+ok(/manual === true/.test(resiRt) && /if \(!stripe && !manual\)/.test(resiRt), 'manual refund path (PayPal/bonifico)');
 ok(resiRt.includes('sendRefundNotification'),                    'refund notifies the customer by email');
 ok(/payment_status = 'pagato' WHERE id = \?", \[existing\.id\]/.test(payRt), 'webhook reconciles late payments to pagato');
 ok(comp.includes('reverseOrderPoints') && comp.includes('GREATEST(0, utilizzi - 1)'), 'compensation module reverses points + frees discount');

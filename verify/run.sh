@@ -62,7 +62,7 @@ NODE_PATH="$NP" node MEMI-Backend/test/compensation-logic.test.cjs || FAIL=1
 sec "7. Input-validation (zod) schema tests"
 NODE_PATH="$NP" node MEMI-Backend/test/validation.test.cjs || FAIL=1
 
-sec "7b. Go-live hardening (RBAC + PayPal/Klarna gating)"
+sec "7b. Go-live hardening (RBAC + PayPal gating)"
 NODE_PATH="$NP" node MEMI-Backend/test/hardening-golive.test.cjs || FAIL=1
 
 sec "8. File-integrity (anti-truncation) checks"

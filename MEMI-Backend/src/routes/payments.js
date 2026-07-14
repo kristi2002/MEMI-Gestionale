@@ -19,7 +19,7 @@ const router = require('express').Router();
 const { pool } = require('../db');
 const { ensureInvoiceForOrder } = require('../invoicing');
 const { validateBody, createIntentSchema } = require('../validation');
-const providers = require('../payment-providers');   // PayPal / Klarna scaffolding (config-gated)
+const providers = require('../payment-providers');   // PayPal scaffolding (config-gated)
 
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) return null;
@@ -66,7 +66,6 @@ router.get('/config', (req, res) => {
     providers: {
       stripe: Boolean(process.env.STRIPE_SECRET_KEY),
       paypal: providers.paypalConfigured(),
-      klarna: providers.klarnaConfigured(),
     },
     paypal: providers.paypalConfigured()
       ? { clientId: process.env.PAYPAL_CLIENT_ID, env: providers.paypalEnv() }
@@ -107,40 +106,9 @@ router.post('/paypal/capture', async (req, res) => {
   }
 });
 
-// ── Klarna (config-gated) ─────────────────────────────────────
-router.post('/klarna/create-session', validateBody(createIntentSchema), async (req, res) => {
-  if (!providers.klarnaConfigured())
-    return res.status(503).json({ error: 'Klarna non configurato sul server.' });
-  const { amount_cents } = req.body;
-  if (!amount_cents || typeof amount_cents !== 'number' || amount_cents < 50)
-    return res.status(400).json({ error: 'Importo non valido (minimo €0.50).' });
-  try {
-    const session = await providers.createKlarnaSession({ amountCents: amount_cents });
-    return res.json(session);   // { session_id, client_token }
-  } catch (err) {
-    (req.log || console).error({ err }, '[Klarna] create-session error');
-    return res.status(502).json({ error: 'Errore Klarna: ' + (err.message || 'sconosciuto') });
-  }
-});
-
-router.post('/klarna/create-order', async (req, res) => {
-  if (!providers.klarnaConfigured())
-    return res.status(503).json({ error: 'Klarna non configurato sul server.' });
-  const token = req.body && req.body.authorization_token;
-  const amount_cents = req.body && req.body.amount_cents;
-  if (!token || !amount_cents) return res.status(400).json({ error: 'Dati Klarna mancanti' });
-  try {
-    const order = await providers.createKlarnaOrder(String(token), { amountCents: Number(amount_cents) });
-    return res.json(order);   // { order_id, amountCents, currency }
-  } catch (err) {
-    (req.log || console).error({ err }, '[Klarna] create-order error');
-    return res.status(502).json({ error: 'Errore Klarna: ' + (err.message || 'sconosciuto') });
-  }
-});
-
 /* ── Provider webhooks (config-gated stubs) ──
  * Mounted under this JSON-parsed router (unlike the Stripe webhook, which needs the raw body).
- * PayPal/Klarna signature verification against the client's live account is a TODO once
+ * PayPal signature verification against the client's live account is a TODO once
  * credentials exist; until then these reconcile a known in_attesa order to pagato only when the
  * matching provider transaction reference is present, and otherwise just acknowledge (200) so
  * the provider doesn't retry. They never create orders. */
@@ -169,14 +137,6 @@ router.post('/paypal/webhook', async (req, res) => {
   if (ev.event_type === 'CHECKOUT.ORDER.APPROVED' || ev.event_type === 'PAYMENT.CAPTURE.COMPLETED') {
     if (ref) return reconcileByReference(String(ref), res);
   }
-  return res.json({ received: true });
-});
-
-router.post('/klarna/webhook', async (req, res) => {
-  if (!providers.klarnaConfigured()) return res.status(503).json({ error: 'Klarna non configurato.' });
-  // TODO(klarna-live): confirm the push-notification payload shape for the client's region.
-  const ref = req.body && (req.body.order_id || req.body.klarna_order_id);
-  if (ref) return reconcileByReference(String(ref), res);
   return res.json({ received: true });
 });
 

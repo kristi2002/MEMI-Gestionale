@@ -1,15 +1,13 @@
 'use strict';
 
 /**
- * Alternative payment providers — PayPal & Klarna.
+ * Alternative payment provider — PayPal.
  * ────────────────────────────────────────────────
  * SCAFFOLDING (added 2026-07-10). Both providers are **config-gated exactly like Stripe**:
  * with no credentials set every entry point reports "not configured" and the routes/checkout
  * return 503 — nothing breaks, the UI simply hides the option. The moment the client sets the
  * env vars below, the flow is live. The PayPal path implements the real Orders v2 REST calls
- * (OAuth → create-order → capture → verify) so it works as soon as credentials exist; the
- * Klarna path implements the Payments-API session/authorize shape and is marked where a live
- * account's region/flow must be confirmed (`// TODO(klarna-live)`).
+ * (OAuth → create-order → capture → verify) so it works as soon as credentials exist.
  *
  * Nothing here can be end-to-end tested without the client's sandbox/live merchant accounts,
  * so it must NOT silently mark orders paid: verification failures throw and the order handler
@@ -17,15 +15,11 @@
  *
  * Env:
  *   PAYPAL_CLIENT_ID, PAYPAL_SECRET, PAYPAL_ENV=sandbox|live   (PayPal Orders v2)
- *   KLARNA_USERNAME, KLARNA_PASSWORD, KLARNA_REGION=eu|na|oc, KLARNA_ENV=playground|live
  */
 
 // ── config detection ─────────────────────────────────────────
 function paypalConfigured() {
   return Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET);
-}
-function klarnaConfigured() {
-  return Boolean(process.env.KLARNA_USERNAME && process.env.KLARNA_PASSWORD);
 }
 function paypalEnv() {
   return process.env.PAYPAL_ENV === 'live' ? 'live' : 'sandbox';
@@ -33,15 +27,6 @@ function paypalEnv() {
 function paypalBase() {
   return paypalEnv() === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
 }
-function klarnaBase() {
-  const live = process.env.KLARNA_ENV === 'live';
-  const region = (process.env.KLARNA_REGION || 'eu').toLowerCase();
-  // EU has no region prefix; NA/OC do. Playground mirrors the same host shape.
-  const host = live ? 'api' : 'api.playground';
-  const prefix = region === 'na' ? '-na' : region === 'oc' ? '-oc' : '';
-  return `https://${host}${prefix}.klarna.com`;
-}
-
 // Small fetch helper that throws a useful error on non-2xx.
 async function httpJson(url, opts) {
   const res = await fetch(url, opts);
@@ -151,70 +136,7 @@ async function verifyPaypalOrder(orderId, expectedCents) {
   return { ok: true, amountCents, currency };
 }
 
-// ── Klarna (Payments API) — structural scaffold ──────────────
-function klarnaAuthHeader() {
-  const creds = Buffer.from(`${process.env.KLARNA_USERNAME}:${process.env.KLARNA_PASSWORD}`).toString('base64');
-  return `Basic ${creds}`;
-}
-
-/**
- * Create a Klarna payment session for the cart. Returns { session_id, client_token }.
- * The storefront then mounts Klarna.js with the client_token; on buyer authorization it
- * receives an `authorization_token` which it sends to POST /klarna/create-order below.
- */
-async function createKlarnaSession({ amountCents, orderLines, locale = 'it-IT', country = 'IT', currency = 'EUR' }) {
-  const body = await httpJson(`${klarnaBase()}/payments/v1/sessions`, {
-    method: 'POST',
-    headers: { Authorization: klarnaAuthHeader(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      purchase_country: country,
-      purchase_currency: currency,
-      locale,
-      order_amount: Math.round(amountCents),
-      order_lines: orderLines || [{
-        name: 'Ordine MEMI', quantity: 1,
-        unit_price: Math.round(amountCents), total_amount: Math.round(amountCents),
-      }],
-    }),
-  });
-  return { session_id: body.session_id, client_token: body.client_token };
-}
-
-/**
- * Turn a buyer-authorized Klarna session into an order. Returns { order_id, amountCents, currency }.
- * TODO(klarna-live): confirm the merchant reference/urls and Order-Management verification flow
- * against the client's live account before relying on this to mark orders paid.
- */
-async function createKlarnaOrder(authorizationToken, { amountCents, orderLines, currency = 'EUR' }) {
-  const body = await httpJson(`${klarnaBase()}/payments/v1/authorizations/${encodeURIComponent(authorizationToken)}/order`, {
-    method: 'POST',
-    headers: { Authorization: klarnaAuthHeader(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      purchase_currency: currency,
-      order_amount: Math.round(amountCents),
-      order_lines: orderLines || [{
-        name: 'Ordine MEMI', quantity: 1,
-        unit_price: Math.round(amountCents), total_amount: Math.round(amountCents),
-      }],
-    }),
-  });
-  return { order_id: body.order_id, amountCents: Math.round(amountCents), currency };
-}
-
-/** Verify a Klarna order amount via Order Management. Throws on mismatch. */
-async function verifyKlarnaOrder(orderId, expectedCents) {
-  const info = await httpJson(`${klarnaBase()}/ordermanagement/v1/orders/${encodeURIComponent(orderId)}`, {
-    headers: { Authorization: klarnaAuthHeader() },
-  });
-  const amountCents = Number(info.order_amount);
-  if (info.purchase_currency !== 'EUR') throw new Error(`Klarna currency mismatch (${info.purchase_currency})`);
-  if (amountCents !== Math.round(expectedCents))
-    throw new Error(`Klarna amount mismatch (got ${amountCents}, expected ${Math.round(expectedCents)})`);
-  return { ok: true, amountCents, currency: info.purchase_currency };
-}
-
 module.exports = {
-  paypalConfigured, klarnaConfigured, paypalEnv,
+  paypalConfigured, paypalEnv,
   createPaypalOrder, capturePaypalOrder, inspectPaypalOrder, verifyPaypalOrder,
-  createKlarnaSession, createKlarnaOrder, verifyKlarnaOrder,
 };

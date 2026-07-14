@@ -98,7 +98,7 @@ Use this for `JWT_SECRET` and again (a *different* value) for `JWT_ADMIN_SECRET`
 > Point the Stripe dashboard webhook at `https://api.memi.testdemo.it/api/payments/webhook`
 > (subscribe to at least `payment_intent.succeeded` and `charge.dispute.created`).
 
-## PayPal & Klarna (alternative payments — scaffolding)
+## PayPal (alternative payments — scaffolding)
 
 Config-gated exactly like Stripe: with credentials unset, the checkout hides the option and
 every provider endpoint returns **503** — nothing breaks. Set these once the client provides
@@ -109,14 +109,13 @@ merchant accounts (`src/payment-providers.js`).
 | `PAYPAL_CLIENT_ID` | Optional | *unset* | PayPal REST client id (also sent to the browser for the PayPal Buttons SDK). | Unset → PayPal hidden at checkout; `/api/payments/paypal/*` → 503. |
 | `PAYPAL_SECRET` | Optional | *unset* | PayPal REST secret (server-only). | Unset → PayPal disabled. |
 | `PAYPAL_ENV` | Optional | `sandbox` | `sandbox` or `live` — selects the PayPal API host. | Wrong value falls back to sandbox. |
-| `KLARNA_USERNAME` | Optional | *unset* | Klarna Payments API username. | Unset → Klarna hidden; `/api/payments/klarna/*` → 503. |
-| `KLARNA_PASSWORD` | Optional | *unset* | Klarna Payments API password (server-only). | Unset → Klarna disabled. |
-| `KLARNA_REGION` | Optional | `eu` | `eu` / `na` / `oc` — Klarna API region host. | Wrong region → API calls fail (502). |
-| `KLARNA_ENV` | Optional | `playground` | `playground` or `live`. | Wrong value → wrong host. |
 
-> The order handler re-verifies every PayPal/Klarna transaction amount server-side before
-> marking `pagato` (never trusts the client). Klarna's frontend widget mount is a documented
-> `TODO(klarna-live)` — the server side is complete. See `docs/SECURITY.md`.
+> The order handler re-verifies every PayPal transaction amount server-side before
+> marking `pagato` (never trusts the client). See `docs/SECURITY.md`.
+>
+> **Klarna was removed (Luglio 2026).** No `KLARNA_*` variables are read any more — delete them
+> from Coolify. `orders.payment_method` keeps `klarna` in its ENUM so historical orders stay
+> readable; nothing new can be created with it.
 
 ## SMTP / Email
 

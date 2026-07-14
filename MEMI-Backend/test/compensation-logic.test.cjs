@@ -344,7 +344,7 @@ const ADMIN = { admin: { id: 1, email: 'admin@memi.it' } };
   assert.strictEqual(db.orders[5].payment_status, 'rimborsato', 'T7 order rimborsato');
   assert.strictEqual(db.stock['p2|s'], 2, 'T7 goods restocked 1+1');
   assert.strictEqual(stripeRefunds.length, 1, 'T7 NO Stripe call for manual refund');
-  n++; console.log('  ✓ T7 manual refund works without Stripe (PayPal/Klarna/bonifico)');
+  n++; console.log('  ✓ T7 manual refund works without Stripe (PayPal/bonifico)');
 
   /* T8 — PUT stato=rimborsato (legacy path) also compensates, once */
   res = mockRes();

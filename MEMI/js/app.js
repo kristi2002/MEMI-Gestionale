@@ -1789,7 +1789,7 @@ $(function(){
     openModal('Guida rapida', [
       '<div style="font-size:13px;line-height:1.7">',
       '<p><strong>Flusso ordini</strong> — Ordini → apri l\'ordine → <em>Spedisci</em> (crea la spedizione e invia il tracking) → lo stato passa a Spedito. Annullare un ordine ripristina stock, gift card, sconto e punti.</p>',
-      '<p><strong>Resi</strong> — Resi → apri il reso → approva → <em>Rimborsa via Stripe</em> (o <em>Rimborso manuale</em> per PayPal/Klarna/bonifico). Il rimborso rimette i capi a stock e avvisa il cliente.</p>',
+      '<p><strong>Resi</strong> — Resi → apri il reso → approva → <em>Rimborsa via Stripe</em> (o <em>Rimborso manuale</em> per PayPal/bonifico). Il rimborso rimette i capi a stock e avvisa il cliente.</p>',
       '<p><strong>Fatture</strong> — vengono emesse automaticamente quando un ordine risulta pagato (disattivabile con l\'impostazione <code>auto_invoice</code>).</p>',
       '<p><strong>Catalogo</strong> — Prodotti → nuovo prodotto / Importa CSV; le foto si caricano dal dettaglio prodotto o in blocco (ZIP).</p>',
       '<p><strong>Tracking pubblico</strong> — i clienti seguono l\'ordine su <code>/order-tracking</code> con numero ordine + email.</p>',
@@ -3380,7 +3380,7 @@ $(function(){
     var amount = input ? parseFloat(input) : total;
     if (!(amount > 0)) amount = total;
     var msg = manual
-      ? 'Confermi il RIMBORSO MANUALE di EUR '+amount.toFixed(2)+'?\n\nUsalo solo se hai già restituito l\'importo al cliente (PayPal, Klarna, bonifico). Il reso viene chiuso, lo stock ripristinato e il cliente avvisato via email.'
+      ? 'Confermi il RIMBORSO MANUALE di EUR '+amount.toFixed(2)+'?\n\nUsalo solo se hai già restituito l\'importo al cliente (PayPal, bonifico). Il reso viene chiuso, lo stock ripristinato e il cliente avvisato via email.'
       : 'Emettere un rimborso Stripe di EUR '+amount.toFixed(2)+'?\n\nLo stock viene ripristinato automaticamente. Operazione irreversibile.';
     if (!confirm(msg)) return;
     var $btn=$(this);

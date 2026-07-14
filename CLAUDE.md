@@ -44,8 +44,13 @@ E-commerce platform, three apps in one repo, Italian-language product/UI.
 - Admin token in localStorage as `memi_admin_token`.
 
 ## Env behavior — local dev needs ZERO secrets
-- Missing `JWT_SECRET` / `JWT_ADMIN_SECRET` → backend **fails fast on boot** (by design).
-  Docker compose supplies dev defaults, so it boots fine locally.
+- `JWT_SECRET` / `JWT_ADMIN_SECRET` are validated at boot: **missing, placeholder
+  (`replace_me…`), shorter than 32 chars, or identical to each other → the backend refuses to
+  start** (identical secrets would let a customer token validate as an admin token).
+  `docker-compose.local.yml` supplies dev-only values, so local dev still needs ZERO secrets —
+  but `docker-compose.yml`'s placeholder defaults alone will NOT boot. That's deliberate: a
+  deploy that forgets to set real secrets now fails loudly instead of silently signing every
+  customer and admin token with a secret that is public in this repo.
 - Missing `STRIPE_SECRET_KEY` → `/api/payments/create-intent` returns **503** (no crash).
 - Missing `SMTP_USER` → all emails are **silent no-ops** (never throw).
 So Stripe/SMTP can stay unset for most work; don't add fake keys to make them "work".
