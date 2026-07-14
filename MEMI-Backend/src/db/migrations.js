@@ -295,6 +295,22 @@ const STATEMENTS = [
      UNIQUE KEY uq_cart_token (token),
      KEY idx_cart_status (status, updated_at)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Lifecycle emails idempotency ledger (Marketing · Email automatiche) ─────
+  //  One row per (campaign type, period, recipient). The UNIQUE key is the
+  //  "claim" that makes birthday / win-back / points / season sends exactly-once
+  //  per period, even across restarts or a brief two-instance overlap.
+  `CREATE TABLE IF NOT EXISTS email_events (
+     id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+     email       VARCHAR(255) NOT NULL,
+     customer_id INT NULL,
+     type        VARCHAR(40)  NOT NULL,
+     dedup_key   VARCHAR(120) NOT NULL,
+     detail      VARCHAR(255) NULL,
+     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     UNIQUE KEY uq_email_event (type, dedup_key, email),
+     KEY idx_email_events_type (type, created_at)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');
@@ -462,6 +478,8 @@ async function runMigrations(pool) {
     await ensureColumn(pool, 'customers', 'marketing_consent',    'marketing_consent TINYINT(1) NOT NULL DEFAULT 0');
     await ensureColumn(pool, 'customers', 'marketing_consent_at', 'marketing_consent_at DATETIME NULL');
     await ensureColumn(pool, 'orders',    'privacy_consent_at',   'privacy_consent_at DATETIME NULL');
+    // ── Lifecycle emails: optional date of birth powers the birthday campaign ──
+    await ensureColumn(pool, 'customers', 'birthday', 'birthday DATE NULL');
     // ── Newsletter: richer per-subscriber settings + link to a customer ──
     await ensureColumn(pool, 'newsletter_subscribers', 'customer_id', 'customer_id INT NULL');
     await ensureColumn(pool, 'newsletter_subscribers', 'frequenza',   "frequenza VARCHAR(20) NULL");

@@ -59,6 +59,9 @@ NODE_PATH="$NP" node MEMI-Backend/test/giftcard-logic.test.cjs || FAIL=1
 sec "6b. Cancel/refund compensation simulation"
 NODE_PATH="$NP" node MEMI-Backend/test/compensation-logic.test.cjs || FAIL=1
 
+sec "6c. Lifecycle marketing-email simulation"
+NODE_PATH="$NP" node MEMI-Backend/test/lifecycle-logic.test.cjs || FAIL=1
+
 sec "7. Input-validation (zod) schema tests"
 NODE_PATH="$NP" node MEMI-Backend/test/validation.test.cjs || FAIL=1
 

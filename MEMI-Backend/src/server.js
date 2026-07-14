@@ -58,6 +58,7 @@ const transfersRoutes     = require('./routes/transfers');
 const popupsRoutes        = require('./routes/popups');
 const analyticsTrackRoutes = require('./routes/analytics-track');
 const automationsRoutes   = require('./routes/automations');
+const lifecycleRoutes     = require('./routes/lifecycle');
 const chatRoutes          = require('./routes/chat');
 const chatPublicRoutes    = require('./routes/chat-public');
 const feedRoutes          = require('./routes/feed');
@@ -290,6 +291,7 @@ app.use('/api/admin/popups',      requireAdmin, requirePermission('popups'), pop
 app.use('/api/popups',            popupsRoutes);   // public /published for storefront
 app.use('/api',                   analyticsTrackRoutes);   // POST /api/track (public) + GET /api/admin/liveview (gated internally)
 app.use('/api/admin/automations', requireAdmin, requirePermission('automations'), automationsRoutes);
+app.use('/api/admin/lifecycle',   requireAdmin, requirePermission('marketing'), lifecycleRoutes);   // automated lifecycle/marketing emails
 app.use('/api/admin/chat',        requireAdmin, requirePermission('chat'), chatRoutes);
 app.use('/api/chat',              chatPublicRoutes);   // public storefront widget
 app.use('/api/feed',              feedRoutes);         // public product feed (Meta/Google)
@@ -336,6 +338,14 @@ async function connectWithRetry(maxAttempts = 30, delayMs = 2000) {
       await runMigrations(pool);
     } catch (mErr) {
       console.error('⚠️  Migrations failed (continuing):', mErr.message);
+    }
+    // ── Lifecycle email scheduler ──────────────────────────────
+    // In-process daily runner for birthday / win-back / points / anniversary emails.
+    // No-op when SMTP is unset or DISABLE_EMAIL_SCHEDULER=1 (see src/scheduler.js).
+    try {
+      require('./scheduler').startScheduler(pool);
+    } catch (sErr) {
+      console.error('⚠️  Lifecycle scheduler not started:', sErr.message);
     }
     const server = app.listen(PORT, () => {
       console.log(`🚀  MEMI API running on port ${PORT}`);

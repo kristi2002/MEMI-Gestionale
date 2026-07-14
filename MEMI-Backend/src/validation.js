@@ -28,6 +28,12 @@ const registerSchema = z.object({
   // GDPR consents (checkboxes in the auth drawer); recorded with timestamps on customers
   privacy_consent:   z.coerce.boolean().optional(),
   marketing_consent: z.coerce.boolean().optional(),
+  // Optional date of birth (YYYY-MM-DD) — powers the automated birthday email.
+  // Empty string from a blank form field is treated as "not provided".
+  birthday: z.preprocess(
+    (v) => (typeof v === 'string' && v.trim() === '' ? undefined : v),
+    z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data di nascita non valida').optional().nullable()
+  ),
 });
 
 /* ── POST /api/auth/login ── */

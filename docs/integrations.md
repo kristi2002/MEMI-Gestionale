@@ -31,7 +31,8 @@ The e-commerce site (`Memi Abbigliamento/`) is HTML/CSS/JS served by nginx. **Th
 | My orders | `GET /api/orders/my` | account.html |
 | Password reset request | `POST /api/auth/forgot-password` | reset-password.html (step 1) |
 | Password reset submit | `POST /api/auth/reset-password` | reset-password.html (step 2) |
-| Newsletter subscribe | `POST /api/newsletter/subscribe` | shop.html footer form (+ any page with newsletter form) |
+| Newsletter subscribe | `POST /api/newsletter/subscribe` | shop.html footer form (+ any page with newsletter form) — sends a confirmation/welcome email |
+| Register (with birthday) | `POST /api/auth/register` | app.js auth drawer (optional `birthday` → powers the birthday campaign) |
 | Validate discount | `POST /api/orders/validate-discount` | checkout.html |
 | **Create PaymentIntent** | `POST /api/payments/create-intent` | checkout.html (Stripe flow, step 1) |
 | Place order | `POST /api/orders` | checkout.html (after Stripe confirms, step 2) |
@@ -258,3 +259,29 @@ ordini non-Stripe; conferme esplicite per annulla/elimina ordine; `AdminAPI.resi
 **Test:** `MEMI-Backend/test/compensation-logic.test.cjs` (10 sim con DB mock stateful) — in
 `verify/run.sh` (sez. 6b). Smoke test live: sezione `[8] Order lifecycle` (annulla→restock,
 409 su riattivazione, rimborso manuale→restock, fattura automatica, no doppio ripristino).
+
+## Lifecycle / marketing emails (automatiche) — Luglio 2026
+
+Motore in `src/lifecycle.js`, scheduler in-process in `src/scheduler.js` (no dipendenze cron;
+tick orario, batch giornaliero a `LIFECYCLE_SEND_HOUR` locale, default 09:00; inattivo senza
+SMTP o con `DISABLE_EMAIL_SCHEDULER=1`). Ogni invio è **GDPR-gated** (`customers.marketing_consent=1`),
+**idempotente** (claim in `email_events (type, dedup_key, email)` prima dell'invio → nessun doppio
+invio anche a riavvii/istanze multiple) e **best-effort** (no-op silenzioso senza SMTP).
+
+Campagne schedulate: `birthday` (codice % personale), `winback` (cliente dormiente da
+`lifecycle_winback_days`), `points_reminder` (punti fedeltà riscattabili + inattivo), `anniversary`
+(anniversario registrazione). Broadcast manuale: `new_season`. I codici sconto personali sono
+creati in `discount_codes` (monouso, con scadenza) DOPO il claim (niente codici orfani sui duplicati).
+
+| Route | Comportamento |
+|---|---|
+| `GET  /api/admin/lifecycle` | Catalogo campagne, impostazioni `lifecycle_*`, statistiche ultimi 30gg |
+| `PUT  /api/admin/lifecycle/settings` | Aggiorna i tunable (`lifecycle_enabled`, `_birthday_pct`, `_winback_days`, …) |
+| `POST /api/admin/lifecycle/run` | Esegue subito il batch giornaliero (`{dryRun}`) |
+| `POST /api/admin/lifecycle/:type/preview` | Dry-run di una campagna (conta i destinatari, non invia) |
+| `POST /api/admin/lifecycle/season` | Broadcast nuova collezione `{season, headline, message, cta_url, cta_label, audience}` |
+
+Tutte sotto `requireAdmin, requirePermission('marketing')`. Dati: `email_events` (ledger idempotenza)
++ colonna `customers.birthday DATE NULL` (raccolta al registration, opzionale). Tunable in
+`store_settings` (`lifecycle_*`). **Test:** `MEMI-Backend/test/lifecycle-logic.test.cjs`
+(targeting/consenso/idempotenza/dry-run/broadcast) — `verify/run.sh` sez. 6c.

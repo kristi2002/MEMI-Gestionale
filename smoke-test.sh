@@ -190,6 +190,22 @@ else
   ko "skipped — no admin token"
 fi
 
+# 8b — Lifecycle marketing emails (GDPR-gated, idempotent, dry-runnable)
+echo
+echo "[8b] Lifecycle emails"
+C="$(code "$BASE/api/admin/lifecycle")"
+[ "$C" = "401" ] && ok "GET /api/admin/lifecycle without token -> 401" || ko "lifecycle unauth -> HTTP $C (expected 401)"
+if [ -n "${ADMIN_TOKEN:-}" ]; then
+  C="$(code -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/lifecycle")"
+  [ "$C" = "200" ] && ok "GET /api/admin/lifecycle -> 200 (catalog+settings)" || ko "lifecycle get -> HTTP $C"
+  C="$(code -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{"dryRun":true}' "$BASE/api/admin/lifecycle/run")"
+  [ "$C" = "200" ] && ok "POST /api/admin/lifecycle/run {dryRun} -> 200" || ko "lifecycle dry-run -> HTTP $C"
+  C="$(code -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' "$BASE/api/admin/lifecycle/birthday/preview")"
+  [ "$C" = "200" ] && ok "POST /api/admin/lifecycle/birthday/preview -> 200" || ko "birthday preview -> HTTP $C"
+  C="$(code -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}' "$BASE/api/admin/lifecycle/season")"
+  [ "$C" = "400" ] && ok "POST /api/admin/lifecycle/season (no season) -> 400" || ko "season validation -> HTTP $C (expected 400)"
+fi
+
 # 9 — Colors (dynamic palette + product color_hex join + AI suggest)
 echo
 echo "[9] Colors (dynamic palette)"

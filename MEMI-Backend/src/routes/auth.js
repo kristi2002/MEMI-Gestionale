@@ -28,7 +28,7 @@ function signToken(payload) {
 
 /* ── POST /api/auth/register ── */
 router.post('/register', validateBody(registerSchema), async (req, res) => {
-  const { nome, email, password, privacy_consent, marketing_consent } = req.body;
+  const { nome, email, password, privacy_consent, marketing_consent, birthday } = req.body;
   if (!nome || !email || !password)
     return res.status(400).json({ error: 'Nome, email e password obbligatori' });
   if (password.length < 8)
@@ -38,12 +38,13 @@ router.post('/register', validateBody(registerSchema), async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     await pool.execute(
       `INSERT INTO customers
-         (nome, email, password_hash, privacy_accepted_at, marketing_consent, marketing_consent_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+         (nome, email, password_hash, privacy_accepted_at, marketing_consent, marketing_consent_at, birthday)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [nome.trim(), email.toLowerCase().trim(), hash,
        privacy_consent ? new Date() : null,
        marketing_consent ? 1 : 0,
-       marketing_consent ? new Date() : null]
+       marketing_consent ? new Date() : null,
+       birthday || null]
     );
 
     const [[user]] = await pool.execute(
@@ -111,7 +112,7 @@ router.get('/me', requireCustomer, async (req, res) => {
   try {
     const [[user]] = await pool.execute(
       `SELECT id, email, nome, cognome, telefono, indirizzo, citta, cap, paese,
-              wishlist, sizes, preferences, lang,
+              wishlist, sizes, preferences, lang, birthday,
               total_orders, total_spent, COALESCE(points,0) AS points, created_at
        FROM customers WHERE id = ?`,
       [req.customer.id]
@@ -186,8 +187,11 @@ router.post('/loyalty/redeem', requireCustomer, async (req, res) => {
 
 /* ── PUT /api/auth/me ── */
 router.put('/me', requireCustomer, async (req, res) => {
-  const { nome, cognome, telefono, indirizzo, citta, cap, paese, password, email, lang } = req.body;
+  const { nome, cognome, telefono, indirizzo, citta, cap, paese, password, email, lang, birthday } = req.body;
   const { wishlist, sizes, preferences } = req.body;
+  // Validate optional date of birth up front so a malformed value is a 400, never a 500.
+  if (birthday !== undefined && birthday !== null && birthday !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(birthday))
+    return res.status(400).json({ error: 'Data di nascita non valida (usa YYYY-MM-DD)' });
   // Reject explicitly non-string values up front (e.g. email:null) → 400, never a 500
   for (const [k, v] of Object.entries({ nome, cognome, telefono, indirizzo, citta, cap, paese, password, email, lang })) {
     if (v !== undefined && v !== null && typeof v !== 'string')
@@ -214,6 +218,8 @@ router.put('/me', requireCustomer, async (req, res) => {
     add('cap',       cap);
     add('paese',     paese);
     add('lang',      lang);
+    // birthday: '' clears it (add() maps '' → NULL); a valid YYYY-MM-DD sets it.
+    if (birthday !== undefined) { fields.push('birthday = ?'); vals.push(birthday === '' || birthday === null ? null : birthday); }
     addJson('wishlist',    wishlist);
     addJson('sizes',       sizes);
     addJson('preferences', preferences);

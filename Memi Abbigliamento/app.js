@@ -136,7 +136,7 @@
               '<p class="mega-col-title">Accessori</p>' +
               '<a href="/shop?categoria=accessori" class="mega-link">Tutti gli accessori</a>' +
               '<a href="/shop?categoria=borse" class="mega-link">Borse</a>' +
-              '<a href="/shop?categoria=gioielli" class="mega-link">Gioielli</a>' +
+              '<a href="/shop?categoria=gioielli" class="mega-link">Gioielli</a>' +
             '</div>' +
             '<div class="mega-col">' +
               '<p class="mega-col-title">Collezioni</p>' +
@@ -861,6 +861,10 @@
                     </button>
                   </div>
                   <span class="auth-field-hint" id="authRegPwdHint"></span>
+                </div>
+                <div class="auth-field" id="authRegBirthdayField">
+                  <label for="authRegBirthday">Data di nascita <span style="opacity:.6;font-weight:400;">(facoltativa — per il regalo di compleanno 🎁)</span></label>
+                  <input type="date" id="authRegBirthday" autocomplete="bday" max="2020-12-31" />
                 </div>
                 <div class="auth-consent" style="margin:.25rem 0 .75rem;">
                   <label style="display:flex;gap:.5rem;align-items:flex-start;font-size:.72rem;line-height:1.45;cursor:pointer;margin-bottom:.5rem;">
@@ -1907,10 +1911,10 @@
     }
   }
 
-  async function authRegister(name, email, password, consents) {
+  async function authRegister(name, email, password, consents, birthday) {
     if (!window.MemiAPI) return { ok: false, msg: 'API non disponibile' };
     try {
-      var data = await window.MemiAPI.auth.register(name, email, password, consents);
+      var data = await window.MemiAPI.auth.register(name, email, password, consents, birthday);
       _saveSession(data.user);
       return { ok: true, user: data.user };
     } catch(err) {
@@ -2137,10 +2141,13 @@
       /* Loading state */
       if (btn) btn.classList.add('is-loading');
 
+      var bdayEl = document.getElementById('authRegBirthday');
+      var birthday = (bdayEl && bdayEl.value && /^\d{4}-\d{2}-\d{2}$/.test(bdayEl.value)) ? bdayEl.value : null;
+
       authRegister(name, email, pwd, {
         privacy_consent:   true,
         marketing_consent: !!(marketingEl && marketingEl.checked),
-      }).then(function(res) {
+      }, birthday).then(function(res) {
         if (btn) btn.classList.remove('is-loading');
         if (!res.ok) { errEl.textContent = res.msg; return; }
         closeAuthDrawer();
