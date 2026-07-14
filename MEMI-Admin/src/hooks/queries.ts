@@ -175,6 +175,11 @@ export const useFinance = () => useQuery({ queryKey: ['finance'], queryFn: () =>
 export const useTaxStats = () => useQuery({ queryKey: ['tax-stats'], queryFn: () => api.dashboard.taxStats() });
 export const useIntegrations = () => useQuery({ queryKey: ['integrations'], queryFn: () => api.settings.integrations() });
 export const useLiveview = () => useQuery({ queryKey: ['liveview'], queryFn: () => api.dashboard.liveview(), refetchInterval: 15_000 });
+export const useReports = () => useQuery({ queryKey: ['reports'], queryFn: () => api.reports.get() });
+export const useOnlineStore = () => useQuery({ queryKey: ['online-store'], queryFn: () => api.onlineStore.get() });
+export const useSocial = () => useQuery({ queryKey: ['social'], queryFn: () => api.social.get() });
+export const usePos = () => useQuery({ queryKey: ['pos'], queryFn: () => api.pos.get() });
+export const useApps = () => useQuery({ queryKey: ['apps'], queryFn: () => api.apps.get() });
 
 /* Flatten helpers for the infinite pages. */
 export const flattenOrders = (pages?: { orders: OrderRow[] }[]): OrderRow[] =>

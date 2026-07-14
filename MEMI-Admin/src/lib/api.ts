@@ -116,6 +116,11 @@ import type {
   FinanceData,
   TaxStats,
   IntegrationsResponse,
+  ReportsData,
+  OnlineStoreData,
+  SocialData,
+  PosData,
+  AppsData,
 } from '@/types';
 
 export const api = {
@@ -304,4 +309,9 @@ export const api = {
     },
     deleteMedia: (url: string) => del<{ removed: number; media: import('@/types').MediaItem[] }>('/admin/settings/media', { url }),
   },
+  reports: { get: () => get<ReportsData>('/admin/reports') },
+  onlineStore: { get: () => get<OnlineStoreData>('/admin/online-store') },
+  social: { get: () => get<SocialData>('/admin/social') },
+  pos: { get: () => get<PosData>('/admin/pos') },
+  apps: { get: () => get<AppsData>('/admin/apps') },
 };

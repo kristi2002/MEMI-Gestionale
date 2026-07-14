@@ -125,6 +125,11 @@ dashboard.html loads
 | `orders.ship()` | `PUT /api/orders/admin/:id/ship` |
 | `orders.sendTracking()` | `POST /api/orders/admin/:id/send-tracking` |
 | `dashboard.catalogKpis()` | `GET /api/admin/dashboard/catalog-kpis` |
+| `reports.get()` | `GET /api/admin/reports` |
+| `onlineStore.get()` | `GET /api/admin/online-store` |
+| `social.get()` | `GET /api/admin/social` |
+| `pos.get()` | `GET /api/admin/pos` |
+| `apps.get()` | `GET /api/admin/apps` |
 | `auth.changePassword()` | `PUT /api/admin/auth/password` |
 | (pagina `seed-reviews.html`) | `POST /api/reviews/admin/seed-demo` (esegue `db/seed-reviews.sql`: 20 recensioni demo pubblicate, idempotente) |
 | `customers.list()` | `GET /api/admin/customers` |

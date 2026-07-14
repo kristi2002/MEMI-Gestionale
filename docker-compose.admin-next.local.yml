@@ -1,8 +1,9 @@
-# Local testing overlay for the React admin — exposes it on host port 8082
-# (legacy admin stays on 8081). Traefik labels are ignored locally.
+# Local testing overlay for the LEGACY admin rollback — exposes the old jQuery
+# admin on host port 8082 (the React admin, now the primary `admin` service,
+# stays on 8081 via docker-compose.local.yml).
 #   docker compose -f docker-compose.yml -f docker-compose.local.yml \
-#     -f docker-compose.admin-next.yml -f docker-compose.admin-next.local.yml up --build admin-next
+#     -f docker-compose.admin-next.yml -f docker-compose.admin-next.local.yml up --build admin-legacy
 services:
-  admin-next:
+  admin-legacy:
     ports:
       - "8082:80"

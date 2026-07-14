@@ -93,7 +93,7 @@ export const NAV: NavGroup[] = [
     adminOnly: true,
     children: [
       { label: 'Panoramica', to: '/analytics', adminOnly: true , ready: true },
-      { label: 'Report', to: '/reports', adminOnly: true },
+      { label: 'Report', to: '/reports', adminOnly: true , ready: true },
       { label: 'Live view', to: '/liveview', adminOnly: true , ready: true },
     ],
   },
@@ -132,9 +132,9 @@ export const NAV: NavGroup[] = [
     label: 'Canali',
     icon: Store,
     children: [
-      { label: 'Negozio online', to: '/online-store' },
-      { label: 'Social & Marketplace', to: '/social' },
-      { label: 'Punto vendita', to: '/pos' },
+      { label: 'Negozio online', to: '/online-store' , ready: true },
+      { label: 'Social & Marketplace', to: '/social' , ready: true },
+      { label: 'Punto vendita', to: '/pos' , ready: true },
     ],
   },
   {
@@ -150,7 +150,7 @@ export const NAV: NavGroup[] = [
 
 export const NAV_TOOLS: NavGroup[] = [
   { label: 'Integrazioni', icon: Plug, to: '/integrations', adminOnly: true , ready: true },
-  { label: 'App esterne', icon: AppWindow, to: '/apps' },
+  { label: 'App esterne', icon: AppWindow, to: '/apps' , ready: true },
   { label: 'Staff & Permessi', icon: UserCog, to: '/staff', adminOnly: true, ready: true },
   { label: 'Registro attività', icon: History, to: '/audit-log', adminOnly: true, ready: true },
   { label: 'Impostazioni', icon: Settings, to: '/settings', adminOnly: true , ready: true },
