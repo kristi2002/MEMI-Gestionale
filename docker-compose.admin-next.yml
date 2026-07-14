@@ -1,0 +1,32 @@
+# ────────────────────────────────────────────────────────────────────
+# LEGACY ADMIN — rollback / side-by-side overlay.
+#
+# As of the cutover, the primary `admin` service (docker-compose.yml) builds the
+# React admin (./MEMI-Admin). This overlay brings the OLD jQuery admin (./MEMI)
+# back up as a separate `admin-legacy` service on its own subdomain, so you can
+# compare or fall back without editing docker-compose.yml.
+#
+# Use:
+#   docker compose -f docker-compose.yml -f docker-compose.admin-next.yml up --build admin-legacy
+#
+# Full rollback (make legacy primary again): set the `admin` service build
+# context back to ./MEMI in docker-compose.yml.
+# ────────────────────────────────────────────────────────────────────
+services:
+  admin-legacy:
+    build:
+      context: ./MEMI
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.memi-admin-legacy.rule=Host(`${ADMIN_LEGACY_DOMAIN:-legacy.admin.memi.testdemo.it}`)"
+      - "traefik.http.routers.memi-admin-legacy.entrypoints=websecure"
+      - "traefik.http.routers.memi-admin-legacy.tls.certresolver=letsencrypt"
+      - "traefik.http.services.memi-admin-legacy.loadbalancer.server.port=80"
+      - "traefik.http.routers.memi-admin-legacy-http.rule=Host(`${ADMIN_LEGACY_DOMAIN:-legacy.admin.memi.testdemo.it}`)"
+      - "traefik.http.routers.memi-admin-legacy-http.entrypoints=web"
+      - "traefik.http.routers.memi-admin-legacy-http.middlewares=redirect-to-https"

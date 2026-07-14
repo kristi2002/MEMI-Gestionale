@@ -176,3 +176,435 @@ export interface Discount {
   min_order: string;
   created_at: string;
 }
+
+/* ── Batch 2 resources ─────────────────────────────────── */
+export interface Reso {
+  id: number;
+  rma_number: string;
+  order_id: number;
+  order_number: string;
+  customer_nome: string;
+  customer_email: string;
+  motivo: string;
+  descrizione: string | null;
+  stato: 'aperto' | 'in_analisi' | 'approvato' | 'rifiutato' | 'rimborsato';
+  rimborso_amount: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface ResiResponse {
+  resi: Reso[];
+  total: number;
+}
+
+export interface Invoice {
+  id: number;
+  invoice_number: string;
+  order_id: number;
+  order_number: string | null;
+  customer_nome: string;
+  customer_cognome: string;
+  customer_email: string;
+  total: string;
+  tax_amount: string;
+  stato: 'bozza' | 'emessa' | 'inviata' | 'pagata' | 'annullata';
+  created_at: string;
+  due_date: string | null;
+}
+export interface InvoicesResponse {
+  invoices: Invoice[];
+  total: number;
+}
+
+export interface Review {
+  id: number;
+  product_id: string;
+  product_name: string;
+  customer_nome: string;
+  customer_email: string | null;
+  rating: number;
+  titolo: string | null;
+  testo: string | null;
+  stato: 'in_attesa' | 'pubblicata' | 'rifiutata';
+  risposta_admin: string | null;
+  created_at: string;
+}
+export interface ReviewsResponse {
+  reviews: Review[];
+  total: number;
+  pending: number;
+}
+
+export interface Subscriber {
+  id: number;
+  email: string;
+  fonte: string;
+  subscribed_at: string;
+  unsubscribed: number;
+}
+export interface NewsletterResponse {
+  subscribers: Subscriber[];
+  total: number;
+  unsubscribed: number;
+}
+
+export interface GiftCard {
+  id: number;
+  code: string;
+  initial_amount: string;
+  balance: string;
+  stato: 'attiva' | 'utilizzata' | 'disattivata';
+  recipient_email: string | null;
+  note: string | null;
+  created_at: string;
+}
+export interface GiftCardsResponse {
+  cards: GiftCard[];
+  summary: { total: number; attive: number; balance: number; emesso: number };
+}
+
+export interface Shipment2 {
+  id: number;
+  tracking_number: string;
+  order_id: number;
+  order_number: string;
+  courier_code: string;
+  customer_nome: string;
+  customer_cognome: string;
+  destinazione: string | null;
+  stato: 'preso_in_carico' | 'in_transito' | 'in_consegna' | 'consegnato' | 'problema';
+  eta: string | null;
+  created_at: string;
+}
+
+export interface Courier {
+  code: string;
+  nome: string;
+  slug: string | null;
+  rate: string;
+  attivo: number;
+  tracking_url_template: string | null;
+}
+
+export interface AbandonedCart {
+  id: number;
+  token: string;
+  email: string | null;
+  customer_nome: string | null;
+  item_count: number;
+  total: number;
+  items: unknown[];
+  updated_at: string;
+  created_at: string;
+  recoverable: boolean;
+}
+export interface CartsResponse {
+  carts: AbandonedCart[];
+  summary: { count: number; potential_value: number; recoverable: number };
+  threshold_minutes: number;
+}
+
+export interface Supplier {
+  id: number;
+  nome: string;
+  email: string | null;
+  telefono: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface StaffMember {
+  id: number;
+  email: string;
+  nome: string | null;
+  role: 'admin' | 'staff';
+  permissions: string[] | null;
+  created_at: string;
+}
+export interface StaffResponse {
+  staff: StaffMember[];
+  total: number;
+}
+
+export interface AuditEntry {
+  id: number;
+  admin_id: number | null;
+  admin_email: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  details: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface Expense {
+  id: number;
+  descrizione: string;
+  categoria: string;
+  importo: string;
+  ricorrenza: string;
+  fornitore: string | null;
+  data_spesa: string | null;
+  note: string | null;
+  created_at: string;
+}
+export interface ExpensesResponse {
+  expenses: Expense[];
+  summary: { total: string; month: string; monthly_recurring: string };
+}
+
+export interface ShippingZone {
+  id: number;
+  nome: string;
+  paesi: string | null;
+  metodo: string | null;
+  prezzo: string;
+  spedizione_gratuita_da: string | null;
+}
+
+export interface PickupPoint {
+  id: number;
+  nome: string;
+  indirizzo: string;
+  corriere: string | null;
+  orari: string | null;
+  attivo: number;
+  created_at: string;
+}
+
+export interface Campaign {
+  id: number;
+  nome: string;
+  tipo: 'email' | 'ads' | 'automazione' | 'sms';
+  canale: string | null;
+  budget: string;
+  destinatari: number;
+  stato: 'bozza' | 'attiva' | 'pianificata' | 'conclusa';
+  open_rate: string;
+  click_rate: string;
+  revenue: string;
+  created_at: string;
+}
+
+export interface CmsPage {
+  id: number;
+  titolo: string;
+  slug: string;
+  contenuto: string | null;
+  stato: 'pubblicata' | 'bozza';
+  updated_at: string;
+}
+
+export interface BlogPost {
+  id: number;
+  titolo: string;
+  slug: string;
+  estratto: string | null;
+  contenuto: string | null;
+  stato: 'pubblicato' | 'bozza';
+  published_at: string | null;
+  created_at: string;
+}
+
+export interface LoyaltyConfig {
+  enabled: boolean;
+  signupBonus: number;
+  pointsPerEuro: number;
+  pointValueEur: number;
+  minRedeem: number;
+}
+export interface LoyaltyCustomer {
+  id: number;
+  nome: string;
+  cognome: string;
+  email: string;
+  points: number;
+  total_orders: number;
+  total_spent: string;
+}
+export interface LoyaltyCustomersResponse {
+  customers: LoyaltyCustomer[];
+  summary: { total_points: number | string; members: number };
+}
+
+export interface Segment {
+  id: number;
+  nome: string;
+  descrizione: string | null;
+  min_spent: string;
+  min_orders: number;
+  created_at: string;
+  members: number;
+}
+export interface SegmentsResponse {
+  segments: Segment[];
+  total_customers: number;
+}
+
+export interface Popup {
+  id: number;
+  titolo: string;
+  contenuto: string | null;
+  cta_label: string | null;
+  cta_url: string | null;
+  posizione: string;
+  attivo: number;
+  created_at: string;
+}
+
+export interface Automation {
+  id: number;
+  nome: string;
+  trigger_event: string;
+  azione: string;
+  oggetto: string | null;
+  messaggio: string | null;
+  attivo: number;
+  run_count: number;
+  last_run: string | null;
+  created_at: string;
+}
+export interface AutomationsResponse {
+  automations: Automation[];
+  triggers: string[];
+  actions: string[];
+}
+
+export interface Transfer {
+  id: number;
+  prodotto: string;
+  taglia: string | null;
+  quantita: number;
+  da_luogo: string | null;
+  a_luogo: string | null;
+  stato: string;
+  note: string | null;
+  created_at: string;
+}
+
+export interface PurchaseOrder {
+  id: number;
+  numero: string | null;
+  supplier_id: number | null;
+  supplier_nome: string | null;
+  stato: 'bozza' | 'inviato' | 'ricevuto' | 'annullato';
+  note: string | null;
+  totale: string;
+  items_qty: number;
+  created_at: string;
+  received_at: string | null;
+}
+
+export interface LifecycleData {
+  campaigns: { type: string; label: string; scheduled: boolean; description: string }[];
+  settings: Record<string, string>;
+  enabled: boolean;
+  smtp: boolean;
+  recent: { type: string; sent: number; last_sent: string }[];
+}
+
+export type StoreSettings = Record<string, string>;
+
+export interface FinanceData {
+  summary: {
+    revenue_total: number;
+    revenue_month: number;
+    revenue_today: number;
+    pending_amount: number;
+    refunded_amount: number;
+    shipping_collected: number;
+    paid_count: number;
+    aov: number;
+  };
+  by_method: { method: string; count: number; total: number }[];
+  recent: {
+    order_number: string;
+    customer: string;
+    total: number;
+    method: string;
+    payment_status: PaymentStatus;
+    created_at: string;
+  }[];
+}
+
+export interface TaxStats {
+  oss_ytd: number;
+  foreign_orders: number;
+  threshold: number;
+  over: boolean;
+}
+
+export interface Integration {
+  key: string;
+  nome: string;
+  categoria: string;
+  icona: string;
+  connesso: boolean;
+  dettaglio: string;
+}
+export interface IntegrationsResponse {
+  integrations: Integration[];
+}
+
+export interface LiveView {
+  online: number;
+  views_30m: number;
+  views_today: number;
+  top_paths: { path: string; views: number }[];
+  recent: { path: string; session_id: string | null; created_at: string }[];
+}
+
+export interface MediaItem {
+  nome: string;
+  url: string;
+  thumb: string;
+  full: string;
+  created_at: string;
+}
+
+export interface ReportsData {
+  summary: { revenue_ytd: number; orders_ytd: number; aov: number };
+  sales_by_month: { month: string; revenue: number; orders: number }[];
+  orders_by_status: { stato: string; count: number }[];
+  top_categories: { categoria: string; revenue: number; units: number }[];
+}
+
+export interface OnlineStoreData {
+  status: string;
+  name: string;
+  domain: string;
+  country: string;
+  products: { total: number; active: number; out_of_stock: number };
+  pages_published: number;
+  orders_today: number;
+}
+
+export interface SocialChannel {
+  key: string;
+  nome: string;
+  categoria: string;
+  icona: string;
+  connesso: boolean;
+  dettaglio: string;
+  url: string;
+}
+export interface SocialData {
+  channels: SocialChannel[];
+}
+
+export interface PosData {
+  enabled: boolean;
+  today: { orders: number; revenue: number };
+}
+
+export interface AppItem {
+  key: string;
+  nome: string;
+  categoria: string;
+  icona: string;
+  descrizione: string;
+  installed: boolean;
+}
+export interface AppsData {
+  apps: AppItem[];
+}

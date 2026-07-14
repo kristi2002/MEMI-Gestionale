@@ -59,6 +59,11 @@ export function useDiscounts() {
   return useQuery({ queryKey: ['discounts'], queryFn: () => api.discounts.list() });
 }
 
+/* All products in one shot (for category/collection aggregation — no dedicated API). */
+export function useAllProducts() {
+  return useQuery({ queryKey: ['products', 'all'], queryFn: () => api.products.listPaged({ limit: 1000, offset: 0 }) });
+}
+
 /* ── Mutations used by bulk actions ────────────────────── */
 export function useOrderStatusMutation() {
   const qc = useQueryClient();
@@ -101,6 +106,80 @@ export function useDeleteDiscounts() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['discounts'] }),
   });
 }
+
+/* ── Batch 2 list queries ──────────────────────────────── */
+export const useResi = () => useQuery({ queryKey: ['resi'], queryFn: () => api.resi.list({ limit: 200 }) });
+export const useInvoices = () => useQuery({ queryKey: ['invoices'], queryFn: () => api.invoices.list({ limit: 200 }) });
+export const useReviews = () => useQuery({ queryKey: ['reviews'], queryFn: () => api.reviews.list({ limit: 200 }) });
+export const useNewsletter = () => useQuery({ queryKey: ['newsletter'], queryFn: () => api.newsletter.list({ limit: 500 }) });
+export const useGiftcards = () => useQuery({ queryKey: ['giftcards'], queryFn: () => api.giftcards.list() });
+export const useShipments = () => useQuery({ queryKey: ['shipments'], queryFn: () => api.shipping.shipments() });
+export const useCouriers = () => useQuery({ queryKey: ['couriers'], queryFn: () => api.shipping.couriers() });
+export const useCarts = () => useQuery({ queryKey: ['carts'], queryFn: () => api.carts.list() });
+export const useSuppliers = () => useQuery({ queryKey: ['suppliers'], queryFn: () => api.suppliers.list() });
+export const useStaff = () => useQuery({ queryKey: ['staff'], queryFn: () => api.staff.list() });
+export const useAuditLog = () => useQuery({ queryKey: ['audit'], queryFn: () => api.auditLog.list({ limit: 300 }) });
+export const useExpenses = () => useQuery({ queryKey: ['expenses'], queryFn: () => api.expenses.list() });
+
+/** Generic "delete these ids" mutation that invalidates a query key on success. */
+export function useDeleteMany<Id>(fn: (id: Id) => Promise<unknown>, invalidateKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: Id[]) => Promise.allSettled(ids.map(fn)),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [invalidateKey] }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Operazione non riuscita'),
+  });
+}
+
+/** Generic single-record update mutation (e.g. review moderation). */
+export function useUpdateOne<Id>(fn: (id: Id, data: unknown) => Promise<unknown>, invalidateKey: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: Id; data: unknown }) => fn(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [invalidateKey] }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Operazione non riuscita'),
+  });
+}
+
+/** Generic create-or-update: pass an `id` to update, omit to create. */
+export function useSaveEntity(
+  createFn: (data: unknown) => Promise<unknown>,
+  updateFn: (id: number, data: unknown) => Promise<unknown>,
+  invalidateKey: string,
+) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id?: number; data: unknown }) =>
+      id != null ? updateFn(id, data) : createFn(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [invalidateKey] }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Salvataggio non riuscito'),
+  });
+}
+
+/* ── Batch 3 list queries ──────────────────────────────── */
+export const useCampaigns = () => useQuery({ queryKey: ['campaigns'], queryFn: () => api.campaigns.list() });
+export const usePages = () => useQuery({ queryKey: ['pages'], queryFn: () => api.pages.list() });
+export const useBlog = () => useQuery({ queryKey: ['blog'], queryFn: () => api.blog.list() });
+export const useSegments = () => useQuery({ queryKey: ['segments'], queryFn: () => api.segments.list() });
+export const usePopups = () => useQuery({ queryKey: ['popups'], queryFn: () => api.popups.list() });
+export const useAutomations = () => useQuery({ queryKey: ['automations'], queryFn: () => api.automations.list() });
+export const useTransfers = () => useQuery({ queryKey: ['transfers'], queryFn: () => api.transfers.list() });
+export const usePurchaseOrders = () => useQuery({ queryKey: ['purchase-orders'], queryFn: () => api.purchaseOrders.list() });
+export const useZones = () => useQuery({ queryKey: ['zones'], queryFn: () => api.zones.list() });
+export const usePickup = () => useQuery({ queryKey: ['pickup'], queryFn: () => api.pickup.list() });
+export const useLoyaltyConfig = () => useQuery({ queryKey: ['loyalty', 'config'], queryFn: () => api.loyalty.config() });
+export const useLoyaltyCustomers = () => useQuery({ queryKey: ['loyalty', 'customers'], queryFn: () => api.loyalty.customers({ limit: 200 }) });
+export const useLifecycle = () => useQuery({ queryKey: ['lifecycle'], queryFn: () => api.lifecycle.get() });
+export const useSettings = () => useQuery({ queryKey: ['settings'], queryFn: () => api.settings.get() });
+export const useFinance = () => useQuery({ queryKey: ['finance'], queryFn: () => api.dashboard.finance() });
+export const useTaxStats = () => useQuery({ queryKey: ['tax-stats'], queryFn: () => api.dashboard.taxStats() });
+export const useIntegrations = () => useQuery({ queryKey: ['integrations'], queryFn: () => api.settings.integrations() });
+export const useLiveview = () => useQuery({ queryKey: ['liveview'], queryFn: () => api.dashboard.liveview(), refetchInterval: 15_000 });
+export const useReports = () => useQuery({ queryKey: ['reports'], queryFn: () => api.reports.get() });
+export const useOnlineStore = () => useQuery({ queryKey: ['online-store'], queryFn: () => api.onlineStore.get() });
+export const useSocial = () => useQuery({ queryKey: ['social'], queryFn: () => api.social.get() });
+export const usePos = () => useQuery({ queryKey: ['pos'], queryFn: () => api.pos.get() });
+export const useApps = () => useQuery({ queryKey: ['apps'], queryFn: () => api.apps.get() });
 
 /* Flatten helpers for the infinite pages. */
 export const flattenOrders = (pages?: { orders: OrderRow[] }[]): OrderRow[] =>

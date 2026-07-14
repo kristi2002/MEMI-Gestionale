@@ -131,7 +131,7 @@ services:
   # ── Admin Gestionale (Nginx static) ─────────────────────────
   admin:
     build:
-      context: ./MEMI
+      context: ./MEMI-Admin
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:

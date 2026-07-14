@@ -40,8 +40,8 @@ const exportColumns: ExportColumn<OrderRow>[] = [
   { header: 'Tracking', accessor: (o) => o.tracking_number || '—' },
 ];
 
-export function OrdersPage() {
-  const [tab, setTab] = useState<(typeof TABS)[number]['key']>('all');
+export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'Gestisci tutti gli ordini ricevuti dallo store.' }: { initialTab?: (typeof TABS)[number]['key']; title?: string; subtitle?: string } = {}) {
+  const [tab, setTab] = useState<(typeof TABS)[number]['key']>(initialTab);
   const query = useOrders();
   const statusMut = useOrderStatusMutation();
   const deleteMut = useDeleteOrders();
@@ -108,7 +108,7 @@ export function OrdersPage() {
 
   return (
     <div>
-      <PageHeader title="Ordini" subtitle="Gestisci tutti gli ordini ricevuti dallo store." />
+      <PageHeader title={title} subtitle={subtitle} />
 
       <div className="mb-3">
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>
