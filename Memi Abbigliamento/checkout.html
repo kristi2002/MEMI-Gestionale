@@ -164,22 +164,6 @@
     .card-icon{font-size:10px;font-weight:700;padding:2px 6px;border:1px solid var(--beige);
       border-radius:3px;color:var(--brown-light);}
 
-    /* Klarna BNPL */
-    .klarna-panel{
-      background:var(--lavender-light);border:1.5px solid var(--beige);
-      border-radius:var(--radius-md);padding:var(--space-5);
-    }
-    .klarna-logo{font-size:var(--text-lg);font-weight:700;color:#1a0a3c;
-      letter-spacing:-.03em;margin-bottom:var(--space-3);}
-    .klarna-logo span{color:#f06;}
-    .klarna-installments{display:flex;gap:var(--space-3);}
-    .klarna-installment{
-      flex:1;background:var(--white);border-radius:var(--radius-md);
-      padding:var(--space-3);text-align:center;
-    }
-    .klarna-installment .amount{font-family:var(--font-serif);font-size:var(--text-xl);font-weight:500;}
-    .klarna-installment .date{font-size:var(--text-xs);color:var(--brown-light);margin-top:2px;}
-
     /* Form actions */
     .form-actions{
       display:flex;align-items:center;justify-content:space-between;
@@ -199,10 +183,10 @@
     .btn-next:hover{background:#2a1e1e;transform:translateY(-1px);}
     .btn-next svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;}
 
-    /* Klarna note inline */
-    .inline-klarna{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-3);
+    /* Secure note inline */
+    .inline-secure{display:flex;align-items:center;gap:var(--space-2);margin-top:var(--space-3);
       font-size:var(--text-xs);color:var(--brown-light);}
-    .inline-klarna strong{color:var(--espresso);}
+    .inline-secure strong{color:var(--espresso);}
 
     /* ── Order Summary ── */
     .order-summary{
@@ -284,7 +268,7 @@
     .ph-fig{width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;}
     .ph-fig svg{width:65%;opacity:.22;}
   </style>
-  <link rel="stylesheet" href="app.css?v=4" />
+  <link rel="stylesheet" href="app.css?v=5" />
   <!-- Stripe.js — loads asynchronously, must be loaded from Stripe CDN -->
   <script src="https://js.stripe.com/v3/"></script>
 </head>
@@ -495,10 +479,6 @@
             <svg viewBox="0 0 24 24"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"/></svg>
             <span class="pay-tab-label">PayPal</span>
           </button>
-          <button class="pay-tab" onclick="selectPayTab(this)">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
-            <span class="pay-tab-label">Klarna</span>
-          </button>
         </div>
 
         <!-- Card form — Stripe Elements -->
@@ -524,29 +504,7 @@
           <div id="paypalButtons" style="margin-top:var(--space-4);"></div>
         </div>
 
-        <!-- Klarna BNPL (hidden by default) -->
-        <div class="klarna-panel" id="klarnaPanel" style="display:none;">
-          <div class="klarna-logo">klarna<span>.</span></div>
-          <p style="font-size:var(--text-sm);color:var(--brown-mid);margin-bottom:var(--space-4);">
-            Paga in 3 rate senza interessi. Il primo pagamento è immediato.
-          </p>
-          <div class="klarna-installments">
-            <div class="klarna-installment">
-              <div class="amount">€68,97</div>
-              <div class="date">Oggi</div>
-            </div>
-            <div class="klarna-installment">
-              <div class="amount">€68,97</div>
-              <div class="date">+30 giorni</div>
-            </div>
-            <div class="klarna-installment">
-              <div class="amount">€68,97</div>
-              <div class="date">+60 giorni</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="inline-klarna" id="klarnaHint">
+        <div class="inline-secure" id="secureHint">
           <svg style="width:14px;height:14px;stroke:var(--sage-dark);fill:none;stroke-width:2;" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           Pagamento crittografato SSL. Non conserviamo i dati della carta.
         </div>
@@ -773,11 +731,6 @@
         }
       }
 
-      // Klarna installments
-      var inst = total / 3;
-      document.querySelectorAll('.klarna-installment .amount').forEach(function(e) {
-        e.textContent = formatPrice(inst);
-      });
     }
 
     // ── Navigation ────────────────────────────────────────────────────────────
@@ -1183,8 +1136,6 @@
       var idx = Array.from(document.querySelectorAll('.pay-tab')).indexOf(btn);
       el('cardForm').style.display    = idx === 0 ? 'flex'  : 'none';
       el('paypalPanel').style.display = idx === 1 ? 'block' : 'none';
-      el('klarnaPanel').style.display = idx === 2 ? 'block' : 'none';
-      el('klarnaHint').style.display  = idx === 2 ? 'none'  : 'flex';
       if (el('paymentError')) el('paymentError').style.display = 'none';
       // PayPal uses its own Buttons widget; hide the generic Conferma button on that tab
       // when PayPal is actually configured (otherwise the tab shows a "presto disponibile" note).
@@ -1198,7 +1149,7 @@
       if (errEl) { errEl.textContent = msg; errEl.style.display = 'flex'; } else if (msg) alert(msg);
     }
 
-    // Build the order payload from the shipping form + cart. `payMethod` = 'carta'|'paypal'|'klarna'.
+    // Build the order payload from the shipping form + cart. `payMethod` = 'carta'|'paypal'.
     // Shared by the card flow and the PayPal Buttons flow (which runs outside confirmOrder).
     function collectOrderData(payMethod) {
       var telEl = el('phone'), countryEl = el('country');
@@ -1262,7 +1213,7 @@
     function confirmOrder() {
       var tabs      = document.querySelectorAll('.pay-tab');
       var activeIdx = Array.from(tabs).findIndex(function(t) { return t.classList.contains('active'); });
-      var payMethod = ['carta', 'paypal', 'klarna'][activeIdx] || 'carta';
+      var payMethod = ['carta', 'paypal'][activeIdx] || 'carta';
       var isLocalDev = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 
       if (!cartItems.length) { showPaymentError('Il carrello è vuoto.'); return; }
@@ -1309,26 +1260,20 @@
           }
         });
       } else {
-        // PayPal / Klarna — driven by GET /api/payments/config availability.
-        var provKey = activeIdx === 1 ? 'paypal' : 'klarna';
-        var available = window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers[provKey];
+        // PayPal — driven by GET /api/payments/config availability.
+        var available = window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers.paypal;
         setLoading(false);
         if (!available) {
           showPaymentError('Questo metodo di pagamento non è ancora disponibile. Seleziona Carta di credito per completare l\'acquisto.');
-        } else if (provKey === 'paypal') {
+        } else {
           // Handled by the PayPal Buttons (initPaypalButtons); the generic Conferma button is
           // hidden on this tab. This branch only fires if the buttons haven't rendered yet.
           showPaymentError('Usa il pulsante PayPal qui sopra per completare il pagamento.');
-        } else {
-          // Klarna configured server-side. TODO(klarna-live): mount the Klarna Web SDK widget with
-          // the client_token from POST /api/payments/klarna/create-session, then on authorization
-          // POST /api/payments/klarna/create-order and submitOrder({payment_reference: order_id}).
-          showPaymentError('Klarna è in fase di attivazione. Seleziona Carta di credito per completare l\'acquisto.');
         }
       }
     }
 
-    // ── Payment provider availability (PayPal / Klarna) ──────────────────────
+    // ── Payment provider availability (PayPal) ───────────────────────────────
     // Driven by GET /api/payments/config. Providers with no server credentials show a
     // "presto disponibile" note instead of dead-ending; PayPal, when configured, renders
     // its official Buttons (loaded on demand) so the popup opens from a real user gesture.
@@ -1336,7 +1281,6 @@
       var prov = (cfg && cfg.providers) || {};
       window.MEMI_PAY = { providers: prov, paypal: (cfg && cfg.paypal) || null };
       markProviderTab('paypalPanel', prov.paypal);
-      markProviderTab('klarnaPanel', prov.klarna);
       if (prov.paypal) initPaypalButtons();
     }
     function markProviderTab(panelId, available) {
@@ -1448,7 +1392,7 @@
     function applyUrlPayParam() {
       var pay = new URLSearchParams(window.location.search).get('pay');
       if (!pay) return;
-      var map  = { card: 0, paypal: 1, klarna: 2 };
+      var map  = { card: 0, paypal: 1 };
       var idx  = map[pay];
       var tabs = document.querySelectorAll('.pay-tab');
       if (idx !== undefined && tabs[idx]) selectPayTab(tabs[idx]);
@@ -1539,7 +1483,7 @@
               // (the step-3 setTimeout would otherwise find no key and silently bail).
               if (typeof initStripeElements === 'function') initStripeElements();
             }
-            // Show/hide PayPal & Klarna based on whether the server has their credentials.
+            // Show/hide PayPal based on whether the server has its credentials.
             if (typeof applyPaymentProviders === 'function') applyPaymentProviders(data || {});
           })
           .catch(function() { /* no-op — Stripe will fail gracefully at mount time */ });
@@ -1547,7 +1491,7 @@
     });
   </script>
   <script src="api-client.js?v=5"></script>
-  <script src="app.js?v=24"></script>
+  <script src="app.js?v=25"></script>
   <script src="checkout-autofill.js?v=1"></script>
 </body>
 </html>

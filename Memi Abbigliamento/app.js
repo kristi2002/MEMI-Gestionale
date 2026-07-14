@@ -1398,7 +1398,6 @@
         <div class="express-btns">
           <button class="express-btn apple"  onclick="window.location.href='/checkout?pay=card'">Apple Pay</button>
           <button class="express-btn paypal" onclick="window.location.href='/checkout?pay=paypal'">PayPal</button>
-          <button class="express-btn klarna" onclick="window.location.href='/checkout?pay=klarna'">Klarna</button>
         </div>
       </div>
       <div class="cart-subtotal">

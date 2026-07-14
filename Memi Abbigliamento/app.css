@@ -391,7 +391,6 @@ html { overflow-x: clip; }
 .express-btn:hover { border-color: var(--beige-dark, #BEBEDD); }
 .express-btn.apple { letter-spacing: -0.01em; color: var(--espresso, #3B2B2B); }
 .express-btn.paypal { color: #003087; }
-.express-btn.klarna { color: #1a0a3c; }
 
 /* ============================================================
    SEARCH DRAWER

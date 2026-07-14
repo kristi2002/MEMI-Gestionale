@@ -238,13 +238,6 @@
     .btn-wishlist:hover{border-color:var(--blush-dark);background:var(--blush-light);}
     .btn-wishlist svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;}
 
-    /* Klarna badge */
-    .klarna-note{
-      font-size:var(--text-xs);color:var(--brown-light);
-      text-align:center;margin-bottom:var(--space-5);
-    }
-    .klarna-note strong{color:var(--espresso);}
-
     /* Perks mini row */
     .mini-perks{
       display:flex;flex-direction:column;gap:var(--space-3);
@@ -326,7 +319,7 @@
     }
     .ph-fig svg{width:55%;opacity:.22;}
   </style>
-  <link rel="stylesheet" href="app.css?v=4" />
+  <link rel="stylesheet" href="app.css?v=5" />
 </head>
 <body>
 
@@ -426,11 +419,6 @@
             <span id="wishlistBtnLabel">Salva nella wishlist</span>
           </button>
         </div>
-
-        <!-- Klarna -->
-        <p class="klarna-note">
-          oppure 3 rate da <strong id="klarnaRate">—</strong> con Klarna. <a href="#" style="text-decoration:underline;">Scopri di più</a>
-        </p>
 
         <!-- Mini perks -->
         <div class="mini-perks">
@@ -681,9 +669,6 @@
         var careUl = document.getElementById('careList');
         if (careUl) careUl.innerHTML = (CARE[p.categoria] || CARE.vestiti).map(function (c) { return '<li>' + c + '</li>'; }).join('');
 
-        // Klarna: 3 instalments computed from the real price
-        var kl = document.getElementById('klarnaRate');
-        if (kl) kl.textContent = eur((Number(p.price) || 0) / 3);
 
         // Size guide accordion — table matched to the product's category
         var sgItem = document.getElementById('sizeGuideItem');
@@ -1157,6 +1142,6 @@
   </script>
 
   <script src="api-client.js?v=5"></script>
-  <script src="app.js?v=24"></script>
+  <script src="app.js?v=25"></script>
 </body>
 </html>
