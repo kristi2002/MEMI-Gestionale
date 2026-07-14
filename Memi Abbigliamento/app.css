@@ -595,6 +595,35 @@ html { overflow-x: clip; }
 .mobile-nav-link svg { width: 14px; height: 14px; stroke: var(--beige-dark, #BEBEDD); fill: none; stroke-width: 2; }
 .mobile-nav-link.active { color: var(--blush-dark, #6B6BA3); font-weight: 500; }
 
+/* Mobile nav: accordion subcategories */
+.mobile-nav-parent {
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--beige, #DBDBEE);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.mobile-nav-parent svg { transition: transform 220ms ease; }
+.mobile-nav-group.open .mobile-nav-parent svg { transform: rotate(90deg); }
+.mobile-nav-sub {
+  display: none;
+  background: var(--bg-soft, #F1F0F8);
+  border-bottom: 1px solid var(--beige, #DBDBEE);
+}
+.mobile-nav-group.open .mobile-nav-sub { display: block; }
+.mobile-nav-sublink {
+  display: block;
+  padding: 0.75rem 1.5rem 0.75rem 2.25rem;
+  font-size: 0.95rem;
+  color: var(--espresso, #3B2B2B);
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: background 180ms, color 180ms;
+}
+.mobile-nav-sublink:hover { background: var(--beige, #DBDBEE); color: var(--blush-dark, #6B6BA3); }
+
 .mobile-nav-footer {
   padding: 1.5rem;
   border-top: 1px solid var(--beige, #DBDBEE);

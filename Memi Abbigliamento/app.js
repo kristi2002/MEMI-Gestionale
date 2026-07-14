@@ -32,8 +32,21 @@
 
   const NAV_ITEMS = [
     { href: 'shop?categoria=novita',    label: 'Novità' },
-    { href: 'shop',                     label: 'Abbigliamento' },
-    { href: 'shop?categoria=accessori', label: 'Accessori' },
+    { href: 'shop',                     label: 'Abbigliamento', children: [
+      { href: '/shop',                    label: 'Tutti i capi' },
+      { href: '/shop?categoria=vestiti',  label: 'Vestiti' },
+      { href: '/shop?categoria=top',      label: 'Top & Bluse' },
+      { href: '/shop?categoria=pantaloni',label: 'Pantaloni' },
+      { href: '/shop?categoria=gonne',    label: 'Gonne' },
+      { href: '/shop?categoria=blazer',   label: 'Blazer' },
+      { href: '/shop?categoria=set',      label: 'Set Coordinati' },
+      { href: '/shop?categoria=scarpe',   label: 'Scarpe' },
+    ] },
+    { href: 'shop?categoria=accessori', label: 'Accessori', children: [
+      { href: '/shop?categoria=accessori', label: 'Tutti gli accessori' },
+      { href: '/shop?categoria=borse',     label: 'Borse' },
+      { href: '/shop?categoria=gioielli',  label: 'Gioielli' },
+    ] },
     { href: 'shop?saldi=1',             label: 'Saldi' },
     { href: 'look',        label: 'Shop the Look' },
     { href: 'editoriali/primavera-estate-2026/', label: 'Editoriali' },
@@ -679,6 +692,19 @@
               ? '/collections/' + item.collection + '/'
               : (item.href.startsWith('/') ? item.href : '/' + item.href);
             const isActive = item.collection ? mobileSlug === item.collection : currentFull === item.href;
+            if (item.children && item.children.length) {
+              return `
+            <div class="mobile-nav-group">
+              <button type="button" class="mobile-nav-link mobile-nav-parent${isActive ? ' active' : ''}" aria-expanded="false">
+                ${item.label}
+                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+              <div class="mobile-nav-sub">
+                ${item.children.map(c => `<a href="${c.href}" class="mobile-nav-sublink">${c.label}</a>`).join('')}
+              </div>
+            </div>
+          `;
+            }
             return `
             <a href="${href}" class="mobile-nav-link${isActive ? ' active' : ''}">
               ${item.label}
@@ -699,6 +725,27 @@
         </div>
       </nav>
     `);
+
+    // Mobile drawer: accordion toggle for parent items with subcategories
+    const mnDrawer = document.getElementById('mobileNavDrawer');
+    if (mnDrawer) {
+      mnDrawer.addEventListener('click', function (e) {
+        const btn = e.target.closest('.mobile-nav-parent');
+        if (!btn) return;
+        e.preventDefault();
+        const group = btn.parentElement;
+        const willOpen = !group.classList.contains('open');
+        mnDrawer.querySelectorAll('.mobile-nav-group.open').forEach(function (g) {
+          if (g !== group) {
+            g.classList.remove('open');
+            var pb = g.querySelector('.mobile-nav-parent');
+            if (pb) pb.setAttribute('aria-expanded', 'false');
+          }
+        });
+        group.classList.toggle('open', willOpen);
+        btn.setAttribute('aria-expanded', String(willOpen));
+      });
+    }
 
     // Toast stack
     document.body.insertAdjacentHTML('beforeend', `<div class="toast-stack" id="toastStack"></div>`);
