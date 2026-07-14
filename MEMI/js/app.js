@@ -27,6 +27,7 @@ const DATA = {
   discounts:   [],
   apps:        [],
   newsletter: null,
+  lifecycle:  null,
   chartData:  null,
   invoices:   null,
   resi:       null,
@@ -850,6 +851,88 @@ VIEWS.newsletter = function(){
     </div>
   `;
 };
+VIEWS.lifecycle = function(){
+  const d = DATA.lifecycle;
+  const s = (d && d.settings) || {};
+  const camps = (d && d.campaigns) || [];
+  const recent = (d && d.recent) || [];
+  const enabled = d ? !!d.enabled : true;
+  const smtp = d ? !!d.smtp : false;
+  const inCss = 'padding:7px 10px;border:1px solid var(--line);border-radius:6px;font-size:13px;width:100%;box-sizing:border-box';
+  const recentBy = {}; recent.forEach(r => { recentBy[r.type] = r; });
+  const campLabel = { birthday:'🎁 Compleanno', winback:'💌 Ti riconquistiamo', points_reminder:'⭐ Punti inutilizzati', anniversary:'🎉 Anniversario', new_season:'🌿 Nuova stagione' };
+  const sentPill = t => { const r = recentBy[t]; return r ? `<span class="status-pill ok">${r.sent} inviate/30gg</span>` : '<span class="status-pill neutral">0 / 30gg</span>'; };
+
+  return `
+    ${pageHead("Email automatiche","Campagne lifecycle: compleanno, ritorno, punti fedeltà, anniversario e nuova stagione.",
+      `<button class="btn btn-soft btn-sm js-lc-run-dry">Anteprima batch</button>
+       <button class="btn btn-primary btn-sm js-lc-run">▶ Esegui ora</button>`)}
+
+    ${d===null ? '' : (!smtp ? `<div class="card" style="border-left:3px solid #e0a100;margin-bottom:14px">
+      <p style="font-size:13px;color:var(--muted)"><strong>⚠️ SMTP non configurato.</strong> Le campagne funzionano ma <strong>nessuna email viene consegnata</strong> finché non imposti <code>SMTP_USER</code> in produzione. Puoi comunque usare “Anteprima” per vedere quanti clienti verrebbero contattati.</p>
+    </div>` : '')}
+    ${!enabled ? `<div class="card" style="border-left:3px solid #b3261e;margin-bottom:14px"><p style="font-size:13px;color:var(--muted)"><strong>Motore disattivato.</strong> Attivalo dalle impostazioni qui sotto per far partire il batch giornaliero.</p></div>` : ''}
+
+    <div class="grid grid-3" style="margin-bottom:16px">
+      ${['birthday','winback','points_reminder','anniversary'].map(t=>`
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <h3 style="font-size:15px">${campLabel[t]}</h3>${sentPill(t)}
+          </div>
+          <p style="color:var(--muted);font-size:12px;margin-top:6px">${(camps.find(c=>c.type===t)||{}).description||''}</p>
+          <button class="btn btn-soft btn-sm js-lc-preview" data-type="${t}" style="margin-top:10px">Anteprima destinatari</button>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-bottom:12px">Impostazioni</h3>
+      <div class="grid grid-3" style="gap:12px">
+        <label style="font-size:12px;color:var(--muted)">Motore attivo
+          <select id="lcEnabled" style="${inCss};margin-top:4px"><option value="1"${enabled?' selected':''}>Sì</option><option value="0"${!enabled?' selected':''}>No</option></select></label>
+        <label style="font-size:12px;color:var(--muted)">Sconto compleanno (%)
+          <input id="lcBdayPct" type="number" min="1" max="90" value="${s.lifecycle_birthday_pct||15}" style="${inCss};margin-top:4px"/></label>
+        <label style="font-size:12px;color:var(--muted)">Validità codice compleanno (giorni)
+          <input id="lcBdayDays" type="number" min="1" max="365" value="${s.lifecycle_birthday_days||30}" style="${inCss};margin-top:4px"/></label>
+        <label style="font-size:12px;color:var(--muted)">Cliente dormiente dopo (giorni)
+          <input id="lcWinDays" type="number" min="7" max="730" value="${s.lifecycle_winback_days||120}" style="${inCss};margin-top:4px"/></label>
+        <label style="font-size:12px;color:var(--muted)">Sconto ritorno (%)
+          <input id="lcWinPct" type="number" min="1" max="90" value="${s.lifecycle_winback_pct||10}" style="${inCss};margin-top:4px"/></label>
+        <label style="font-size:12px;color:var(--muted)">Sconto anniversario (%)
+          <input id="lcAnnPct" type="number" min="1" max="90" value="${s.lifecycle_anniversary_pct||12}" style="${inCss};margin-top:4px"/></label>
+        <label style="font-size:12px;color:var(--muted)">Promemoria punti se inattivo da (giorni)
+          <input id="lcPtsIdle" type="number" min="7" max="365" value="${s.lifecycle_points_idle_days||45}" style="${inCss};margin-top:4px"/></label>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:10px">Le email rispettano il consenso marketing (GDPR): solo i clienti con <code>marketing_consent</code> attivo vengono contattati. Ogni invio è idempotente (nessun doppio invio nello stesso periodo).</p>
+      <button class="btn btn-primary btn-sm js-lc-save-settings" style="margin-top:8px">Salva impostazioni</button>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:4px">🌿 Broadcast nuova stagione / collezione</h3>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Invia un annuncio a tutti i clienti consenzienti (e, opzionalmente, agli iscritti newsletter). Idempotente per nome stagione: ripetere lo stesso nome non re-invia.</p>
+      <div class="grid grid-2" style="gap:12px">
+        <label style="font-size:12px;color:var(--muted)">Nome stagione/collezione *
+          <input id="lcSeason" placeholder="Es. Autunno 2026" style="${inCss};margin-top:4px"/></label>
+        <label style="font-size:12px;color:var(--muted)">Titolo email
+          <input id="lcHeadline" placeholder="È arrivato l'autunno" style="${inCss};margin-top:4px"/></label>
+        <label style="font-size:12px;color:var(--muted)">Destinatari
+          <select id="lcAudience" style="${inCss};margin-top:4px">
+            <option value="consented">Clienti con consenso marketing</option>
+            <option value="both">Clienti + iscritti newsletter</option>
+            <option value="subscribers">Solo iscritti newsletter</option>
+          </select></label>
+        <label style="font-size:12px;color:var(--muted)">Link CTA (opzionale)
+          <input id="lcCtaUrl" placeholder="https://…/shop" style="${inCss};margin-top:4px"/></label>
+      </div>
+      <label style="font-size:12px;color:var(--muted);display:block;margin-top:12px">Messaggio
+        <textarea id="lcMessage" rows="3" placeholder="La nuova collezione è arrivata…" style="${inCss};margin-top:4px"></textarea></label>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-soft btn-sm js-lc-season-dry">Anteprima destinatari</button>
+        <button class="btn btn-primary btn-sm js-lc-season">Invia broadcast</button>
+      </div>
+    </div>
+  `;
+};
 VIEWS.popups = function(){
   const list = DATA.popups;
   const posLabel = { center:'Centro', 'bottom-right':'In basso a destra', bar:'Barra' };
@@ -1519,7 +1602,7 @@ var PERMISSION_PRESETS = {
   staff:            { role: 'staff', permissions: null, label: 'Staff (operativo completo)' },
   warehouse:        { role: 'staff', label: 'Magazzino', permissions: ['dashboard','products','inventory','transfers','collections','categories','giftcards','couriers','shipments','tracking','shipping-zones','pickup','orders','orders-drafts','orders-abandoned'] },
   customer_service: { role: 'staff', label: 'Servizio clienti', permissions: ['dashboard','orders','orders-drafts','orders-abandoned','returns','invoices','customers','loyalty','segments','reviews','chat','newsletter'] },
-  marketing:        { role: 'staff', label: 'Marketing', permissions: ['dashboard','marketing','automations','newsletter','popups','discounts','content','blog','files','analytics','reports','reviews'] },
+  marketing:        { role: 'staff', label: 'Marketing', permissions: ['dashboard','marketing','automations','lifecycle','newsletter','popups','discounts','content','blog','files','analytics','reports','reviews'] },
 };
 function profileSelectHtml(selected){
   return '<select name="profile" style="width:100%;padding:6px 10px;border:1px solid var(--line);border-radius:6px">' +
@@ -4247,6 +4330,65 @@ $(function(){
       .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
   });
 
+  /* ── Lifecycle marketing emails ── */
+  function lcSummaryText(sum){
+    if(!sum) return '';
+    return ['birthday','winback','points_reminder','anniversary']
+      .filter(function(k){ return sum[k]; })
+      .map(function(k){ var v=sum[k]; return k+': '+(v.sent!=null?v.sent+' inviate':(v.candidates||0)+' candidati'); })
+      .join(' · ');
+  }
+  $(document).on('click','.js-lc-save-settings', function(){
+    if(!apiReady()) return;
+    var payload = {
+      lifecycle_enabled:          $('#lcEnabled').val(),
+      lifecycle_birthday_pct:     $('#lcBdayPct').val(),
+      lifecycle_birthday_days:    $('#lcBdayDays').val(),
+      lifecycle_winback_days:     $('#lcWinDays').val(),
+      lifecycle_winback_pct:      $('#lcWinPct').val(),
+      lifecycle_anniversary_pct:  $('#lcAnnPct').val(),
+      lifecycle_points_idle_days: $('#lcPtsIdle').val(),
+    };
+    AdminAPI.lifecycle.settings(payload).done(function(){ toast('Impostazioni salvate','success'); renderView('lifecycle'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+  $(document).on('click','.js-lc-run', function(){
+    if(!apiReady()) return;
+    if(!confirm('Eseguire ora tutte le campagne giornaliere? Le email verranno inviate ai clienti idonei (solo se SMTP è configurato).')) return;
+    toast('Esecuzione batch…','info');
+    AdminAPI.lifecycle.run({}).done(function(r){ toast('Batch eseguito — '+(lcSummaryText(r&&r.summary)||'nessun invio'),'success'); renderView('lifecycle'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+  $(document).on('click','.js-lc-run-dry', function(){
+    if(!apiReady()) return;
+    toast('Anteprima…','info');
+    AdminAPI.lifecycle.run({dryRun:true}).done(function(r){ toast('Anteprima — '+(lcSummaryText(r&&r.summary)||'nessun candidato'),'info'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+  $(document).on('click','.js-lc-preview', function(){
+    if(!apiReady()) return; var type=$(this).data('type');
+    AdminAPI.lifecycle.preview(type).done(function(r){ var p=(r&&r.preview)||{}; toast('Anteprima '+type+': '+(p.candidates||0)+' destinatari idonei oggi','info'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+  function lcSeasonPayload(dry){
+    return { season: $('#lcSeason').val(), headline: $('#lcHeadline').val(), message: $('#lcMessage').val(),
+             cta_url: $('#lcCtaUrl').val(), audience: $('#lcAudience').val(), dryRun: !!dry };
+  }
+  $(document).on('click','.js-lc-season-dry', function(){
+    if(!apiReady()) return; if(!$('#lcSeason').val().trim()){ toast('Inserisci il nome della stagione','error'); return; }
+    AdminAPI.lifecycle.season(lcSeasonPayload(true)).done(function(r){ toast('Anteprima broadcast: '+(r&&r.recipients!=null?r.recipients:'?')+' destinatari','info'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+  $(document).on('click','.js-lc-season', function(){
+    if(!apiReady()) return;
+    var season=$('#lcSeason').val().trim();
+    if(!season){ toast('Inserisci il nome della stagione','error'); return; }
+    if(!confirm('Inviare il broadcast "'+season+'" ai destinatari selezionati?')) return;
+    toast('Invio broadcast…','info');
+    AdminAPI.lifecycle.season(lcSeasonPayload(false)).done(function(r){ toast('Broadcast inviato — '+(r&&r.sent!=null?r.sent:0)+' email ('+(r&&r.skipped||0)+' già inviate)','success'); })
+      .fail(function(x){ toast((x.responseJSON&&x.responseJSON.error)||'Errore','error'); });
+  });
+
   /* ── Reports: export CSV from already-loaded / freshly-fetched data ── */
   $(document).on('click','.js-run-report', function(){
     if(!apiReady()) return;
@@ -4737,6 +4879,13 @@ $(function(){
         DATA.automations = res || { automations: [] };
         _origRenderView(name);
       }).fail(function() { DATA.automations = { automations: [] }; _apiFail(name); });
+
+    } else if (name === 'lifecycle') {
+      DATA.lifecycle = null;
+      api.lifecycle.get().done(function(res) {
+        DATA.lifecycle = res || { campaigns: [], settings: {}, recent: [], enabled: true, smtp: false };
+        _origRenderView(name);
+      }).fail(function() { DATA.lifecycle = { campaigns: [], settings: {}, recent: [], enabled: true, smtp: false }; _apiFail(name); });
 
     } else if (name === 'chat') {
       DATA.chat = undefined; DATA.chatActive = null;
