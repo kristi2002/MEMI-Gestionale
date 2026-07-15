@@ -27,7 +27,12 @@
     .page-title em{font-style:italic;color:var(--blush-dark,#b98a8a);}
     .page-sub{font-size:.92rem;color:var(--brown-light,#a08d80);}
 
-    .wl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:clamp(18px,2.5vw,32px);}
+    /* Match the canonical .product-grid (shop/collections) so wishlist cards are
+       the same width across the project: 2 → 3 → 4 columns at the same breakpoints. */
+    .wl-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--space-6) var(--space-4);}
+    @media(min-width:640px){.wl-grid{gap:var(--space-8) var(--space-5);}}
+    @media(min-width:768px){.wl-grid{grid-template-columns:repeat(3,1fr);}}
+    @media(min-width:1024px){.wl-grid{grid-template-columns:repeat(4,1fr);}}
     .wl-card{background:var(--white,#fff);border:1px solid var(--border,#ece7e0);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .25s,transform .25s;}
     .wl-card:hover{box-shadow:0 14px 40px rgba(59,43,43,.09);transform:translateY(-3px);}
     .wl-media{position:relative;aspect-ratio:3/4;background:var(--blush-light,#f6ecec);overflow:hidden;}
