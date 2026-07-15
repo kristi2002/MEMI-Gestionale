@@ -13,34 +13,12 @@
   <link rel="stylesheet" href="app.css?v=ece23419" />
   <style>
     body{font-family:var(--font-sans);background:var(--cream);color:var(--espresso);line-height:1.65;-webkit-font-smoothing:antialiased;}
-    /* Global resets the injected header relies on (matches every other page's critical CSS) */
+    /* Page-scoped reset for THIS page's own controls. The site header +
+       announcement bar are styled centrally in app.css (shared by all pages). */
     *,*::before,*::after{box-sizing:border-box;}
     button{font:inherit;background:none;border:none;cursor:pointer;color:inherit;appearance:none;-webkit-appearance:none;}
     a{color:inherit;text-decoration:none;}
     img{max-width:100%;display:block;}
-
-    /* Site header (injected by app.js) — critical layout, mirrors every other page */
-    .site-header{position:sticky;top:0;z-index:200;background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--beige);}
-    .header-inner{max-width:1280px;margin:0 auto;padding:0 var(--space-4);height:64px;display:flex;align-items:center;gap:var(--space-4);}
-    .logo{flex:1;text-align:center;font-family:var(--font-serif);font-size:var(--text-xl);font-weight:400;letter-spacing:var(--tracking-wide);text-transform:uppercase;}
-    .logo span{color:var(--blush-dark);}
-    .icon-btn{position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-full);transition:background var(--dur-fast);}
-    .icon-btn:hover{background:var(--bg-soft);}
-    .icon-btn svg{width:20px;height:20px;stroke:var(--espresso);fill:none;stroke-width:1.6;}
-    .cart-badge{position:absolute;top:4px;right:4px;min-width:16px;height:16px;background:var(--blush-dark);color:var(--white);border-radius:var(--radius-full);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 3px;}
-    .header-actions{display:flex;align-items:center;gap:var(--space-3);flex-shrink:0;}
-    .burger{display:flex;flex-direction:column;gap:5px;width:24px;padding:var(--space-1);flex-shrink:0;}
-    .burger span{display:block;height:1.5px;background:var(--espresso);border-radius:2px;}
-    .desktop-nav{display:none;}
-    @media(min-width:900px){
-      .burger{display:none;}
-      .logo{flex:unset;font-size:var(--text-2xl);}
-      .desktop-nav{display:flex;align-items:center;gap:var(--space-8);font-size:var(--text-sm);letter-spacing:var(--tracking-wide);text-transform:uppercase;font-weight:500;flex:1;justify-content:center;}
-      .desktop-nav a{color:var(--brown-mid);transition:color var(--dur-fast);padding-bottom:2px;position:relative;}
-      .desktop-nav a.active{color:var(--espresso);}
-      .desktop-nav a.active::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:1px;background:var(--blush-dark);}
-      .desktop-nav a:hover{color:var(--espresso);}
-    }
 
     .page-wrap{max-width:1200px;margin:0 auto;padding:clamp(32px,6vw,72px) clamp(16px,4vw,40px) 100px;}
     .page-head{margin-bottom:clamp(28px,5vw,48px);padding-bottom:1.5rem;border-bottom:1px solid var(--border,#e8e2da);}
