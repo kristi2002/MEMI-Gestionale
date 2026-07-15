@@ -6,6 +6,8 @@ import { LoginPage } from '@/pages/login';
 import { buildRoutes } from '@/routes';
 import { ProductFormPage } from '@/pages/product-form';
 import { SupplierFormPage } from '@/pages/suppliers';
+import { GiftcardFormPage } from '@/pages/giftcards';
+import { DiscountFormPage } from '@/pages/discounts';
 
 function FullScreenSpinner() {
   return (
@@ -36,6 +38,10 @@ export default function App() {
           <Route path="/products/:id/edit" element={<ProductFormPage />} />
           <Route path="/suppliers/new" element={<SupplierFormPage />} />
           <Route path="/suppliers/:id/edit" element={<SupplierFormPage />} />
+          <Route path="/giftcards/new" element={<GiftcardFormPage />} />
+          <Route path="/giftcards/:id/edit" element={<GiftcardFormPage />} />
+          <Route path="/discounts/new" element={<DiscountFormPage />} />
+          <Route path="/discounts/:id/edit" element={<DiscountFormPage />} />
           {routes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />
           ))}

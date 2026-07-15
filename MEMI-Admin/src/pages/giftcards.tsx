@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Gift, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -8,7 +9,8 @@ import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
-import { EntityFormDialog, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { useGiftcards, useDeleteMany, useSaveEntity } from '@/hooks/queries';
 import { api } from '@/lib/api';
@@ -43,7 +45,7 @@ const EDIT_FIELDS: FieldConfig[] = [
 export function GiftcardsPage() {
   const query = useGiftcards();
   const del = useDeleteMany<number>((id) => api.giftcards.delete(id), 'giftcards');
-  const saveMut = useSaveEntity(api.giftcards.create, api.giftcards.update, 'giftcards');
+  const navigate = useNavigate();
   const rows = query.data?.cards ?? [];
 
   const filters = useMemo<FilterDef<GiftCard>[]>(
@@ -57,33 +59,6 @@ export function GiftcardsPage() {
   );
   const s = query.data?.summary;
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<GiftCard | null>(null);
-  const [initial, setInitial] = useState<FormValues>({});
-
-  function openCreate() {
-    setEditing(null);
-    setInitial({ initial_amount: 25 });
-    setFormOpen(true);
-  }
-  function openEdit(g: GiftCard) {
-    setEditing(g);
-    setInitial({ balance: Number(g.balance), stato: g.stato, note: (g as GiftCard & { note?: string }).note ?? '' });
-    setFormOpen(true);
-  }
-  const openEditRef = useRef(openEdit);
-  openEditRef.current = openEdit;
-
-  async function onSubmit(v: FormValues) {
-    if (editing) {
-      await saveMut.mutateAsync({ id: editing.id, data: { balance: v.balance, stato: v.stato, note: v.note || null } });
-      toast.success('Gift card aggiornata');
-    } else {
-      await saveMut.mutateAsync({ data: { initial_amount: v.initial_amount, recipient_email: v.recipient_email || null, note: v.note || null } });
-      toast.success('Gift card emessa');
-    }
-  }
-
   const columns = useMemo<ColumnDef<GiftCard, unknown>[]>(
     () => [
       { accessorKey: 'code', header: 'Codice', cell: ({ getValue }) => <code className="rounded bg-muted px-2 py-1 text-sm font-semibold">{getValue() as string}</code> },
@@ -95,7 +70,7 @@ export function GiftcardsPage() {
       {
         id: 'azioni', header: '', enableSorting: false,
         cell: ({ row }) => (
-          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original); }}>
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/giftcards/${row.original.id}/edit`); }}>
             <Pencil /> Modifica
           </Button>
         ),
@@ -109,7 +84,7 @@ export function GiftcardsPage() {
       <PageHeader
         title="Gift card"
         subtitle="Buoni regalo emessi e relativi saldi."
-        actions={<Button size="sm" onClick={openCreate}><Plus /> Nuova gift card</Button>}
+        actions={<Button size="sm" onClick={() => navigate('/giftcards/new')}><Plus /> Nuova gift card</Button>}
       />
       <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard label="Totale" value={s?.total ?? 0} icon={Gift} tone="primary" loading={query.isLoading} />
@@ -134,15 +109,41 @@ export function GiftcardsPage() {
           <BulkDelete count={selected.length} noun="gift card" onDelete={() => del.mutateAsync(selected.map((g) => g.id))} onDone={clear} />
         )}
       />
-      <EntityFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        title={editing ? `Modifica gift card: ${editing.code}` : 'Nuova gift card'}
-        fields={editing ? EDIT_FIELDS : CREATE_FIELDS}
-        initial={initial}
-        submitLabel={editing ? 'Salva modifiche' : 'Emetti gift card'}
-        onSubmit={onSubmit}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for a gift card. */
+export function GiftcardFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const query = useGiftcards();
+  const saveMut = useSaveEntity(api.giftcards.create, api.giftcards.update, 'giftcards');
+  const row = editing ? (query.data?.cards ?? []).find((g) => String(g.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return { initial_amount: 25 };
+    return row ? { balance: Number(row.balance), stato: row.stato, note: (row as GiftCard & { note?: string }).note ?? '' } : {};
+  }, [editing, row]);
+
+  return (
+    <EntityFormPage
+      title={editing ? `Modifica gift card${row ? `: ${row.code}` : ''}` : 'Nuova gift card'}
+      backPath="/giftcards"
+      backLabel="Gift card"
+      fields={editing ? EDIT_FIELDS : CREATE_FIELDS}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Emetti gift card'}
+      onSubmit={async (v) => {
+        if (editing) {
+          await saveMut.mutateAsync({ id: Number(id), data: { balance: v.balance, stato: v.stato, note: v.note || null } });
+          toast.success('Gift card aggiornata');
+        } else {
+          await saveMut.mutateAsync({ data: { initial_amount: v.initial_amount, recipient_email: v.recipient_email || null, note: v.note || null } });
+          toast.success('Gift card emessa');
+        }
+      }}
+    />
   );
 }
