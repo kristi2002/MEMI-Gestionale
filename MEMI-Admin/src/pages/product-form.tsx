@@ -7,7 +7,7 @@ import { EntityFormFields } from '@/components/common/entity-form-fields';
 import type { FieldConfig, FormValues } from '@/components/common/entity-form-fields';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCategories, useColors } from '@/hooks/queries';
+import { useCategories, useCollections, useColors } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -75,6 +75,7 @@ export function ProductFormPage() {
   const qc = useQueryClient();
 
   const categoriesQuery = useCategories();
+  const collectionsQuery = useCollections();
   const colorsQuery = useColors();
 
   const [values, setValues] = useState<FormValues>({ status: 'attivo', discount_pct: 0 });
@@ -102,6 +103,7 @@ export function ProductFormPage() {
           discount_pct: d.discount_pct || 0,
           status: d.status ?? 'attivo',
           description: d.description ?? '',
+          collections: Array.isArray(d.collections) ? d.collections : [],
           sizes,
         });
       } catch {
@@ -128,6 +130,17 @@ export function ProductFormPage() {
     if (cur && !managed.some((o) => o.value === cur)) managed.unshift({ value: cur, label: cur });
     return managed;
   }, [categoriesQuery.data, values.categoria]);
+
+  // Collection options come from the managed Collezioni entity; any current
+  // slugs not in the managed list are appended so legacy tags still show.
+  const collectionOptions = useMemo(() => {
+    const managed = (collectionsQuery.data ?? []).map((c) => ({ value: c.slug, label: c.name }));
+    const cur = Array.isArray(values.collections) ? (values.collections as string[]) : [];
+    cur.forEach((slug) => {
+      if (slug && !managed.some((o) => o.value === slug)) managed.push({ value: slug, label: slug });
+    });
+    return managed;
+  }, [collectionsQuery.data, values.collections]);
 
   // Colour options come from the managed Colori entity; current value always included.
   const colorOptions = useMemo(() => {
@@ -171,8 +184,14 @@ export function ProductFormPage() {
           help: 'Gestisci l’elenco in Prodotti → Categorie.' }
       : { name: 'categoria', label: 'Categoria', required: true, wide: true, placeholder: 'es. scarpe',
           help: 'Nessuna categoria gestita: creane in Prodotti → Categorie.' };
-    return [categoria];
-  }, [categoryOptions]);
+    const collezioni: FieldConfig = {
+      name: 'collections', label: 'Collezioni', type: 'multiselect', wide: true,
+      options: collectionOptions,
+      placeholder: collectionOptions.length ? undefined : 'Nessuna collezione: creane in Prodotti \u2192 Collezioni.',
+      help: 'Raggruppamenti editoriali che controllano le pagine collezione dello shop. Un prodotto pu\u00f2 stare in pi\u00f9 collezioni.',
+    };
+    return [categoria, collezioni];
+  }, [categoryOptions, collectionOptions]);
 
   const colorFields = useMemo<FieldConfig[]>(() => {
     const colore: FieldConfig = colorOptions.length
@@ -192,8 +211,8 @@ export function ProductFormPage() {
     setBusy(true);
     try {
       // Mirror the selected colour's display name into color_label (kept in sync
-      // with the managed palette). Collections are intentionally not sent here so
-      // a product's existing collections are preserved (managed under Collezioni).
+      // with the managed palette). Collections come from the multiselect and are
+      // sent as an array of slugs (also managed under Collezioni).
       const selectedColor = (colorsQuery.data ?? []).find((c) => c.slug === values.colore);
       const colorLabel = selectedColor?.name ?? (values.color_label as string) ?? null;
       const data: Record<string, unknown> = {
@@ -206,6 +225,7 @@ export function ProductFormPage() {
         discount_pct: values.discount_pct || 0,
         status: values.status || 'attivo',
         description: values.description || null,
+        collections: Array.isArray(values.collections) ? values.collections : [],
       };
       const sizes = parseSizes(values.sizes as string);
       if (sizes.length) data.taglie = sizes;
@@ -259,7 +279,7 @@ export function ProductFormPage() {
               <FormSection title="Stato" fields={statusFields} values={values} set={set} />
               <FormSection
                 title="Organizzazione"
-                description="Categoria del prodotto."
+                description="Categoria e collezioni del prodotto."
                 fields={organizationFields}
                 values={values}
                 set={set}
