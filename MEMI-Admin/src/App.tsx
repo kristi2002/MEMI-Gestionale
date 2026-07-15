@@ -4,6 +4,7 @@ import { AppShell } from '@/components/layout/app-shell';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { LoginPage } from '@/pages/login';
 import { buildRoutes } from '@/routes';
+import { ProductFormPage } from '@/pages/product-form';
 
 function FullScreenSpinner() {
   return (
@@ -30,6 +31,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<RequireAuth />}>
+          <Route path="/products/new" element={<ProductFormPage />} />
+          <Route path="/products/:id/edit" element={<ProductFormPage />} />
           {routes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />
           ))}
