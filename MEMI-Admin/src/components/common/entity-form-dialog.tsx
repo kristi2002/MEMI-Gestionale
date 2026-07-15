@@ -11,7 +11,16 @@ import { Button } from '@/components/ui/button';
 import { EntityFormFields } from './entity-form-fields';
 import { Loader2 } from 'lucide-react';
 
-export type FieldType = 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'date' | 'email';
+export type FieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'select'
+  | 'multiselect'
+  | 'checkbox'
+  | 'date'
+  | 'email'
+  | 'image';
 
 export interface FieldConfig {
   name: string;
@@ -20,12 +29,14 @@ export interface FieldConfig {
   options?: { value: string; label: string }[];
   placeholder?: string;
   required?: boolean;
-  /** Full-width in the 2-col grid (default true for textarea). */
+  /** Full-width in the 2-col grid (default true for textarea/multiselect/image). */
   wide?: boolean;
   help?: string;
+  /** For type 'image': upload a File and resolve to the stored URL. */
+  upload?: (file: File) => Promise<string>;
 }
 
-export type FormValues = Record<string, string | number | boolean | null | undefined>;
+export type FormValues = Record<string, string | number | boolean | string[] | null | undefined>;
 
 interface EntityFormDialogProps {
   open: boolean;

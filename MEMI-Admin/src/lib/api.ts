@@ -177,6 +177,28 @@ export const api = {
     importTemplateUrl: () => API_BASE + '/admin/products/import/template',
     feedUrl: () => API_BASE + '/feed/meta.csv',
   },
+  categories: {
+    list: () => get<import('@/types').ProductCategory[]>('/admin/categories'),
+    create: (data: unknown) => post('/admin/categories', data),
+    update: (id: number, data: unknown) => put('/admin/categories/' + id, data),
+    delete: (id: number) => del('/admin/categories/' + id),
+    uploadHero: (file: File) => {
+      const fd = new FormData();
+      fd.append('image', file);
+      return upload<{ url: string }>('/admin/categories/hero', fd);
+    },
+  },
+  collections: {
+    list: () => get<import('@/types').ProductCollection[]>('/admin/collections'),
+    create: (data: unknown) => post('/admin/collections', data),
+    update: (id: number, data: unknown) => put('/admin/collections/' + id, data),
+    delete: (id: number) => del('/admin/collections/' + id),
+    uploadHero: (file: File) => {
+      const fd = new FormData();
+      fd.append('image', file);
+      return upload<{ url: string }>('/admin/collections/hero', fd);
+    },
+  },
   customers: {
     list: (params?: Query) => get<CustomerListResponse>('/admin/customers' + qs(params)),
     get: (id: number) => get<Record<string, unknown>>('/admin/customers/' + id),

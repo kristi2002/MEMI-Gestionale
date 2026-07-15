@@ -64,6 +64,10 @@ export function useAllProducts() {
   return useQuery({ queryKey: ['products', 'all'], queryFn: () => api.products.listPaged({ limit: 1000, offset: 0 }) });
 }
 
+/* ── Managed taxonomy entities ─────────────────────────── */
+export const useCategories = () => useQuery({ queryKey: ['categories'], queryFn: () => api.categories.list() });
+export const useCollections = () => useQuery({ queryKey: ['collections'], queryFn: () => api.collections.list() });
+
 /* ── Mutations used by bulk actions ────────────────────── */
 export function useOrderStatusMutation() {
   const qc = useQueryClient();

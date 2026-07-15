@@ -33,6 +33,8 @@ const accountRoutes    = require('./routes/account');
 const adminAuthRoutes  = require('./routes/admin-auth');
 const productsRoutes   = require('./routes/products');
 const productsImportRoutes = require('./routes/products-import');
+const categoriesRoutes  = require('./routes/categories');
+const collectionsRoutes = require('./routes/collections');
 const ordersRoutes     = require('./routes/orders');
 const customersRoutes  = require('./routes/customers');
 const discountsRoutes  = require('./routes/discounts');
@@ -269,6 +271,8 @@ app.use('/api/admin/auth',        adminAuthRoutes);
 app.use('/api/products',          productVariantsRoutes);   // /:id/variants* (before flat products router)
 app.use('/api/products',          productsRoutes);
 app.use('/api/admin/products',    requireAdmin, requirePermission('products'), productsImportRoutes);   // bulk CSV import (admin)
+app.use('/api/admin/categories',  requireAdmin, requirePermission('categories'), categoriesRoutes);    // managed product categories
+app.use('/api/admin/collections', requireAdmin, requirePermission('collections'), collectionsRoutes);  // managed product collections
 app.use('/api/orders',            ordersRoutes);
 app.use('/api/admin/customers',   requireAdmin, requirePermission('customers'), customersRoutes);
 app.use('/api/admin/discounts',   requireAdmin, requirePermission('discounts'), discountsRoutes);

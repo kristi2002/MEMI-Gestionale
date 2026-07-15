@@ -1,8 +1,13 @@
+import { useRef, useState } from 'react';
+import { Loader2, Upload, X } from 'lucide-react';
 import type { FieldConfig, FormValues } from './entity-form-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 /**
  * The config-driven field grid, shared by EntityFormDialog (modal) and full-page
@@ -22,7 +27,7 @@ export function EntityFormFields({
     <>
       {fields.map((f) => {
         const t = f.type ?? 'text';
-        const wide = f.wide ?? t === 'textarea';
+        const wide = f.wide ?? (t === 'textarea' || t === 'multiselect' || t === 'image');
         const val = values[f.name];
         return (
           <div key={f.name} className={`space-y-1.5 ${wide ? 'sm:col-span-2' : ''}`}>
@@ -54,6 +59,10 @@ export function EntityFormFields({
                   ))}
                 </SelectContent>
               </Select>
+            ) : t === 'multiselect' ? (
+              <MultiSelectField field={f} value={Array.isArray(val) ? (val as string[]) : []} set={set} />
+            ) : t === 'image' ? (
+              <ImageField field={f} value={(val as string) || ''} set={set} />
             ) : t === 'checkbox' ? (
               <label className="flex cursor-pointer items-center gap-2 pt-1">
                 <Checkbox checked={!!val} onCheckedChange={(v) => set(f.name, !!v)} />
@@ -75,5 +84,103 @@ export function EntityFormFields({
         );
       })}
     </>
+  );
+}
+
+/** Toggleable chips for a string[] value. */
+function MultiSelectField({
+  field,
+  value,
+  set,
+}: {
+  field: FieldConfig;
+  value: string[];
+  set: (name: string, v: FormValues[string]) => void;
+}) {
+  const options = field.options ?? [];
+  if (options.length === 0) {
+    return <p className="text-sm text-muted-foreground">{field.placeholder ?? 'Nessuna opzione disponibile.'}</p>;
+  }
+  const toggle = (v: string) =>
+    set(field.name, value.includes(v) ? value.filter((x) => x !== v) : [...value, v]);
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => {
+        const on = value.includes(o.value);
+        return (
+          <button
+            type="button"
+            key={o.value}
+            aria-pressed={on}
+            onClick={() => toggle(o.value)}
+            className={cn(
+              'rounded-full border px-3 py-1 text-sm transition-colors',
+              on
+                ? 'border-primary bg-primary/10 font-medium text-primary'
+                : 'border-input text-muted-foreground hover:bg-muted',
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Image upload with preview; stores the resulting URL string in the field. */
+function ImageField({
+  field,
+  value,
+  set,
+}: {
+  field: FieldConfig;
+  value: string;
+  set: (name: string, v: FormValues[string]) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function onFile(file: File) {
+    if (!field.upload) return;
+    setBusy(true);
+    try {
+      const url = await field.upload(file);
+      set(field.name, url);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Caricamento non riuscito');
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = '';
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-muted">
+        {value ? (
+          <img src={value} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-xs text-muted-foreground">Nessuna</span>
+        )}
+      </div>
+      <div className="flex flex-col gap-2">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
+        />
+        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
+          {busy ? <Loader2 className="animate-spin" /> : <Upload />} {value ? 'Cambia immagine' : 'Carica immagine'}
+        </Button>
+        {value && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => set(field.name, '')}>
+            <X /> Rimuovi
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }

@@ -6,6 +6,8 @@ import { PageHeader } from '@/components/common/page-header';
 import { EntityFormFields } from '@/components/common/entity-form-fields';
 import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCategories, useCollections } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -32,17 +34,50 @@ type ProductDetail = {
   discount_pct?: number | null;
   status?: string;
   description?: string | null;
+  collections?: string[];
   taglie?: (string | { taglia: string; stock?: number })[];
 };
 
-/** Full-page create/edit form for a catalog product (replaces the old modal). */
+/** A titled card wrapping a subset of the config-driven fields. */
+function FormSection({
+  title,
+  description,
+  fields,
+  values,
+  set,
+}: {
+  title: string;
+  description?: string;
+  fields: FieldConfig[];
+  values: FormValues;
+  set: (name: string, v: FormValues[string]) => void;
+}) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <EntityFormFields fields={fields} values={values} set={set} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/** Full-page create/edit form for a catalog product (Shopify-style layout). */
 export function ProductFormPage() {
   const { id } = useParams<{ id: string }>();
   const editing = id != null;
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const [values, setValues] = useState<FormValues>({ status: 'attivo', discount_pct: 0 });
+  const categoriesQuery = useCategories();
+  const collectionsQuery = useCollections();
+
+  const [values, setValues] = useState<FormValues>({ status: 'attivo', discount_pct: 0, collections: [] });
   const [loading, setLoading] = useState<boolean>(editing);
   const [busy, setBusy] = useState(false);
 
@@ -67,6 +102,7 @@ export function ProductFormPage() {
           discount_pct: d.discount_pct || 0,
           status: d.status ?? 'attivo',
           description: d.description ?? '',
+          collections: Array.isArray(d.collections) ? d.collections : [],
           sizes,
         });
       } catch {
@@ -85,30 +121,73 @@ export function ProductFormPage() {
     setValues((prev) => ({ ...prev, [name]: v }));
   }
 
-  const fields = useMemo<FieldConfig[]>(() => {
-    const base: FieldConfig[] = [
+  /** Category options come from the managed Categorie entity; the current value is
+   *  always included so legacy products with an unmanaged slug still edit cleanly. */
+  const categoryOptions = useMemo(() => {
+    const managed = (categoriesQuery.data ?? []).map((c) => ({ value: c.slug, label: c.name }));
+    const cur = (values.categoria as string) || '';
+    if (cur && !managed.some((o) => o.value === cur)) managed.unshift({ value: cur, label: cur });
+    return managed;
+  }, [categoriesQuery.data, values.categoria]);
+
+  const collectionOptions = useMemo(
+    () => (collectionsQuery.data ?? []).map((c) => ({ value: c.slug, label: c.name })),
+    [collectionsQuery.data],
+  );
+
+  // ── Field groups (rendered as separate cards) ──────────────────────────────
+  const detailFields = useMemo<FieldConfig[]>(() => {
+    const f: FieldConfig[] = [
       { name: 'name', label: 'Nome', required: true, wide: true },
-      { name: 'categoria', label: 'Categoria', required: true, help: 'es. vestiti, top, pantaloni, gonne, blazer, set, scarpe, borse, gioielli, cinture' },
-      { name: 'status', label: 'Stato', type: 'select', options: [
-          { value: 'attivo', label: 'Attivo' }, { value: 'bozza', label: 'Bozza' }, { value: 'esaurito', label: 'Esaurito' },
-        ] },
-      { name: 'colore', label: 'Colore (chiave)', placeholder: 'blush' },
-      { name: 'color_label', label: 'Colore (etichetta)', placeholder: 'Rosa cipria' },
-      { name: 'price', label: 'Prezzo €', type: 'number', required: true },
-      { name: 'original_price', label: 'Prezzo originale €', type: 'number', help: 'Vuoto se non in saldo.' },
-      { name: 'discount_pct', label: 'Sconto %', type: 'number' },
-      { name: 'sizes', label: 'Taglie e stock', wide: true, placeholder: 'S:10, M:5, L:0', help: 'Coppie taglia:quantità separate da virgola. Taglia unica → "Unica:20". Le immagini si caricano via importazione CSV.' },
       { name: 'description', label: 'Descrizione', type: 'textarea', wide: true },
     ];
-    if (editing) return base;
-    return [
-      { name: 'id', label: 'ID (slug)', required: true, placeholder: 'es. blazer-lino-avorio', help: 'Identificativo univoco minuscolo, usato nell’URL del prodotto.' },
-      ...base,
-    ];
+    if (!editing) {
+      f.unshift({ name: 'id', label: 'ID (slug)', required: true, wide: true, placeholder: 'es. blazer-lino-avorio', help: 'Identificativo univoco minuscolo, usato nell’URL del prodotto.' });
+    }
+    return f;
   }, [editing]);
+
+  const priceFields: FieldConfig[] = [
+    { name: 'price', label: 'Prezzo €', type: 'number', required: true },
+    { name: 'original_price', label: 'Prezzo originale €', type: 'number', help: 'Vuoto se non in saldo.' },
+    { name: 'discount_pct', label: 'Sconto %', type: 'number' },
+  ];
+
+  const stockFields: FieldConfig[] = [
+    { name: 'sizes', label: 'Taglie e stock', wide: true, placeholder: 'S:10, M:5, L:0', help: 'Coppie taglia:quantità separate da virgola. Taglia unica → "Unica:20". Le immagini si caricano via importazione CSV.' },
+  ];
+
+  const statusFields: FieldConfig[] = [
+    { name: 'status', label: 'Stato', type: 'select', wide: true, options: [
+        { value: 'attivo', label: 'Attivo' }, { value: 'bozza', label: 'Bozza' }, { value: 'esaurito', label: 'Esaurito' },
+      ] },
+  ];
+
+  const organizationFields = useMemo<FieldConfig[]>(() => {
+    const categoria: FieldConfig = categoryOptions.length
+      ? { name: 'categoria', label: 'Categoria', type: 'select', required: true, wide: true, placeholder: 'Seleziona categoria…', options: categoryOptions,
+          help: 'Gestisci l’elenco in Prodotti → Categorie.' }
+      : { name: 'categoria', label: 'Categoria', required: true, wide: true, placeholder: 'es. scarpe',
+          help: 'Nessuna categoria gestita: creane in Prodotti → Categorie.' };
+    return [
+      categoria,
+      { name: 'collections', label: 'Collezioni', type: 'multiselect', wide: true, options: collectionOptions,
+        placeholder: 'Nessuna collezione: creane in Prodotti → Collezioni.',
+        help: 'Facoltativo. Raggruppamenti editoriali/stagionali (es. Estate 2025).' },
+    ];
+  }, [categoryOptions, collectionOptions]);
+
+  const colorFields: FieldConfig[] = [
+    { name: 'colore', label: 'Colore (chiave)', placeholder: 'blush' },
+    { name: 'color_label', label: 'Colore (etichetta)', placeholder: 'Rosa cipria' },
+  ];
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!values.categoria) {
+      toast.error('La categoria è obbligatoria');
+      return;
+    }
     setBusy(true);
     try {
       const data: Record<string, unknown> = {
@@ -121,6 +200,7 @@ export function ProductFormPage() {
         discount_pct: values.discount_pct || 0,
         status: values.status || 'attivo',
         description: values.description || null,
+        collections: Array.isArray(values.collections) ? values.collections : [],
       };
       const sizes = parseSizes(values.sizes as string);
       if (sizes.length) data.taglie = sizes;
@@ -151,7 +231,7 @@ export function ProductFormPage() {
         title={editing ? 'Modifica prodotto' : 'Nuovo prodotto'}
         subtitle={
           editing
-            ? 'Aggiorna dettagli, prezzi e stock per taglia.'
+            ? 'Aggiorna dettagli, prezzi, organizzazione e stock per taglia.'
             : 'Crea un prodotto nel catalogo. Le immagini si caricano dopo, via importazione CSV.'
         }
       />
@@ -161,13 +241,29 @@ export function ProductFormPage() {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <form onSubmit={submit} className="max-w-3xl">
-          <div className="rounded-lg border bg-card p-5 sm:p-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <EntityFormFields fields={fields} values={values} set={set} />
+        <form onSubmit={submit}>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {/* Main column */}
+            <div className="space-y-6 lg:col-span-2">
+              <FormSection title="Dettagli" fields={detailFields} values={values} set={set} />
+              <FormSection title="Prezzi" fields={priceFields} values={values} set={set} />
+              <FormSection title="Taglie e magazzino" fields={stockFields} values={values} set={set} />
+            </div>
+            {/* Side column */}
+            <div className="space-y-6">
+              <FormSection title="Stato" fields={statusFields} values={values} set={set} />
+              <FormSection
+                title="Organizzazione"
+                description="Categoria (una) e collezioni (facoltative)."
+                fields={organizationFields}
+                values={values}
+                set={set}
+              />
+              <FormSection title="Colore" fields={colorFields} values={values} set={set} />
             </div>
           </div>
-          <div className="mt-4 flex items-center gap-2">
+
+          <div className="mt-6 flex items-center gap-2">
             <Button type="submit" disabled={busy}>
               {busy && <Loader2 className="animate-spin" />} {editing ? 'Salva modifiche' : 'Crea prodotto'}
             </Button>

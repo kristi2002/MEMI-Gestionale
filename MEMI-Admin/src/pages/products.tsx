@@ -10,7 +10,7 @@ import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useProducts, flattenProducts, useDeleteProducts } from '@/hooks/queries';
+import { useProducts, flattenProducts, useDeleteProducts, useCategories } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { eur } from '@/lib/format';
 import type { ProductImage, ProductRow } from '@/types';
@@ -44,10 +44,15 @@ export function ProductsPage() {
   const [status, setStatus] = useState('all');
 
   const all = useMemo(() => flattenProducts(query.data?.pages), [query.data]);
-  const categories = useMemo(
-    () => [...new Set(all.map((p) => p.categoria).filter(Boolean))].sort(),
-    [all],
-  );
+  const categoriesQuery = useCategories();
+  // Prefer the managed Categorie list (complete regardless of pagination); fall
+  // back to / merge with categories derived from whatever products are loaded so
+  // a legacy product with an unmanaged slug is still filterable.
+  const categories = useMemo(() => {
+    const managed = (categoriesQuery.data ?? []).map((c) => c.slug);
+    const derived = all.map((p) => p.categoria).filter(Boolean);
+    return [...new Set([...managed, ...derived])].sort();
+  }, [categoriesQuery.data, all]);
   const rows = useMemo(
     () =>
       all.filter(

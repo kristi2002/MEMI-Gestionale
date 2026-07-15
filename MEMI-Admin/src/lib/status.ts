@@ -13,6 +13,7 @@ const LABELS: Record<string, string> = {
   in_consegna: 'In consegna',
   problema: 'Problema',
   attivo: 'Attivo',
+  attiva: 'Attiva',
   disattivo: 'Disattivo',
   pianificato: 'Pianificato',
   bozza: 'Bozza',

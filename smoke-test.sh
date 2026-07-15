@@ -264,6 +264,8 @@ if [ -n "${ADMIN_TOKEN:-}" ]; then
   crud "customer" "/api/admin/customers" '{"nome":"Smoke","cognome":"Cliente","email":"smoke_cust@smoke.local"}' "/api/admin/customers"
   crud "staff"    "/api/admin/staff"     '{"nome":"Smoke Staff","email":"smoke_staff@smoke.local","password":"smokepass123","role":"staff"}' "/api/admin/staff"
   crud "discount" "/api/admin/discounts" '{"code":"SMOKE10","tipo":"percentuale","valore":10}' "/api/admin/discounts"
+  crud "category"   "/api/admin/categories"  '{"name":"Smoke Categoria","slug":"smoke-categoria"}'   "/api/admin/categories"
+  crud "collection" "/api/admin/collections" '{"name":"Smoke Collezione","slug":"smoke-collezione"}' "/api/admin/collections"
 else
   ko "no admin token — skipping admin CRUD"
 fi

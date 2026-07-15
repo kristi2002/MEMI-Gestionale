@@ -119,6 +119,16 @@ dashboard.html loads
 | `products.uploadImages()` | `POST /api/products/:id/images` (multipart; sharp→WebP) |
 | `products.deleteImage()` | `DELETE /api/products/:id/images` |
 | (public) image served | `GET /api/uploads/:file` (static, from `uploads_data`) |
+| `categories.list()` | `GET /api/admin/categories` (managed categories + live product counts) |
+| `categories.create()` | `POST /api/admin/categories` |
+| `categories.update()` | `PUT /api/admin/categories/:id` (slug immutable) |
+| `categories.delete()` | `DELETE /api/admin/categories/:id` |
+| `categories.uploadHero()` | `POST /api/admin/categories/hero` (multipart; sharp→WebP → `{url}`) |
+| `collections.list()` | `GET /api/admin/collections` (managed collections + live product counts) |
+| `collections.create()` | `POST /api/admin/collections` |
+| `collections.update()` | `PUT /api/admin/collections/:id` (slug immutable) |
+| `collections.delete()` | `DELETE /api/admin/collections/:id` |
+| `collections.uploadHero()` | `POST /api/admin/collections/hero` (multipart; sharp→WebP → `{url}`) |
 | `orders.list()` | `GET /api/orders/admin/list` |
 | `orders.get()` | `GET /api/orders/admin/:id` |
 | `orders.updateStatus()` | `PUT /api/orders/admin/:id/status` |

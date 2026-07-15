@@ -311,6 +311,36 @@ const STATEMENTS = [
      UNIQUE KEY uq_email_event (type, dedup_key, email),
      KEY idx_email_events_type (type, created_at)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Product taxonomy: managed categories & collections ──────────────────────
+  //  Products still carry `categoria` (a single slug) and `collections` (a JSON
+  //  array of slugs) as their source of truth for filtering; these tables add the
+  //  editorial metadata (display name, description, hero image, publish state,
+  //  ordering) and make each taxonomy a first-class managed entity in the admin.
+  //  `slug` is the stable key products reference and is immutable after creation.
+  `CREATE TABLE IF NOT EXISTS product_categories (
+     id          INT AUTO_INCREMENT PRIMARY KEY,
+     slug        VARCHAR(120) NOT NULL UNIQUE,
+     name        VARCHAR(160) NOT NULL,
+     description TEXT NULL,
+     hero_image  VARCHAR(500) NULL,
+     stato       ENUM('attiva','bozza') DEFAULT 'attiva',
+     sort_order  INT DEFAULT 0,
+     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  `CREATE TABLE IF NOT EXISTS product_collections (
+     id          INT AUTO_INCREMENT PRIMARY KEY,
+     slug        VARCHAR(120) NOT NULL UNIQUE,
+     name        VARCHAR(160) NOT NULL,
+     description TEXT NULL,
+     hero_image  VARCHAR(500) NULL,
+     stato       ENUM('attiva','bozza') DEFAULT 'attiva',
+     sort_order  INT DEFAULT 0,
+     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');
@@ -480,6 +510,52 @@ async function bootstrapAdmin(pool) {
   } catch (_) { /* admin_users may not exist yet on a brand-new DB */ }
 }
 
+/**
+ * Seed the managed taxonomy tables from the values already present on products,
+ * but ONLY when a table is still empty — so an admin who later renames or deletes
+ * a category/collection is never overruled on the next boot. Best-effort: any
+ * failure is logged and swallowed (the tables still work, just unseeded).
+ */
+async function seedTaxonomies(pool) {
+  try {
+    const [[cat]] = await pool.query('SELECT COUNT(*) AS c FROM product_categories');
+    if (Number(cat.c) === 0) {
+      await pool.query(
+        `INSERT IGNORE INTO product_categories (slug, name)
+         SELECT DISTINCT categoria, categoria FROM products
+         WHERE categoria IS NOT NULL AND categoria <> ''`
+      );
+    }
+  } catch (err) {
+    console.error('   ! seed product_categories skipped:', err.message);
+  }
+  try {
+    const [[col]] = await pool.query('SELECT COUNT(*) AS c FROM product_collections');
+    if (Number(col.c) === 0) {
+      const [rows] = await pool.query('SELECT collections FROM products WHERE collections IS NOT NULL');
+      const seen = new Set();
+      for (const r of rows) {
+        let arr = r.collections;
+        if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (_) { arr = []; } }
+        if (Array.isArray(arr)) {
+          for (const c of arr) {
+            const s = String(c || '').trim();
+            if (s) seen.add(s);
+          }
+        }
+      }
+      for (const slug of seen) {
+        await pool.query(
+          'INSERT IGNORE INTO product_collections (slug, name) VALUES (?, ?)',
+          [slug, slug]
+        );
+      }
+    }
+  } catch (err) {
+    console.error('   ! seed product_collections skipped:', err.message);
+  }
+}
+
 async function runMigrations(pool) {
   // 1. Heal any missing core tables from schema.sql
   try {
@@ -556,6 +632,8 @@ async function runMigrations(pool) {
   } catch (err) {
     console.error('⚠️  column/index migration warning:', err.message);
   }
+  // 3b. Seed managed taxonomy tables from existing catalog values (idempotent).
+  await seedTaxonomies(pool);
   // 4. Admin bootstrap + default-credential safety check
   await bootstrapAdmin(pool);
   console.log(`✅  Migrations applied (${STATEMENTS.length} feature tables + columns/indexes ensured)`);

@@ -147,6 +147,22 @@ export interface ProductRow {
   stock_total: number;
 }
 
+/** Managed taxonomy entity — shared shape for categories and collections. */
+export interface Taxonomy {
+  id: number;
+  slug: string;
+  name: string;
+  description: string | null;
+  hero_image: string | null;
+  stato: 'attiva' | 'bozza';
+  sort_order: number;
+  product_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+export type ProductCategory = Taxonomy;
+export type ProductCollection = Taxonomy;
+
 export interface CustomerRow {
   id: number;
   email: string;
