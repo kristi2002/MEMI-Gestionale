@@ -35,6 +35,7 @@ const productsRoutes   = require('./routes/products');
 const productsImportRoutes = require('./routes/products-import');
 const categoriesRoutes  = require('./routes/categories');
 const collectionsRoutes = require('./routes/collections');
+const collectionsPublicRoutes = require('./routes/collections-public');
 const colorsRoutes      = require('./routes/colors');
 const ordersRoutes     = require('./routes/orders');
 const customersRoutes  = require('./routes/customers');
@@ -271,6 +272,7 @@ app.use('/api/auth',              accountRoutes);   // wishlist, addresses, news
 app.use('/api/admin/auth',        adminAuthRoutes);
 app.use('/api/products',          productVariantsRoutes);   // /:id/variants* (before flat products router)
 app.use('/api/products',          productsRoutes);
+app.use('/api/collections',       collectionsPublicRoutes);   // public read-only collection metadata (storefront hero/title)
 app.use('/api/admin/products',    requireAdmin, requirePermission('products'), productsImportRoutes);   // bulk CSV import (admin)
 app.use('/api/admin/categories',  requireAdmin, requirePermission('categories'), categoriesRoutes);    // managed product categories
 app.use('/api/admin/collections', requireAdmin, requirePermission('collections'), collectionsRoutes);  // managed product collections

@@ -172,10 +172,42 @@
   }
 
   /* ── Main ──────────────────────────────────────────────── */
+  /* Overlay the admin-managed collection title / hero / description on top of the
+     values baked into the generated HTML, so editing a collection in the admin
+     (name, hero image, description) actually shows up on the storefront. Only
+     published (attiva) collections return metadata; missing fields keep the baked
+     default. Text is applied via textContent (no HTML injection from the DB). */
+  function applyCollectionMeta(slug) {
+    if (!slug) return;
+    fetch('/api/collections/' + encodeURIComponent(slug))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (c) {
+        if (!c) return;
+        // Only override when an admin gave the collection a real name — the seed
+        // back-fills name=slug as a placeholder, and the generated pages already
+        // carry curated titles we should keep until someone edits them.
+        if (c.name && c.name !== c.slug) {
+          var t = document.querySelector('.page-hero-title') || document.querySelector('#shopHero h1');
+          if (t) t.textContent = c.name;
+        }
+        if (c.description) {
+          var sub = document.querySelector('.page-hero-sub');
+          if (sub) sub.textContent = c.description;
+        }
+        if (c.hero_image) {
+          var bg = document.querySelector('.editorial-hero-bg');
+          if (bg) bg.setAttribute('src', c.hero_image);
+        }
+      })
+      .catch(function () {});
+  }
+
   function init() {
     var cfg  = resolveConfig();
     var grid = pickGrid(cfg);
     if (!grid) return;
+
+    applyCollectionMeta(cfg.collection);
 
     var url = '/api/products?limit=' + (cfg.limit ? Math.max(cfg.limit, 100) : 200);
     if (cfg.collection) url += '&collection=' + encodeURIComponent(cfg.collection);

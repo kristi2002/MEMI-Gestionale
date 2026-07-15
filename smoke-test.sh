@@ -305,6 +305,14 @@ else
 fi
 
 echo
+# 9b — Public collection metadata (storefront hero/title read admin-managed values)
+echo "[9b] Public collection metadata"
+NPUBCOL="$(curl -fsS "$BASE/api/collections" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const j=JSON.parse(d);console.log(Array.isArray(j)?j.length:0)}catch(e){console.log(0)}})' 2>/dev/null)"
+[ "${NPUBCOL:-0}" -ge 1 ] && ok "GET /api/collections -> $NPUBCOL published collections" || ko "GET /api/collections -> ${NPUBCOL:-0} (expected >= 1)"
+CPUBNAME="$(curl -fsS "$BASE/api/collections/estate-2025" 2>/dev/null | jget name)"
+[ -n "$CPUBNAME" ] && ok "GET /api/collections/estate-2025 -> name '$CPUBNAME'" || ko "GET /api/collections/:slug returned no name"
+
+echo
 # 10 — Payments config + PayPal provider gating (go-live pass)
 echo "[10] Payments config + provider gating"
 CFG="$(curl -fsS "$BASE/api/payments/config" 2>/dev/null)"

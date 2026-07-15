@@ -20,6 +20,7 @@ The e-commerce site (`Memi Abbigliamento/`) is HTML/CSS/JS served by nginx. **Th
 |---------|----------|------|
 | **Shop listing** | `GET /api/products?limit=200` | shop.html → `initShopCatalog()` |
 | **Collection pages** (15 `collections/<slug>/`, `estate-2025.html`) | `GET /api/products?collection=<slug>` | `catalog-loader.js` |
+| **Collection hero/title** (managed name, hero image, description) | `GET /api/collections/:slug` | `catalog-loader.js` → `applyCollectionMeta()` |
 | **Best-sellers** (`best-seller.html`) | `GET /api/products` (popularity DESC) | `catalog-loader.js` (`mode:'best-seller'`) |
 | **Product detail** | `GET /api/products/:id` | product.html (`?id=`) ; static `products/<slug>/` now redirect here |
 | **Search** | `GET /api/products?limit=300` → filtered client-side | search.html (builds `window.PRODUCTS` from API) |
