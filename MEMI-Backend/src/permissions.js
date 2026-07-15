@@ -22,7 +22,7 @@ const STAFF_VIEWS = [
   'dashboard', 'orders', 'orders-drafts', 'orders-abandoned', 'returns', 'invoices',
   'products', 'inventory', 'transfers', 'collections', 'categories', 'giftcards',
   'customers', 'loyalty', 'segments', 'reviews', 'marketing', 'automations',
-  'newsletter', 'popups', 'discounts', 'content', 'blog', 'files',
+  'lifecycle', 'newsletter', 'popups', 'discounts', 'content', 'blog', 'files',
   'couriers', 'shipments', 'tracking', 'shipping-zones', 'pickup', 'chat',
   'online-store', 'social', 'pos', 'apps',
 ];
@@ -33,7 +33,7 @@ const PRESETS = {
   staff: STAFF_VIEWS,
   warehouse: ['dashboard', 'products', 'inventory', 'transfers', 'collections', 'categories', 'giftcards', 'couriers', 'shipments', 'tracking', 'shipping-zones', 'pickup', 'orders', 'orders-drafts', 'orders-abandoned'],
   customer_service: ['dashboard', 'orders', 'orders-drafts', 'orders-abandoned', 'returns', 'invoices', 'customers', 'loyalty', 'segments', 'reviews', 'chat', 'newsletter'],
-  marketing: ['dashboard', 'marketing', 'automations', 'newsletter', 'popups', 'discounts', 'content', 'blog', 'files', 'analytics', 'reports', 'reviews'],
+  marketing: ['dashboard', 'marketing', 'automations', 'lifecycle', 'newsletter', 'popups', 'discounts', 'content', 'blog', 'files', 'analytics', 'reports', 'reviews'],
 };
 
 function resolvePermissions(role, permissionsJson) {

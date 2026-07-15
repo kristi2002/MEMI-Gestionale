@@ -38,7 +38,7 @@
       'stat.points':'Punti fedeltà','stat.orders':'Ordini','stat.wishlist':'Nella lista desideri',
       'ov.recent':'Ordine più recente','ov.all':'Tutti','ov.level':'Livello','ov.noorders':'Nessun ordine ancora.','ov.startshop':'Inizia lo shopping',
       'tier.next':'Ti mancano','tier.points_to':'punti per il livello','tier.max':'Sei al livello massimo,','tier.max2':'Grazie!',
-      'field.nome':'Nome','field.cognome':'Cognome','field.email':'Email','field.tel':'Telefono',
+      'field.nome':'Nome','field.cognome':'Cognome','field.email':'Email','field.tel':'Telefono','field.birthday':'Data di nascita',
       'field.indirizzo':'Indirizzo','field.citta':'Città','field.cap':'CAP','field.paese':'Paese',
       'btn.edit':'Modifica','btn.save':'Salva modifiche','btn.cancel':'Annulla','btn.add':'Aggiungi',
       'msg.saved':'Modifiche salvate ✓','msg.err':'Errore. Riprova.',
@@ -98,7 +98,7 @@
       'stat.points':'Loyalty points','stat.orders':'Orders','stat.wishlist':'In your wishlist',
       'ov.recent':'Most recent order','ov.all':'All','ov.level':'Level','ov.noorders':'No orders yet.','ov.startshop':'Start shopping',
       'tier.next':'You need','tier.points_to':'points to reach','tier.max':'You are at the top level,','tier.max2':'Thank you!',
-      'field.nome':'First name','field.cognome':'Last name','field.email':'Email','field.tel':'Phone',
+      'field.nome':'First name','field.cognome':'Last name','field.email':'Email','field.tel':'Phone','field.birthday':'Date of birth',
       'field.indirizzo':'Address','field.citta':'City','field.cap':'ZIP','field.paese':'Country',
       'btn.edit':'Edit','btn.save':'Save changes','btn.cancel':'Cancel','btn.add':'Add',
       'msg.saved':'Changes saved ✓','msg.err':'Error. Please try again.',
@@ -456,6 +456,7 @@
           dataRow(t('field.cognome'), user.cognome) +
           dataRow(t('field.email'), user.email) +
           dataRow(t('field.tel'), user.telefono) +
+          dataRow(t('field.birthday'), (user.birthday||'').slice(0,10)) +
           '<div class="ap-actions"><button class="btn-primary-solid" id="profileEditBtn"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;vertical-align:-2px;margin-right:6px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' + t('btn.edit') + '</button></div>' +
         '</div>' +
         passwordBlock();
@@ -466,6 +467,7 @@
         '<div><label class="field-label">' + t('field.cognome') + '</label><input class="field-input" type="text" id="pfCognome" value="' + v(user.cognome) + '" /></div>' +
         '<div class="field-full"><label class="field-label">' + t('field.email') + '</label><input class="field-input" type="email" id="pfEmail" value="' + v(user.email) + '" /></div>' +
         '<div class="field-full"><label class="field-label">' + t('field.tel') + '</label><input class="field-input" type="tel" id="pfTel" value="' + v(user.telefono) + '" /></div>' +
+        '<div class="field-full"><label class="field-label">' + t('field.birthday') + '</label><input class="field-input" type="date" id="pfBirthday" max="2020-12-31" value="' + v((user.birthday||'').slice(0,10)) + '" /></div>' +
         '<div class="profile-form-footer"><button type="submit" class="btn-primary-solid">' + t('btn.save') + '</button>' +
           '<button type="button" class="btn-outline" id="profileCancelBtn">' + t('btn.cancel') + '</button>' +
           '<span id="profileMsg" class="ap-msg"></span></div>' +
@@ -906,6 +908,7 @@
       var msgEl = el('profileMsg'), btn = pf.querySelector('[type=submit]');
       btn.disabled = true;
       var payload = { nome:el('pfNome').value.trim(), cognome:el('pfCognome').value.trim(), email:el('pfEmail').value.trim(), telefono:el('pfTel').value.trim() };
+      if (el('pfBirthday')) payload.birthday = el('pfBirthday').value; // '' clears it server-side
       window.MemiAPI.auth.updateMe(payload).then(function(){
         Object.keys(payload).forEach(function(k){ loadedUser[k] = payload[k]; });
         msgEl.className='ap-msg ok'; msgEl.textContent=t('msg.saved');
