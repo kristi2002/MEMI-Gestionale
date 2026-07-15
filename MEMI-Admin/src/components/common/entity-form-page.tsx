@@ -8,43 +8,40 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
-export interface FormSectionDef {
-  /** Card title. Omit for a single untitled card. */
-  title?: string;
-  description?: string;
-  fields: FieldConfig[];
-}
-
 /**
  * Full-page create/edit form — the page-based replacement for EntityFormDialog.
- * Renders one or more titled cards of config-driven fields with a back link and a
- * sticky submit row, matching the ProductFormPage look. Entities pass their field
- * config + initial values + an onSubmit; this owns the form state and navigation.
+ * Mirrors the ProductFormPage layout: a wide main column of fields plus a side
+ * "Impostazioni" rail. Fields flagged `side: true` go to the rail; everything
+ * else fills the main card. When no field is flagged, it falls back to a single
+ * comfortable-width card. Entities pass their field config + initial values + an
+ * onSubmit; this owns the form state and navigation.
  */
 export function EntityFormPage({
   title,
   subtitle,
   backPath,
   backLabel,
-  sections,
   fields,
   initial,
   submitLabel,
   onSubmit,
   loading,
+  mainTitle = 'Dettagli',
+  sideTitle = 'Impostazioni',
 }: {
   title: string;
   subtitle?: string;
   backPath: string;
   backLabel: string;
-  /** Either a flat field list… */
-  fields?: FieldConfig[];
-  /** …or grouped sections (each a card). */
-  sections?: FormSectionDef[];
+  fields: FieldConfig[];
   initial: FormValues;
   submitLabel: string;
   onSubmit: (values: FormValues) => Promise<void>;
   loading?: boolean;
+  /** Title of the main column card. */
+  mainTitle?: string;
+  /** Title of the side rail card (shown only when some fields are `side`). */
+  sideTitle?: string;
 }) {
   const navigate = useNavigate();
   const [values, setValues] = useState<FormValues>(initial);
@@ -55,7 +52,10 @@ export function EntityFormPage({
   }, [initial]);
 
   const set = (name: string, v: FormValues[string]) => setValues((p) => ({ ...p, [name]: v }));
-  const groups: FormSectionDef[] = sections ?? [{ fields: fields ?? [] }];
+
+  const mainFields = fields.filter((f) => !f.side);
+  const sideFields = fields.filter((f) => f.side);
+  const hasSide = sideFields.length > 0;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -82,23 +82,40 @@ export function EntityFormPage({
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <form onSubmit={submit} className="max-w-3xl space-y-5">
-          {groups.map((g, i) => (
-            <Card key={i}>
-              {g.title && (
+        <form onSubmit={submit}>
+          <div className={hasSide ? 'grid grid-cols-1 gap-6 lg:grid-cols-3' : ''}>
+            {/* Main column */}
+            <div className={hasSide ? 'space-y-6 lg:col-span-2' : 'max-w-3xl'}>
+              <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-base">{g.title}</CardTitle>
-                  {g.description && <p className="text-sm text-muted-foreground">{g.description}</p>}
+                  <CardTitle className="text-base">{mainTitle}</CardTitle>
                 </CardHeader>
-              )}
-              <CardContent className={g.title ? '' : 'pt-6'}>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <EntityFormFields fields={g.fields} values={values} set={set} />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-          <div className="flex items-center gap-2">
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <EntityFormFields fields={mainFields} values={values} set={set} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Side rail */}
+            {hasSide && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">{sideTitle}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 gap-4">
+                      <EntityFormFields fields={sideFields} values={values} set={set} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex items-center gap-2">
             <Button type="submit" disabled={busy}>
               {busy && <Loader2 className="animate-spin" />} {submitLabel}
             </Button>

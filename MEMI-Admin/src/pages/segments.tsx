@@ -21,8 +21,8 @@ import { toast } from 'sonner';
 const fields: FieldConfig[] = [
   { name: 'nome', label: 'Nome segmento', required: true },
   { name: 'descrizione', label: 'Descrizione', type: 'textarea', wide: true },
-  { name: 'min_spent', label: 'Spesa minima (€)', type: 'number' },
-  { name: 'min_orders', label: 'Ordini minimi', type: 'number' },
+  { name: 'min_spent', label: 'Spesa minima (€)', type: 'number', side: true },
+  { name: 'min_orders', label: 'Ordini minimi', type: 'number', side: true },
 ];
 
 const exportColumns: ExportColumn<Segment>[] = [
@@ -111,6 +111,8 @@ export function SegmentFormPage() {
       title={editing ? 'Modifica segmento' : 'Nuovo segmento'}
       backPath="/segments"
       backLabel="Segmenti"
+      mainTitle="Segmento"
+      sideTitle="Regole di appartenenza"
       fields={fields}
       initial={initial}
       loading={editing && !row && query.isLoading}

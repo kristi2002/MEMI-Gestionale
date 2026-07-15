@@ -34,14 +34,14 @@ const ROLE_OPTS = [
 
 const STAFF_EDIT_FIELDS: FieldConfig[] = [
   { name: 'nome', label: 'Nome', required: true },
-  { name: 'role', label: 'Ruolo', type: 'select', options: ROLE_OPTS },
   { name: 'password', label: 'Nuova password', type: 'text', help: 'Lascia vuoto per non modificarla. Minimo 8 caratteri.' },
+  { name: 'role', label: 'Ruolo', type: 'select', side: true, options: ROLE_OPTS },
 ];
 const STAFF_CREATE_FIELDS: FieldConfig[] = [
   { name: 'nome', label: 'Nome', required: true },
   { name: 'email', label: 'Email', type: 'email', required: true },
   { name: 'password', label: 'Password', type: 'text', required: true, help: 'Minimo 8 caratteri.' },
-  { name: 'role', label: 'Ruolo', type: 'select', options: ROLE_OPTS },
+  { name: 'role', label: 'Ruolo', type: 'select', side: true, options: ROLE_OPTS },
 ];
 
 export function StaffPage() {
@@ -160,6 +160,8 @@ export function StaffFormPage() {
       title={editing ? 'Modifica membro' : 'Nuovo membro dello staff'}
       backPath="/staff"
       backLabel="Staff & Permessi"
+      mainTitle={editing ? 'Membro' : 'Account'}
+      sideTitle="Ruolo"
       fields={editing ? STAFF_EDIT_FIELDS : STAFF_CREATE_FIELDS}
       initial={initial}
       loading={editing && !row && query.isLoading}

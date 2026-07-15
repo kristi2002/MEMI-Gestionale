@@ -28,7 +28,7 @@ const STATO_FIELDS: FieldConfig[] = [
       { value: 'rifiutato', label: 'Rifiutato' },
       { value: 'rimborsato', label: 'Rimborsato (ripristina stock + storna)' },
     ] },
-  { name: 'rimborso_amount', label: 'Importo rimborso €', type: 'number', help: 'Impostando lo stato su "Rimborsato" il magazzino e i punti vengono ripristinati automaticamente.' },
+  { name: 'rimborso_amount', label: 'Importo rimborso €', type: 'number', side: true, help: 'Impostando lo stato su "Rimborsato" il magazzino e i punti vengono ripristinati automaticamente.' },
 ];
 
 const exportColumns: ExportColumn<Reso>[] = [
@@ -147,6 +147,8 @@ export function ReturnFormPage() {
       subtitle="Aggiorna lo stato della richiesta e l'importo del rimborso."
       backPath="/returns"
       backLabel="Resi"
+      mainTitle="Stato richiesta"
+      sideTitle="Rimborso"
       fields={STATO_FIELDS}
       initial={initial}
       loading={!row && query.isLoading}

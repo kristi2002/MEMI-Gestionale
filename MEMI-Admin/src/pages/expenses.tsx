@@ -21,18 +21,18 @@ import { toast } from 'sonner';
 
 const FIELDS: FieldConfig[] = [
   { name: 'descrizione', label: 'Descrizione', required: true, wide: true },
-  { name: 'categoria', label: 'Categoria', type: 'select', options: [
+  { name: 'importo', label: 'Importo €', type: 'number', required: true },
+  { name: 'fornitore', label: 'Fornitore' },
+  { name: 'note', label: 'Note', type: 'textarea' },
+  { name: 'categoria', label: 'Categoria', type: 'select', side: true, options: [
       { value: 'generale', label: 'Generale' }, { value: 'affitto', label: 'Affitto' }, { value: 'utenze', label: 'Utenze' },
       { value: 'marketing', label: 'Marketing' }, { value: 'stipendi', label: 'Stipendi' }, { value: 'merce', label: 'Merce' },
       { value: 'software', label: 'Software' }, { value: 'spedizioni', label: 'Spedizioni' }, { value: 'tasse', label: 'Tasse' },
     ] },
-  { name: 'importo', label: 'Importo €', type: 'number', required: true },
-  { name: 'ricorrenza', label: 'Ricorrenza', type: 'select', options: [
+  { name: 'ricorrenza', label: 'Ricorrenza', type: 'select', side: true, options: [
       { value: 'una_tantum', label: 'Una tantum' }, { value: 'mensile', label: 'Mensile' }, { value: 'annuale', label: 'Annuale' },
     ] },
-  { name: 'fornitore', label: 'Fornitore' },
-  { name: 'data_spesa', label: 'Data', type: 'date' },
-  { name: 'note', label: 'Note', type: 'textarea' },
+  { name: 'data_spesa', label: 'Data', type: 'date', side: true },
 ];
 
 const exportColumns: ExportColumn<Expense>[] = [
@@ -139,6 +139,8 @@ export function ExpenseFormPage() {
       title={editing ? 'Modifica spesa' : 'Nuova spesa'}
       backPath="/bills"
       backLabel="Fatture & Spese"
+      mainTitle="Dettagli spesa"
+      sideTitle="Classificazione"
       fields={FIELDS}
       initial={initial}
       loading={editing && !row && query.isLoading}

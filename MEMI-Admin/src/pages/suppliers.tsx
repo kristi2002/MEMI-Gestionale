@@ -28,7 +28,7 @@ const FIELDS: FieldConfig[] = [
   { name: 'nome', label: 'Nome fornitore', required: true, wide: true },
   { name: 'email', label: 'Email', type: 'email' },
   { name: 'telefono', label: 'Telefono' },
-  { name: 'note', label: 'Note', type: 'textarea' },
+  { name: 'note', label: 'Note', type: 'textarea', side: true },
 ];
 
 export function SuppliersPage() {
@@ -100,6 +100,8 @@ export function SupplierFormPage() {
       title={editing ? 'Modifica fornitore' : 'Nuovo fornitore'}
       backPath="/suppliers"
       backLabel="Fornitori"
+      mainTitle="Anagrafica"
+      sideTitle="Note"
       fields={FIELDS}
       initial={initial}
       loading={editing && !row && query.isLoading}

@@ -29,9 +29,9 @@ function courierFields(editing: boolean): FieldConfig[] {
   const base: FieldConfig[] = [
     { name: 'nome', label: 'Nome', required: true, placeholder: 'es. BRT Corriere Espresso' },
     { name: 'slug', label: 'Sigla', placeholder: 'BRT', help: 'Etichetta breve mostrata come badge.' },
-    { name: 'rate', label: 'Tariffa €', type: 'number', help: 'Costo base di spedizione.' },
     { name: 'tracking_url_template', label: 'URL tracking', wide: true, placeholder: 'https://…?n={tracking}', help: '{tracking} viene sostituito col numero di spedizione.' },
-    { name: 'attivo', label: 'Attivo', type: 'checkbox' },
+    { name: 'rate', label: 'Tariffa €', type: 'number', side: true, help: 'Costo base di spedizione.' },
+    { name: 'attivo', label: 'Attivo', type: 'checkbox', side: true },
   ];
   if (editing) return base;
   return [
@@ -155,6 +155,8 @@ export function CourierFormPage() {
       title={editing ? `Modifica corriere${row ? `: ${row.nome}` : ''}` : 'Nuovo corriere'}
       backPath="/couriers"
       backLabel="Corrieri"
+      mainTitle="Corriere"
+      sideTitle="Tariffa & stato"
       fields={courierFields(editing)}
       initial={initial}
       loading={editing && !row && query.isLoading}

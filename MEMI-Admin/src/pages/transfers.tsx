@@ -25,7 +25,7 @@ const fields: FieldConfig[] = [
   { name: 'quantita', label: 'Quantità', type: 'number', required: true },
   { name: 'da_luogo', label: 'Da' },
   { name: 'a_luogo', label: 'A' },
-  { name: 'stato', label: 'Stato', type: 'select', options: STATI },
+  { name: 'stato', label: 'Stato', type: 'select', side: true, options: STATI },
   { name: 'note', label: 'Note', type: 'textarea', wide: true },
 ];
 
@@ -116,6 +116,8 @@ export function TransferFormPage() {
       title={editing ? 'Modifica trasferimento' : 'Nuovo trasferimento'}
       backPath="/transfers"
       backLabel="Trasferimenti"
+      mainTitle="Trasferimento"
+      sideTitle="Stato"
       fields={fields}
       initial={initial}
       loading={editing && !row && query.isLoading}

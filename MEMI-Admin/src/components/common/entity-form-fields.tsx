@@ -32,6 +32,8 @@ export interface FieldConfig {
   help?: string;
   /** For type 'image': upload a File and resolve to the stored URL. */
   upload?: (file: File) => Promise<string>;
+  /** Render this field in the side rail (status/meta) instead of the main column. */
+  side?: boolean;
 }
 
 export type FormValues = Record<string, string | number | boolean | string[] | null | undefined>;

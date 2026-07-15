@@ -113,7 +113,7 @@ function Popover({ label, active, children }: { label: ReactNode; active: boolea
         type="button"
         variant="outline"
         size="sm"
-        className={cn('h-9 gap-1.5 border-dashed', active && 'border-solid border-primary/50 bg-primary/5 text-primary')}
+        className={cn('h-9 shrink-0 gap-1.5 border-dashed', active && 'border-solid border-primary/50 bg-primary/5 text-primary')}
         onClick={() => setOpen((o) => !o)}
       >
         {label}
@@ -323,8 +323,8 @@ export function FilterBar<T>({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
+        <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <SlidersHorizontal className="h-3.5 w-3.5" /> Filtri
         </span>
         {defs.map((def) => {
@@ -337,7 +337,7 @@ export function FilterBar<T>({
         })}
         {tableId && <SavedViews tableId={tableId} values={values} onApply={onChange} />}
         {activeCount > 0 && (
-          <Button type="button" variant="ghost" size="sm" className="h-9 gap-1 text-muted-foreground" onClick={clearAll}>
+          <Button type="button" variant="ghost" size="sm" className="h-9 shrink-0 gap-1 text-muted-foreground" onClick={clearAll}>
             <X className="h-3.5 w-3.5" /> Cancella filtri
           </Button>
         )}

@@ -27,12 +27,12 @@ interface TaxonomyApi {
 function taxonomyFields(singular: string, editing: boolean, entityApi: TaxonomyApi): FieldConfig[] {
   const base: FieldConfig[] = [
     { name: 'name', label: 'Nome', required: true, placeholder: `es. ${singular === 'categoria' ? 'Scarpe' : 'Estate 2025'}` },
-    { name: 'stato', label: 'Stato', type: 'select', options: [
-        { value: 'attiva', label: 'Attiva' }, { value: 'bozza', label: 'Bozza' },
-      ] },
-    { name: 'sort_order', label: 'Ordine', type: 'number', help: 'Posizione in elenco (crescente).' },
     { name: 'description', label: 'Descrizione', type: 'textarea' },
     { name: 'hero_image', label: 'Immagine hero', type: 'image', upload: async (file) => (await entityApi.uploadHero(file)).url },
+    { name: 'stato', label: 'Stato', type: 'select', side: true, options: [
+        { value: 'attiva', label: 'Attiva' }, { value: 'bozza', label: 'Bozza' },
+      ] },
+    { name: 'sort_order', label: 'Ordine', type: 'number', side: true, help: 'Posizione in elenco (crescente).' },
   ];
   if (editing) return base;
   return [
@@ -196,6 +196,7 @@ function TaxonomyFormPage({
       title={editing ? `Modifica${row ? `: ${row.name}` : ''}` : `Nuova ${singular}`}
       backPath={backPath}
       backLabel={backLabel}
+      sideTitle="Pubblicazione"
       fields={taxonomyFields(singular, editing, entityApi)}
       initial={initial}
       loading={editing && !row && query.isLoading}

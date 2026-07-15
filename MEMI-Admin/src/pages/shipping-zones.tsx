@@ -20,8 +20,8 @@ const fields: FieldConfig[] = [
   { name: 'nome', label: 'Nome zona', required: true, placeholder: 'Italia, Europa…' },
   { name: 'metodo', label: 'Metodo', placeholder: 'standard / express' },
   { name: 'paesi', label: 'Paesi (codici ISO, separati da virgola)', wide: true, placeholder: 'IT, FR, DE' },
-  { name: 'prezzo', label: 'Prezzo (€)', type: 'number', required: true },
-  { name: 'spedizione_gratuita_da', label: 'Spedizione gratuita da (€)', type: 'number', help: 'Vuoto = mai gratuita' },
+  { name: 'prezzo', label: 'Prezzo (€)', type: 'number', required: true, side: true },
+  { name: 'spedizione_gratuita_da', label: 'Spedizione gratuita da (€)', type: 'number', side: true, help: 'Vuoto = mai gratuita' },
 ];
 
 const exportColumns: ExportColumn<ShippingZone>[] = [
@@ -108,6 +108,8 @@ export function ShippingZoneFormPage() {
       title={editing ? 'Modifica zona' : 'Nuova zona'}
       backPath="/shipping-zones"
       backLabel="Zone & Tariffe"
+      mainTitle="Zona"
+      sideTitle="Tariffa"
       fields={fields}
       initial={initial}
       loading={editing && !row && query.isLoading}

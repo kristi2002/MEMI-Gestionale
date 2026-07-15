@@ -32,14 +32,14 @@ const exportColumns: ExportColumn<GiftCard>[] = [
 const CREATE_FIELDS: FieldConfig[] = [
   { name: 'initial_amount', label: 'Importo €', type: 'number', required: true, help: 'Il codice viene generato automaticamente.' },
   { name: 'recipient_email', label: 'Email destinatario', type: 'email', help: 'Facoltativa — per inviare la gift card.' },
-  { name: 'note', label: 'Nota interna', type: 'textarea' },
+  { name: 'note', label: 'Nota interna', type: 'textarea', side: true },
 ];
 const EDIT_FIELDS: FieldConfig[] = [
   { name: 'balance', label: 'Saldo €', type: 'number', help: 'Saldo residuo utilizzabile.' },
-  { name: 'stato', label: 'Stato', type: 'select', options: [
+  { name: 'note', label: 'Nota interna', type: 'textarea' },
+  { name: 'stato', label: 'Stato', type: 'select', side: true, options: [
       { value: 'attiva', label: 'Attiva' }, { value: 'utilizzata', label: 'Utilizzata' }, { value: 'disattivata', label: 'Disattivata' },
     ] },
-  { name: 'note', label: 'Nota interna', type: 'textarea' },
 ];
 
 export function GiftcardsPage() {
@@ -131,6 +131,8 @@ export function GiftcardFormPage() {
       title={editing ? `Modifica gift card${row ? `: ${row.code}` : ''}` : 'Nuova gift card'}
       backPath="/giftcards"
       backLabel="Gift card"
+      mainTitle={editing ? 'Saldo' : 'Dettagli'}
+      sideTitle={editing ? 'Stato' : 'Nota interna'}
       fields={editing ? EDIT_FIELDS : CREATE_FIELDS}
       initial={initial}
       loading={editing && !row && query.isLoading}

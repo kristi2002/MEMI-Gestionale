@@ -21,7 +21,7 @@ const fields: FieldConfig[] = [
   { name: 'corriere', label: 'Corriere' },
   { name: 'indirizzo', label: 'Indirizzo', wide: true, required: true },
   { name: 'orari', label: 'Orari', wide: true, placeholder: 'Lun-Ven 9-18' },
-  { name: 'attivo', label: 'Attivo', type: 'checkbox' },
+  { name: 'attivo', label: 'Attivo', type: 'checkbox', side: true },
 ];
 
 const exportColumns: ExportColumn<PickupPoint>[] = [
@@ -106,6 +106,8 @@ export function PickupFormPage() {
       title={editing ? 'Modifica punto di ritiro' : 'Nuovo punto di ritiro'}
       backPath="/pickup"
       backLabel="Punti di ritiro"
+      mainTitle="Punto di ritiro"
+      sideTitle="Stato"
       fields={fields}
       initial={initial}
       loading={editing && !row && query.isLoading}

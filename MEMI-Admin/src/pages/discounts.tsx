@@ -42,9 +42,9 @@ const FIELDS: FieldConfig[] = [
     ] },
   { name: 'valore', label: 'Valore', type: 'number', required: true, help: 'Percentuale o importo in €. Per spedizione gratuita usa 0.' },
   { name: 'min_order', label: 'Ordine minimo €', type: 'number' },
-  { name: 'max_utilizzi', label: 'Utilizzi massimi', type: 'number', help: 'Vuoto = illimitato.' },
-  { name: 'scadenza', label: 'Scadenza', type: 'date', help: 'Vuoto = nessuna scadenza.' },
-  { name: 'stato', label: 'Stato', type: 'select', options: [
+  { name: 'max_utilizzi', label: 'Utilizzi massimi', type: 'number', side: true, help: 'Vuoto = illimitato.' },
+  { name: 'scadenza', label: 'Scadenza', type: 'date', side: true, help: 'Vuoto = nessuna scadenza.' },
+  { name: 'stato', label: 'Stato', type: 'select', side: true, options: [
       { value: 'attivo', label: 'Attivo' }, { value: 'disattivo', label: 'Disattivo' }, { value: 'pianificato', label: 'Pianificato' },
     ] },
 ];
@@ -185,6 +185,8 @@ export function DiscountFormPage() {
       title={editing ? `Modifica codice${row ? `: ${row.code}` : ''}` : 'Nuovo codice sconto'}
       backPath="/discounts"
       backLabel="Sconti"
+      mainTitle="Codice & valore"
+      sideTitle="Validità & stato"
       fields={FIELDS}
       initial={initial}
       loading={editing && !row && query.isLoading}

@@ -22,13 +22,13 @@ const humanize = (s: string) => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toU
 function automationFields(triggers: string[], actions: string[]): FieldConfig[] {
   return [
     { name: 'nome', label: 'Nome', required: true, wide: true, placeholder: 'es. Email di benvenuto' },
-    { name: 'trigger_event', label: 'Quando (trigger)', type: 'select', required: true, placeholder: 'Seleziona evento…',
-      options: triggers.map((t) => ({ value: t, label: humanize(t) })) },
-    { name: 'azione', label: 'Azione', type: 'select', required: true, placeholder: 'Seleziona azione…',
-      options: actions.map((a) => ({ value: a, label: humanize(a) })) },
     { name: 'oggetto', label: 'Oggetto', wide: true, help: 'Facoltativo — oggetto dell’email inviata.' },
     { name: 'messaggio', label: 'Messaggio', type: 'textarea', wide: true, help: 'Facoltativo.' },
-    { name: 'attivo', label: 'Attiva subito', type: 'checkbox' },
+    { name: 'trigger_event', label: 'Quando (trigger)', type: 'select', required: true, side: true, placeholder: 'Seleziona evento…',
+      options: triggers.map((t) => ({ value: t, label: humanize(t) })) },
+    { name: 'azione', label: 'Azione', type: 'select', required: true, side: true, placeholder: 'Seleziona azione…',
+      options: actions.map((a) => ({ value: a, label: humanize(a) })) },
+    { name: 'attivo', label: 'Attiva subito', type: 'checkbox', side: true },
   ];
 }
 
@@ -137,6 +137,8 @@ export function AutomationFormPage() {
       title={editing ? `Modifica${row ? `: ${row.nome}` : ' automazione'}` : 'Nuova automazione'}
       backPath="/automations"
       backLabel="Automazioni"
+      mainTitle="Automazione"
+      sideTitle="Trigger & azione"
       fields={automationFields(triggers, actions)}
       initial={initial}
       loading={editing && !row && query.isLoading}

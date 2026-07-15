@@ -27,8 +27,8 @@ const exportColumns: ExportColumn<ProductColor>[] = [
 function colorFields(editing: boolean): FieldConfig[] {
   const base: FieldConfig[] = [
     { name: 'name', label: 'Nome', required: true, placeholder: 'es. Rosa cipria' },
-    { name: 'hex', label: 'Colore', type: 'color', placeholder: '#E8B4B8' },
-    { name: 'sort_order', label: 'Ordine', type: 'number', help: 'Posizione nella palette (crescente).' },
+    { name: 'hex', label: 'Colore', type: 'color', side: true, placeholder: '#E8B4B8' },
+    { name: 'sort_order', label: 'Ordine', type: 'number', side: true, help: 'Posizione nella palette (crescente).' },
   ];
   if (editing) return base;
   return [
@@ -174,6 +174,8 @@ export function ColorFormPage() {
       title={editing ? `Modifica colore${row ? `: ${row.name}` : ''}` : 'Nuovo colore'}
       backPath="/colors"
       backLabel="Colori"
+      mainTitle="Colore"
+      sideTitle="Aspetto"
       fields={colorFields(editing)}
       initial={initial}
       loading={editing && !row && query.isLoading}

@@ -37,10 +37,10 @@ const ADDRESS_FIELDS: FieldConfig[] = [
   { name: 'nome', label: 'Nome', required: true },
   { name: 'cognome', label: 'Cognome' },
   { name: 'telefono', label: 'Telefono' },
-  { name: 'indirizzo', label: 'Indirizzo', wide: true },
-  { name: 'citta', label: 'Città' },
-  { name: 'cap', label: 'CAP' },
-  { name: 'paese', label: 'Paese' },
+  { name: 'indirizzo', label: 'Indirizzo', side: true },
+  { name: 'citta', label: 'Città', side: true },
+  { name: 'cap', label: 'CAP', side: true },
+  { name: 'paese', label: 'Paese', side: true },
 ];
 
 const CREATE_FIELDS: FieldConfig[] = [
@@ -48,11 +48,11 @@ const CREATE_FIELDS: FieldConfig[] = [
   { name: 'cognome', label: 'Cognome' },
   { name: 'email', label: 'Email', type: 'email', required: true },
   { name: 'telefono', label: 'Telefono' },
-  { name: 'indirizzo', label: 'Indirizzo', wide: true },
-  { name: 'citta', label: 'Città' },
-  { name: 'cap', label: 'CAP' },
-  { name: 'paese', label: 'Paese' },
-  { name: 'password', label: 'Password (facoltativa)', type: 'text', help: 'Solo se vuoi che il cliente possa accedere. Min. 8 caratteri.' },
+  { name: 'password', label: 'Password (facoltativa)', type: 'text', wide: true, help: 'Solo se vuoi che il cliente possa accedere. Min. 8 caratteri.' },
+  { name: 'indirizzo', label: 'Indirizzo', side: true },
+  { name: 'citta', label: 'Città', side: true },
+  { name: 'cap', label: 'CAP', side: true },
+  { name: 'paese', label: 'Paese', side: true },
 ];
 
 export function CustomersPage() {
@@ -196,6 +196,8 @@ export function CustomerFormPage() {
       title={editing ? 'Modifica cliente' : 'Nuovo cliente'}
       backPath="/customers"
       backLabel="Clienti"
+      mainTitle="Anagrafica"
+      sideTitle="Indirizzo"
       fields={editing ? ADDRESS_FIELDS : CREATE_FIELDS}
       initial={initial}
       loading={editing && detailQ.isLoading}
