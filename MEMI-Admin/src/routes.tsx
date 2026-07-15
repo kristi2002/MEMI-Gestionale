@@ -38,7 +38,6 @@ import { TaxesPage } from '@/pages/taxes';
 import { LiveviewPage } from '@/pages/liveview';
 import { IntegrationsPage } from '@/pages/integrations';
 import { ReportsPage } from '@/pages/reports';
-import { OnlineStorePage, SocialPage, PosPage } from '@/pages/channels';
 import { AppsPage } from '@/pages/apps';
 
 /** Concrete React pages ported in this delivery, keyed by route path. */
@@ -84,9 +83,6 @@ const READY_PAGES: Record<string, ReactElement> = {
   '/taxes': <TaxesPage />,
   '/integrations': <IntegrationsPage />,
   '/reports': <ReportsPage />,
-  '/online-store': <OnlineStorePage />,
-  '/social': <SocialPage />,
-  '/pos': <PosPage />,
   '/apps': <AppsPage />,
 };
 

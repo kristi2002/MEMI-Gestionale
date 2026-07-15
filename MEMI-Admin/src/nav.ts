@@ -9,7 +9,6 @@ import {
   BarChart3,
   Truck,
   CreditCard,
-  Store,
   ShoppingCart,
   Plug,
   AppWindow,
@@ -117,15 +116,6 @@ export const NAV: NavGroup[] = [
       { label: 'Pagamenti ricevuti', to: '/payouts', adminOnly: true , ready: true },
       { label: 'Fatture & Spese', to: '/bills', adminOnly: true, ready: true },
       { label: 'Tasse', to: '/taxes', adminOnly: true , ready: true },
-    ],
-  },
-  {
-    label: 'Canali',
-    icon: Store,
-    children: [
-      { label: 'Negozio online', to: '/online-store' , ready: true },
-      { label: 'Social & Marketplace', to: '/social' , ready: true },
-      { label: 'Punto vendita', to: '/pos' , ready: true },
     ],
   },
   {
