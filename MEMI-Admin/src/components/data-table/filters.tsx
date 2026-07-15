@@ -352,10 +352,10 @@ export function FilterBar<T>({
       {activeChips.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           {activeChips.map(({ d, v }) => (
-            <span key={d.key} className="inline-flex items-center gap-1 rounded-full border bg-muted/50 py-0.5 pl-2.5 pr-1 text-xs">
-              <Filter className="h-3 w-3 opacity-50" />
-              <span className="capitalize">{chipText(d, v)}</span>
-              <button type="button" className="rounded-full p-0.5 hover:bg-background" onClick={() => setOne(d.key, undefined)} aria-label={`Rimuovi filtro ${d.label}`}>
+            <span key={d.key} className="inline-flex items-center gap-1 rounded-full border bg-muted/50 py-1 pl-2.5 pr-1.5 text-xs leading-none">
+              <Filter className="h-3 w-3 shrink-0 opacity-50" />
+              <span className="capitalize leading-none">{chipText(d, v)}</span>
+              <button type="button" className="inline-flex shrink-0 items-center justify-center rounded-full p-0.5 hover:bg-background" onClick={() => setOne(d.key, undefined)} aria-label={`Rimuovi filtro ${d.label}`}>
                 <X className="h-3 w-3" />
               </button>
             </span>
