@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { LoginPage } from '@/pages/login';
 import { buildRoutes } from '@/routes';
 import { ProductFormPage } from '@/pages/product-form';
+import { SupplierFormPage } from '@/pages/suppliers';
 
 function FullScreenSpinner() {
   return (
@@ -33,6 +34,8 @@ export default function App() {
         <Route element={<RequireAuth />}>
           <Route path="/products/new" element={<ProductFormPage />} />
           <Route path="/products/:id/edit" element={<ProductFormPage />} />
+          <Route path="/suppliers/new" element={<SupplierFormPage />} />
+          <Route path="/suppliers/:id/edit" element={<SupplierFormPage />} />
           {routes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />
           ))}

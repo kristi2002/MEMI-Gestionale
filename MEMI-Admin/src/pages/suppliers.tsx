@@ -1,11 +1,13 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Factory, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { EmptyState } from '@/components/common/empty-state';
-import { EntityFormDialog, useEntityForm, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { useSuppliers, useDeleteMany, useSaveEntity } from '@/hooks/queries';
 import { api } from '@/lib/api';
@@ -32,19 +34,8 @@ const FIELDS: FieldConfig[] = [
 export function SuppliersPage() {
   const query = useSuppliers();
   const del = useDeleteMany<number>((id) => api.suppliers.delete(id), 'suppliers');
-  const saveMut = useSaveEntity(api.suppliers.create, api.suppliers.update, 'suppliers');
-  const form = useEntityForm();
+  const navigate = useNavigate();
   const rows = query.data ?? [];
-
-  const openEditRef = useRef(form.openEdit);
-  openEditRef.current = form.openEdit;
-
-  async function onSubmit(v: FormValues) {
-    const id = form.editing?.id as number | undefined;
-    const data = { nome: v.nome, email: v.email || null, telefono: v.telefono || null, note: v.note || null };
-    await saveMut.mutateAsync({ id, data });
-    toast.success(id ? 'Fornitore aggiornato' : 'Fornitore aggiunto');
-  }
 
   const columns = useMemo<ColumnDef<Supplier, unknown>[]>(
     () => [
@@ -56,13 +47,13 @@ export function SuppliersPage() {
       {
         id: 'azioni', header: '', enableSorting: false,
         cell: ({ row }) => (
-          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original as unknown as FormValues); }}>
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/suppliers/${row.original.id}/edit`); }}>
             <Pencil /> Modifica
           </Button>
         ),
       },
     ],
-    [],
+    [navigate],
   );
 
   return (
@@ -70,7 +61,7 @@ export function SuppliersPage() {
       <PageHeader
         title="Fornitori"
         subtitle="Anagrafica fornitori per gli ordini di acquisto."
-        actions={<Button size="sm" onClick={form.openCreate}><Plus /> Nuovo fornitore</Button>}
+        actions={<Button size="sm" onClick={() => navigate('/suppliers/new')}><Plus /> Nuovo fornitore</Button>}
       />
       <DataTable
         columns={columns}
@@ -87,15 +78,39 @@ export function SuppliersPage() {
           <BulkDelete count={selected.length} noun="fornitori" onDelete={() => del.mutateAsync(selected.map((s) => s.id))} onDone={clear} />
         )}
       />
-      <EntityFormDialog
-        open={form.open}
-        onOpenChange={form.setOpen}
-        title={form.editing ? `Modifica fornitore` : 'Nuovo fornitore'}
-        fields={FIELDS}
-        initial={form.editing}
-        submitLabel={form.editing ? 'Salva modifiche' : 'Aggiungi fornitore'}
-        onSubmit={onSubmit}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for a supplier. */
+export function SupplierFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const query = useSuppliers();
+  const saveMut = useSaveEntity(api.suppliers.create, api.suppliers.update, 'suppliers');
+  const row = editing ? (query.data ?? []).find((s) => String(s.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(
+    () => (row ? { nome: row.nome, email: row.email ?? '', telefono: row.telefono ?? '', note: row.note ?? '' } : {}),
+    [row],
+  );
+
+  return (
+    <EntityFormPage
+      title={editing ? 'Modifica fornitore' : 'Nuovo fornitore'}
+      backPath="/suppliers"
+      backLabel="Fornitori"
+      fields={FIELDS}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Aggiungi fornitore'}
+      onSubmit={async (v) => {
+        await saveMut.mutateAsync({
+          id: editing ? Number(id) : undefined,
+          data: { nome: v.nome, email: v.email || null, telefono: v.telefono || null, note: v.note || null },
+        });
+        toast.success(editing ? 'Fornitore aggiornato' : 'Fornitore aggiunto');
+      }}
+    />
   );
 }
