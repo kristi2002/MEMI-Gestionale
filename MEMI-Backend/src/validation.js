@@ -23,6 +23,8 @@ const optionalEmail = z.preprocess(
 /* ── POST /api/auth/register ── */
 const registerSchema = z.object({
   nome:     z.string().trim().min(1, 'Nome obbligatorio').max(120),
+  // Optional at registration: the auth drawer collects it, but legacy/guest flows may omit it.
+  cognome:  z.string().trim().max(120).optional().nullable(),
   email:    emailSchema,
   password: z.string().min(8, 'La password deve avere almeno 8 caratteri').max(200),
   // GDPR consents (checkboxes in the auth drawer); recorded with timestamps on customers
