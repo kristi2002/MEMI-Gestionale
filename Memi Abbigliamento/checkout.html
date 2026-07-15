@@ -648,6 +648,18 @@
     var currentStep     = 1;
     var cartItems       = [];
     var subtotal        = 0;
+
+    // Product catalog (for order-summary thumbnails). Loaded once from the API.
+    var CHECKOUT_PRODUCTS = [];
+    var NO_IMAGE = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800"><rect width="600" height="800" fill="#f1ece6"/><rect x="225" y="300" width="150" height="120" rx="10" fill="none" stroke="#BEBEDD" stroke-width="6"/><circle cx="268" cy="338" r="13" fill="none" stroke="#BEBEDD" stroke-width="6"/><path d="M232 414 L300 358 L338 392 L368 366 L368 418 Z" fill="#BEBEDD"/></svg>');
+    function checkoutResolveProduct(id){ if(!id) return null; for(var i=0;i<CHECKOUT_PRODUCTS.length;i++){ var p=CHECKOUT_PRODUCTS[i]; if(id===p.id||id.indexOf(p.id+'-')===0) return p; } return null; }
+    function checkoutImgOf(p){ if(!p||!Array.isArray(p.images)||!p.images.length) return ''; var x=p.images[0]; return typeof x==='string'?x:(x.card||x.full||x.thumb||''); }
+    function loadCheckoutCatalog(){
+      fetch('/api/products?limit=300').then(function(r){return r.json();}).then(function(res){
+        CHECKOUT_PRODUCTS = Array.isArray(res)?res:(res&&res.products)||[];
+        renderOrderSummary();   // re-render now that real thumbnails are available
+      }).catch(function(){});
+    }
     var appliedCode     = null;
     var appliedGiftCard = null;   // { code, balance } — amount actually applied is capped live in updateTotals()
     var shippingMethod  = 'standard';   // standard | express | ritiro
@@ -726,11 +738,12 @@
             var bg      = item.color || 'ph-blush';
             var price   = (item.price || 0) * (item.qty || 1);
             var variant = item.variant || '';
+            var prod    = checkoutResolveProduct(item.id);
+            var img     = checkoutImgOf(prod) || NO_IMAGE;   // real thumbnail, else the "no image" graphic
+            var media   = '<img src="' + img + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center top" onerror="this.onerror=null;this.src=NO_IMAGE">';
             return '<div class="order-item">' +
               '<div class="order-item-img">' +
-                '<div class="ph-fig ' + bg + '">' +
-                  '<svg viewBox="0 0 60 80" fill="none"><ellipse cx="30" cy="16" rx="10" ry="11" fill="white" opacity=".45"/><path d="M8 80 C8 56 52 56 52 80" fill="white" opacity=".45"/><rect x="14" y="28" width="32" height="36" rx="5" fill="white" opacity=".45"/></svg>' +
-                '</div>' +
+                media +
                 '<span class="item-qty-badge">' + (item.qty || 1) + '</span>' +
               '</div>' +
               '<div class="order-item-info">' +
@@ -1571,6 +1584,7 @@
     // ── Init ──────────────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', function() {
       loadCart();
+      loadCheckoutCatalog();   // fetch product thumbnails, then re-render the order summary
       wireShippingOptions();
       wireInputValidation();
       prefillFromAccount();
