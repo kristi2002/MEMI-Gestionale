@@ -130,8 +130,26 @@ async function reconcileByReference(reference, res) {
 
 router.post('/paypal/webhook', async (req, res) => {
   if (!providers.paypalConfigured()) return res.status(503).json({ error: 'PayPal non configurato.' });
-  // TODO(paypal-live): verify the webhook signature via /v1/notifications/verify-webhook-signature
-  // using PAYPAL_WEBHOOK_ID before trusting the event.
+
+  // Signature verification: we only ever mutate order state on a webhook we can PROVE came
+  // from PayPal. With PAYPAL_WEBHOOK_ID set we verify-or-reject; without it we acknowledge
+  // (200) but never reconcile — otherwise a forged event referencing a known payment id could
+  // flip an order to 'pagato' without a real payment.
+  if (!process.env.PAYPAL_WEBHOOK_ID) {
+    console.warn('[PayPal Webhook] PAYPAL_WEBHOOK_ID not set — event acknowledged but NOT trusted (no reconciliation). Set it before going live.');
+    return res.json({ received: true, verified: false });
+  }
+  try {
+    const v = await providers.verifyPaypalWebhook(req.headers, req.body || {});
+    if (!v.verified) {
+      console.error('[PayPal Webhook] signature verification failed:', v.reason);
+      return res.status(400).json({ error: 'Firma webhook PayPal non valida.' });
+    }
+  } catch (err) {
+    console.error('[PayPal Webhook] verification error:', err.message);
+    return res.status(400).json({ error: 'Verifica firma webhook non riuscita.' });
+  }
+
   const ev = req.body || {};
   const ref = ev?.resource?.supplementary_data?.related_ids?.order_id || ev?.resource?.id;
   if (ev.event_type === 'CHECKOUT.ORDER.APPROVED' || ev.event_type === 'PAYMENT.CAPTURE.COMPLETED') {

@@ -159,7 +159,10 @@ export const api = {
     listPaged: (params?: Query) =>
       requestWithTotal<ProductRow>('/products' + qs({ status: 'all', ...params })),
     get: (id: string) => get<ProductRow>('/products/' + encodeURIComponent(id)),
+    create: (data: unknown) => post('/products', data),
     update: (id: string, data: unknown) => put('/products/' + encodeURIComponent(id), data),
+    updateStock: (id: string, taglia: string, stock: number) =>
+      put('/products/' + encodeURIComponent(id) + '/stock', { taglia, stock }),
     delete: (id: string) => del('/products/' + encodeURIComponent(id)),
     importCsv: (file: File, dryRun?: boolean) => {
       const fd = new FormData();
@@ -172,6 +175,8 @@ export const api = {
   customers: {
     list: (params?: Query) => get<CustomerListResponse>('/admin/customers' + qs(params)),
     get: (id: number) => get<Record<string, unknown>>('/admin/customers/' + id),
+    create: (data: unknown) => post('/admin/customers', data),
+    update: (id: number, data: unknown) => put('/admin/customers/' + id, data),
     delete: (id: number) => del('/admin/customers/' + id),
   },
   discounts: {
@@ -183,6 +188,7 @@ export const api = {
   resi: {
     list: (params?: Query) => get<ResiResponse>('/admin/resi' + qs(params)),
     update: (id: number, data: unknown) => put('/admin/resi/' + id, data),
+    refund: (id: number, data: unknown) => post('/admin/resi/' + id + '/refund', data),
     delete: (id: number) => del('/admin/resi/' + id),
   },
   invoices: {
@@ -200,6 +206,8 @@ export const api = {
   },
   giftcards: {
     list: () => get<GiftCardsResponse>('/admin/giftcards'),
+    create: (data: unknown) => post('/admin/giftcards', data),
+    update: (id: number, data: unknown) => put('/admin/giftcards/' + id, data),
     delete: (id: number) => del('/admin/giftcards/' + id),
   },
   shipping: {
@@ -213,10 +221,14 @@ export const api = {
   },
   suppliers: {
     list: () => get<Supplier[]>('/admin/suppliers'),
+    create: (data: unknown) => post('/admin/suppliers', data),
+    update: (id: number, data: unknown) => put('/admin/suppliers/' + id, data),
     delete: (id: number) => del('/admin/suppliers/' + id),
   },
   staff: {
     list: () => get<StaffResponse>('/admin/staff'),
+    create: (data: unknown) => post('/admin/staff', data),
+    update: (id: number, data: unknown) => put('/admin/staff/' + id, data),
     delete: (id: number) => del('/admin/staff/' + id),
   },
   auditLog: {
@@ -224,6 +236,8 @@ export const api = {
   },
   expenses: {
     list: () => get<ExpensesResponse>('/admin/expenses'),
+    create: (data: unknown) => post('/admin/expenses', data),
+    update: (id: number, data: unknown) => put('/admin/expenses/' + id, data),
     delete: (id: number) => del('/admin/expenses/' + id),
   },
   campaigns: {

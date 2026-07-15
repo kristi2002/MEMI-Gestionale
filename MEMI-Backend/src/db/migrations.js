@@ -410,14 +410,29 @@ async function bootstrapAdmin(pool) {
   if (email && password) {
     try {
       const bcrypt = require('bcryptjs');
-      const hash = await bcrypt.hash(password, 10);
-      await pool.query(
-        `INSERT INTO admin_users (email, password_hash, nome, role)
-         VALUES (?, ?, 'Admin MEMI', 'admin')
-         ON DUPLICATE KEY UPDATE password_hash = VALUES(password_hash)`,
-        [email, hash]
+      const [[existing]] = await pool.query(
+        'SELECT id, password_hash FROM admin_users WHERE email = ?', [email]
       );
-      console.log(`✅  Admin account bootstrapped from env: ${email}`);
+      const forceReset = process.env.ADMIN_PASSWORD_RESET === '1';
+      if (!existing) {
+        // First run: create the admin from env.
+        const hash = await bcrypt.hash(password, 10);
+        await pool.query(
+          `INSERT INTO admin_users (email, password_hash, nome, role) VALUES (?, ?, 'Admin MEMI', 'admin')`,
+          [email, hash]
+        );
+        console.log(`✅  Admin account created from env: ${email}`);
+      } else if (forceReset || existing.password_hash === DEFAULT_ADMIN_HASH) {
+        // Apply the env password only to replace the shipped default hash, or when the
+        // operator explicitly opts into a rotation. This is the key change: on a normal
+        // restart we no longer clobber a password the admin changed in the app.
+        const hash = await bcrypt.hash(password, 10);
+        await pool.query('UPDATE admin_users SET password_hash = ? WHERE email = ?', [hash, email]);
+        console.log(`✅  Admin password set from env: ${email}` + (forceReset ? ' (forced reset)' : ' (replaced default)'));
+      } else {
+        // Admin exists with a non-default password → preserve any in-app change.
+        console.log(`✅  Admin present, password preserved across restart: ${email} (set ADMIN_PASSWORD_RESET=1 to force-reset from env)`);
+      }
     } catch (e) { console.error('   ! admin bootstrap failed:', e.message); }
   }
   try {

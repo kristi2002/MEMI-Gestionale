@@ -4,6 +4,14 @@
 > `MEMI-Backend/src/server.js` + every file in `MEMI-Backend/src/routes/*.js`).
 > When docs and code disagree, the code wins — this file was rebuilt by reading the
 > routers directly, not from prior docs.
+>
+> **2026-07-15 deltas:** (1) admin **order** routes `/api/orders/admin*` now require
+> `requirePermission('orders')` in addition to `requireAdmin`. (2) `POST /api/auth/register`
+> accepts optional `cognome`, and on signup back-fills the new customer's prior **guest** orders
+> (links `customer_id`, credits loyalty points idempotently). (3) `POST /api/payments/paypal/webhook`
+> verifies the event signature against `PAYPAL_WEBHOOK_ID`; unverifiable events are acknowledged
+> but never reconciled. (4) `PUT /api/products/:id/stock` (`{taglia, stock}`) backs the admin
+> inventory stock-adjust; `POST /api/products` + `PUT /api/products/:id` back product create/edit.
 
 **Route-file coverage (37 route modules + `server.js`):** `auth.js`, `account.js`,
 `admin-auth.js`, `products.js`, `product-variants.js`, `products-import.js`, `orders.js`,

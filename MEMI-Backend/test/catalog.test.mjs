@@ -21,7 +21,7 @@ import assert from 'node:assert/strict';
 
 const BASE  = process.env.MEMI_BASE  || 'http://localhost:3000';
 const EMAIL = process.env.ADMIN_EMAIL || 'admin@memi.it';
-const PASS  = process.env.ADMIN_PASS  || 'memi2026admin';
+const PASS  = process.env.ADMIN_PASS  || process.env.ADMIN_PASSWORD || 'memi2026admin';
 
 const ID    = 'itest-' + Date.now();
 const NAME  = 'ITEST Prodotto ' + ID;

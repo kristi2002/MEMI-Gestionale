@@ -87,7 +87,13 @@ router.put('/cart', requireCustomer, async (req, res) => {
 /* ═══════════════════ ADDRESSES ═══════════════════ */
 
 function cleanAddr(b) {
-  const s = (v) => (typeof v === 'string' ? v.trim() : '') || null;
+  // Trim, coerce to string|null, AND bound the length (defense in depth: these are
+  // customer-supplied and land in the DB — cap them so an oversized payload can't
+  // bloat a row or trip a column limit). 120 chars is well beyond any real address field.
+  const s = (v) => {
+    const t = (typeof v === 'string' ? v.trim() : '');
+    return t ? t.slice(0, 120) : null;
+  };
   return {
     label:           s(b.label),
     indirizzo:       s(b.indirizzo),        // via / street

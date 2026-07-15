@@ -17,7 +17,15 @@ Traefik labels on each service set the HTTPS router (letsencrypt) + an HTTP→HT
 redirect. The admin/ecommerce nginx proxy `/api/*` to `backend:3000`, so browsers
 make same-origin calls.
 
-## Admin container build (`MEMI/Dockerfile`)
+## Admin container build
+
+> **The shipping `admin` service builds from `MEMI-Admin/` (React).** `MEMI-Admin/Dockerfile`:
+> **build stage** (`node:20`) runs `npm ci && npm run build` → static `dist/` with **hashed asset
+> filenames** (no `?v=` cache-busting needed); **serve stage** (`nginx`) copies `nginx.conf` + `dist`.
+> `npx tsc -b` and `npx vite build` must succeed for a deploy. The section below describes the
+> **legacy `MEMI/` (jQuery)** rollback image only.
+
+### Legacy admin container build (`MEMI/Dockerfile`, rollback)
 1. **Build stage** (`node:20-alpine`): runs `scripts/cache-bust.js .` which rewrites
    every local `?v=` in the admin HTML to a content hash (auto-discovers assets; never
    fails the build).

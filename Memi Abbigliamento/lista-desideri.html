@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="memi-api" content="/api" />
+  <title>Lista dei desideri · Memi Abbigliamento</title>
+  <meta name="description" content="I capi che hai salvato nella tua lista dei desideri Memi Abbigliamento. Spostali nel carrello quando sei pronta." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css?v=70c280df" />
+  <link rel="stylesheet" href="app.css?v=ece23419" />
+  <style>
+    body{font-family:var(--font-sans);background:var(--cream);color:var(--espresso);line-height:1.65;-webkit-font-smoothing:antialiased;}
+
+    .page-wrap{max-width:1200px;margin:0 auto;padding:clamp(32px,6vw,72px) clamp(16px,4vw,40px) 100px;}
+    .page-head{margin-bottom:clamp(28px,5vw,48px);padding-bottom:1.5rem;border-bottom:1px solid var(--border,#e8e2da);}
+    .page-eyebrow{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brown-light,#a08d80);font-weight:500;margin-bottom:.75rem;}
+    .page-title{font-family:var(--font-serif);font-size:clamp(2rem,5vw,3rem);font-weight:300;line-height:1.05;margin-bottom:.5rem;}
+    .page-title em{font-style:italic;color:var(--blush-dark,#b98a8a);}
+    .page-sub{font-size:.92rem;color:var(--brown-light,#a08d80);}
+
+    .wl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:clamp(18px,2.5vw,32px);}
+    .wl-card{background:var(--white,#fff);border:1px solid var(--border,#ece7e0);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:box-shadow .25s,transform .25s;}
+    .wl-card:hover{box-shadow:0 14px 40px rgba(59,43,43,.09);transform:translateY(-3px);}
+    .wl-media{position:relative;aspect-ratio:3/4;background:var(--blush-light,#f6ecec);overflow:hidden;}
+    .wl-media img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;}
+    .wl-media a{display:block;height:100%;}
+    .wl-remove{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.92);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.12);transition:background .2s;}
+    .wl-remove:hover{background:#fff;}
+    .wl-remove svg{width:16px;height:16px;stroke:var(--espresso,#3b2b2b);fill:none;stroke-width:2;}
+    .wl-body{padding:14px 16px 18px;display:flex;flex-direction:column;gap:8px;flex:1;}
+    .wl-name{font-size:.95rem;font-weight:500;color:var(--espresso);line-height:1.35;}
+    .wl-name a{color:inherit;text-decoration:none;}
+    .wl-tags{display:flex;flex-wrap:wrap;gap:6px;}
+    .wl-tag{font-size:.68rem;letter-spacing:.02em;padding:3px 9px;border-radius:20px;background:var(--blush-light,#f6ecec);color:var(--brown-mid,#6b5050);}
+    .wl-tag.none{background:#f4f0ea;color:var(--brown-light,#a08d80);font-style:italic;}
+    .wl-price{font-size:1rem;font-weight:600;color:var(--espresso);margin-top:2px;}
+    .wl-move{margin-top:auto;width:100%;padding:11px;border:none;border-radius:9px;background:var(--espresso,#3b2b2b);color:#fff;font-family:var(--font-sans);font-size:.8rem;letter-spacing:.04em;cursor:pointer;transition:background .2s;}
+    .wl-move:hover{background:var(--blush-dark,#b98a8a);}
+
+    .wl-empty{text-align:center;padding:clamp(48px,10vw,96px) 1rem;}
+    .wl-empty svg{width:60px;height:60px;stroke:var(--blush,#e6c6c6);fill:none;stroke-width:1.3;margin-bottom:1.25rem;}
+    .wl-empty h2{font-family:var(--font-serif);font-size:1.6rem;font-weight:300;margin-bottom:.5rem;}
+    .wl-empty p{color:var(--brown-light,#a08d80);font-size:.9rem;margin-bottom:1.75rem;}
+    .wl-cta{display:inline-block;padding:.8rem 2.2rem;background:var(--espresso,#3b2b2b);color:#fff;border-radius:9px;text-decoration:none;font-size:.82rem;letter-spacing:.05em;transition:background .2s;}
+    .wl-cta:hover{background:var(--blush-dark,#b98a8a);}
+    .wl-foot{margin-top:2.5rem;display:flex;gap:1.25rem;flex-wrap:wrap;align-items:center;}
+    .wl-foot a{font-size:.85rem;color:var(--brown-mid,#6b5050);text-decoration:underline;text-underline-offset:3px;}
+  </style>
+</head>
+<body>
+  <main class="page-wrap">
+    <div class="page-head">
+      <p class="page-eyebrow">La tua selezione</p>
+      <h1 class="page-title">Lista dei <em>desideri</em></h1>
+      <p class="page-sub" id="wlSub">I capi che hai messo da parte.</p>
+    </div>
+
+    <div id="wlContent"><div class="wl-grid" id="wlGrid"></div></div>
+
+    <div class="wl-foot" id="wlFoot" style="display:none;">
+      <a href="/shop">← Continua lo shopping</a>
+      <a href="/carrello">Vai al carrello →</a>
+    </div>
+  </main>
+
+  <script src="api-client.js?v=69314232"></script>
+  <script src="app.js?v=be8ac844"></script>
+  <script>
+  (function () {
+    'use strict';
+    var SIZELESS = ['gioielli','borse','cinture','accessori','bijoux'];
+    var HEART = '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    var X = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    var products = [];
+
+    function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function loadWishlist(){ try{ return JSON.parse(localStorage.getItem('memi_wishlist'))||[]; }catch(_){ return []; } }
+    function resolveProduct(id){
+      if(!id) return null;
+      for(var i=0;i<products.length;i++){ var p=products[i]; if(id===p.id || id.indexOf(p.id+'-')===0) return p; }
+      return null;
+    }
+    function imgOf(p){ if(!p||!Array.isArray(p.images)||!p.images.length) return (window.MEMI_NO_IMAGE||''); var x=p.images[0]; return typeof x==='string'?x:(x.card||x.full||x.thumb||''); }
+    function priceOf(p){ return p?('€'+(Number(p.price)||0).toFixed(2).replace('.',',')):''; }
+    function catOf(p){ return p?String(p.categoria||'').toLowerCase():''; }
+
+    function render(){
+      var wl = loadWishlist();
+      var sub = document.getElementById('wlSub');
+      var foot = document.getElementById('wlFoot');
+      var content = document.getElementById('wlContent');
+      if(!wl.length){
+        if(sub) sub.textContent = 'Ancora nessun capo salvato.';
+        if(foot) foot.style.display = 'none';
+        content.innerHTML =
+          '<div class="wl-empty">' + HEART.replace('<svg','<svg') +
+          '<h2>La tua lista è vuota</h2>' +
+          '<p>Tocca il cuoricino su un prodotto per salvarlo qui.</p>' +
+          '<a class="wl-cta" href="/shop">Scopri la collezione</a></div>';
+        return;
+      }
+      if(sub) sub.textContent = wl.length + (wl.length===1?' capo salvato.':' capi salvati.');
+      if(foot) foot.style.display = 'flex';
+      var html = wl.map(function(item){
+        var p = resolveProduct(item.productId || item.id);
+        var href = p ? ('/product?id='+encodeURIComponent(p.id)) : '/shop';
+        var img = imgOf(p);
+        var sizeless = SIZELESS.indexOf(catOf(p)) !== -1;
+        var sizeTag = item.taglia
+          ? '<span class="wl-tag">'+esc(item.taglia)+'</span>'
+          : (sizeless ? '' : '<span class="wl-tag none">Taglia non sel.</span>');
+        var colorTag = item.color ? '<span class="wl-tag">'+esc(item.color)+'</span>' : '';
+        return '<article class="wl-card">' +
+          '<div class="wl-media">' +
+            '<a href="'+href+'">'+ (img?('<img src="'+esc(img)+'" alt="'+esc(item.name)+'" onerror="this.onerror=null;this.src=window.MEMI_NO_IMAGE">'):'') +'</a>' +
+            '<button class="wl-remove" aria-label="Rimuovi" data-remove="'+esc(item.id)+'">'+X+'</button>' +
+          '</div>' +
+          '<div class="wl-body">' +
+            '<p class="wl-name"><a href="'+href+'">'+esc(item.name)+'</a></p>' +
+            '<div class="wl-tags">'+colorTag+sizeTag+'</div>' +
+            '<p class="wl-price">'+priceOf(p)+'</p>' +
+            '<button class="wl-move" data-move="'+esc(item.id)+'">Sposta nel carrello</button>' +
+          '</div>' +
+        '</article>';
+      }).join('');
+      content.innerHTML = '<div class="wl-grid">'+html+'</div>';
+    }
+
+    document.addEventListener('click', function(e){
+      var mv = e.target.closest('[data-move]');
+      if(mv && window.appMoveToCart){ window.appMoveToCart(mv.getAttribute('data-move')); return; }
+      var rm = e.target.closest('[data-remove]');
+      if(rm && window.appRemoveWishlist){ window.appRemoveWishlist(rm.getAttribute('data-remove')); }
+    });
+    document.addEventListener('memi:wishlist:changed', render);
+
+    function boot(){
+      fetch('/api/products?limit=300').then(function(r){return r.json();}).then(function(res){
+        products = Array.isArray(res) ? res : (res && res.products) || [];
+      }).catch(function(){ products = []; }).then(render);
+    }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  })();
+  </script>
+</body>
+</html>

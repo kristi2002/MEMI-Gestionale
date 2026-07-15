@@ -136,7 +136,36 @@ async function verifyPaypalOrder(orderId, expectedCents) {
   return { ok: true, amountCents, currency };
 }
 
+/**
+ * Verify a PayPal webhook's authenticity via /v1/notifications/verify-webhook-signature.
+ * Unlike Stripe (raw-body HMAC), PayPal re-verifies from the parsed event + transmission
+ * headers + the configured PAYPAL_WEBHOOK_ID. Returns { verified, reason }.
+ * Never throws for a "not verified" outcome — only for network/token failures.
+ */
+async function verifyPaypalWebhook(headers, event) {
+  const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+  if (!webhookId) return { verified: false, reason: 'no_webhook_id' };
+  const h = headers || {};
+  const token = await paypalAccessToken();
+  const payload = {
+    auth_algo:         h['paypal-auth-algo'],
+    cert_url:          h['paypal-cert-url'],
+    transmission_id:   h['paypal-transmission-id'],
+    transmission_sig:  h['paypal-transmission-sig'],
+    transmission_time: h['paypal-transmission-time'],
+    webhook_id:        webhookId,
+    webhook_event:     event,
+  };
+  const res = await httpJson(`${paypalBase()}/v1/notifications/verify-webhook-signature`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  return { verified: res && res.verification_status === 'SUCCESS', reason: (res && res.verification_status) || 'unknown' };
+}
+
 module.exports = {
   paypalConfigured, paypalEnv,
   createPaypalOrder, capturePaypalOrder, inspectPaypalOrder, verifyPaypalOrder,
+  verifyPaypalWebhook,
 };

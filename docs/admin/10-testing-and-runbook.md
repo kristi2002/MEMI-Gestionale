@@ -19,9 +19,17 @@
 2. `bash verify/run.sh` exits 0.
 3. New backend route → add a `smoke-test.sh` assertion **and** a row to the API
    reference ([04-api-reference.md](04-api-reference.md)).
-4. Touched `app.js`/`admin-api.js`/`style.css` → keep `?v=` consistent (content-hash
-   cache-bust handles the rest at build).
+4. Touched the **React admin** (`MEMI-Admin/`) → `npx tsc -b` **and** `npx vite build` must pass
+   (hashed asset filenames, no `?v=` bumping). Touched the **legacy** `MEMI/` (rollback) →
+   `node --check MEMI/js/app.js` + keep `?v=` consistent.
 5. Summarise what changed, what was tested, and any assumptions.
+
+> **Admin creds for tests:** `smoke-test.sh` and `test/catalog.test.mjs` read `ADMIN_PASSWORD`
+> (and `ADMIN_EMAIL`) from the environment — run them with the same values the backend booted
+> with. They no longer assume the shipped default `memi2026admin` (which prod refuses to boot on,
+> and which `bootstrapAdmin` no longer re-applies over an in-app change). Smoke section `[8c]`
+> exercises admin entity CRUD; `[9] Colors` currently fails against a `/api/colors` feature that
+> is not implemented — build it or remove that block.
 
 ## How features were validated this cycle (pattern to reuse)
 

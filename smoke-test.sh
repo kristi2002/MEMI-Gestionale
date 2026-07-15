@@ -12,8 +12,11 @@
 set -uo pipefail
 
 BASE="${1:-http://localhost:3000}"
-ADMIN_EMAIL="admin@memi.it"
-ADMIN_PASS="memi2026admin"
+# Read admin creds from env so the smoke test works against a configured instance
+# (where ADMIN_PASSWORD is set and the bootstrap no longer keeps the shipped default).
+# Falls back to the demo defaults for a fresh throwaway stack.
+ADMIN_EMAIL="${ADMIN_EMAIL:-admin@memi.it}"
+ADMIN_PASS="${ADMIN_PASSWORD:-${ADMIN_PASS:-memi2026admin}}"
 
 pass=0; fail=0
 ok() { echo "  [ok] $1"; pass=$((pass+1)); }
@@ -208,6 +211,34 @@ if [ -n "${ADMIN_TOKEN:-}" ]; then
   [ "$C" = "200" ] && ok "POST /api/admin/lifecycle/birthday/preview -> 200" || ko "birthday preview -> HTTP $C"
   C="$(code -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d '{}' "$BASE/api/admin/lifecycle/season")"
   [ "$C" = "400" ] && ok "POST /api/admin/lifecycle/season (no season) -> 400" || ko "season validation -> HTTP $C (expected 400)"
+fi
+
+# 8c — Admin entity CRUD (the "full manual power" surfaces wired in the React admin)
+echo
+echo "[8c] Admin entity CRUD (create -> delete)"
+if [ -n "${ADMIN_TOKEN:-}" ]; then
+  crud() { # name  create-path  create-body  delete-path-prefix
+    local name="$1" cpath="$2" cbody="$3" dprefix="$4"
+    local id
+    id="$(curl -fsS -X POST "$BASE$cpath" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d "$cbody" 2>/dev/null \
+      | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const j=JSON.parse(d);let id=j.id;if(id==null){for(const k of Object.keys(j)){const v=j[k];if(v&&typeof v==="object"&&v.id!=null){id=v.id;break;}}}console.log(id==null?"":id)}catch(e){console.log("")}})' 2>/dev/null)"
+    if [ -n "$id" ]; then
+      ok "$name create -> id $id"
+      local dc; dc="$(code -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE$dprefix/$id")"
+      [ "$dc" = "200" ] && ok "$name delete -> 200" || ko "$name delete -> HTTP $dc"
+    else
+      ko "$name create failed"
+    fi
+  }
+  crud "supplier" "/api/admin/suppliers" '{"nome":"Smoke Supplier","email":"s@smoke.local"}' "/api/admin/suppliers"
+  crud "expense"  "/api/admin/expenses"  '{"descrizione":"Smoke Expense","categoria":"generale","importo":10,"ricorrenza":"una_tantum"}' "/api/admin/expenses"
+  crud "campaign" "/api/admin/campaigns" '{"nome":"Smoke Campaign","tipo":"email","stato":"bozza"}' "/api/admin/campaigns"
+  crud "giftcard" "/api/admin/giftcards" '{"initial_amount":15}' "/api/admin/giftcards"
+  crud "customer" "/api/admin/customers" '{"nome":"Smoke","cognome":"Cliente","email":"smoke_cust@smoke.local"}' "/api/admin/customers"
+  crud "staff"    "/api/admin/staff"     '{"nome":"Smoke Staff","email":"smoke_staff@smoke.local","password":"smokepass123","role":"staff"}' "/api/admin/staff"
+  crud "discount" "/api/admin/discounts" '{"code":"SMOKE10","tipo":"percentuale","valore":10}' "/api/admin/discounts"
+else
+  ko "no admin token — skipping admin CRUD"
 fi
 
 # 9 — Colors (dynamic palette + product color_hex join + AI suggest)

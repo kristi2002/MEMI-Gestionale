@@ -821,7 +821,10 @@
       currentStep = n;
       window.scrollTo({ top: 0, behavior: 'smooth' });
       // Mount Stripe Elements when reaching payment step
-      if (n === 3) { setTimeout(initStripeElements, 80); }
+      if (n === 3) {
+        setTimeout(initStripeElements, 80);
+        if (window.__walletIntent) setTimeout(revealWalletIntent, 750);
+      }
     }
 
     // ── Validation ────────────────────────────────────────────────────────────
@@ -1459,14 +1462,55 @@
       el('summaryToggle').classList.toggle('open');
     }
 
-    // ── Pre-select pay method from URL ────────────────────────────────────────
+    // ── Pre-select pay method from URL / express hand-off ─────────────────────
+    // The cart's fast-checkout buttons deep-link here with ?pay=applepay|gpay|paypal|card.
+    // Card / Apple Pay / Google Pay all use the "Carta" tab (the wallet button renders
+    // above the card form); PayPal switches to its own tab.
     function applyUrlPayParam() {
       var pay = new URLSearchParams(window.location.search).get('pay');
+      if (!pay) { try { pay = sessionStorage.getItem('memi_express_pay'); } catch (_) {} }
       if (!pay) return;
-      var map  = { card: 0, paypal: 1 };
-      var idx  = map[pay];
       var tabs = document.querySelectorAll('.pay-tab');
-      if (idx !== undefined && tabs[idx]) selectPayTab(tabs[idx]);
+      if (pay === 'paypal') {
+        if (tabs[1]) selectPayTab(tabs[1]);
+      } else {
+        if (tabs[0]) selectPayTab(tabs[0]);
+        // Remember the wallet intent so step 3 can surface the Apple/Google Pay button.
+        if (pay === 'applepay' || pay === 'gpay') window.__walletIntent = pay;
+      }
+    }
+
+    // ── Express fast-checkout: jump straight to the shipping step ──────────────
+    // Triggered by ?express=1 from the cart. Fast checkout pulls the buyer's details
+    // from their profile (checkout-autofill.js), so we only auto-advance when logged
+    // in AND the address is complete; otherwise we leave them on step 1 to fill it.
+    // They can always click the stepper to go back and change the payment method.
+    function applyExpressFlow() {
+      if (new URLSearchParams(window.location.search).get('express') !== '1') return;
+      var loggedIn = window.MemiAPI && window.MemiAPI.auth && window.MemiAPI.auth.isLoggedIn();
+      if (!loggedIn) return;
+      // Let the async profile autofill populate step 1 first, then advance if valid.
+      setTimeout(function () {
+        if (validateStep1()) { updateShippingDisplay(); goToStep(2); }
+      }, 400);
+    }
+
+    // When Apple Pay / Google Pay was chosen from the cart, bring the wallet button
+    // into view once Stripe confirms it's usable; if no wallet exists on this device,
+    // fall back to the card form with a clear note (PayPal stays one tab away).
+    function revealWalletIntent() {
+      var ec = el('expressCheckout');
+      if (ec && ec.dataset.walletReady === '1') {
+        ec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (!el('walletFallbackHint')) {
+        var hint = document.createElement('p');
+        hint.id = 'walletFallbackHint';
+        hint.style.cssText = 'font-size:var(--text-xs);color:var(--brown-mid);background:var(--bg-soft);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-4);';
+        hint.textContent = 'Apple Pay / Google Pay non risulta disponibile su questo dispositivo o browser. Puoi completare con carta qui sotto oppure passare a PayPal.';
+        var panel = el('panel3'), tabsEl = panel && panel.querySelector('.payment-tabs');
+        if (panel && tabsEl) panel.insertBefore(hint, tabsEl);
+      }
+      window.__walletIntent = null;
     }
 
     // ── Pre-fill from logged-in account ──────────────────────────────────────
@@ -1531,6 +1575,7 @@
       wireInputValidation();
       prefillFromAccount();
       applyUrlPayParam();
+      applyExpressFlow();
       wireLoyaltyPoints();
       // Enter key in promo input
       var promoIn = el('promoInput');

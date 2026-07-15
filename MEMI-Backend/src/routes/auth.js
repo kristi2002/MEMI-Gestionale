@@ -28,7 +28,7 @@ function signToken(payload) {
 
 /* ── POST /api/auth/register ── */
 router.post('/register', validateBody(registerSchema), async (req, res) => {
-  const { nome, email, password, privacy_consent, marketing_consent, birthday } = req.body;
+  const { nome, cognome, email, password, privacy_consent, marketing_consent, birthday } = req.body;
   if (!nome || !email || !password)
     return res.status(400).json({ error: 'Nome, email e password obbligatori' });
   if (password.length < 8)
@@ -38,9 +38,9 @@ router.post('/register', validateBody(registerSchema), async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     await pool.execute(
       `INSERT INTO customers
-         (nome, email, password_hash, privacy_accepted_at, marketing_consent, marketing_consent_at, birthday)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [nome.trim(), email.toLowerCase().trim(), hash,
+         (nome, cognome, email, password_hash, privacy_accepted_at, marketing_consent, marketing_consent_at, birthday)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nome.trim(), (cognome && cognome.trim()) || null, email.toLowerCase().trim(), hash,
        privacy_consent ? new Date() : null,
        marketing_consent ? 1 : 0,
        marketing_consent ? new Date() : null,
@@ -54,6 +54,30 @@ router.post('/register', validateBody(registerSchema), async (req, res) => {
 
     // Award the signup loyalty bonus (best-effort — never blocks registration)
     try { await loyalty.awardRegistrationPoints(pool, user.id); } catch (_) {}
+
+    // Claim guest orders placed with this email BEFORE the account existed:
+    // link them to the new customer (so they become trackable via /orders/my) and
+    // credit the loyalty points they earned. Points ledger rows are tied to order_id,
+    // so this stays correct even if the job is retried. Best-effort — never blocks signup.
+    try {
+      const [guestOrders] = await pool.execute(
+        'SELECT id, total FROM orders WHERE customer_email = ? AND customer_id IS NULL',
+        [user.email]
+      );
+      if (guestOrders.length) {
+        await pool.execute(
+          'UPDATE orders SET customer_id = ? WHERE customer_email = ? AND customer_id IS NULL',
+          [user.id, user.email]
+        );
+        for (const o of guestOrders) {
+          await pool.execute(
+            'UPDATE customers SET total_orders = total_orders + 1, total_spent = total_spent + ? WHERE id = ?',
+            [o.total, user.id]
+          );
+          try { await loyalty.awardPurchasePoints(pool, user.email, o.total, o.id); } catch (_) {}
+        }
+      }
+    } catch (_) {}
 
     // Autorizzazione all'uso dell'email → enrol in the newsletter too (best-effort)
     if (marketing_consent) {

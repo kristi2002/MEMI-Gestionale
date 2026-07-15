@@ -1,10 +1,20 @@
 # 01 · MEMI Admin (Gestionale) — Overview & Index
 
-> **Scope:** the admin/gestionale application (`MEMI/`) and the backend it drives.
-> These 10 documents are the consolidated, current source of truth for the admin
-> side of the MEMI platform. Last full revision: **Luglio 2026**.
-> Rule of thumb inherited from the project: **trust the code over older docs** when
-> they disagree — these 10 files were written against the live code.
+> ⚠️ **IMPORTANT (updated 2026-07-15): the shipping admin is now the React app `MEMI-Admin/`,
+> not the legacy jQuery `MEMI/`.** `docker-compose.yml` builds the `admin` service from
+> `./MEMI-Admin` (Vite + React 18 + TypeScript + Tailwind + shadcn/ui + TanStack Query/Table).
+> The legacy jQuery SPA in `MEMI/` is kept only as an opt-in rollback overlay
+> (`docker-compose.admin-next.yml` → `admin-legacy`, subdomain `legacy.admin.memi.testdemo.it`).
+> **These 10 `docs/admin/*` files below still describe the LEGACY `MEMI/` internals** (file layout,
+> `_origRenderView` override pattern, jQuery views). They remain accurate for the rollback build,
+> but for the app that actually ships read the React source in `MEMI-Admin/src/` — pages in
+> `src/pages/*.tsx`, API client in `src/lib/api.ts`, data hooks in `src/hooks/queries.ts`,
+> reusable CRUD via `EntityFormDialog` + `useSaveEntity`. As of 2026-07-15 the React admin has
+> full add/edit/delete on products, discounts, gift cards, staff, suppliers, expenses, campaigns
+> and customers, plus returns-state management and per-size inventory adjustment.
+>
+> **Scope of the rest of this document:** the admin/gestionale application and the backend it drives.
+> Rule of thumb inherited from the project: **trust the code over older docs** when they disagree.
 
 ## What MEMI is
 
@@ -14,14 +24,16 @@ three apps in one repository:
 | App | Folder | What it is | Served as |
 |---|---|---|---|
 | **Storefront** | `Memi Abbigliamento/` | Customer shop (static HTML/CSS/JS) | nginx, `memi.testdemo.it` |
-| **Admin / Gestionale** | `MEMI/` | Back-office SPA (jQuery) | nginx, `admin.memi.testdemo.it` |
+| **Admin / Gestionale** | `MEMI-Admin/` (React; `MEMI/` = legacy rollback) | Back-office app | nginx, `admin.memi.testdemo.it` |
 | **Backend API** | `MEMI-Backend/` | Node.js/Express + MySQL 8 | Node, `api.memi.testdemo.it` |
 
 The **admin** is the operational cockpit: orders, catalog, customers, marketing,
-content, shipping, finance, chat, analytics, and configuration. It is a **single
-jQuery SPA** (`dashboard.html` + `app.js` + `admin-api.js`) that reads/writes the
-backend REST API. There is no build step for the admin's own code — only a
-content-hash cache-bust at Docker build time.
+content, shipping, finance, chat, analytics, and configuration. The **shipping** admin
+is the **React app** in `MEMI-Admin/` (Vite build → static `dist` served by nginx), which
+reads/writes the same backend REST API. The **legacy** admin (documented in the sections
+below) is a single jQuery SPA (`MEMI/dashboard.html` + `app.js` + `admin-api.js`) kept as a
+rollback; it has no build step for its own code — only a content-hash cache-bust at Docker
+build time.
 
 ## The 10 documents
 

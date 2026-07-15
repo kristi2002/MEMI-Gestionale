@@ -3,6 +3,12 @@
 > Every admin section and view: what it does, where its data comes from, and its
 > status. ✅ real (API+DB) · 🟢 real, config/derived · ⚙️ settings-backed config
 > stub · ⛔ needs external account/hardware.
+>
+> **2026-07-15:** these features are exposed by the **React admin (`MEMI-Admin/`)**. Full
+> **add/edit/delete** UI now exists for Products, Discounts, Gift cards, Staff, Suppliers,
+> Expenses, Campaigns and Customers; plus returns-state management and per-size inventory
+> adjustment. Not yet in the React UI (backend endpoints exist): manual order creation and
+> purchase-order line-item editing.
 
 The sidebar (`dashboard.html`) is grouped. Below, each group lists its views.
 

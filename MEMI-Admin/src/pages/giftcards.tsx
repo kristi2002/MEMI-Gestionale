@@ -1,18 +1,21 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Gift } from 'lucide-react';
+import { Gift, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
-import { useGiftcards, useDeleteMany } from '@/hooks/queries';
+import { EntityFormDialog, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import { Button } from '@/components/ui/button';
+import { useGiftcards, useDeleteMany, useSaveEntity } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { eur, date } from '@/lib/format';
 import { statusLabel } from '@/lib/status';
 import type { GiftCard } from '@/types';
 import type { ExportColumn } from '@/lib/export';
+import { toast } from 'sonner';
 
 const exportColumns: ExportColumn<GiftCard>[] = [
   { header: 'Codice', accessor: (g) => g.code },
@@ -23,11 +26,52 @@ const exportColumns: ExportColumn<GiftCard>[] = [
   { header: 'Data', accessor: (g) => date(g.created_at) },
 ];
 
+const CREATE_FIELDS: FieldConfig[] = [
+  { name: 'initial_amount', label: 'Importo €', type: 'number', required: true, help: 'Il codice viene generato automaticamente.' },
+  { name: 'recipient_email', label: 'Email destinatario', type: 'email', help: 'Facoltativa — per inviare la gift card.' },
+  { name: 'note', label: 'Nota interna', type: 'textarea' },
+];
+const EDIT_FIELDS: FieldConfig[] = [
+  { name: 'balance', label: 'Saldo €', type: 'number', help: 'Saldo residuo utilizzabile.' },
+  { name: 'stato', label: 'Stato', type: 'select', options: [
+      { value: 'attiva', label: 'Attiva' }, { value: 'utilizzata', label: 'Utilizzata' }, { value: 'disattivata', label: 'Disattivata' },
+    ] },
+  { name: 'note', label: 'Nota interna', type: 'textarea' },
+];
+
 export function GiftcardsPage() {
   const query = useGiftcards();
   const del = useDeleteMany<number>((id) => api.giftcards.delete(id), 'giftcards');
+  const saveMut = useSaveEntity(api.giftcards.create, api.giftcards.update, 'giftcards');
   const rows = query.data?.cards ?? [];
   const s = query.data?.summary;
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<GiftCard | null>(null);
+  const [initial, setInitial] = useState<FormValues>({});
+
+  function openCreate() {
+    setEditing(null);
+    setInitial({ initial_amount: 25 });
+    setFormOpen(true);
+  }
+  function openEdit(g: GiftCard) {
+    setEditing(g);
+    setInitial({ balance: Number(g.balance), stato: g.stato, note: (g as GiftCard & { note?: string }).note ?? '' });
+    setFormOpen(true);
+  }
+  const openEditRef = useRef(openEdit);
+  openEditRef.current = openEdit;
+
+  async function onSubmit(v: FormValues) {
+    if (editing) {
+      await saveMut.mutateAsync({ id: editing.id, data: { balance: v.balance, stato: v.stato, note: v.note || null } });
+      toast.success('Gift card aggiornata');
+    } else {
+      await saveMut.mutateAsync({ data: { initial_amount: v.initial_amount, recipient_email: v.recipient_email || null, note: v.note || null } });
+      toast.success('Gift card emessa');
+    }
+  }
 
   const columns = useMemo<ColumnDef<GiftCard, unknown>[]>(
     () => [
@@ -37,13 +81,25 @@ export function GiftcardsPage() {
       { accessorKey: 'recipient_email', header: 'Destinatario', cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || '—'}</span> },
       { accessorKey: 'created_at', header: 'Data', cell: ({ getValue }) => <span className="text-muted-foreground">{date(getValue() as string)}</span> },
       { accessorKey: 'stato', header: 'Stato', cell: ({ getValue }) => <StatusBadge code={getValue() as string} /> },
+      {
+        id: 'azioni', header: '', enableSorting: false,
+        cell: ({ row }) => (
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original); }}>
+            <Pencil /> Modifica
+          </Button>
+        ),
+      },
     ],
     [],
   );
 
   return (
     <div>
-      <PageHeader title="Gift card" subtitle="Buoni regalo emessi e relativi saldi." />
+      <PageHeader
+        title="Gift card"
+        subtitle="Buoni regalo emessi e relativi saldi."
+        actions={<Button size="sm" onClick={openCreate}><Plus /> Nuova gift card</Button>}
+      />
       <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard label="Totale" value={s?.total ?? 0} icon={Gift} tone="primary" loading={query.isLoading} />
         <KpiCard label="Attive" value={s?.attive ?? 0} tone="success" loading={query.isLoading} />
@@ -64,6 +120,15 @@ export function GiftcardsPage() {
         bulkActions={(selected, clear) => (
           <BulkDelete count={selected.length} noun="gift card" onDelete={() => del.mutateAsync(selected.map((g) => g.id))} onDone={clear} />
         )}
+      />
+      <EntityFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title={editing ? `Modifica gift card: ${editing.code}` : 'Nuova gift card'}
+        fields={editing ? EDIT_FIELDS : CREATE_FIELDS}
+        initial={initial}
+        submitLabel={editing ? 'Salva modifiche' : 'Emetti gift card'}
+        onSubmit={onSubmit}
       />
     </div>
   );

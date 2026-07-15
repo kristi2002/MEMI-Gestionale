@@ -17,7 +17,7 @@
 
 const router = require('express').Router();
 const { pool }                           = require('../db');
-const { requireCustomer, requireAdmin, optionalCustomer } = require('../middleware/auth');
+const { requireCustomer, requireAdmin, requirePermission, optionalCustomer } = require('../middleware/auth');
 const { sendOrderConfirmation, sendShippingConfirmation } = require('../email');
 const { awardPurchasePoints } = require('../loyalty');
 const { compensateOrder } = require('../order-compensation');
@@ -456,7 +456,7 @@ router.get('/track', async (req, res) => {
    ══════════════════════════════════════════════════════════════ */
 
 /* ── GET /api/admin/orders ── */
-router.get('/admin/list', requireAdmin, async (req, res) => {
+router.get('/admin/list', requireAdmin, requirePermission('orders'), async (req, res) => {
   try {
     const { stato, pagamento, q, limit = 50, offset = 0 } = req.query;
     let where = 'WHERE 1=1';
@@ -485,7 +485,7 @@ router.get('/admin/list', requireAdmin, async (req, res) => {
 });
 
 /* ── POST /api/admin/orders ── create a manual order from the admin panel ── */
-router.post('/admin', requireAdmin, async (req, res) => {
+router.post('/admin', requireAdmin, requirePermission('orders'), async (req, res) => {
   const {
     nome, cognome = '', email,
     telefono, indirizzo = '-', citta = '-', cap = '-', paese = 'Italia',
@@ -581,7 +581,7 @@ router.post('/admin', requireAdmin, async (req, res) => {
 });
 
 /* ── GET /api/admin/orders/:id ── */
-router.get('/admin/:id', requireAdmin, async (req, res) => {
+router.get('/admin/:id', requireAdmin, requirePermission('orders'), async (req, res) => {
   try {
     const [[order]] = await pool.execute('SELECT * FROM orders WHERE id = ?', [req.params.id]);
     if (!order) return res.status(404).json({ error: 'Ordine non trovato' });
@@ -595,7 +595,7 @@ router.get('/admin/:id', requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /api/admin/orders/:id/status ── */
-router.put('/admin/:id/status', requireAdmin, async (req, res) => {
+router.put('/admin/:id/status', requireAdmin, requirePermission('orders'), async (req, res) => {
   const { order_status, payment_status } = req.body;
   if (order_status && !ORDER_STATUSES.includes(order_status))
     return res.status(400).json({ error: 'Stato ordine non valido' });
@@ -656,7 +656,7 @@ router.put('/admin/:id/status', requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /api/admin/orders/:id/ship ── */
-router.put('/admin/:id/ship', requireAdmin, async (req, res) => {
+router.put('/admin/:id/ship', requireAdmin, requirePermission('orders'), async (req, res) => {
   const { courier_code, tracking_number, eta, destinazione } = req.body;
   if (!courier_code || !tracking_number)
     return res.status(400).json({ error: 'Corriere e tracking obbligatori' });
@@ -712,7 +712,7 @@ router.put('/admin/:id/ship', requireAdmin, async (req, res) => {
 
 /* ── POST /api/orders/admin/:id/send-tracking ──
    Re-send the shipping/tracking email to the customer (admin action). */
-router.post('/admin/:id/send-tracking', requireAdmin, async (req, res) => {
+router.post('/admin/:id/send-tracking', requireAdmin, requirePermission('orders'), async (req, res) => {
   try {
     const [[o]] = await pool.execute(
       `SELECT o.order_number, o.customer_nome AS nome, o.customer_email AS email,
@@ -750,7 +750,7 @@ router.post('/admin/:id/send-tracking', requireAdmin, async (req, res) => {
 });
 
 /* ── DELETE /api/orders/admin/:id ── */
-router.delete('/admin/:id', requireAdmin, async (req, res) => {
+router.delete('/admin/:id', requireAdmin, requirePermission('orders'), async (req, res) => {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();

@@ -109,6 +109,7 @@ merchant accounts (`src/payment-providers.js`).
 | `PAYPAL_CLIENT_ID` | Optional | *unset* | PayPal REST client id (also sent to the browser for the PayPal Buttons SDK). | Unset → PayPal hidden at checkout; `/api/payments/paypal/*` → 503. |
 | `PAYPAL_SECRET` | Optional | *unset* | PayPal REST secret (server-only). | Unset → PayPal disabled. |
 | `PAYPAL_ENV` | Optional | `sandbox` | `sandbox` or `live` — selects the PayPal API host. | Wrong value falls back to sandbox. |
+| `PAYPAL_WEBHOOK_ID` | Optional (**required for live PayPal**) | *unset* | Webhook id from the PayPal dashboard. `POST /api/payments/paypal/webhook` verifies each event's signature against it (`/v1/notifications/verify-webhook-signature`). | Unset → webhook events are acknowledged (200) but **never reconciled** (no order state change on an unverifiable event). Set → events are verify-or-reject (bad signature → 400). |
 
 > The order handler re-verifies every PayPal transaction amount server-side before
 > marking `pagato` (never trusts the client). See `docs/SECURITY.md`.
@@ -132,8 +133,9 @@ merchant accounts (`src/payment-providers.js`).
 
 | Variable | Level | Default | Controls | If wrong / missing |
 |----------|-------|---------|----------|--------------------|
-| `ADMIN_EMAIL` | **Recommended** | *unset* | With `ADMIN_PASSWORD`, upserts/rotates the admin login on every boot (`db/migrations.js → bootstrapAdmin`). | Unset → no upsert; you rely on the seeded default admin. |
-| `ADMIN_PASSWORD` | **Recommended** | *unset* | Freshly hashed and applied to `ADMIN_EMAIL` at startup. | Unset → default admin stays active → **prod refuses to boot** (see below). |
+| `ADMIN_EMAIL` | **Recommended** | *unset* | With `ADMIN_PASSWORD`, **seeds** the admin login (`db/migrations.js → bootstrapAdmin`). As of 2026-07-15 it only creates a missing admin or **replaces the shipped default hash** — it no longer overwrites a password changed in-app on every boot. | Unset → no seed; you rely on the seeded default admin. |
+| `ADMIN_PASSWORD` | **Recommended** | *unset* | Hashed and applied only when creating the admin or replacing the default hash (see `ADMIN_PASSWORD_RESET` to force a rotation). | Unset → default admin stays active → **prod refuses to boot** (see below). |
+| `ADMIN_PASSWORD_RESET` | Optional | *unset* | `=1` forces `ADMIN_PASSWORD` to be re-applied to `ADMIN_EMAIL` on the next boot even if the current password is non-default. Use for an intentional env-driven rotation, then unset it. | Unset → an in-app password change survives restarts. |
 | `ALLOW_DEFAULT_ADMIN` | Optional | *unset* | Escape hatch: `=1` lets production boot even with the default admin password still active. | Only for a throwaway staging box — **INSECURE** in real production. |
 
 > **Seeded default & boot guard:** a fresh DB seeds `admin@memi.it` / `memi2026admin`.
