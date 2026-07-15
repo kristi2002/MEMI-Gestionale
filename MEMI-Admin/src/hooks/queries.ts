@@ -163,8 +163,6 @@ export function useSaveEntity(
 
 /* ── Batch 3 list queries ──────────────────────────────── */
 export const useCampaigns = () => useQuery({ queryKey: ['campaigns'], queryFn: () => api.campaigns.list() });
-export const usePages = () => useQuery({ queryKey: ['pages'], queryFn: () => api.pages.list() });
-export const useBlog = () => useQuery({ queryKey: ['blog'], queryFn: () => api.blog.list() });
 export const useSegments = () => useQuery({ queryKey: ['segments'], queryFn: () => api.segments.list() });
 export const usePopups = () => useQuery({ queryKey: ['popups'], queryFn: () => api.popups.list() });
 export const useAutomations = () => useQuery({ queryKey: ['automations'], queryFn: () => api.automations.list() });

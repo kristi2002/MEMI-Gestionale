@@ -7,7 +7,6 @@ import {
   Megaphone,
   BadgePercent,
   BarChart3,
-  FileText,
   Truck,
   CreditCard,
   Store,
@@ -96,15 +95,6 @@ export const NAV: NavGroup[] = [
       { label: 'Panoramica', to: '/analytics', adminOnly: true , ready: true },
       { label: 'Report', to: '/reports', adminOnly: true , ready: true },
       { label: 'Live view', to: '/liveview', adminOnly: true , ready: true },
-    ],
-  },
-  {
-    label: 'Contenuti',
-    icon: FileText,
-    children: [
-      { label: 'Pagine', to: '/content' , ready: true },
-      { label: 'Blog', to: '/blog' , ready: true },
-      { label: 'File', to: '/files' , ready: true },
     ],
   },
   {

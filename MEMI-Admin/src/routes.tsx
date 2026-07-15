@@ -25,8 +25,6 @@ import { PopupsPage } from '@/pages/popups';
 import { SegmentsPage } from '@/pages/segments';
 import { TransfersPage } from '@/pages/transfers';
 import { CampaignsPage } from '@/pages/campaigns';
-import { PagesPage } from '@/pages/pages';
-import { BlogPage } from '@/pages/blog';
 import { AutomationsPage } from '@/pages/automations';
 import { PurchaseOrdersPage } from '@/pages/purchase-orders';
 import { LoyaltyPage } from '@/pages/loyalty';
@@ -39,7 +37,6 @@ import { AnalyticsPage } from '@/pages/analytics';
 import { TaxesPage } from '@/pages/taxes';
 import { LiveviewPage } from '@/pages/liveview';
 import { IntegrationsPage } from '@/pages/integrations';
-import { FilesPage } from '@/pages/files';
 import { ReportsPage } from '@/pages/reports';
 import { OnlineStorePage, SocialPage, PosPage } from '@/pages/channels';
 import { AppsPage } from '@/pages/apps';
@@ -69,8 +66,6 @@ const READY_PAGES: Record<string, ReactElement> = {
   '/newsletter': <NewsletterPage />,
   '/popups': <PopupsPage />,
   '/discounts': <DiscountsPage />,
-  '/content': <PagesPage />,
-  '/blog': <BlogPage />,
   '/couriers': <CouriersPage />,
   '/shipments': <ShipmentsPage />,
   '/tracking': <ShipmentsPage title="Tracking" />,
@@ -87,7 +82,6 @@ const READY_PAGES: Record<string, ReactElement> = {
   '/finance': <FinancePage />,
   '/payouts': <FinancePage />,
   '/taxes': <TaxesPage />,
-  '/files': <FilesPage />,
   '/integrations': <IntegrationsPage />,
   '/reports': <ReportsPage />,
   '/online-store': <OnlineStorePage />,
