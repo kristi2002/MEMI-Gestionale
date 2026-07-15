@@ -78,11 +78,9 @@ export const NAV: NavGroup[] = [
     label: 'Marketing',
     icon: Megaphone,
     children: [
-      { label: 'Campagne', to: '/marketing' , ready: true },
       { label: 'Automazioni', to: '/automations' , ready: true },
       { label: 'Email automatiche', to: '/lifecycle' , ready: true },
       { label: 'Newsletter', to: '/newsletter', ready: true },
-      { label: 'Pop-up', to: '/popups' , ready: true },
     ],
   },
   { label: 'Sconti', icon: BadgePercent, to: '/discounts', ready: true },
@@ -102,7 +100,6 @@ export const NAV: NavGroup[] = [
     children: [
       { label: 'Corrieri', to: '/couriers', ready: true },
       { label: 'Spedizioni in corso', to: '/shipments', ready: true },
-      { label: 'Tracking', to: '/tracking', ready: true },
       { label: 'Zone & Tariffe', to: '/shipping-zones' , ready: true },
       { label: 'Punti di ritiro', to: '/pickup' , ready: true },
     ],

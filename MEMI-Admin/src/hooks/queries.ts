@@ -162,9 +162,7 @@ export function useSaveEntity(
 }
 
 /* ── Batch 3 list queries ──────────────────────────────── */
-export const useCampaigns = () => useQuery({ queryKey: ['campaigns'], queryFn: () => api.campaigns.list() });
 export const useSegments = () => useQuery({ queryKey: ['segments'], queryFn: () => api.segments.list() });
-export const usePopups = () => useQuery({ queryKey: ['popups'], queryFn: () => api.popups.list() });
 export const useAutomations = () => useQuery({ queryKey: ['automations'], queryFn: () => api.automations.list() });
 export const useTransfers = () => useQuery({ queryKey: ['transfers'], queryFn: () => api.transfers.list() });
 export const usePurchaseOrders = () => useQuery({ queryKey: ['purchase-orders'], queryFn: () => api.purchaseOrders.list() });

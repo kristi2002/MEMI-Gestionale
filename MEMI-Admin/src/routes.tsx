@@ -21,10 +21,8 @@ import { AuditLogPage } from '@/pages/audit-log';
 import { ExpensesPage } from '@/pages/expenses';
 import { ShippingZonesPage } from '@/pages/shipping-zones';
 import { PickupPage } from '@/pages/pickup';
-import { PopupsPage } from '@/pages/popups';
 import { SegmentsPage } from '@/pages/segments';
 import { TransfersPage } from '@/pages/transfers';
-import { CampaignsPage } from '@/pages/campaigns';
 import { AutomationsPage } from '@/pages/automations';
 import { PurchaseOrdersPage } from '@/pages/purchase-orders';
 import { LoyaltyPage } from '@/pages/loyalty';
@@ -59,15 +57,12 @@ const READY_PAGES: Record<string, ReactElement> = {
   '/loyalty': <LoyaltyPage />,
   '/segments': <SegmentsPage />,
   '/reviews': <ReviewsPage />,
-  '/marketing': <CampaignsPage />,
   '/automations': <AutomationsPage />,
   '/lifecycle': <LifecyclePage />,
   '/newsletter': <NewsletterPage />,
-  '/popups': <PopupsPage />,
   '/discounts': <DiscountsPage />,
   '/couriers': <CouriersPage />,
   '/shipments': <ShipmentsPage />,
-  '/tracking': <ShipmentsPage title="Tracking" />,
   '/shipping-zones': <ShippingZonesPage />,
   '/pickup': <PickupPage />,
   '/bills': <ExpensesPage />,
