@@ -1079,6 +1079,10 @@ window.submitNewsletter = function (form) {
 
         grid.innerHTML = html;
 
+        // Wire the wishlist hearts (+ any card interactions) on the freshly-rendered
+        // cards — app.js ran its wireProductCards() before this async render, so the
+        // new .product-wishlist buttons would otherwise stay inert.
+        if (typeof window.wireProductCards === 'function') window.wireProductCards();
         // Now that cards exist, run filter engine + pagination
         if (typeof applyFilters   === 'function') applyFilters();
         if (typeof initPagination === 'function') initPagination();

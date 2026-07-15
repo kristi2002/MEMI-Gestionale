@@ -219,6 +219,10 @@
         setCounts(products.length);
         updateFilterCounts(products);
 
+        // Wire the wishlist hearts on the freshly-rendered cards. app.js already ran
+        // wireProductCards() on DOMContentLoaded — before this async render — so the new
+        // .product-wishlist buttons would otherwise do nothing when clicked.
+        if (typeof window.wireProductCards === 'function') window.wireProductCards();
         // Re-run the filter engine's hooks if present (collections pages).
         if (typeof window.applyFilters === 'function') window.applyFilters();
       })
