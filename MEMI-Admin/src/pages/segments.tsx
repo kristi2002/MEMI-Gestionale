@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { PieChart, Plus, Pencil, Users } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -6,7 +7,8 @@ import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { EmptyState } from '@/components/common/empty-state';
-import { EntityFormDialog, useEntityForm, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSegments, useDeleteMany, useSaveEntity } from '@/hooks/queries';
@@ -34,8 +36,7 @@ const exportColumns: ExportColumn<Segment>[] = [
 export function SegmentsPage() {
   const query = useSegments();
   const del = useDeleteMany<number>((id) => api.segments.delete(id), 'segments');
-  const save = useSaveEntity(api.segments.create, api.segments.update, 'segments');
-  const form = useEntityForm();
+  const navigate = useNavigate();
   const rows = query.data?.segments ?? [];
 
   const columns = useMemo<ColumnDef<Segment, unknown>[]>(
@@ -49,13 +50,13 @@ export function SegmentsPage() {
         id: 'actions',
         header: '',
         cell: ({ row }) => (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => form.openEdit(row.original as unknown as FormValues)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/segments/${row.original.id}/edit`)}>
             <Pencil />
           </Button>
         ),
       },
     ],
-    [form],
+    [navigate],
   );
 
   return (
@@ -64,7 +65,7 @@ export function SegmentsPage() {
         title="Segmenti"
         subtitle="Gruppi di clienti definiti da regole di spesa e ordini."
         actions={
-          <Button size="sm" onClick={form.openCreate}>
+          <Button size="sm" onClick={() => navigate('/segments/new')}>
             <Plus /> Nuovo segmento
           </Button>
         }
@@ -88,17 +89,36 @@ export function SegmentsPage() {
           <BulkDelete count={selected.length} noun="segmenti" onDelete={() => del.mutateAsync(selected.map((s) => s.id))} onDone={clear} />
         )}
       />
-      <EntityFormDialog
-        open={form.open}
-        onOpenChange={form.setOpen}
-        title={form.editing ? 'Modifica segmento' : 'Nuovo segmento'}
-        fields={fields}
-        initial={form.editing}
-        onSubmit={async (values) => {
-          await save.mutateAsync({ id: form.editing?.id as number | undefined, data: values });
-          toast.success('Segmento salvato');
-        }}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for a customer segment. */
+export function SegmentFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const query = useSegments();
+  const save = useSaveEntity(api.segments.create, api.segments.update, 'segments');
+  const row = editing ? (query.data?.segments ?? []).find((s) => String(s.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return {};
+    return row ? { nome: row.nome, descrizione: row.descrizione ?? '', min_spent: Number(row.min_spent) || 0, min_orders: row.min_orders ?? 0 } : {};
+  }, [editing, row]);
+
+  return (
+    <EntityFormPage
+      title={editing ? 'Modifica segmento' : 'Nuovo segmento'}
+      backPath="/segments"
+      backLabel="Segmenti"
+      fields={fields}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Crea segmento'}
+      onSubmit={async (v) => {
+        await save.mutateAsync({ id: editing ? Number(id) : undefined, data: v });
+        toast.success('Segmento salvato');
+      }}
+    />
   );
 }

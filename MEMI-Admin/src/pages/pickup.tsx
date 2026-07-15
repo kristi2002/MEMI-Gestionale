@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MapPin, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { EmptyState } from '@/components/common/empty-state';
-import { EntityFormDialog, useEntityForm, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { usePickup, useDeleteMany, useSaveEntity } from '@/hooks/queries';
@@ -33,8 +35,7 @@ const exportColumns: ExportColumn<PickupPoint>[] = [
 export function PickupPage() {
   const query = usePickup();
   const del = useDeleteMany<number>((id) => api.pickup.delete(id), 'pickup');
-  const save = useSaveEntity(api.pickup.create, api.pickup.update, 'pickup');
-  const form = useEntityForm();
+  const navigate = useNavigate();
   const rows = query.data ?? [];
 
   const columns = useMemo<ColumnDef<PickupPoint, unknown>[]>(
@@ -48,13 +49,13 @@ export function PickupPage() {
         id: 'actions',
         header: '',
         cell: ({ row }) => (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => form.openEdit(row.original as unknown as FormValues)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/pickup/${row.original.id}/edit`)}>
             <Pencil />
           </Button>
         ),
       },
     ],
-    [form],
+    [navigate],
   );
 
   return (
@@ -63,7 +64,7 @@ export function PickupPage() {
         title="Punti di ritiro"
         subtitle="Sedi dove i clienti possono ritirare gli ordini."
         actions={
-          <Button size="sm" onClick={form.openCreate}>
+          <Button size="sm" onClick={() => navigate('/pickup/new')}>
             <Plus /> Nuovo punto
           </Button>
         }
@@ -83,17 +84,36 @@ export function PickupPage() {
           <BulkDelete count={selected.length} noun="punti" onDelete={() => del.mutateAsync(selected.map((p) => p.id))} onDone={clear} />
         )}
       />
-      <EntityFormDialog
-        open={form.open}
-        onOpenChange={form.setOpen}
-        title={form.editing ? 'Modifica punto di ritiro' : 'Nuovo punto di ritiro'}
-        fields={fields}
-        initial={form.editing}
-        onSubmit={async (values) => {
-          await save.mutateAsync({ id: form.editing?.id as number | undefined, data: values });
-          toast.success('Punto di ritiro salvato');
-        }}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for a pickup point. */
+export function PickupFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const query = usePickup();
+  const save = useSaveEntity(api.pickup.create, api.pickup.update, 'pickup');
+  const row = editing ? (query.data ?? []).find((p) => String(p.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return { attivo: true };
+    return row ? { nome: row.nome, corriere: row.corriere ?? '', indirizzo: row.indirizzo, orari: row.orari ?? '', attivo: !!row.attivo } : {};
+  }, [editing, row]);
+
+  return (
+    <EntityFormPage
+      title={editing ? 'Modifica punto di ritiro' : 'Nuovo punto di ritiro'}
+      backPath="/pickup"
+      backLabel="Punti di ritiro"
+      fields={fields}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Crea punto'}
+      onSubmit={async (v) => {
+        await save.mutateAsync({ id: editing ? Number(id) : undefined, data: v });
+        toast.success('Punto di ritiro salvato');
+      }}
+    />
   );
 }

@@ -1,4 +1,5 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Receipt, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -8,7 +9,8 @@ import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/common/empty-state';
-import { EntityFormDialog, useEntityForm, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { useExpenses, useDeleteMany, useSaveEntity } from '@/hooks/queries';
 import { api } from '@/lib/api';
@@ -45,8 +47,7 @@ const exportColumns: ExportColumn<Expense>[] = [
 export function ExpensesPage() {
   const query = useExpenses();
   const del = useDeleteMany<number>((id) => api.expenses.delete(id), 'expenses');
-  const saveMut = useSaveEntity(api.expenses.create, api.expenses.update, 'expenses');
-  const form = useEntityForm();
+  const navigate = useNavigate();
   const rows = query.data?.expenses ?? [];
 
   const filters = useMemo<FilterDef<Expense>[]>(() => {
@@ -61,20 +62,6 @@ export function ExpensesPage() {
   }, [rows]);
   const s = query.data?.summary;
 
-  const openEditRef = useRef(form.openEdit);
-  openEditRef.current = form.openEdit;
-
-  async function onSubmit(v: FormValues) {
-    const id = form.editing?.id as number | undefined;
-    const data = {
-      descrizione: v.descrizione, categoria: v.categoria || 'generale', importo: v.importo || 0,
-      ricorrenza: v.ricorrenza || 'una_tantum', fornitore: v.fornitore || null,
-      data_spesa: v.data_spesa || null, note: v.note || null,
-    };
-    await saveMut.mutateAsync({ id, data });
-    toast.success(id ? 'Spesa aggiornata' : 'Spesa registrata');
-  }
-
   const columns = useMemo<ColumnDef<Expense, unknown>[]>(
     () => [
       { accessorKey: 'descrizione', header: 'Descrizione', cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span> },
@@ -86,7 +73,7 @@ export function ExpensesPage() {
       {
         id: 'azioni', header: '', enableSorting: false,
         cell: ({ row }) => (
-          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original as unknown as FormValues); }}>
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/bills/${row.original.id}/edit`); }}>
             <Pencil /> Modifica
           </Button>
         ),
@@ -100,7 +87,7 @@ export function ExpensesPage() {
       <PageHeader
         title="Fatture & Spese"
         subtitle="Costi operativi e spese ricorrenti."
-        actions={<Button size="sm" onClick={form.openCreate}><Plus /> Nuova spesa</Button>}
+        actions={<Button size="sm" onClick={() => navigate('/bills/new')}><Plus /> Nuova spesa</Button>}
       />
       <div className="mb-4 grid grid-cols-3 gap-4">
         <KpiCard label="Totale spese" value={eur(s?.total ?? 0)} icon={Receipt} tone="primary" loading={query.isLoading} />
@@ -124,15 +111,49 @@ export function ExpensesPage() {
           <BulkDelete count={selected.length} noun="spese" onDelete={() => del.mutateAsync(selected.map((e) => e.id))} onDone={clear} />
         )}
       />
-      <EntityFormDialog
-        open={form.open}
-        onOpenChange={form.setOpen}
-        title={form.editing ? 'Modifica spesa' : 'Nuova spesa'}
-        fields={FIELDS}
-        initial={form.editing}
-        submitLabel={form.editing ? 'Salva modifiche' : 'Registra spesa'}
-        onSubmit={onSubmit}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for an expense. */
+export function ExpenseFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const query = useExpenses();
+  const saveMut = useSaveEntity(api.expenses.create, api.expenses.update, 'expenses');
+  const row = editing ? (query.data?.expenses ?? []).find((e) => String(e.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return { categoria: 'generale', ricorrenza: 'una_tantum' };
+    return row
+      ? {
+          descrizione: row.descrizione, categoria: row.categoria, importo: Number(row.importo),
+          ricorrenza: row.ricorrenza, fornitore: row.fornitore ?? '',
+          data_spesa: row.data_spesa ? String(row.data_spesa).slice(0, 10) : '', note: row.note ?? '',
+        }
+      : {};
+  }, [editing, row]);
+
+  return (
+    <EntityFormPage
+      title={editing ? 'Modifica spesa' : 'Nuova spesa'}
+      backPath="/bills"
+      backLabel="Fatture & Spese"
+      fields={FIELDS}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Registra spesa'}
+      onSubmit={async (v) => {
+        await saveMut.mutateAsync({
+          id: editing ? Number(id) : undefined,
+          data: {
+            descrizione: v.descrizione, categoria: v.categoria || 'generale', importo: v.importo || 0,
+            ricorrenza: v.ricorrenza || 'una_tantum', fornitore: v.fornitore || null,
+            data_spesa: v.data_spesa || null, note: v.note || null,
+          },
+        });
+        toast.success(editing ? 'Spesa aggiornata' : 'Spesa registrata');
+      }}
+    />
   );
 }

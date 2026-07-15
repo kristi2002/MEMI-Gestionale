@@ -8,6 +8,11 @@ import { ProductFormPage } from '@/pages/product-form';
 import { SupplierFormPage } from '@/pages/suppliers';
 import { GiftcardFormPage } from '@/pages/giftcards';
 import { DiscountFormPage } from '@/pages/discounts';
+import { ExpenseFormPage } from '@/pages/expenses';
+import { PickupFormPage } from '@/pages/pickup';
+import { TransferFormPage } from '@/pages/transfers';
+import { SegmentFormPage } from '@/pages/segments';
+import { ShippingZoneFormPage } from '@/pages/shipping-zones';
 
 function FullScreenSpinner() {
   return (
@@ -42,6 +47,16 @@ export default function App() {
           <Route path="/giftcards/:id/edit" element={<GiftcardFormPage />} />
           <Route path="/discounts/new" element={<DiscountFormPage />} />
           <Route path="/discounts/:id/edit" element={<DiscountFormPage />} />
+          <Route path="/bills/new" element={<ExpenseFormPage />} />
+          <Route path="/bills/:id/edit" element={<ExpenseFormPage />} />
+          <Route path="/pickup/new" element={<PickupFormPage />} />
+          <Route path="/pickup/:id/edit" element={<PickupFormPage />} />
+          <Route path="/transfers/new" element={<TransferFormPage />} />
+          <Route path="/transfers/:id/edit" element={<TransferFormPage />} />
+          <Route path="/segments/new" element={<SegmentFormPage />} />
+          <Route path="/segments/:id/edit" element={<SegmentFormPage />} />
+          <Route path="/shipping-zones/new" element={<ShippingZoneFormPage />} />
+          <Route path="/shipping-zones/:id/edit" element={<ShippingZoneFormPage />} />
           {routes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />
           ))}

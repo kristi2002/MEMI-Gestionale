@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Globe, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { EmptyState } from '@/components/common/empty-state';
-import { EntityFormDialog, useEntityForm, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { useZones, useDeleteMany, useSaveEntity } from '@/hooks/queries';
 import { api } from '@/lib/api';
@@ -33,8 +35,7 @@ const exportColumns: ExportColumn<ShippingZone>[] = [
 export function ShippingZonesPage() {
   const query = useZones();
   const del = useDeleteMany<number>((id) => api.zones.delete(id), 'zones');
-  const save = useSaveEntity(api.zones.create, api.zones.update, 'zones');
-  const form = useEntityForm();
+  const navigate = useNavigate();
   const rows = query.data ?? [];
 
   const columns = useMemo<ColumnDef<ShippingZone, unknown>[]>(
@@ -48,13 +49,13 @@ export function ShippingZonesPage() {
         id: 'actions',
         header: '',
         cell: ({ row }) => (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => form.openEdit(row.original as unknown as FormValues)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/shipping-zones/${row.original.id}/edit`)}>
             <Pencil />
           </Button>
         ),
       },
     ],
-    [form],
+    [navigate],
   );
 
   return (
@@ -63,7 +64,7 @@ export function ShippingZonesPage() {
         title="Zone & Tariffe"
         subtitle="Regole di spedizione per area geografica."
         actions={
-          <Button size="sm" onClick={form.openCreate}>
+          <Button size="sm" onClick={() => navigate('/shipping-zones/new')}>
             <Plus /> Nuova zona
           </Button>
         }
@@ -83,17 +84,38 @@ export function ShippingZonesPage() {
           <BulkDelete count={selected.length} noun="zone" onDelete={() => del.mutateAsync(selected.map((z) => z.id))} onDone={clear} />
         )}
       />
-      <EntityFormDialog
-        open={form.open}
-        onOpenChange={form.setOpen}
-        title={form.editing ? 'Modifica zona' : 'Nuova zona'}
-        fields={fields}
-        initial={form.editing}
-        onSubmit={async (values) => {
-          await save.mutateAsync({ id: form.editing?.id as number | undefined, data: values });
-          toast.success('Zona salvata');
-        }}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for a shipping zone. */
+export function ShippingZoneFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const query = useZones();
+  const save = useSaveEntity(api.zones.create, api.zones.update, 'zones');
+  const row = editing ? (query.data ?? []).find((z) => String(z.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return {};
+    return row
+      ? { nome: row.nome, metodo: row.metodo ?? '', paesi: row.paesi ?? '', prezzo: Number(row.prezzo) || 0, spedizione_gratuita_da: row.spedizione_gratuita_da == null ? '' : Number(row.spedizione_gratuita_da) }
+      : {};
+  }, [editing, row]);
+
+  return (
+    <EntityFormPage
+      title={editing ? 'Modifica zona' : 'Nuova zona'}
+      backPath="/shipping-zones"
+      backLabel="Zone & Tariffe"
+      fields={fields}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Crea zona'}
+      onSubmit={async (v) => {
+        await save.mutateAsync({ id: editing ? Number(id) : undefined, data: v });
+        toast.success('Zona salvata');
+      }}
+    />
   );
 }

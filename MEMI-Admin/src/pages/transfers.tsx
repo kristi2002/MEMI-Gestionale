@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowLeftRight, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -6,7 +7,8 @@ import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
-import { EntityFormDialog, useEntityForm, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { useTransfers, useDeleteMany, useSaveEntity } from '@/hooks/queries';
 import { api } from '@/lib/api';
@@ -40,8 +42,7 @@ const exportColumns: ExportColumn<Transfer>[] = [
 export function TransfersPage() {
   const query = useTransfers();
   const del = useDeleteMany<number>((id) => api.transfers.delete(id), 'transfers');
-  const save = useSaveEntity(api.transfers.create, api.transfers.update, 'transfers');
-  const form = useEntityForm();
+  const navigate = useNavigate();
   const rows = query.data ?? [];
 
   const columns = useMemo<ColumnDef<Transfer, unknown>[]>(
@@ -56,13 +57,13 @@ export function TransfersPage() {
         id: 'actions',
         header: '',
         cell: ({ row }) => (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => form.openEdit(row.original as unknown as FormValues)}>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/transfers/${row.original.id}/edit`)}>
             <Pencil />
           </Button>
         ),
       },
     ],
-    [form],
+    [navigate],
   );
 
   return (
@@ -71,7 +72,7 @@ export function TransfersPage() {
         title="Trasferimenti"
         subtitle="Movimenti di stock tra sedi o magazzini."
         actions={
-          <Button size="sm" onClick={form.openCreate}>
+          <Button size="sm" onClick={() => navigate('/transfers/new')}>
             <Plus /> Nuovo trasferimento
           </Button>
         }
@@ -91,17 +92,38 @@ export function TransfersPage() {
           <BulkDelete count={selected.length} noun="trasferimenti" onDelete={() => del.mutateAsync(selected.map((t) => t.id))} onDone={clear} />
         )}
       />
-      <EntityFormDialog
-        open={form.open}
-        onOpenChange={form.setOpen}
-        title={form.editing ? 'Modifica trasferimento' : 'Nuovo trasferimento'}
-        fields={fields}
-        initial={form.editing}
-        onSubmit={async (values) => {
-          await save.mutateAsync({ id: form.editing?.id as number | undefined, data: values });
-          toast.success('Trasferimento salvato');
-        }}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for a stock transfer. */
+export function TransferFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const query = useTransfers();
+  const save = useSaveEntity(api.transfers.create, api.transfers.update, 'transfers');
+  const row = editing ? (query.data ?? []).find((t) => String(t.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return { stato: 'richiesto' };
+    return row
+      ? { prodotto: row.prodotto, taglia: row.taglia ?? '', quantita: row.quantita, da_luogo: row.da_luogo ?? '', a_luogo: row.a_luogo ?? '', stato: row.stato, note: row.note ?? '' }
+      : {};
+  }, [editing, row]);
+
+  return (
+    <EntityFormPage
+      title={editing ? 'Modifica trasferimento' : 'Nuovo trasferimento'}
+      backPath="/transfers"
+      backLabel="Trasferimenti"
+      fields={fields}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Crea trasferimento'}
+      onSubmit={async (v) => {
+        await save.mutateAsync({ id: editing ? Number(id) : undefined, data: v });
+        toast.success('Trasferimento salvato');
+      }}
+    />
   );
 }
