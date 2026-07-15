@@ -19,6 +19,7 @@ import { ColorFormPage } from '@/pages/colors';
 import { CourierFormPage } from '@/pages/couriers';
 import { AutomationFormPage } from '@/pages/automations';
 import { CategoryFormPage, CollectionFormPage } from '@/pages/taxonomy';
+import { ReturnFormPage } from '@/pages/returns';
 
 function FullScreenSpinner() {
   return (
@@ -77,6 +78,7 @@ export default function App() {
           <Route path="/categories/:id/edit" element={<CategoryFormPage />} />
           <Route path="/collections/new" element={<CollectionFormPage />} />
           <Route path="/collections/:id/edit" element={<CollectionFormPage />} />
+          <Route path="/returns/:id/edit" element={<ReturnFormPage />} />
           {routes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />
           ))}

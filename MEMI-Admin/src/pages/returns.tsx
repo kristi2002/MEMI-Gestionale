@@ -1,4 +1,5 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { RotateCcw, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -8,7 +9,8 @@ import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
-import { EntityFormDialog, useEntityForm, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { useResi, useDeleteMany, useUpdateOne } from '@/hooks/queries';
 import { api } from '@/lib/api';
@@ -43,8 +45,7 @@ const exportColumns: ExportColumn<Reso>[] = [
 export function ReturnsPage() {
   const query = useResi();
   const del = useDeleteMany<number>((id) => api.resi.delete(id), 'resi');
-  const updateMut = useUpdateOne<number>((id, data) => api.resi.update(id, data), 'resi');
-  const form = useEntityForm();
+  const navigate = useNavigate();
   const rows = query.data?.resi ?? [];
 
   const filters = useMemo<FilterDef<Reso>[]>(
@@ -58,15 +59,6 @@ export function ReturnsPage() {
     ],
     [],
   );
-
-  const openEditRef = useRef(form.openEdit);
-  openEditRef.current = form.openEdit;
-
-  async function onSubmit(v: FormValues) {
-    const id = form.editing?.id as number;
-    await updateMut.mutateAsync({ id, data: { stato: v.stato, rimborso_amount: v.rimborso_amount === '' || v.rimborso_amount == null ? null : v.rimborso_amount } });
-    toast.success('Reso aggiornato');
-  }
 
   const counts = useMemo(
     () => ({
@@ -99,7 +91,7 @@ export function ReturnsPage() {
       {
         id: 'azioni', header: '', enableSorting: false,
         cell: ({ row }) => (
-          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original as unknown as FormValues); }}>
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/returns/${row.original.id}/edit`); }}>
             <Pencil /> Gestisci
           </Button>
         ),
@@ -133,16 +125,39 @@ export function ReturnsPage() {
           <BulkDelete count={selected.length} noun="resi" onDelete={() => del.mutateAsync(selected.map((r) => r.id))} onDone={clear} />
         )}
       />
-      <EntityFormDialog
-        open={form.open}
-        onOpenChange={form.setOpen}
-        title="Gestisci reso"
-        description="Aggiorna lo stato della richiesta e l'importo del rimborso."
-        fields={STATO_FIELDS}
-        initial={form.editing}
-        submitLabel="Salva"
-        onSubmit={onSubmit}
-      />
     </div>
+  );
+}
+
+/** Full-page editor for a return's status + refund amount. */
+export function ReturnFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const query = useResi();
+  const updateMut = useUpdateOne<number>((rid, data) => api.resi.update(rid, data), 'resi');
+  const row = (query.data?.resi ?? []).find((r) => String(r.id) === id);
+
+  const initial = useMemo<FormValues>(
+    () => (row ? { stato: row.stato, rimborso_amount: row.rimborso_amount == null ? '' : Number(row.rimborso_amount) } : {}),
+    [row],
+  );
+
+  return (
+    <EntityFormPage
+      title={`Gestisci reso${row ? `: ${row.rma_number}` : ''}`}
+      subtitle="Aggiorna lo stato della richiesta e l'importo del rimborso."
+      backPath="/returns"
+      backLabel="Resi"
+      fields={STATO_FIELDS}
+      initial={initial}
+      loading={!row && query.isLoading}
+      submitLabel="Salva"
+      onSubmit={async (v) => {
+        await updateMut.mutateAsync({
+          id: Number(id),
+          data: { stato: v.stato, rimborso_amount: v.rimborso_amount === '' || v.rimborso_amount == null ? null : v.rimborso_amount },
+        });
+        toast.success('Reso aggiornato');
+      }}
+    />
   );
 }
