@@ -1793,6 +1793,7 @@
 
   function wireProductCards() {
     document.querySelectorAll('.product-card').forEach(function(card) {
+      if (card.dataset.cardWired) return; card.dataset.cardWired = '1';   // idempotent: safe to call after every async render
       card.style.cursor = 'pointer';
       card.addEventListener('click', function() {
         var dataId = card.dataset.id;
@@ -1805,6 +1806,7 @@
     });
 
     document.querySelectorAll('.product-quick-add .size-chip:not(.oos):not(.disabled)').forEach(function(chip) {
+      if (chip.dataset.chipWired) return; chip.dataset.chipWired = '1';
       chip.addEventListener('click', function(e) {
         e.stopPropagation();
         var card  = chip.closest('.product-card');
@@ -1843,6 +1845,7 @@
       // Restore persisted heart state via CSS class (not inline style)
       btn.classList.toggle('is-wishlisted', isWishlisted(id));
       btn.setAttribute('aria-label', isWishlisted(id) ? 'Rimuovi dalla wishlist' : 'Aggiungi alla wishlist');
+      if (btn.dataset.wlWired) return; btn.dataset.wlWired = '1';   // add the click handler only once
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
         var activeChip = card && card.querySelector('.size-chip[data-selected="true"]');
