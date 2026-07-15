@@ -664,8 +664,8 @@
     return '<div class="ap-two">' +
       '<div class="ap-block"><h3>' + t('aiuto.contact') + '</h3>' +
         '<p style="font-size:.86rem;color:var(--brown-mid);margin-bottom:1rem">' + t('aiuto.contact.p') + '</p>' +
-        '<a class="btn-primary-solid" href="mailto:info@memiabbigliamento.it" style="display:inline-block">' + t('aiuto.email') + '</a>' +
-        '<p style="font-size:.8rem;color:var(--brown-light);margin-top:1rem">info@memiabbigliamento.it</p>' +
+        '<a class="btn-primary-solid" href="mailto:info@memi.testdemo.it" style="display:inline-block">' + t('aiuto.email') + '</a>' +
+        '<p style="font-size:.8rem;color:var(--brown-light);margin-top:1rem">info@memi.testdemo.it</p>' +
       '</div>' +
       '<div class="ap-block"><h3>' + t('aiuto.faq') + '</h3>' +
         faq('<svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>', t('aiuto.q1'), 'returns.html') +

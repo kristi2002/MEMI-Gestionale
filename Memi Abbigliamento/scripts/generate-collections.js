@@ -203,7 +203,7 @@ function renderPage(meta, productsInCollection) {
 '  <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n' +
 '  <title>' + meta.label + ' — Memi Abbigliamento</title>\n' +
 '  <meta name="description" content="Scopri la collezione ' + meta.label + ' di Memi Abbigliamento: capi e accessori pastello selezionati con cura." />\n' +
-'  <link rel="canonical" href="https://memiabbigliamento.it/collections/' + slug + '/" />\n' +
+'  <link rel="canonical" href="https://memi.testdemo.it/collections/' + slug + '/" />\n' +
 '  <link rel="preconnect" href="https://fonts.googleapis.com" />\n' +
 '  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />\n' +
 '  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />\n' +

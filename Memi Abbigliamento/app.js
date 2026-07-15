@@ -535,7 +535,7 @@
       <div class="sf2-col">
         <h4>Supporto</h4>
         <ul>
-          <li><a href="mailto:info@memiabbigliamento.it">Contattaci</a></li>
+          <li><a href="mailto:info@memi.testdemo.it">Contattaci</a></li>
           <li><a href="/returns">Spedizioni &amp; Resi</a></li>
           <li><a href="/order-tracking">Traccia il tuo ordine</a></li>
           <li><a href="/privacy">Privacy Policy</a></li>
@@ -769,7 +769,7 @@
             </a>
           </div>
           <p class="mobile-nav-contact">
-            Assistenza: <a href="mailto:info@memiabbigliamento.it">info@memiabbigliamento.it</a>
+            Assistenza: <a href="mailto:info@memi.testdemo.it">info@memi.testdemo.it</a>
           </p>
         </div>
       </nav>

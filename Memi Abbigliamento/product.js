@@ -254,14 +254,14 @@
     window.MemiAPI.products.get(productId).then(function (p) {
       /* SEO: canonical + Product structured data, built from live API data. */
       try {
-        var canon = 'https://memiabbigliamento.it/product?id=' + encodeURIComponent(productId);
+        var canon = 'https://memi.testdemo.it/product?id=' + encodeURIComponent(productId);
         if (!document.querySelector('link[rel="canonical"]')) {
           var lk = document.createElement('link'); lk.rel = 'canonical'; lk.href = canon;
           document.head.appendChild(lk);
         }
         var ldImgs = (Array.isArray(p.images) ? p.images : []).map(function (x) {
           var u = (typeof x === 'string') ? x : (x.full || x.card || x.thumb);
-          if (u && u.indexOf('http') !== 0) u = 'https://memiabbigliamento.it' + u;
+          if (u && u.indexOf('http') !== 0) u = 'https://memi.testdemo.it' + u;
           return u;
         }).filter(Boolean);
         var inStock = (p.status !== 'esaurito');
