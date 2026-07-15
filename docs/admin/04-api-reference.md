@@ -1,8 +1,16 @@
 # 04 · Backend API Reference
 
 > The REST surface the admin uses, grouped by resource. Base path `/api`.
-> Admin routes require `Authorization: Bearer <admin JWT>` (`requireAdmin`); some
-> mutations additionally require the `admin` role (`requireRole('admin')`).
+> Admin routes require the admin session (HttpOnly cookie `memi_admin_token`, or legacy
+> `Authorization: Bearer`); most are gated by `requireAdmin` + `requirePermission(view)`.
+>
+> **2026-07-15 changes:** admin **order** routes (`/api/orders/admin*`) now also require
+> `requirePermission('orders')` (were `requireAdmin` only). **PayPal webhook**
+> (`POST /api/payments/paypal/webhook`) now verifies the event signature against
+> `PAYPAL_WEBHOOK_ID` and refuses to reconcile unverified events. `POST /api/auth/register`
+> accepts an optional `cognome` and back-fills a new customer's prior guest orders (+ loyalty
+> points). `POST/PUT /api/products` and `PUT /api/products/:id/stock` back the admin's product
+> create/edit and inventory stock-adjust.
 > "public" = no auth (storefront/beacons/feeds).
 
 ## Route mounts (from `MEMI-Backend/src/server.js`)

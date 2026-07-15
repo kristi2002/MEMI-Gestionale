@@ -1,6 +1,10 @@
 # 09 · Strategy, Build History & Roadmap
 
 > The "why", what's real vs deferred, and where it's going.
+>
+> **Current roadmap lives in [`docs/DEPLOYMENT-READINESS-PLAN-2026-07-15.md`](../DEPLOYMENT-READINESS-PLAN-2026-07-15.md)** —
+> the authoritative gap analysis + phased plan (admin CRUD ✅, security hardening ✅, tests ✅,
+> storefront polish ✅, docs pass 🔄, Hetzner go-live ⬜). Read it alongside this history.
 
 ## Product strategy
 

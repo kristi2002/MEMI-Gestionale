@@ -6,6 +6,16 @@
 > in fact built, mounted, and API-backed. See `docs/GO-LIVE-PLAN-2026-07.md` for the gap list.
 
 ## Storefront (customer-facing) — all WIRED unless noted
+
+> **2026-07-15 addendum:** free-shipping threshold is **€100** of goods (standard €5.90),
+> matching the server (`shipping-rates.js`); all marketing copy was corrected from the old €50.
+> New: dedicated **`/carrello`** (cart) and **`/lista-desideri`** (wishlist) pages; registration
+> collects **Cognome**; one-size products (gioielli/borse/cinture/accessori) no longer show a
+> "Taglia non sel." chip; wishlist→cart inherits the customer's saved size; guests can buy and,
+> on registering with the same email, their past orders link to the account **and** the loyalty
+> points are credited; fast-checkout buttons (Apple Pay / Google Pay / PayPal) prefill from the
+> profile and jump to shipping. Dead files removed (`indexOLD.html`, `index3.html`,
+> `account-demo.html`, `server.py`).
 | Flow | Status | Notes |
 |---|---|---|
 | Browse / collections / search | WIRED | Runtime hydration from API via `catalog-loader.js`; client-side search over `/products` |
@@ -22,6 +32,15 @@
 | GDPR cookie consent + legal pages | WIRED | Self-hosted banner; privacy/cookie-policy/termini/diritto-recesso |
 
 ## Admin panel — view by view
+
+> **2026-07-15 addendum:** the shipping admin is the **React `MEMI-Admin/`** app. The
+> statuses below are end-to-end capability against the backend API; the React UI now exposes
+> **full add/edit/delete** for Products, Discounts, Gift cards, Staff, Suppliers, Expenses,
+> Campaigns and Customers, plus **returns-state management** and **per-size inventory
+> adjustment** (`EntityFormDialog` + `useSaveEntity`). Admin **order** routes are now gated by
+> `requirePermission('orders')` (not just `requireAdmin`). Remaining React-UI gaps: manual
+> order creation and purchase-order line-item editing (backend endpoints exist).
+
 | View | Status |
 |---|---|
 | Dashboard, Analytics, Finance, Payouts | WIRED (+ catalog KPI row) |

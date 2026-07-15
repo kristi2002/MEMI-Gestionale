@@ -255,3 +255,45 @@ mounted, and API-backed**. Any older doc calling them "mock/hidden/nessun backen
 - **Storefront:** registration drawer gained an optional "Data di nascita" field (app.js → api-client
   → register). Cache-bust bumped: storefront `app.js?v=27`, `api-client.js?v=7`.
 - **Tests:** `test/lifecycle-logic.test.cjs` (`verify/run.sh` sez. 6c) + smoke `[8b] Lifecycle emails`.
+
+## Update 15 Luglio 2026 — storefront fixes, React-admin CRUD, security & docs pass
+
+**Shipping admin is React `MEMI-Admin/`** (compose `admin` service builds it); legacy jQuery
+`MEMI/` is rollback-only. `docs/admin/*` still describes the legacy app — read `MEMI-Admin/src/`
+for the shipping one.
+
+**Storefront (`Memi Abbigliamento/`):**
+- **Free-shipping threshold is €100** of goods (standard €5.90), matching `shipping-rates.js`.
+  ALL marketing copy was corrected from the old €50 (drawer, ~35 pages, generate-collections.js).
+  If you change the threshold, change BOTH the server const and the copy.
+- One-size categories (`gioielli, borse, cinture, accessori, bijoux`) never show "Taglia non sel."
+  in cart/wishlist — `SIZELESS_CATS`/`isSizelessProduct()` in `app.js`.
+- Wishlist→cart (`appMoveToCart`) inherits the customer's saved `memi_sizes` by category when no
+  size was chosen. New pages **`/carrello`** and **`/lista-desideri`** (listen to
+  `memi:cart:changed`/`memi:wishlist:changed` events fired from `saveCart`/`saveWishlist`).
+- Registration collects **Cognome** (drawer → api-client → `auth/register` → `customers.cognome`).
+- **Guest→account:** registering with an email that has prior guest orders backfills those orders
+  (`customer_id`) and credits their loyalty points (idempotent via `order_id`) — `routes/auth.js`.
+- Fast-checkout buttons (Apple Pay / Google Pay / PayPal) → `/checkout?express=1&pay=…`; checkout
+  autofills from profile, jumps to shipping, preselects the method (wallet reveal is HTTPS-gated).
+- Dead files removed: `indexOLD.html`, `index3.html`, `account-demo.html`, `server.py`.
+
+**Admin (`MEMI-Admin/`):** full add/edit/delete now wired for Products, Discounts, Gift cards,
+Staff, Suppliers, Expenses, Campaigns, Customers; returns-state management; per-size inventory
+adjust. Pattern: `EntityFormDialog` + `useSaveEntity`/`useUpdateOne` + an edit-action column;
+api methods in `src/lib/api.ts`. Still TODO in the UI: manual order creation, PO line-items.
+
+**Security (Phase 2):**
+- Admin **order** routes now require `requirePermission('orders')` (were `requireAdmin` only).
+- `bootstrapAdmin` (`db/migrations.js`) no longer overwrites the admin password every boot — it
+  seeds a missing admin or replaces the DEFAULT hash only; `ADMIN_PASSWORD_RESET=1` forces a
+  rotation. An in-app password change now survives restarts.
+- `cleanAddr` bounds customer address fields to 120 chars.
+- **PayPal webhook signature verification** implemented (`verifyPaypalWebhook` in
+  `payment-providers.js`); `/paypal/webhook` verifies-or-rejects when `PAYPAL_WEBHOOK_ID` is set,
+  and refuses to reconcile unverified events otherwise.
+
+**Tests:** `smoke-test.sh` + `test/catalog.test.mjs` read `ADMIN_PASSWORD` from env (were hardcoded
+to the default). New smoke section `[8c] Admin entity CRUD`. NOTE: smoke `[9] Colors` tests a
+`/api/colors` feature that **does not exist** in the code (pre-existing drift — build it or delete
+the block). Full plan + gap analysis: `docs/DEPLOYMENT-READINESS-PLAN-2026-07-15.md`.
