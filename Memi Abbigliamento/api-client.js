@@ -84,6 +84,7 @@
       if (consents) {
         body.privacy_consent   = !!consents.privacy_consent;
         body.marketing_consent = !!consents.marketing_consent;
+        if (consents.cognome) body.cognome = consents.cognome;
       }
       if (birthday) body.birthday = birthday;
       var data = await post('/auth/register', body);

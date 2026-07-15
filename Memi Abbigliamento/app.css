@@ -390,6 +390,7 @@ html { overflow-x: clip; }
 }
 .express-btn:hover { border-color: var(--beige-dark, #BEBEDD); }
 .express-btn.apple { letter-spacing: -0.01em; color: var(--espresso, #3B2B2B); }
+.express-btn.gpay { letter-spacing: -0.01em; color: #3c4043; }
 .express-btn.paypal { color: #003087; }
 
 /* ============================================================

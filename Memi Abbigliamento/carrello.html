@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="memi-api" content="/api" />
+  <title>Il tuo carrello · Memi Abbigliamento</title>
+  <meta name="description" content="Rivedi i capi nel tuo carrello Memi Abbigliamento e procedi al checkout in modo sicuro." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css?v=70c280df" />
+  <link rel="stylesheet" href="app.css?v=ece23419" />
+  <style>
+    body{font-family:var(--font-sans);background:var(--cream);color:var(--espresso);line-height:1.65;-webkit-font-smoothing:antialiased;}
+
+    .page-wrap{max-width:1160px;margin:0 auto;padding:clamp(32px,6vw,72px) clamp(16px,4vw,40px) 100px;}
+    .page-head{margin-bottom:clamp(24px,4vw,40px);padding-bottom:1.5rem;border-bottom:1px solid var(--border,#e8e2da);}
+    .page-eyebrow{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brown-light,#a08d80);font-weight:500;margin-bottom:.75rem;}
+    .page-title{font-family:var(--font-serif);font-size:clamp(2rem,5vw,3rem);font-weight:300;line-height:1.05;}
+    .page-title em{font-style:italic;color:var(--blush-dark,#b98a8a);}
+
+    .cart-layout{display:grid;grid-template-columns:1fr;gap:clamp(24px,4vw,48px);}
+    @media(min-width:900px){.cart-layout{grid-template-columns:1.6fr .9fr;align-items:start;}}
+
+    .cart-lines{display:flex;flex-direction:column;gap:14px;}
+    .cline{display:grid;grid-template-columns:96px 1fr auto;gap:16px;background:var(--white,#fff);border:1px solid var(--border,#ece7e0);border-radius:14px;padding:14px;align-items:center;}
+    .cline-img{width:96px;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--blush-light,#f6ecec);}
+    .cline-img img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;}
+    .cline-info{display:flex;flex-direction:column;gap:8px;min-width:0;}
+    .cline-name{font-size:.98rem;font-weight:500;color:var(--espresso);line-height:1.35;}
+    .cline-name a{color:inherit;text-decoration:none;}
+    .cline-tags{display:flex;flex-wrap:wrap;gap:6px;}
+    .cline-tag{font-size:.68rem;padding:3px 9px;border-radius:20px;background:var(--blush-light,#f6ecec);color:var(--brown-mid,#6b5050);}
+    .cline-tag.none{background:#f4f0ea;color:var(--brown-light,#a08d80);font-style:italic;}
+    .qty{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--border,#e2dcd4);border-radius:22px;padding:2px;width:max-content;}
+    .qty button{width:30px;height:30px;border:none;background:none;cursor:pointer;font-size:1.05rem;color:var(--espresso);border-radius:50%;transition:background .15s;}
+    .qty button:hover{background:var(--blush-light,#f6ecec);}
+    .qty span{min-width:26px;text-align:center;font-size:.9rem;}
+    .cline-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;height:100%;justify-content:space-between;}
+    .cline-price{font-size:1rem;font-weight:600;color:var(--espresso);white-space:nowrap;}
+    .cline-remove{background:none;border:none;cursor:pointer;font-size:.74rem;color:var(--brown-light,#a08d80);text-decoration:underline;text-underline-offset:3px;}
+    .cline-remove:hover{color:var(--blush-dark,#b98a8a);}
+
+    .summary{background:var(--white,#fff);border:1px solid var(--border,#ece7e0);border-radius:16px;padding:clamp(20px,3vw,28px);position:sticky;top:24px;}
+    .summary h2{font-family:var(--font-serif);font-size:1.35rem;font-weight:300;margin-bottom:1.25rem;}
+    .sum-row{display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:.75rem;color:var(--brown-mid,#6b5050);}
+    .sum-row.total{font-size:1.15rem;font-weight:600;color:var(--espresso);border-top:1px solid var(--border,#ece7e0);padding-top:1rem;margin-top:1rem;}
+    .ship-bar{height:6px;border-radius:6px;background:var(--blush-light,#f6ecec);overflow:hidden;margin:.4rem 0 .6rem;}
+    .ship-bar > i{display:block;height:100%;background:var(--blush-dark,#c99);transition:width .4s;}
+    .ship-note{font-size:.76rem;color:var(--brown-light,#a08d80);margin-bottom:1.25rem;}
+    .ship-note strong{color:var(--espresso);}
+    .ship-note .ok{color:#5F7A3F;font-weight:500;}
+    .btn-co{display:block;width:100%;text-align:center;padding:.95rem;background:var(--espresso,#3b2b2b);color:#fff;border-radius:10px;text-decoration:none;font-size:.86rem;letter-spacing:.05em;transition:background .2s;border:none;cursor:pointer;}
+    .btn-co:hover{background:var(--blush-dark,#b98a8a);}
+    .express-label{text-align:center;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light,#a08d80);margin:1.1rem 0 .6rem;}
+    .express-row{display:flex;gap:.5rem;}
+    .express-row button{flex:1;height:40px;border-radius:9px;border:1.5px solid var(--beige,#DBDBEE);background:#fff;cursor:pointer;font-size:.72rem;font-weight:700;transition:border-color .18s;}
+    .express-row button:hover{border-color:var(--beige-dark,#BEBEDD);}
+    .express-row .apple{color:var(--espresso,#3b2b2b);} .express-row .gpay{color:#3c4043;} .express-row .paypal{color:#003087;}
+    .cart-cont{display:block;text-align:center;margin-top:1rem;font-size:.8rem;color:var(--brown-mid,#6b5050);text-decoration:underline;text-underline-offset:3px;}
+
+    .cart-empty{text-align:center;padding:clamp(48px,10vw,96px) 1rem;}
+    .cart-empty svg{width:60px;height:60px;stroke:var(--blush,#e6c6c6);fill:none;stroke-width:1.3;margin-bottom:1.25rem;}
+    .cart-empty h2{font-family:var(--font-serif);font-size:1.6rem;font-weight:300;margin-bottom:.5rem;}
+    .cart-empty p{color:var(--brown-light,#a08d80);font-size:.9rem;margin-bottom:1.75rem;}
+    .cart-cta{display:inline-block;padding:.8rem 2.2rem;background:var(--espresso,#3b2b2b);color:#fff;border-radius:9px;text-decoration:none;font-size:.82rem;letter-spacing:.05em;}
+    .cart-cta:hover{background:var(--blush-dark,#b98a8a);}
+  </style>
+</head>
+<body>
+  <main class="page-wrap">
+    <div class="page-head">
+      <p class="page-eyebrow">Riepilogo</p>
+      <h1 class="page-title">Il tuo <em>carrello</em></h1>
+    </div>
+    <div id="cartRoot"></div>
+  </main>
+
+  <script src="api-client.js?v=69314232"></script>
+  <script src="app.js?v=be8ac844"></script>
+  <script>
+  (function () {
+    'use strict';
+    var SIZELESS = ['gioielli','borse','cinture','accessori','bijoux'];
+    var FREE_SHIP = 100, STANDARD = 5.90;
+    var products = [];
+
+    function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function money(n){ return '€'+(Number(n)||0).toFixed(2).replace('.',','); }
+    function loadCart(){ try{ return JSON.parse(localStorage.getItem('memi_cart'))||[]; }catch(_){ return []; } }
+    function resolveProduct(id){ if(!id) return null; for(var i=0;i<products.length;i++){ var p=products[i]; if(id===p.id||id.indexOf(p.id+'-')===0) return p; } return null; }
+    function imgOf(p){ if(!p||!Array.isArray(p.images)||!p.images.length) return (window.MEMI_NO_IMAGE||''); var x=p.images[0]; return typeof x==='string'?x:(x.card||x.full||x.thumb||''); }
+    function catOf(p){ return p?String(p.categoria||'').toLowerCase():''; }
+
+    function render(){
+      var cart = loadCart();
+      var root = document.getElementById('cartRoot');
+      if(!cart.length){
+        root.innerHTML =
+          '<div class="cart-empty"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' +
+          '<h2>Il carrello è vuoto</h2><p>Aggiungi qualcosa di bello per iniziare.</p>' +
+          '<a class="cart-cta" href="/shop">Scopri la collezione</a></div>';
+        return;
+      }
+      var subtotal = cart.reduce(function(s,i){ return s + (Number(i.price)||0)*(i.qty||1); }, 0);
+      var remaining = Math.max(0, FREE_SHIP - subtotal);
+      var progress = Math.min(100, subtotal/FREE_SHIP*100);
+
+      var lines = cart.map(function(item){
+        var p = resolveProduct(item.id);
+        var href = p ? ('/product?id='+encodeURIComponent(p.id)) : '/shop';
+        var img = imgOf(p);
+        var parts = (item.variant||'').split(' · ');
+        var color = parts[0]||'', size = parts[1]||'';
+        var sizeless = SIZELESS.indexOf(catOf(p)) !== -1;
+        var colorTag = color ? '<span class="cline-tag">'+esc(color)+'</span>' : '';
+        var sizeTag = size ? '<span class="cline-tag">'+esc(size)+'</span>' : (sizeless ? '' : '<span class="cline-tag none">Taglia non sel.</span>');
+        return '<div class="cline">' +
+          '<a class="cline-img" href="'+href+'">'+(img?('<img src="'+esc(img)+'" alt="'+esc(item.name)+'" onerror="this.onerror=null;this.src=window.MEMI_NO_IMAGE">'):'')+'</a>' +
+          '<div class="cline-info">' +
+            '<p class="cline-name"><a href="'+href+'">'+esc(item.name)+'</a></p>' +
+            '<div class="cline-tags">'+colorTag+sizeTag+'</div>' +
+            '<div class="qty"><button data-dec="'+esc(item.id)+'" aria-label="Diminuisci">−</button><span>'+(item.qty||1)+'</span><button data-inc="'+esc(item.id)+'" aria-label="Aumenta">+</button></div>' +
+          '</div>' +
+          '<div class="cline-right">' +
+            '<span class="cline-price">'+money((Number(item.price)||0)*(item.qty||1))+'</span>' +
+            '<button class="cline-remove" data-remove="'+esc(item.id)+'">Rimuovi</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      var shipNote = remaining > 0
+        ? 'Aggiungi <strong>'+money(remaining)+'</strong> per la spedizione standard gratuita.'
+        : '<span class="ok">✓ Hai la spedizione standard gratuita!</span>';
+
+      root.innerHTML =
+        '<div class="cart-layout">' +
+          '<div class="cart-lines">'+lines+'</div>' +
+          '<aside class="summary">' +
+            '<h2>Riepilogo ordine</h2>' +
+            '<div class="sum-row"><span>Subtotale</span><span>'+money(subtotal)+'</span></div>' +
+            '<div class="ship-bar"><i style="width:'+progress+'%"></i></div>' +
+            '<p class="ship-note">'+shipNote+'</p>' +
+            '<div class="sum-row"><span>Spedizione</span><span>'+(remaining>0?money(STANDARD)+' (standard)':'Gratuita')+'</span></div>' +
+            '<div class="sum-row total"><span>Totale stimato</span><span>'+money(subtotal + (remaining>0?STANDARD:0))+'</span></div>' +
+            '<p class="ship-note" style="margin-top:.4rem">Spese di spedizione e sconti definitivi calcolati al checkout.</p>' +
+            '<a class="btn-co" href="/checkout">Vai al checkout</a>' +
+            '<p class="express-label">oppure checkout rapido</p>' +
+            '<div class="express-row">' +
+              '<button class="apple" data-express="applepay">Apple Pay</button>' +
+              '<button class="gpay" data-express="gpay">Google Pay</button>' +
+              '<button class="paypal" data-express="paypal">PayPal</button>' +
+            '</div>' +
+            '<a class="cart-cont" href="/shop">Continua lo shopping</a>' +
+          '</aside>' +
+        '</div>';
+    }
+
+    document.addEventListener('click', function(e){
+      var inc = e.target.closest('[data-inc]'); if(inc && window.appChangeQty){ window.appChangeQty(inc.getAttribute('data-inc'), 1); return; }
+      var dec = e.target.closest('[data-dec]'); if(dec && window.appChangeQty){ window.appChangeQty(dec.getAttribute('data-dec'), -1); return; }
+      var rm  = e.target.closest('[data-remove]'); if(rm && window.appRemove){ window.appRemove(rm.getAttribute('data-remove')); return; }
+      var ex  = e.target.closest('[data-express]'); if(ex && window.appExpressCheckout){ window.appExpressCheckout(ex.getAttribute('data-express')); }
+    });
+    document.addEventListener('memi:cart:changed', render);
+
+    function boot(){
+      fetch('/api/products?limit=300').then(function(r){return r.json();}).then(function(res){
+        products = Array.isArray(res)?res:(res&&res.products)||[];
+      }).catch(function(){ products=[]; }).then(render);
+    }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  })();
+  </script>
+</body>
+</html>

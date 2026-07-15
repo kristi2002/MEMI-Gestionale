@@ -243,6 +243,8 @@
   function saveCart() {
     try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch (_) {}
     pushCartToBackend();
+    // Notify full-page surfaces (carrello.html) so they re-render on any mutation.
+    try { document.dispatchEvent(new CustomEvent('memi:cart:changed')); } catch (_) {}
   }
 
   function cartTotal() { return cart.reduce((s, i) => s + i.price * i.qty, 0); }
@@ -318,6 +320,8 @@
   function saveWishlist() {
     try { localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist)); } catch (_) {}
     pushWishlistToBackend();
+    // Notify full-page surfaces (lista-desideri.html) so they re-render on any mutation.
+    try { document.dispatchEvent(new CustomEvent('memi:wishlist:changed')); } catch (_) {}
   }
 
   // Persist the wishlist to the logged-in customer's account (customers.wishlist).
@@ -414,6 +418,37 @@
     return '';
   }
 
+  // ── Category → "has no size" detection ────────────────────────────────
+  // Jewellery, bags, belts and generic accessories are one-size: the size
+  // chip ("Taglia non sel.") must never appear for them in cart/wishlist.
+  // Shoes DO have sizes (EU numbers), so they are intentionally excluded.
+  var SIZELESS_CATS = ['gioielli', 'borse', 'cinture', 'accessori', 'bijoux'];
+  function productCategory(id) {
+    if (!id) return '';
+    for (var i = 0; i < CATALOG.length; i++) {
+      var p = CATALOG[i];
+      if (id === p.id || id.indexOf(p.id + '-') === 0) {
+        return ((p.tags && p.tags[0]) || '').toLowerCase();
+      }
+    }
+    return '';
+  }
+  function isSizelessProduct(id) {
+    return SIZELESS_CATS.indexOf(productCategory(id)) !== -1;
+  }
+  // Map a product category to the customer's saved "le mie taglie" value.
+  function savedSizeForCategory(cat) {
+    var s;
+    try { s = JSON.parse(localStorage.getItem('memi_sizes')) || {}; } catch (_) { s = {}; }
+    cat = (cat || '').toLowerCase();
+    if (cat === 'top' || cat === 'blazer')      return s.top    || '';
+    if (cat === 'pantaloni' || cat === 'gonne') return s.bottom || '';
+    if (cat === 'vestiti' || cat === 'set')     return s.dress  || '';
+    if (cat === 'scarpe')                       return s.shoe   || '';
+    return '';
+  }
+  window.isSizelessProduct = isSizelessProduct;
+
   function loadSearchCatalog() {
     if (typeof fetch !== 'function') return;
     fetch('/api/products?limit=300')
@@ -447,7 +482,7 @@
 <footer class="site-footer sf2" role="contentinfo">
   <div class="sf2-trust">
     <div class="sf2-trust-inner">
-      <div class="sf2-trust-item"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span>Spedizione gratuita da €50</span></div>
+      <div class="sf2-trust-item"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span>Spedizione gratuita da €100</span></div>
       <div class="sf2-trust-item"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>Reso gratuito entro 30 giorni</span></div>
       <div class="sf2-trust-item"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span>Pagamenti sicuri</span></div>
       <div class="sf2-trust-item"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span>Made in Italy</span></div>
@@ -845,6 +880,10 @@
                 <div class="auth-field" id="authRegNameField">
                   <label for="authRegName">Nome</label>
                   <input type="text" id="authRegName" placeholder="Il tuo nome" autocomplete="given-name" />
+                </div>
+                <div class="auth-field" id="authRegLastNameField">
+                  <label for="authRegLastName">Cognome</label>
+                  <input type="text" id="authRegLastName" placeholder="Il tuo cognome" autocomplete="family-name" />
                 </div>
                 <div class="auth-field" id="authRegEmailField">
                   <label for="authRegEmail">Email</label>
@@ -1360,7 +1399,9 @@
     }
 
     const total     = cartTotal();
-    const FREE_SHIP = 50;
+    // Server truth (MEMI-Backend/src/shipping-rates.js): standard €5,90, free from €100 of goods.
+    // Keep this in sync with the server or the drawer over-promises free shipping.
+    const FREE_SHIP = 100;
     const remaining = Math.max(0, FREE_SHIP - total);
     const progress  = Math.min(100, (total / FREE_SHIP) * 100);
 
@@ -1380,7 +1421,7 @@
             var colorTag = color ? '<span class="cart-tag">' + color + '</span>' : '';
             var sizeTag  = size
               ? '<span class="cart-tag cart-tag-size">' + size + '</span>'
-              : '<span class="cart-tag cart-tag-none">Taglia non sel.</span>';
+              : (isSizelessProduct(item.id) ? '' : '<span class="cart-tag cart-tag-none">Taglia non sel.</span>');
             return '<div class="cart-item-tags">' + colorTag + sizeTag + '</div>';
           })()}
           <div class="qty-stepper">
@@ -1411,8 +1452,9 @@
       <div class="express-checkout">
         <p class="express-label">Checkout rapido</p>
         <div class="express-btns">
-          <button class="express-btn apple"  onclick="window.location.href='/checkout?pay=card'">Apple Pay</button>
-          <button class="express-btn paypal" onclick="window.location.href='/checkout?pay=paypal'">PayPal</button>
+          <button class="express-btn apple"  onclick="appExpressCheckout('applepay')">Apple Pay</button>
+          <button class="express-btn gpay"   onclick="appExpressCheckout('gpay')">Google Pay</button>
+          <button class="express-btn paypal" onclick="appExpressCheckout('paypal')">PayPal</button>
         </div>
       </div>
       <div class="cart-subtotal">
@@ -1422,12 +1464,12 @@
       <div class="cart-shipping-note">
         <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         ${remaining > 0
-          ? `Spedizione standard €4,90 — o gratuita sopra €50`
+          ? `Spedizione standard €5,90 — o gratuita sopra €100`
           : `<span class="highlight">Spedizione gratuita applicata</span>`
         }
       </div>
       <a href="/checkout" class="btn-checkout">Vai al checkout</a>
-      <button class="btn-continue-shopping" onclick="closeCart()">Continua lo shopping</button>
+      <a href="/carrello" class="btn-continue-shopping" style="text-align:center;text-decoration:none;display:block;">Vedi il carrello completo</a>
     `;
   }
 
@@ -1472,7 +1514,7 @@
             ${item.color ? '<span class="cart-tag">' + item.color + '</span>' : ''}
             ${item.taglia
               ? '<span class="cart-tag cart-tag-size">' + item.taglia + '</span>'
-              : '<span class="cart-tag cart-tag-none">Taglia non sel.</span>'
+              : (isSizelessProduct(item.productId || item.id) ? '' : '<span class="cart-tag cart-tag-none">Taglia non sel.</span>')
             }
           </div>
         </div>
@@ -1487,8 +1529,8 @@
     `}).join('');
 
     footer.innerHTML = `
-      <a href="shop" class="btn-checkout" style="text-align:center;">Sfoglia la collezione</a>
-      <button class="btn-continue-shopping" onclick="closeWishlist()">Chiudi</button>
+      <a href="/lista-desideri" class="btn-checkout" style="text-align:center;">Vai alla lista desideri</a>
+      <button class="btn-continue-shopping" onclick="closeWishlist()">Continua lo shopping</button>
     `;
   }
 
@@ -2118,6 +2160,7 @@
     document.getElementById('authRegisterForm')?.addEventListener('submit', function(e) {
       e.preventDefault();
       var name   = (document.getElementById('authRegName')  ? document.getElementById('authRegName').value.trim()  : '');
+      var lastName = (document.getElementById('authRegLastName') ? document.getElementById('authRegLastName').value.trim() : '');
       var email  = (regEmailEl ? regEmailEl.value.trim() : '');
       var pwd    = (regPwdEl   ? regPwdEl.value : '');
       var errEl  = document.getElementById('authRegError');
@@ -2147,6 +2190,7 @@
       authRegister(name, email, pwd, {
         privacy_consent:   true,
         marketing_consent: !!(marketingEl && marketingEl.checked),
+        cognome:           lastName,
       }, birthday).then(function(res) {
         if (btn) btn.classList.remove('is-loading');
         if (!res.ok) { errEl.textContent = res.msg; return; }
@@ -2756,16 +2800,32 @@
       return p.id === (entry.productId || entry.id) || entry.id.startsWith(p.id);
     });
     var price = prod ? parseFloat((prod.price || '0').replace('\u20ac','').replace(',','.')) || 0 : 0;
+    // Size resolution: if the customer never picked a size on the wishlist entry,
+    // fall back to their saved "le mie taglie" for this product's category. Sizeless
+    // products (jewellery, bags, belts) intentionally stay without a size.
+    var taglia = entry.taglia || '';
+    if (!taglia) {
+      var _cat = productCategory(entry.productId || entry.id);
+      if (SIZELESS_CATS.indexOf(_cat) === -1) taglia = savedSizeForCategory(_cat);
+    }
     addToCart({
-      id:      entry.id + '-cart',
+      id:      entry.id + (taglia && !entry.taglia ? '-sz-' + taglia : '') + '-cart',
       name:    entry.name,
-      variant: (entry.color || '') + (entry.taglia ? ' · ' + entry.taglia : ''),
+      variant: (entry.color || '') + (taglia ? ' · ' + taglia : ''),
       price:   price,
       color:   entry.colorKey || 'ph-blush'
     });
     window.appRemoveWishlist(id);
     closeWishlist();
     openCart();
+  };
+
+  // Fast checkout from the cart drawer: remember the wallet/PayPal the shopper
+  // tapped, then hand off to the checkout page (which autofills from the profile,
+  // jumps straight to the shipping step, and pre-selects this payment method).
+  window.appExpressCheckout = function(method) {
+    try { sessionStorage.setItem('memi_express_pay', method || 'card'); } catch (_) {}
+    window.location.href = '/checkout?express=1&pay=' + encodeURIComponent(method || 'card');
   };
 
   /* == 19. BOOT == */

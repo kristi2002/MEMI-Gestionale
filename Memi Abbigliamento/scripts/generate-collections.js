@@ -213,7 +213,7 @@ function renderPage(meta, productsInCollection) {
 '  <link rel="stylesheet" href="../../app.css" />\n' +
 '</head>\n' +
 '<body>\n\n' +
-'<div class="announcement-bar">✦ &nbsp;Spedizione gratuita su ordini superiori a €50 &nbsp;✦&nbsp; Reso gratuito entro 30 giorni &nbsp;✦</div>\n' +
+'<div class="announcement-bar">✦ &nbsp;Spedizione gratuita su ordini superiori a €100 &nbsp;✦&nbsp; Reso gratuito entro 30 giorni &nbsp;✦</div>\n' +
 '<div data-include="site-header"></div>\n\n' +
 renderHero(meta) + '\n\n' +
 '<div class="marquee-strip" aria-hidden="true"><div class="marquee-track"><span class="marquee-item">Novità Ogni Settimana</span><span class="marquee-item accent">✦</span><span class="marquee-item">Spedizione Gratuita</span><span class="marquee-item accent">✦</span><span class="marquee-item">Made in Italy</span><span class="marquee-item accent">✦</span><span class="marquee-item">Reso Gratuito 30 Giorni</span><span class="marquee-item accent">✦</span><span class="marquee-item">Estate 2025</span><span class="marquee-item accent">✦</span></div></div>\n\n' +
