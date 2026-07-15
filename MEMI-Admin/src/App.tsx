@@ -13,6 +13,8 @@ import { PickupFormPage } from '@/pages/pickup';
 import { TransferFormPage } from '@/pages/transfers';
 import { SegmentFormPage } from '@/pages/segments';
 import { ShippingZoneFormPage } from '@/pages/shipping-zones';
+import { CustomerFormPage } from '@/pages/customers';
+import { StaffFormPage } from '@/pages/staff';
 
 function FullScreenSpinner() {
   return (
@@ -57,6 +59,10 @@ export default function App() {
           <Route path="/segments/:id/edit" element={<SegmentFormPage />} />
           <Route path="/shipping-zones/new" element={<ShippingZoneFormPage />} />
           <Route path="/shipping-zones/:id/edit" element={<ShippingZoneFormPage />} />
+          <Route path="/customers/new" element={<CustomerFormPage />} />
+          <Route path="/customers/:id/edit" element={<CustomerFormPage />} />
+          <Route path="/staff/new" element={<StaffFormPage />} />
+          <Route path="/staff/:id/edit" element={<StaffFormPage />} />
           {routes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />
           ))}

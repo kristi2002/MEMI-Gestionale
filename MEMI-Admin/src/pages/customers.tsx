@@ -1,4 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Trash2, Users, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -6,7 +8,8 @@ import { DataTable } from '@/components/data-table/data-table';
 import type { FilterDef } from '@/components/data-table/filters';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
-import { EntityFormDialog, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -40,10 +43,22 @@ const ADDRESS_FIELDS: FieldConfig[] = [
   { name: 'paese', label: 'Paese' },
 ];
 
+const CREATE_FIELDS: FieldConfig[] = [
+  { name: 'nome', label: 'Nome', required: true },
+  { name: 'cognome', label: 'Cognome' },
+  { name: 'email', label: 'Email', type: 'email', required: true },
+  { name: 'telefono', label: 'Telefono' },
+  { name: 'indirizzo', label: 'Indirizzo', wide: true },
+  { name: 'citta', label: 'Città' },
+  { name: 'cap', label: 'CAP' },
+  { name: 'paese', label: 'Paese' },
+  { name: 'password', label: 'Password (facoltativa)', type: 'text', help: 'Solo se vuoi che il cliente possa accedere. Min. 8 caratteri.' },
+];
+
 export function CustomersPage() {
   const query = useCustomers();
   const deleteMut = useDeleteCustomers();
-  const saveMut = useSaveEntity(api.customers.create, api.customers.update, 'customers');
+  const navigate = useNavigate();
   const rows = useMemo(() => flattenCustomers(query.data?.pages), [query.data]);
 
   const filters = useMemo<FilterDef<CustomerRow>[]>(() => {
@@ -55,64 +70,6 @@ export function CustomersPage() {
       { key: 'created', type: 'dateRange', label: 'Iscritto', accessor: (c) => c.created_at },
     ];
   }, [rows]);
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<CustomerRow | null>(null);
-  const [initial, setInitial] = useState<FormValues>({});
-
-  function openCreate() {
-    setEditing(null);
-    setInitial({ paese: 'Italia' });
-    setFormOpen(true);
-  }
-  async function openEdit(c: CustomerRow) {
-    setEditing(c);
-    // Prefill from full detail so we never blank a field the list view omits.
-    let d: Record<string, unknown> = { ...c };
-    try { d = (await api.customers.get(c.id)) as Record<string, unknown>; } catch { /* fall back to row */ }
-    setInitial({
-      nome: (d.nome as string) ?? '', cognome: (d.cognome as string) ?? '', telefono: (d.telefono as string) ?? '',
-      indirizzo: (d.indirizzo as string) ?? '', citta: (d.citta as string) ?? '', cap: (d.cap as string) ?? '',
-      paese: (d.paese as string) ?? 'Italia',
-    });
-    setFormOpen(true);
-  }
-  const openEditRef = useRef(openEdit);
-  openEditRef.current = openEdit;
-
-  const fields = useMemo<FieldConfig[]>(() => {
-    if (editing) return ADDRESS_FIELDS;
-    return [
-      { name: 'nome', label: 'Nome', required: true },
-      { name: 'cognome', label: 'Cognome' },
-      { name: 'email', label: 'Email', type: 'email', required: true },
-      { name: 'telefono', label: 'Telefono' },
-      { name: 'indirizzo', label: 'Indirizzo', wide: true },
-      { name: 'citta', label: 'Città' },
-      { name: 'cap', label: 'CAP' },
-      { name: 'paese', label: 'Paese' },
-      { name: 'password', label: 'Password (facoltativa)', type: 'text', help: 'Solo se vuoi che il cliente possa accedere. Min. 8 caratteri.' },
-    ];
-  }, [editing]);
-
-  async function onSubmit(v: FormValues) {
-    if (editing) {
-      const data = {
-        nome: v.nome, cognome: v.cognome || '', telefono: v.telefono || null,
-        indirizzo: v.indirizzo || null, citta: v.citta || null, cap: v.cap || null, paese: v.paese || 'Italia',
-      };
-      await saveMut.mutateAsync({ id: editing.id, data });
-      toast.success('Cliente aggiornato');
-    } else {
-      const data: Record<string, unknown> = {
-        nome: v.nome, cognome: v.cognome || '', email: v.email, telefono: v.telefono || null,
-        indirizzo: v.indirizzo || null, citta: v.citta || null, cap: v.cap || null, paese: v.paese || 'Italia',
-      };
-      if (v.password) data.password = v.password;
-      await saveMut.mutateAsync({ data });
-      toast.success('Cliente creato');
-    }
-  }
 
   const columns = useMemo<ColumnDef<CustomerRow, unknown>[]>(
     () => [
@@ -151,7 +108,7 @@ export function CustomersPage() {
       {
         id: 'azioni', header: '', enableSorting: false,
         cell: ({ row }) => (
-          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original); }}>
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/customers/${row.original.id}/edit`); }}>
             <Pencil /> Modifica
           </Button>
         ),
@@ -165,7 +122,7 @@ export function CustomersPage() {
       <PageHeader
         title="Clienti"
         subtitle="Anagrafica clienti, spesa e attività."
-        actions={<Button size="sm" onClick={openCreate}><Plus /> Nuovo cliente</Button>}
+        actions={<Button size="sm" onClick={() => navigate('/customers/new')}><Plus /> Nuovo cliente</Button>}
       />
 
       <DataTable
@@ -207,15 +164,59 @@ export function CustomersPage() {
         }}
       />
 
-      <EntityFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        title={editing ? `Modifica cliente: ${fullName(editing) || editing.email}` : 'Nuovo cliente'}
-        fields={fields}
-        initial={initial}
-        submitLabel={editing ? 'Salva modifiche' : 'Crea cliente'}
-        onSubmit={onSubmit}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for a customer. Edit loads full detail. */
+export function CustomerFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const saveMut = useSaveEntity(api.customers.create, api.customers.update, 'customers');
+  const detailQ = useQuery({
+    queryKey: ['customers', 'detail', id],
+    queryFn: () => api.customers.get(Number(id)),
+    enabled: editing,
+  });
+  const d = detailQ.data as Record<string, unknown> | undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return { paese: 'Italia' };
+    return d
+      ? {
+          nome: (d.nome as string) ?? '', cognome: (d.cognome as string) ?? '', telefono: (d.telefono as string) ?? '',
+          indirizzo: (d.indirizzo as string) ?? '', citta: (d.citta as string) ?? '', cap: (d.cap as string) ?? '',
+          paese: (d.paese as string) ?? 'Italia',
+        }
+      : {};
+  }, [editing, d]);
+
+  return (
+    <EntityFormPage
+      title={editing ? 'Modifica cliente' : 'Nuovo cliente'}
+      backPath="/customers"
+      backLabel="Clienti"
+      fields={editing ? ADDRESS_FIELDS : CREATE_FIELDS}
+      initial={initial}
+      loading={editing && detailQ.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Crea cliente'}
+      onSubmit={async (v) => {
+        if (editing) {
+          await saveMut.mutateAsync({
+            id: Number(id),
+            data: { nome: v.nome, cognome: v.cognome || '', telefono: v.telefono || null, indirizzo: v.indirizzo || null, citta: v.citta || null, cap: v.cap || null, paese: v.paese || 'Italia' },
+          });
+          toast.success('Cliente aggiornato');
+        } else {
+          const data: Record<string, unknown> = {
+            nome: v.nome, cognome: v.cognome || '', email: v.email, telefono: v.telefono || null,
+            indirizzo: v.indirizzo || null, citta: v.citta || null, cap: v.cap || null, paese: v.paese || 'Italia',
+          };
+          if (v.password) data.password = v.password;
+          await saveMut.mutateAsync({ data });
+          toast.success('Cliente creato');
+        }
+      }}
+    />
   );
 }

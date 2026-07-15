@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { UserCog, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -7,7 +8,8 @@ import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/common/empty-state';
-import { EntityFormDialog, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { useStaff, useDeleteMany, useSaveEntity } from '@/hooks/queries';
 import { useAuth } from '@/hooks/use-auth';
@@ -30,57 +32,24 @@ const ROLE_OPTS = [
   { value: 'staff', label: 'Staff (permessi limitati)' },
 ];
 
+const STAFF_EDIT_FIELDS: FieldConfig[] = [
+  { name: 'nome', label: 'Nome', required: true },
+  { name: 'role', label: 'Ruolo', type: 'select', options: ROLE_OPTS },
+  { name: 'password', label: 'Nuova password', type: 'text', help: 'Lascia vuoto per non modificarla. Minimo 8 caratteri.' },
+];
+const STAFF_CREATE_FIELDS: FieldConfig[] = [
+  { name: 'nome', label: 'Nome', required: true },
+  { name: 'email', label: 'Email', type: 'email', required: true },
+  { name: 'password', label: 'Password', type: 'text', required: true, help: 'Minimo 8 caratteri.' },
+  { name: 'role', label: 'Ruolo', type: 'select', options: ROLE_OPTS },
+];
+
 export function StaffPage() {
   const query = useStaff();
   const { me } = useAuth();
   const del = useDeleteMany<number>((id) => api.staff.delete(id), 'staff');
-  const saveMut = useSaveEntity(api.staff.create, api.staff.update, 'staff');
+  const navigate = useNavigate();
   const rows = query.data?.staff ?? [];
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<StaffMember | null>(null);
-  const [initial, setInitial] = useState<FormValues>({});
-
-  function openCreate() {
-    setEditing(null);
-    setInitial({ role: 'staff' });
-    setFormOpen(true);
-  }
-  function openEdit(m: StaffMember) {
-    setEditing(m);
-    setInitial({ nome: m.nome ?? '', email: m.email, role: m.role, password: '' });
-    setFormOpen(true);
-  }
-  const openEditRef = useRef(openEdit);
-  openEditRef.current = openEdit;
-
-  const fields = useMemo<FieldConfig[]>(() => {
-    if (editing) {
-      return [
-        { name: 'nome', label: 'Nome', required: true },
-        { name: 'role', label: 'Ruolo', type: 'select', options: ROLE_OPTS },
-        { name: 'password', label: 'Nuova password', type: 'text', help: 'Lascia vuoto per non modificarla. Minimo 8 caratteri.' },
-      ];
-    }
-    return [
-      { name: 'nome', label: 'Nome', required: true },
-      { name: 'email', label: 'Email', type: 'email', required: true },
-      { name: 'password', label: 'Password', type: 'text', required: true, help: 'Minimo 8 caratteri.' },
-      { name: 'role', label: 'Ruolo', type: 'select', options: ROLE_OPTS },
-    ];
-  }, [editing]);
-
-  async function onSubmit(v: FormValues) {
-    if (editing) {
-      const data: Record<string, unknown> = { nome: v.nome, role: v.role };
-      if (v.password) data.password = v.password;
-      await saveMut.mutateAsync({ id: editing.id, data });
-      toast.success('Membro aggiornato');
-    } else {
-      await saveMut.mutateAsync({ data: { nome: v.nome, email: v.email, password: v.password, role: v.role || 'staff' } });
-      toast.success('Membro aggiunto');
-    }
-  }
 
   const columns = useMemo<ColumnDef<StaffMember, unknown>[]>(
     () => [
@@ -127,7 +96,7 @@ export function StaffPage() {
       {
         id: 'azioni', header: '', enableSorting: false,
         cell: ({ row }) => (
-          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original); }}>
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/staff/${row.original.id}/edit`); }}>
             <Pencil /> Modifica
           </Button>
         ),
@@ -141,7 +110,7 @@ export function StaffPage() {
       <PageHeader
         title="Staff & Permessi"
         subtitle="Utenti amministratori e relativi permessi."
-        actions={<Button size="sm" onClick={openCreate}><Plus /> Nuovo membro</Button>}
+        actions={<Button size="sm" onClick={() => navigate('/staff/new')}><Plus /> Nuovo membro</Button>}
       />
       <DataTable
         columns={columns}
@@ -169,15 +138,43 @@ export function StaffPage() {
           );
         }}
       />
-      <EntityFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        title={editing ? `Modifica membro: ${editing.nome || editing.email}` : 'Nuovo membro dello staff'}
-        fields={fields}
-        initial={initial}
-        submitLabel={editing ? 'Salva modifiche' : 'Aggiungi membro'}
-        onSubmit={onSubmit}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for a staff member. */
+export function StaffFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const query = useStaff();
+  const saveMut = useSaveEntity(api.staff.create, api.staff.update, 'staff');
+  const row = editing ? (query.data?.staff ?? []).find((m) => String(m.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return { role: 'staff' };
+    return row ? { nome: row.nome ?? '', email: row.email, role: row.role, password: '' } : {};
+  }, [editing, row]);
+
+  return (
+    <EntityFormPage
+      title={editing ? 'Modifica membro' : 'Nuovo membro dello staff'}
+      backPath="/staff"
+      backLabel="Staff & Permessi"
+      fields={editing ? STAFF_EDIT_FIELDS : STAFF_CREATE_FIELDS}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Aggiungi membro'}
+      onSubmit={async (v) => {
+        if (editing) {
+          const data: Record<string, unknown> = { nome: v.nome, role: v.role };
+          if (v.password) data.password = v.password;
+          await saveMut.mutateAsync({ id: Number(id), data });
+          toast.success('Membro aggiornato');
+        } else {
+          await saveMut.mutateAsync({ data: { nome: v.nome, email: v.email, password: v.password, role: v.role || 'staff' } });
+          toast.success('Membro aggiunto');
+        }
+      }}
+    />
   );
 }
