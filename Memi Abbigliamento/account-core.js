@@ -456,7 +456,7 @@
           dataRow(t('field.cognome'), user.cognome) +
           dataRow(t('field.email'), user.email) +
           dataRow(t('field.tel'), user.telefono) +
-          dataRow(t('field.birthday'), (user.birthday||'').slice(0,10)) +
+          dataRow(t('field.birthday'), fmtBirthday((user.birthday||'').slice(0,10))) +
           '<div class="ap-actions"><button class="btn-primary-solid" id="profileEditBtn"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;vertical-align:-2px;margin-right:6px"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>' + t('btn.edit') + '</button></div>' +
         '</div>' +
         passwordBlock();
@@ -467,7 +467,7 @@
         '<div><label class="field-label">' + t('field.cognome') + '</label><input class="field-input" type="text" id="pfCognome" value="' + v(user.cognome) + '" /></div>' +
         '<div class="field-full"><label class="field-label">' + t('field.email') + '</label><input class="field-input" type="email" id="pfEmail" value="' + v(user.email) + '" /></div>' +
         '<div class="field-full"><label class="field-label">' + t('field.tel') + '</label><input class="field-input" type="tel" id="pfTel" value="' + v(user.telefono) + '" /></div>' +
-        '<div class="field-full"><label class="field-label">' + t('field.birthday') + '</label><input class="field-input" type="date" id="pfBirthday" max="2020-12-31" value="' + v((user.birthday||'').slice(0,10)) + '" /></div>' +
+        '<div class="field-full"><label class="field-label">' + t('field.birthday') + '</label>' + birthdayPickerHtml((user.birthday||'').slice(0,10)) + '</div>' +
         '<div class="profile-form-footer"><button type="submit" class="btn-primary-solid">' + t('btn.save') + '</button>' +
           '<button type="button" class="btn-outline" id="profileCancelBtn">' + t('btn.cancel') + '</button>' +
           '<span id="profileMsg" class="ap-msg"></span></div>' +
@@ -887,6 +887,187 @@
     var ntp = e.target.closest('[data-news-topic]'); if (ntp){ ntp.classList.toggle('on'); return; }
   }
 
+  /* ══════════════════ BIRTHDAY DATE PICKER (custom, branded) ══════════════════ */
+  var DP_L = {
+    it:{ months:['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'],
+         monthsShort:['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'],
+         wd:['lu','ma','me','gi','ve','sa','do'], placeholder:'Seleziona una data', clear:'Cancella', today:'Oggi',
+         prev:'Mese precedente', next:'Mese successivo', chooseYear:'Scegli anno' },
+    en:{ months:['January','February','March','April','May','June','July','August','September','October','November','December'],
+         monthsShort:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+         wd:['Mo','Tu','We','Th','Fr','Sa','Su'], placeholder:'Select a date', clear:'Clear', today:'Today',
+         prev:'Previous month', next:'Next month', chooseYear:'Choose year' }
+  };
+  function dpL(){ return DP_L[lang] || DP_L.it; }
+  function pad2(n){ return (n<10?'0':'')+n; }
+  function toISO(y,mo,d){ return y+'-'+pad2(mo+1)+'-'+pad2(d); }
+  function parseISO(str){ var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(str||''); return m?{y:+m[1],mo:+m[2]-1,d:+m[3]}:null; }
+  function fmtBirthday(iso){ var p=parseISO(iso); if(!p) return ''; var L=dpL();
+    return lang==='en' ? (p.d+' '+L.monthsShort[p.mo]+' '+p.y) : (pad2(p.d)+'/'+pad2(p.mo+1)+'/'+p.y); }
+
+  function birthdayPickerHtml(iso){
+    var disp = fmtBirthday(iso);
+    return '<div class="memi-dp" data-min="1920-01-01" data-max="2020-12-31">' +
+        '<input type="hidden" id="pfBirthday" value="' + esc(iso||'') + '" />' +
+        '<button type="button" class="field-input memi-dp-trigger" aria-haspopup="dialog" aria-expanded="false">' +
+          '<span class="memi-dp-value' + (disp?'':' is-empty') + '">' + (disp || dpL().placeholder) + '</span>' +
+          '<svg class="memi-dp-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/>' +
+            '<line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>' +
+        '</button>' +
+      '</div>';
+  }
+
+  function initBirthdayPicker(){
+    var root = document.querySelector('.memi-dp'); if(!root || root._dpInit) return; root._dpInit = true;
+    var hidden = root.querySelector('#pfBirthday');
+    var trigger = root.querySelector('.memi-dp-trigger');
+    var valEl = root.querySelector('.memi-dp-value');
+    var min = parseISO(root.getAttribute('data-min')) || {y:1920,mo:0,d:1};
+    var max = parseISO(root.getAttribute('data-max')) || {y:2020,mo:11,d:31};
+    var minT = new Date(min.y,min.mo,min.d).getTime();
+    var maxT = new Date(max.y,max.mo,max.d).getTime();
+    var monMinT = new Date(min.y,min.mo,1).getTime();
+    var monMaxT = new Date(max.y,max.mo,1).getTime();
+    var pop=null, backdrop=null, view=null, yearMode=false;
+
+    function selected(){ return parseISO(hidden.value); }
+    function isMobile(){ return window.matchMedia('(max-width:520px)').matches; }
+    function clampView(y,mo){ var t=new Date(y,mo,1).getTime();
+      if(t<monMinT) return {y:min.y,mo:min.mo};
+      if(t>monMaxT) return {y:max.y,mo:max.mo};
+      return {y:y,mo:mo}; }
+    function inRange(y,mo,d){ var t=new Date(y,mo,d).getTime(); return t>=minT && t<=maxT; }
+
+    function setValue(iso){
+      hidden.value = iso || '';
+      var disp = fmtBirthday(iso);
+      valEl.textContent = disp || dpL().placeholder;
+      valEl.classList.toggle('is-empty', !disp);
+    }
+
+    function positionPop(){
+      if(!pop) return;
+      if(isMobile()){ pop.style.left=pop.style.top=''; return; }
+      var r = trigger.getBoundingClientRect();
+      var pw = pop.offsetWidth, ph = pop.offsetHeight;
+      var left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
+      var top = r.bottom + 6;
+      if(top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 6);
+      pop.style.left = left+'px'; pop.style.top = top+'px';
+    }
+
+    function open(){
+      if(pop) return;
+      var sel = selected();
+      view = sel ? {y:sel.y,mo:sel.mo} : clampView(max.y,max.mo);
+      yearMode = false;
+      backdrop = document.createElement('div'); backdrop.className='memi-dp-backdrop';
+      backdrop.addEventListener('click', close);
+      document.body.appendChild(backdrop);
+      pop = document.createElement('div');
+      pop.className='memi-dp-pop';
+      pop.setAttribute('role','dialog'); pop.setAttribute('aria-modal','true'); pop.setAttribute('aria-label', dpL().placeholder);
+      document.body.appendChild(pop);
+      render();
+      trigger.setAttribute('aria-expanded','true');
+      document.addEventListener('mousedown', onDoc, true);
+      document.addEventListener('keydown', onKey, true);
+      window.addEventListener('resize', positionPop);
+      window.addEventListener('scroll', positionPop);
+      var f = pop.querySelector('.memi-dp-day.is-sel, .memi-dp-day:not(.is-disabled)'); if(f) f.focus();
+    }
+    function close(){
+      if(!pop) return;
+      document.removeEventListener('mousedown', onDoc, true);
+      document.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('resize', positionPop);
+      window.removeEventListener('scroll', positionPop);
+      pop.remove(); pop=null;
+      if(backdrop){ backdrop.remove(); backdrop=null; }
+      trigger.setAttribute('aria-expanded','false');
+      trigger.focus();
+    }
+    function onDoc(e){ if(pop && !pop.contains(e.target) && !trigger.contains(e.target)) close(); }
+    function onKey(e){
+      if(e.key==='Escape'){ e.preventDefault(); close(); return; }
+      if(yearMode) return;
+      var days = Array.prototype.slice.call(pop.querySelectorAll('.memi-dp-day:not(.is-disabled)'));
+      var i = days.indexOf(document.activeElement); if(i<0) return;
+      var nx=-1;
+      if(e.key==='ArrowRight') nx=i+1; else if(e.key==='ArrowLeft') nx=i-1;
+      else if(e.key==='ArrowDown') nx=i+7; else if(e.key==='ArrowUp') nx=i-7;
+      else if(e.key==='Enter'||e.key===' '){ e.preventDefault(); document.activeElement.click(); return; }
+      else return;
+      e.preventDefault();
+      if(nx>=0 && nx<days.length) days[nx].focus();
+    }
+
+    function render(){
+      var L=dpL();
+      if(yearMode){ pop.innerHTML = yearHtml(); wireYear(); positionPop(); return; }
+      var sel = selected();
+      var startDow = (new Date(view.y,view.mo,1).getDay()+6)%7;   // Monday-first
+      var dim = new Date(view.y,view.mo+1,0).getDate();
+      var prevOff = new Date(view.y,view.mo,1).getTime() <= monMinT;
+      var nextOff = new Date(view.y,view.mo,1).getTime() >= monMaxT;
+      var h = '<div class="memi-dp-head">' +
+          '<button type="button" class="memi-dp-title" aria-label="'+L.chooseYear+'">'+L.months[view.mo]+' '+view.y+
+            ' <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>' +
+          '<div class="memi-dp-nav">' +
+            '<button type="button" class="memi-dp-arrow" data-nav="-1" '+(prevOff?'disabled':'')+' aria-label="'+L.prev+'"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></button>' +
+            '<button type="button" class="memi-dp-arrow" data-nav="1" '+(nextOff?'disabled':'')+' aria-label="'+L.next+'"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></button>' +
+          '</div></div>';
+      h += '<div class="memi-dp-grid memi-dp-wd">' + L.wd.map(function(w){return '<span class="memi-dp-wdlbl">'+w+'</span>';}).join('') + '</div>';
+      h += '<div class="memi-dp-grid memi-dp-days" role="grid">';
+      for(var i=0;i<startDow;i++) h += '<span class="memi-dp-pad" aria-hidden="true"></span>';
+      for(var d=1; d<=dim; d++){
+        var dis = !inRange(view.y,view.mo,d);
+        var isSel = sel && sel.y===view.y && sel.mo===view.mo && sel.d===d;
+        h += '<button type="button" class="memi-dp-day'+(isSel?' is-sel':'')+(dis?' is-disabled':'')+'" '+
+             (dis?'disabled aria-disabled="true"':'')+' data-d="'+d+'" role="gridcell" aria-selected="'+(isSel?'true':'false')+'">'+d+'</button>';
+      }
+      h += '</div>';
+      h += '<div class="memi-dp-foot">' +
+          '<button type="button" class="memi-dp-link" data-act="clear">'+L.clear+'</button>' +
+          '<button type="button" class="memi-dp-link" data-act="today">'+L.today+'</button>' +
+        '</div>';
+      pop.innerHTML = h;
+      wireDays();
+      positionPop();
+    }
+    function wireDays(){
+      pop.querySelector('.memi-dp-title').addEventListener('click', function(){ yearMode=true; render(); });
+      Array.prototype.forEach.call(pop.querySelectorAll('.memi-dp-arrow'), function(b){
+        b.addEventListener('click', function(){ if(b.disabled) return;
+          view = clampView(view.y, view.mo + parseInt(b.getAttribute('data-nav'),10)); render();
+          var f=pop.querySelector('.memi-dp-day:not(.is-disabled)'); if(f) f.focus(); });
+      });
+      Array.prototype.forEach.call(pop.querySelectorAll('.memi-dp-day:not(.is-disabled)'), function(b){
+        b.addEventListener('click', function(){ setValue(toISO(view.y,view.mo,parseInt(b.getAttribute('data-d'),10))); close(); });
+      });
+      pop.querySelector('[data-act="clear"]').addEventListener('click', function(){ setValue(''); close(); });
+      pop.querySelector('[data-act="today"]').addEventListener('click', function(){
+        var n=new Date(), y=n.getFullYear(), mo=n.getMonth(), d=n.getDate();
+        if(inRange(y,mo,d)){ setValue(toISO(y,mo,d)); close(); } else { view=clampView(y,mo); render(); }
+      });
+    }
+    function yearHtml(){
+      var L=dpL(), h='<div class="memi-dp-head"><button type="button" class="memi-dp-title" aria-label="'+L.chooseYear+'">'+view.y+
+        ' <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg></button></div><div class="memi-dp-years">';
+      for(var y=max.y; y>=min.y; y--) h += '<button type="button" class="memi-dp-year'+(y===view.y?' is-sel':'')+'" data-y="'+y+'">'+y+'</button>';
+      return h + '</div>';
+    }
+    function wireYear(){
+      Array.prototype.forEach.call(pop.querySelectorAll('.memi-dp-year'), function(b){
+        b.addEventListener('click', function(){ view = clampView(parseInt(b.getAttribute('data-y'),10), view.mo); yearMode=false; render(); });
+      });
+      pop.querySelector('.memi-dp-title').addEventListener('click', function(){ yearMode=false; render(); });
+      var cur = pop.querySelector('.memi-dp-year.is-sel'); if(cur) cur.scrollIntoView({block:'center'});
+    }
+
+    trigger.addEventListener('click', function(){ if(pop) close(); else open(); });
+  }
+
   function wirePanel(){
     var rbtn = el('redeemBtn');
     if (rbtn) rbtn.addEventListener('click', function(){
@@ -915,6 +1096,8 @@
         setTimeout(function(){ profileEditing = false; renderPage(); }, 700);
       }).catch(function(err){ msgEl.className='ap-msg err'; msgEl.textContent=(err&&err.error)||t('msg.err'); btn.disabled=false; });
     });
+
+    initBirthdayPicker();
 
     var pw = el('passwordForm');
     if (pw) pw.addEventListener('submit', function(e){

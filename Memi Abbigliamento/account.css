@@ -369,3 +369,75 @@ button{cursor:pointer;border:none;background:none;font-family:inherit;}
 .tier-benefits{list-style:none;display:flex;flex-direction:column;gap:.55rem;}
 .tier-benefits li{position:relative;padding-left:1.4rem;font-size:.83rem;color:var(--brown-mid);line-height:1.4;}
 .tier-benefits li::before{content:"✦";position:absolute;left:0;top:0;color:var(--lavender-dark);font-size:.8rem;}
+
+/* ─── Birthday date picker (custom, branded) ─────────────────────────── */
+.memi-dp{position:relative;}
+.memi-dp-trigger{display:flex;align-items:center;justify-content:space-between;gap:.5rem;width:100%;
+  text-align:left;cursor:pointer;color:var(--espresso);line-height:1.2;}
+.memi-dp-trigger:hover{border-color:var(--beige-dark);}
+.memi-dp-trigger:focus-visible{border-color:var(--brown-mid);outline:none;}
+.memi-dp-value{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.memi-dp-value.is-empty{color:var(--brown-light);}
+.memi-dp-ico{width:18px;height:18px;flex:none;stroke:var(--brown-mid);fill:none;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s;}
+.memi-dp-trigger:hover .memi-dp-ico{stroke:var(--espresso);}
+
+.memi-dp-backdrop{display:none;}
+
+.memi-dp-pop{position:fixed;z-index:60;width:300px;max-width:calc(100vw - 1rem);
+  background:#fff;border:1px solid var(--beige);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);
+  padding:.85rem;animation:memiDpIn .14s ease;}
+@keyframes memiDpIn{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:none;}}
+
+.memi-dp-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.5rem;}
+.memi-dp-title{display:inline-flex;align-items:center;gap:.3rem;background:none;border:none;cursor:pointer;
+  font-family:var(--font-serif);font-size:1.1rem;color:var(--espresso);text-transform:capitalize;
+  padding:.15rem .35rem;border-radius:var(--radius-sm);transition:background .15s;}
+.memi-dp-title:hover{background:var(--bg-soft);}
+.memi-dp-title svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;}
+.memi-dp-nav{display:flex;gap:.25rem;}
+.memi-dp-arrow{width:30px;height:30px;display:grid;place-items:center;background:none;border:none;
+  border-radius:var(--radius-full);cursor:pointer;color:var(--brown-mid);transition:background .15s,color .15s;}
+.memi-dp-arrow svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;}
+.memi-dp-arrow:hover:not(:disabled){background:var(--bg-soft);color:var(--espresso);}
+.memi-dp-arrow:disabled{opacity:.28;cursor:default;}
+
+.memi-dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.memi-dp-wd{margin-bottom:.2rem;}
+.memi-dp-wdlbl{text-align:center;font-size:.68rem;letter-spacing:.02em;color:var(--brown-light);padding:.2rem 0;}
+.memi-dp-pad{aspect-ratio:1;}
+.memi-dp-day{aspect-ratio:1;display:grid;place-items:center;background:none;border:none;cursor:pointer;
+  font-family:var(--font-sans);font-size:.82rem;color:var(--espresso);border-radius:var(--radius-full);
+  transition:background .12s,color .12s;padding:0;}
+.memi-dp-day:hover:not(.is-disabled):not(.is-sel){background:var(--bg-soft);}
+.memi-dp-day:focus-visible{outline:2px solid var(--brown-mid);outline-offset:1px;}
+.memi-dp-day.is-sel{background:var(--espresso);color:#fff;font-weight:600;}
+.memi-dp-day.is-disabled{color:var(--beige-dark);cursor:default;}
+
+.memi-dp-foot{display:flex;align-items:center;justify-content:space-between;
+  margin-top:.55rem;padding-top:.55rem;border-top:1px solid var(--cream-dark);}
+.memi-dp-link{background:none;border:none;cursor:pointer;font-family:var(--font-sans);font-size:.78rem;
+  letter-spacing:.02em;padding:.28rem .4rem;border-radius:var(--radius-sm);transition:background .15s;}
+.memi-dp-link[data-act="clear"]{color:var(--espresso);font-weight:500;}
+.memi-dp-link[data-act="today"]{color:var(--brown-light);}
+.memi-dp-link:hover{background:var(--bg-soft);}
+
+.memi-dp-years{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;max-height:236px;overflow:auto;padding:.15rem;}
+.memi-dp-year{padding:.55rem 0;background:none;border:none;cursor:pointer;font-family:var(--font-sans);
+  font-size:.82rem;color:var(--espresso);border-radius:var(--radius-sm);transition:background .12s,color .12s;}
+.memi-dp-year:hover:not(.is-sel){background:var(--bg-soft);}
+.memi-dp-year.is-sel{background:var(--espresso);color:#fff;}
+
+@media (max-width:520px){
+  .memi-dp-backdrop{display:block;position:fixed;inset:0;z-index:59;background:rgba(47,52,56,.38);
+    animation:memiDpFade .18s ease;}
+  @keyframes memiDpFade{from{opacity:0;}to{opacity:1;}}
+  .memi-dp-pop{top:auto!important;bottom:0!important;left:0!important;right:0!important;
+    width:100%!important;max-width:100%!important;border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+    padding:1rem 1.1rem 1.5rem;animation:memiDpUp .2s ease;}
+  @keyframes memiDpUp{from{transform:translateY(100%);}to{transform:none;}}
+  .memi-dp-day{font-size:.95rem;}
+  .memi-dp-title{font-size:1.2rem;}
+}
