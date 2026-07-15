@@ -357,6 +357,14 @@ async function connectWithRetry(maxAttempts = 30, delayMs = 2000) {
     } catch (sErr) {
       console.error('⚠️  Lifecycle scheduler not started:', sErr.message);
     }
+    // ── SMTP readiness check (best-effort, non-blocking) ───────
+    // Surfaces a broken / half-configured mail setup once at boot with a clear
+    // ✅ / 🔴 line, instead of failing silently on every transactional email.
+    try {
+      require("./email").verifyEmailTransport();
+    } catch (eErr) {
+      console.error("⚠️  SMTP verification skipped:", eErr.message);
+    }
     const server = app.listen(PORT, () => {
       console.log(`🚀  MEMI API running on port ${PORT}`);
       console.log(`    NODE_ENV = ${process.env.NODE_ENV || 'development'}`);

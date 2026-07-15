@@ -124,6 +124,7 @@ dashboard.html loads
 | `orders.updateStatus()` | `PUT /api/orders/admin/:id/status` |
 | `orders.ship()` | `PUT /api/orders/admin/:id/ship` |
 | `orders.sendTracking()` | `POST /api/orders/admin/:id/send-tracking` |
+| `orders.refreshTracking()` | `POST /api/orders/admin/:id/refresh-tracking` |
 | `dashboard.catalogKpis()` | `GET /api/admin/dashboard/catalog-kpis` |
 | `reports.get()` | `GET /api/admin/reports` |
 | `onlineStore.get()` | `GET /api/admin/online-store` |

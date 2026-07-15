@@ -197,6 +197,33 @@ else
   ko "skipped — no admin token"
 fi
 
+# 8d — Courier tracking refresh (config-gated live status from the carrier)
+echo "[8d] Courier tracking refresh"
+if [ -n "$ADMIN_TOKEN" ]; then
+  # route is admin-gated: unauth must be rejected before any lookup
+  C="$(code -X POST "$BASE/api/orders/admin/1/refresh-tracking")"
+  [ "$C" = "401" ] && ok "refresh-tracking without token -> 401" || ko "refresh-tracking unauth -> HTTP $C (expected 401)"
+  PT="smoke-trk-$(date +%s)"
+  curl -s -o /dev/null -X POST "$BASE/api/products" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$PT\",\"name\":\"Smoke Trk\",\"categoria\":\"vestiti\",\"price\":30,\"taglie\":[{\"taglia\":\"M\",\"stock\":2}]}"
+  TOID="$(curl -fsS -X POST "$BASE/api/orders/admin" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"nome\":\"Smoke\",\"email\":\"smoke-trk@example.com\",\"items\":[{\"product_id\":\"$PT\",\"taglia\":\"M\",\"qty\":1}]}" 2>/dev/null | jget id)"
+  if [ -n "$TOID" ]; then
+    TN="SMOKETRK$(date +%s)"
+    C="$(code -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' -d "{\"courier_code\":\"brt\",\"tracking_number\":\"$TN\"}" "$BASE/api/orders/admin/$TOID/ship")"
+    [ "$C" = "200" ] && ok "order shipped for tracking test" || ko "ship -> HTTP $C"
+    # 200 when an adapter/creds (or COURIER_TRACKING_SIMULATE) are configured, 503 when not — both healthy.
+    C="$(code -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/orders/admin/$TOID/refresh-tracking")"
+    { [ "$C" = "200" ] || [ "$C" = "503" ]; } && ok "refresh-tracking -> $C (200 configured / 503 graceful)" || ko "refresh-tracking -> HTTP $C (expected 200 or 503)"
+    code -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/orders/admin/$TOID" >/dev/null
+  else
+    ko "tracking test order create failed"
+  fi
+  code -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/products/$PT" >/dev/null
+else
+  ko "skipped — no admin token"
+fi
+
 # 8b — Lifecycle marketing emails (GDPR-gated, idempotent, dry-runnable)
 echo
 echo "[8b] Lifecycle emails"

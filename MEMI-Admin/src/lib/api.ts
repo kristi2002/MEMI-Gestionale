@@ -153,6 +153,11 @@ export const api = {
     ship: (id: number, data: { courier_code: string; tracking_number: string; eta?: string; destinazione?: string }) =>
       put<{ ok: boolean }>('/orders/admin/' + id + '/ship', data),
     sendTracking: (id: number) => post<{ ok: boolean; sent_to: string }>('/orders/admin/' + id + '/send-tracking', {}),
+    refreshTracking: (id: number) =>
+      post<{ ok: boolean; status: string; order_status: string; simulated: boolean; events: { label: string; at: string | null }[] }>(
+        '/orders/admin/' + id + '/refresh-tracking',
+        {},
+      ),
     delete: (id: number) => del<{ ok: boolean }>('/orders/admin/' + id),
   },
   products: {

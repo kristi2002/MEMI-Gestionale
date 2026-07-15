@@ -198,6 +198,7 @@
     updateStatus: function(id, data) { return put('/orders/admin/' + id + '/status', data); },
     ship:         function(id, data) { return put('/orders/admin/' + id + '/ship', data); },
     sendTracking: function(id)       { return post('/orders/admin/' + id + '/send-tracking', {}); },
+    refreshTracking: function(id)    { return post('/orders/admin/' + id + '/refresh-tracking', {}); },
     delete:       function(id)     { return del('/orders/admin/' + id); },
   };
 

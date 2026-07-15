@@ -18,9 +18,19 @@ const nodemailer = require('nodemailer');
 
 let _transporter = null;
 
+/**
+ * Email is "configured" only when BOTH the sending address and its password are
+ * present. Setting SMTP_USER alone (a common half-config) previously built a
+ * transporter that threw "Missing credentials for PLAIN" on EVERY send; now it
+ * degrades to a clean no-op, matching the documented "silent no-op" contract.
+ */
+function isEmailConfigured() {
+  return !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
 function getTransporter() {
   if (_transporter) return _transporter;
-  if (!process.env.SMTP_USER) return null;
+  if (!isEmailConfigured()) return null;
   _transporter = nodemailer.createTransport({
     host:   process.env.SMTP_HOST   || 'smtp.gmail.com',
     port:   parseInt(process.env.SMTP_PORT || '587', 10),
@@ -31,6 +41,31 @@ function getTransporter() {
     },
   });
   return _transporter;
+}
+
+/**
+ * Boot-time diagnostic: verify the SMTP transport can actually authenticate, so
+ * a broken config surfaces ONCE at startup with a clear line instead of failing
+ * silently on every email. Never throws — logs a ✅ / 🔴 line and resolves to a
+ * boolean. Also clears a cached-but-broken transporter so a later env fix (or a
+ * retry) can rebuild it.
+ */
+async function verifyEmailTransport() {
+  if (process.env.SMTP_USER && !process.env.SMTP_PASS) {
+    console.error('🔴  SMTP_USER is set but SMTP_PASS is empty — transactional emails are DISABLED (no-op). Set SMTP_PASS (Gmail: a 16-char App Password) to enable delivery.');
+    return false;
+  }
+  const t = getTransporter();
+  if (!t) return false; // fully unconfigured — already the documented no-op
+  try {
+    await t.verify();
+    console.log('✅  SMTP ready — transactional emails will be sent as ' + (process.env.SMTP_FROM || process.env.SMTP_USER));
+    return true;
+  } catch (err) {
+    _transporter = null; // never cache a broken transporter
+    console.error('🔴  SMTP verification FAILED (' + err.message + ') — emails are disabled until this is fixed.');
+    return false;
+  }
 }
 
 /**
@@ -435,4 +470,4 @@ async function sendNewsletterWelcome(email) {
   }
 }
 
-module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification, sendGenericEmail, sendNewsletterWelcome };
+module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification, sendGenericEmail, sendNewsletterWelcome, isEmailConfigured, verifyEmailTransport };

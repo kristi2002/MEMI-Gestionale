@@ -24,6 +24,7 @@ const { compensateOrder } = require('../order-compensation');
 const { ensureInvoiceForOrder } = require('../invoicing');
 const { validateBody, createOrderSchema } = require('../validation');
 const { logAdminAction } = require('../audit');
+const { fetchTrackingStatus, INTERNAL_STATUSES } = require('../courier-tracking');
 const providers = require('../payment-providers');
 const { resolveShipping } = require('../shipping-rates');   // PayPal (config-gated)
 
@@ -745,6 +746,63 @@ router.post('/admin/:id/send-tracking', requireAdmin, requirePermission('orders'
     return res.json({ ok: true, sent_to: o.email });
   } catch (err) {
     (req.log || console).error({ err }, 'send-tracking error');
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── POST /api/orders/admin/:id/refresh-tracking ──
+   Pull LIVE status from the courier for this order's shipment and persist it.
+   Config-gated (src/courier-tracking.js): 503 when no adapter/creds and SIMULATE
+   is off — mirrors the payments-missing 503 so nothing crashes. */
+router.post('/admin/:id/refresh-tracking', requireAdmin, requirePermission('orders'), async (req, res) => {
+  try {
+    const [[o]] = await pool.execute(
+      'SELECT id, order_number, courier_code, tracking_number, order_status FROM orders WHERE id = ?',
+      [req.params.id]
+    );
+    if (!o) return res.status(404).json({ error: 'Ordine non trovato' });
+    if (!o.tracking_number)
+      return res.status(400).json({ error: "Ordine senza tracking: spedisci prima l'ordine" });
+
+    const result = await fetchTrackingStatus(o.courier_code, o.tracking_number);
+
+    if (!result || result.configured === false) {
+      return res.status(503).json({
+        error: 'Tracking corriere non configurato',
+        detail: 'Nessun adapter/credenziali per questo corriere. Imposta COURIER_TRACKING_SIMULATE=1 (demo) o le credenziali BRT_*.',
+        reason: result && result.reason,
+      });
+    }
+    if (result.ok === false)
+      return res.status(502).json({ error: 'Errore dal corriere', reason: result.reason });
+
+    const status = INTERNAL_STATUSES.includes(result.status) ? result.status : 'in_transito';
+
+    // Persist onto the shipment; promote the order to consegnato when delivered.
+    await pool.execute('UPDATE shipments SET stato = ? WHERE order_id = ?', [status, o.id]);
+    let orderPromoted = false;
+    if (status === 'consegnato' && o.order_status !== 'consegnato') {
+      await pool.execute("UPDATE orders SET order_status = 'consegnato' WHERE id = ?", [o.id]);
+      orderPromoted = true;
+    }
+
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'order.refresh_tracking',
+      entityType: 'order', entityId: req.params.id,
+      details: { tracking_number: o.tracking_number, status, simulated: !!result.simulated },
+    }).catch(() => {});
+
+    return res.json({
+      ok: true,
+      courier: o.courier_code,
+      tracking_number: o.tracking_number,
+      status,
+      order_status: orderPromoted ? 'consegnato' : o.order_status,
+      simulated: !!result.simulated,
+      events: result.events || [],
+    });
+  } catch (err) {
+    (req.log || console).error({ err }, 'refresh-tracking error');
     return res.status(500).json({ error: 'Errore server' });
   }
 });

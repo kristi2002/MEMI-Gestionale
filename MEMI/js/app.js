@@ -1784,6 +1784,7 @@ function _renderTrackingResult($r, s, code) {
       '<div class="timeline">' + timelineHtml + '</div>' +
       '<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">' +
         '<button class="btn btn-ghost btn-sm js-send-tracking" data-id="' + s._order_db_id + '">📧 Invia tracking al cliente</button>' +
+        '<button class="btn btn-soft btn-sm js-refresh-tracking" data-id="' + s._order_db_id + '">🔄 Aggiorna dal corriere</button>' +
       '</div>' +
     '</div>'
   );
@@ -2519,6 +2520,24 @@ $(function(){
   // Tracking button
   $(document).on('click','#btnTrack', runTracking);
   $(document).on('keypress','#trackInput', function(e){ if(e.which===13) runTracking(); });
+
+  // Pull live status from the courier and refresh the tracking view
+  $(document).on('click','.js-refresh-tracking', function(){
+    var orderId = $(this).data('id');
+    if (!orderId) { toast('ID ordine non disponibile','error'); return; }
+    var $b = $(this); $b.prop('disabled', true);
+    AdminAPI.orders.refreshTracking(orderId).done(function(res){
+      var lbl = (window.AdminAPI ? AdminAPI.statusLabel(res.status) : res.status);
+      toast('Stato aggiornato dal corriere: ' + lbl + (res.simulated ? ' (simulato)' : ''), 'success');
+      if (typeof runTracking === 'function') runTracking();
+    }).fail(function(xhr){
+      $b.prop('disabled', false);
+      var j = xhr.responseJSON || {};
+      var msg = j.error || 'Errore aggiornamento tracking';
+      if (xhr.status === 503 && j.detail) msg += ' — ' + j.detail;
+      toast(msg, xhr.status === 503 ? 'info' : 'error');
+    });
+  });
 
   // Send tracking info to customer
   $(document).on('click','.js-send-tracking', function(){

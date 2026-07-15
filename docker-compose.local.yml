@@ -28,6 +28,8 @@ services:
       # These are public — production sets its own in Coolify.
       JWT_SECRET:       "local_dev_only_jwt_secret_0123456789abcdef0123456789abcdef"
       JWT_ADMIN_SECRET: "local_dev_only_admin_jwt_secret_fedcba9876543210fedcba987654"
+      # Local demo: deterministic offline courier tracking (no BRT creds needed).
+      COURIER_TRACKING_SIMULATE: "1"
   ecommerce:
     ports:
       - "8080:80"
