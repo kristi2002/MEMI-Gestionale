@@ -54,6 +54,12 @@ html { overflow-x: clip; }
    that don't inline it) renders a fully-styled header. app.js injects the
    desktop grid + mega-menu on top of this. Rules are self-contained (the icon
    buttons carry their own reset) so a page needs no header CSS of its own. ── */
+.site-header {
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--beige, #DBDBEE);
+}
 .announcement-bar {
   background: var(--blush-light, #F6ECEC);
   color: var(--brown-mid, #6B5050);
