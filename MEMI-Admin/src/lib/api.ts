@@ -199,6 +199,17 @@ export const api = {
       return upload<{ url: string }>('/admin/collections/hero', fd);
     },
   },
+  colors: {
+    list: () => get<import('@/types').ProductColor[]>('/admin/colors'),
+    create: (data: unknown) => post('/admin/colors', data),
+    update: (id: number, data: unknown) => put('/admin/colors/' + id, data),
+    delete: (id: number) => del('/admin/colors/' + id),
+    suggestFromImage: (file: File) => {
+      const fd = new FormData();
+      fd.append('image', file);
+      return upload<{ hex: string }>('/admin/colors/suggest-from-image', fd);
+    },
+  },
   customers: {
     list: (params?: Query) => get<CustomerListResponse>('/admin/customers' + qs(params)),
     get: (id: number) => get<Record<string, unknown>>('/admin/customers/' + id),
@@ -240,6 +251,9 @@ export const api = {
   shipping: {
     shipments: () => get<Shipment2[]>('/shipping/shipments'),
     couriers: () => get<Courier[]>('/shipping/couriers?all=1'),
+    createCourier: (data: unknown) => post('/shipping/couriers', data),
+    updateCourier: (code: string, data: unknown) => put('/shipping/couriers/' + encodeURIComponent(code), data),
+    deleteCourier: (code: string) => del('/shipping/couriers/' + encodeURIComponent(code)),
   },
   carts: {
     list: (params?: Query) => get<CartsResponse>('/admin/carts' + qs(params)),

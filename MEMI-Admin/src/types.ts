@@ -163,6 +163,16 @@ export interface Taxonomy {
 export type ProductCategory = Taxonomy;
 export type ProductCollection = Taxonomy;
 
+/** Managed colour palette entry. */
+export interface ProductColor {
+  id: number;
+  slug: string;
+  name: string;
+  hex: string | null;
+  sort_order: number;
+  product_count?: number;
+}
+
 export interface CustomerRow {
   id: number;
   email: string;

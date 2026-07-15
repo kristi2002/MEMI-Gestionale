@@ -20,7 +20,8 @@ export type FieldType =
   | 'checkbox'
   | 'date'
   | 'email'
-  | 'image';
+  | 'image'
+  | 'color';
 
 export interface FieldConfig {
   name: string;

@@ -35,6 +35,7 @@ const productsRoutes   = require('./routes/products');
 const productsImportRoutes = require('./routes/products-import');
 const categoriesRoutes  = require('./routes/categories');
 const collectionsRoutes = require('./routes/collections');
+const colorsRoutes      = require('./routes/colors');
 const ordersRoutes     = require('./routes/orders');
 const customersRoutes  = require('./routes/customers');
 const discountsRoutes  = require('./routes/discounts');
@@ -273,6 +274,8 @@ app.use('/api/products',          productsRoutes);
 app.use('/api/admin/products',    requireAdmin, requirePermission('products'), productsImportRoutes);   // bulk CSV import (admin)
 app.use('/api/admin/categories',  requireAdmin, requirePermission('categories'), categoriesRoutes);    // managed product categories
 app.use('/api/admin/collections', requireAdmin, requirePermission('collections'), collectionsRoutes);  // managed product collections
+app.use('/api/colors',            colorsRoutes.publicRouter);                                          // public colour palette (storefront swatches)
+app.use('/api/admin/colors',      requireAdmin, requirePermission('products'), colorsRoutes.adminRouter); // managed colour palette
 app.use('/api/orders',            ordersRoutes);
 app.use('/api/admin/customers',   requireAdmin, requirePermission('customers'), customersRoutes);
 app.use('/api/admin/discounts',   requireAdmin, requirePermission('discounts'), discountsRoutes);

@@ -67,6 +67,7 @@ export function useAllProducts() {
 /* ── Managed taxonomy entities ─────────────────────────── */
 export const useCategories = () => useQuery({ queryKey: ['categories'], queryFn: () => api.categories.list() });
 export const useCollections = () => useQuery({ queryKey: ['collections'], queryFn: () => api.collections.list() });
+export const useColors = () => useQuery({ queryKey: ['colors'], queryFn: () => api.colors.list() });
 
 /* ── Mutations used by bulk actions ────────────────────── */
 export function useOrderStatusMutation() {

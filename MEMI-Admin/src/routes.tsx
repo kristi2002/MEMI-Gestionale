@@ -33,6 +33,7 @@ import { LoyaltyPage } from '@/pages/loyalty';
 import { SettingsPage } from '@/pages/settings';
 import { LifecyclePage } from '@/pages/lifecycle';
 import { CategoriesPage, CollectionsPage } from '@/pages/taxonomy';
+import { ColorsPage } from '@/pages/colors';
 import { FinancePage } from '@/pages/finance';
 import { AnalyticsPage } from '@/pages/analytics';
 import { TaxesPage } from '@/pages/taxes';
@@ -56,6 +57,7 @@ const READY_PAGES: Record<string, ReactElement> = {
   '/transfers': <TransfersPage />,
   '/collections': <CollectionsPage />,
   '/categories': <CategoriesPage />,
+  '/colors': <ColorsPage />,
   '/giftcards': <GiftcardsPage />,
   '/customers': <CustomersPage />,
   '/loyalty': <LoyaltyPage />,

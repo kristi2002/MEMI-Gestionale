@@ -62,6 +62,7 @@ export const NAV: NavGroup[] = [
       { label: 'Trasferimenti', to: '/transfers' , ready: true },
       { label: 'Collezioni', to: '/collections' , ready: true },
       { label: 'Categorie', to: '/categories' , ready: true },
+      { label: 'Colori', to: '/colors' , ready: true },
       { label: 'Gift card', to: '/giftcards', ready: true },
     ],
   },

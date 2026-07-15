@@ -73,9 +73,10 @@ router.get('/', async (req, res) => {
     const safeLimit  = parseInt(limit)  || 100;
     const safeOffset = parseInt(offset) || 0;
 
-    const sql = 'SELECT p.*, GROUP_CONCAT(ps.taglia ORDER BY ps.taglia SEPARATOR ",") AS taglie_str, '
+    const sql = 'SELECT p.*, pc.hex AS color_hex, GROUP_CONCAT(ps.taglia ORDER BY ps.taglia SEPARATOR ",") AS taglie_str, '
       + 'COALESCE(SUM(ps.stock), 0) AS stock_total FROM products p '
-      + 'LEFT JOIN product_sizes ps ON ps.product_id = p.id WHERE 1=1' + filter
+      + 'LEFT JOIN product_sizes ps ON ps.product_id = p.id '
+      + 'LEFT JOIN product_colors pc ON pc.slug = p.colore WHERE 1=1' + filter
       + ` GROUP BY p.id ORDER BY p.popularity DESC LIMIT ${safeLimit} OFFSET ${safeOffset}`;
     const [rows] = await pool.execute(sql, params);
 
@@ -107,7 +108,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const [[product]] = await pool.execute(
-      'SELECT * FROM products WHERE id = ?',
+      'SELECT p.*, pc.hex AS color_hex FROM products p LEFT JOIN product_colors pc ON pc.slug = p.colore WHERE p.id = ?',
       [req.params.id]
     );
     if (!product) return res.status(404).json({ error: 'Prodotto non trovato' });

@@ -7,7 +7,7 @@ import { EntityFormFields } from '@/components/common/entity-form-fields';
 import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCategories, useCollections } from '@/hooks/queries';
+import { useCategories, useColors } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -75,9 +75,9 @@ export function ProductFormPage() {
   const qc = useQueryClient();
 
   const categoriesQuery = useCategories();
-  const collectionsQuery = useCollections();
+  const colorsQuery = useColors();
 
-  const [values, setValues] = useState<FormValues>({ status: 'attivo', discount_pct: 0, collections: [] });
+  const [values, setValues] = useState<FormValues>({ status: 'attivo', discount_pct: 0 });
   const [loading, setLoading] = useState<boolean>(editing);
   const [busy, setBusy] = useState(false);
 
@@ -102,7 +102,6 @@ export function ProductFormPage() {
           discount_pct: d.discount_pct || 0,
           status: d.status ?? 'attivo',
           description: d.description ?? '',
-          collections: Array.isArray(d.collections) ? d.collections : [],
           sizes,
         });
       } catch {
@@ -130,10 +129,13 @@ export function ProductFormPage() {
     return managed;
   }, [categoriesQuery.data, values.categoria]);
 
-  const collectionOptions = useMemo(
-    () => (collectionsQuery.data ?? []).map((c) => ({ value: c.slug, label: c.name })),
-    [collectionsQuery.data],
-  );
+  // Colour options come from the managed Colori entity; current value always included.
+  const colorOptions = useMemo(() => {
+    const managed = (colorsQuery.data ?? []).map((c) => ({ value: c.slug, label: c.name }));
+    const cur = (values.colore as string) || '';
+    if (cur && !managed.some((o) => o.value === cur)) managed.unshift({ value: cur, label: (values.color_label as string) || cur });
+    return managed;
+  }, [colorsQuery.data, values.colore, values.color_label]);
 
   // ── Field groups (rendered as separate cards) ──────────────────────────────
   const detailFields = useMemo<FieldConfig[]>(() => {
@@ -169,18 +171,17 @@ export function ProductFormPage() {
           help: 'Gestisci l’elenco in Prodotti → Categorie.' }
       : { name: 'categoria', label: 'Categoria', required: true, wide: true, placeholder: 'es. scarpe',
           help: 'Nessuna categoria gestita: creane in Prodotti → Categorie.' };
-    return [
-      categoria,
-      { name: 'collections', label: 'Collezioni', type: 'multiselect', wide: true, options: collectionOptions,
-        placeholder: 'Nessuna collezione: creane in Prodotti → Collezioni.',
-        help: 'Facoltativo. Raggruppamenti editoriali/stagionali (es. Estate 2025).' },
-    ];
-  }, [categoryOptions, collectionOptions]);
+    return [categoria];
+  }, [categoryOptions]);
 
-  const colorFields: FieldConfig[] = [
-    { name: 'colore', label: 'Colore (chiave)', placeholder: 'blush' },
-    { name: 'color_label', label: 'Colore (etichetta)', placeholder: 'Rosa cipria' },
-  ];
+  const colorFields = useMemo<FieldConfig[]>(() => {
+    const colore: FieldConfig = colorOptions.length
+      ? { name: 'colore', label: 'Colore', type: 'select', wide: true, placeholder: 'Seleziona colore…', options: colorOptions,
+          help: 'Gestisci la palette in Prodotti → Colori.' }
+      : { name: 'colore', label: 'Colore (chiave)', wide: true, placeholder: 'blush',
+          help: 'Nessun colore gestito: creane in Prodotti → Colori.' };
+    return [colore];
+  }, [colorOptions]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -190,17 +191,21 @@ export function ProductFormPage() {
     }
     setBusy(true);
     try {
+      // Mirror the selected colour's display name into color_label (kept in sync
+      // with the managed palette). Collections are intentionally not sent here so
+      // a product's existing collections are preserved (managed under Collezioni).
+      const selectedColor = (colorsQuery.data ?? []).find((c) => c.slug === values.colore);
+      const colorLabel = selectedColor?.name ?? (values.color_label as string) ?? null;
       const data: Record<string, unknown> = {
         name: values.name,
         categoria: values.categoria,
         colore: values.colore || null,
-        color_label: values.color_label || null,
+        color_label: values.colore ? colorLabel : null,
         price: values.price,
         original_price: values.original_price === '' || values.original_price == null ? null : values.original_price,
         discount_pct: values.discount_pct || 0,
         status: values.status || 'attivo',
         description: values.description || null,
-        collections: Array.isArray(values.collections) ? values.collections : [],
       };
       const sizes = parseSizes(values.sizes as string);
       if (sizes.length) data.taglie = sizes;
@@ -254,7 +259,7 @@ export function ProductFormPage() {
               <FormSection title="Stato" fields={statusFields} values={values} set={set} />
               <FormSection
                 title="Organizzazione"
-                description="Categoria (una) e collezioni (facoltative)."
+                description="Categoria del prodotto."
                 fields={organizationFields}
                 values={values}
                 set={set}

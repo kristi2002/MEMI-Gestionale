@@ -341,6 +341,20 @@ const STATEMENTS = [
      created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Managed colours ─────────────────────────────────────────────────────────
+  //  Products reference a colour by its `colore` slug; `color_label` mirrors the
+  //  display name. This table is the source of truth for the swatch hex and lets
+  //  the palette be managed (add/edit/delete) instead of living only as free text.
+  `CREATE TABLE IF NOT EXISTS product_colors (
+     id          INT AUTO_INCREMENT PRIMARY KEY,
+     slug        VARCHAR(120) NOT NULL UNIQUE,
+     name        VARCHAR(160) NOT NULL,
+     hex         VARCHAR(7) NULL,
+     sort_order  INT DEFAULT 0,
+     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');
@@ -553,6 +567,35 @@ async function seedTaxonomies(pool) {
     }
   } catch (err) {
     console.error('   ! seed product_collections skipped:', err.message);
+  }
+  try {
+    const [[col]] = await pool.query('SELECT COUNT(*) AS c FROM product_colors');
+    if (Number(col.c) === 0) {
+      // A curated default palette (real hex) guarantees a usable swatch set even
+      // on an empty catalog; product-distinct colours are then merged in.
+      const PALETTE = [
+        ['nero', 'Nero', '#111111'], ['bianco', 'Bianco', '#FFFFFF'], ['avorio', 'Avorio', '#F3EEE3'],
+        ['blush', 'Rosa cipria', '#E8B4B8'], ['antico', 'Rosa antico', '#C9A9A6'], ['lavanda', 'Lavanda', '#B9AEDC'],
+        ['salvia', 'Verde salvia', '#9CAF88'], ['menta', 'Verde menta', '#A8D5BA'], ['espresso', 'Espresso', '#4B3621'],
+        ['blu', 'Blu notte', '#2C3E50'], ['cammello', 'Cammello', '#C19A6B'], ['grigio', 'Grigio', '#8E8E8E'],
+      ];
+      const HEX = Object.fromEntries(PALETTE.map(([s, , h]) => [s, h]));
+      for (const [slug, name, hex] of PALETTE) {
+        await pool.query('INSERT IGNORE INTO product_colors (slug, name, hex) VALUES (?, ?, ?)', [slug, name, hex]);
+      }
+      // Merge any colours used by products that aren't already in the palette.
+      const [rows] = await pool.query(
+        "SELECT colore, MIN(color_label) AS label FROM products WHERE colore IS NOT NULL AND colore <> '' GROUP BY colore"
+      );
+      for (const r of rows) {
+        await pool.query(
+          'INSERT IGNORE INTO product_colors (slug, name, hex) VALUES (?, ?, ?)',
+          [r.colore, r.label || r.colore, HEX[r.colore] || null]
+        );
+      }
+    }
+  } catch (err) {
+    console.error('   ! seed product_colors skipped:', err.message);
   }
 }
 

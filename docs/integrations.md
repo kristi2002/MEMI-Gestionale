@@ -129,6 +129,16 @@ dashboard.html loads
 | `collections.update()` | `PUT /api/admin/collections/:id` (slug immutable) |
 | `collections.delete()` | `DELETE /api/admin/collections/:id` |
 | `collections.uploadHero()` | `POST /api/admin/collections/hero` (multipart; sharp→WebP → `{url}`) |
+| (public) colour palette | `GET /api/colors` (storefront swatches) |
+| `colors.list()` | `GET /api/admin/colors` (managed palette + live product counts) |
+| `colors.create()` | `POST /api/admin/colors` |
+| `colors.update()` | `PUT /api/admin/colors/:id` (slug immutable) |
+| `colors.delete()` | `DELETE /api/admin/colors/:id` (409 if a product uses the colour) |
+| `colors.suggestFromImage()` | `POST /api/admin/colors/suggest-from-image` (multipart; sharp dominant → `{hex}`) |
+| product detail `color_hex` | `GET /api/products/:id` joins `product_colors` on `colore` slug |
+| `shipping.createCourier()` | `POST /api/shipping/couriers` |
+| `shipping.updateCourier()` | `PUT /api/shipping/couriers/:code` |
+| `shipping.deleteCourier()` | `DELETE /api/shipping/couriers/:code` |
 | `orders.list()` | `GET /api/orders/admin/list` |
 | `orders.get()` | `GET /api/orders/admin/:id` |
 | `orders.updateStatus()` | `PUT /api/orders/admin/:id/status` |

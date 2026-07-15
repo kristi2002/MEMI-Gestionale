@@ -63,6 +63,24 @@ export function EntityFormFields({
               <MultiSelectField field={f} value={Array.isArray(val) ? (val as string[]) : []} set={set} />
             ) : t === 'image' ? (
               <ImageField field={f} value={(val as string) || ''} set={set} />
+            ) : t === 'color' ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  aria-label={`${f.label} selettore`}
+                  className="h-9 w-12 shrink-0 cursor-pointer rounded-md border border-input bg-card p-1"
+                  value={/^#[0-9a-fA-F]{6}$/.test((val as string) || '') ? (val as string) : '#cccccc'}
+                  onChange={(e) => set(f.name, e.target.value)}
+                />
+                <Input
+                  id={f.name}
+                  type="text"
+                  className="font-mono"
+                  value={(val as string) ?? ''}
+                  placeholder={f.placeholder ?? '#RRGGBB'}
+                  onChange={(e) => set(f.name, e.target.value)}
+                />
+              </div>
             ) : t === 'checkbox' ? (
               <label className="flex cursor-pointer items-center gap-2 pt-1">
                 <Checkbox checked={!!val} onCheckedChange={(v) => set(f.name, !!v)} />
