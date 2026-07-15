@@ -180,6 +180,8 @@
       background: linear-gradient(to top, rgba(59,43,43,.6) 0%, rgba(59,43,43,.05) 55%, transparent 100%);
       transition: background var(--dur-med);
     }
+    /* Full-card click target sits above the body (z-index:2) so the whole card is a link */
+    .card-link { position: absolute; inset: 0; z-index: 5; }
     .campaign-card:hover .campaign-card-overlay {
       background: linear-gradient(to top, rgba(59,43,43,.72) 0%, rgba(59,43,43,.15) 55%, transparent 100%);
     }
@@ -290,10 +292,11 @@
         loading="lazy"
       />
       <div class="campaign-hero-overlay"></div>
+      <a href="/shop" class="card-link" aria-label="Spring Summer 2026 — Scopri la collezione"></a>
       <div class="campaign-hero-body">
         <p class="campaign-season">Primavera Estate 2026</p>
         <h2 class="campaign-name">Spring Summer<br><em>2026</em></h2>
-        <a href="/shop" class="campaign-cta">Scopri la collezione →</a>
+        <span class="campaign-cta">Scopri la collezione →</span>
       </div>
     </div>
 
@@ -307,6 +310,7 @@
           loading="lazy"
         />
         <div class="campaign-card-overlay"></div>
+        <a href="/shop" class="card-link" aria-label="Fall Winter 2025 — Esplora"></a>
         <div class="campaign-card-body">
           <p class="campaign-card-season">Autunno Inverno 2025</p>
           <p class="campaign-card-name">Fall Winter<br><em>2025</em></p>
@@ -321,6 +325,7 @@
           loading="lazy"
         />
         <div class="campaign-card-overlay"></div>
+        <a href="/shop" class="card-link" aria-label="Dance Collection — Esplora"></a>
         <div class="campaign-card-body">
           <p class="campaign-card-season">Estate 2025</p>
           <p class="campaign-card-name">Dance<br><em>Collection</em></p>
@@ -335,6 +340,7 @@
           loading="lazy"
         />
         <div class="campaign-card-overlay"></div>
+        <a href="/shop" class="card-link" aria-label="Spring 2025 — Esplora"></a>
         <div class="campaign-card-body">
           <p class="campaign-card-season">Primavera 2025</p>
           <p class="campaign-card-name">Spring<br><em>2025</em></p>

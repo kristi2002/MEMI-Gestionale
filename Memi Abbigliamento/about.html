@@ -439,6 +439,8 @@
       inset: 0;
       background: linear-gradient(to right, rgba(10,4,4,.65) 0%, rgba(10,4,4,.15) 60%, transparent 100%);
     }
+    /* Full-card click target sits above the body (z-index:2) so the whole card is a link */
+    .card-link { position: absolute; inset: 0; z-index: 5; }
     .campaign-hero-body {
       position: absolute;
       z-index: 2;
@@ -953,10 +955,11 @@
         loading="lazy"
       />
       <div class="campaign-hero-overlay"></div>
+      <a href="collections/novita/index.html" class="card-link" aria-label="Spring Summer 2026 — Scopri la collezione"></a>
       <div class="campaign-hero-body">
         <p class="campaign-season">Primavera Estate 2026</p>
         <h3 class="campaign-name">Spring Summer<br><em>2026</em></h3>
-        <a href="collections/novita/index.html" class="campaign-cta">Scopri la collezione →</a>
+        <span class="campaign-cta">Scopri la collezione →</span>
       </div>
     </div>
 
@@ -970,6 +973,7 @@
           loading="lazy"
         />
         <div class="campaign-card-overlay"></div>
+        <a href="/shop" class="card-link" aria-label="Fall Winter 2025 — Esplora"></a>
         <div class="campaign-card-body">
           <p class="campaign-card-season">Autunno Inverno 2025</p>
           <p class="campaign-card-name">Fall Winter<br><em>2025</em></p>
@@ -984,6 +988,7 @@
           loading="lazy"
         />
         <div class="campaign-card-overlay"></div>
+        <a href="/shop" class="card-link" aria-label="Dance Collection — Esplora"></a>
         <div class="campaign-card-body">
           <p class="campaign-card-season">Estate 2025</p>
           <p class="campaign-card-name">Dance<br><em>Collection</em></p>
@@ -998,6 +1003,7 @@
           loading="lazy"
         />
         <div class="campaign-card-overlay"></div>
+        <a href="/shop" class="card-link" aria-label="Spring 2025 — Esplora"></a>
         <div class="campaign-card-body">
           <p class="campaign-card-season">Primavera 2025</p>
           <p class="campaign-card-name">Spring<br><em>2025</em></p>
