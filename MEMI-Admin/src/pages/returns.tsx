@@ -1,18 +1,32 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
-import { useResi, useDeleteMany } from '@/hooks/queries';
+import { EntityFormDialog, useEntityForm, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import { Button } from '@/components/ui/button';
+import { useResi, useDeleteMany, useUpdateOne } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { eur, date } from '@/lib/format';
 import { statusLabel } from '@/lib/status';
 import type { Reso } from '@/types';
 import type { ExportColumn } from '@/lib/export';
+import { toast } from 'sonner';
+
+const STATO_FIELDS: FieldConfig[] = [
+  { name: 'stato', label: 'Stato', type: 'select', wide: true, options: [
+      { value: 'aperto', label: 'Aperto' },
+      { value: 'in_analisi', label: 'In analisi' },
+      { value: 'approvato', label: 'Approvato' },
+      { value: 'rifiutato', label: 'Rifiutato' },
+      { value: 'rimborsato', label: 'Rimborsato (ripristina stock + storna)' },
+    ] },
+  { name: 'rimborso_amount', label: 'Importo rimborso €', type: 'number', help: 'Impostando lo stato su "Rimborsato" il magazzino e i punti vengono ripristinati automaticamente.' },
+];
 
 const exportColumns: ExportColumn<Reso>[] = [
   { header: 'RMA', accessor: (r) => r.rma_number },
@@ -28,7 +42,18 @@ const exportColumns: ExportColumn<Reso>[] = [
 export function ReturnsPage() {
   const query = useResi();
   const del = useDeleteMany<number>((id) => api.resi.delete(id), 'resi');
+  const updateMut = useUpdateOne<number>((id, data) => api.resi.update(id, data), 'resi');
+  const form = useEntityForm();
   const rows = query.data?.resi ?? [];
+
+  const openEditRef = useRef(form.openEdit);
+  openEditRef.current = form.openEdit;
+
+  async function onSubmit(v: FormValues) {
+    const id = form.editing?.id as number;
+    await updateMut.mutateAsync({ id, data: { stato: v.stato, rimborso_amount: v.rimborso_amount === '' || v.rimborso_amount == null ? null : v.rimborso_amount } });
+    toast.success('Reso aggiornato');
+  }
 
   const counts = useMemo(
     () => ({
@@ -58,6 +83,14 @@ export function ReturnsPage() {
       { accessorKey: 'rimborso_amount', header: 'Rimborso', cell: ({ getValue }) => (getValue() ? <span className="font-semibold">{eur(getValue() as string)}</span> : <span className="text-muted-foreground">—</span>) },
       { accessorKey: 'created_at', header: 'Data', cell: ({ getValue }) => <span className="text-muted-foreground">{date(getValue() as string)}</span> },
       { accessorKey: 'stato', header: 'Stato', cell: ({ getValue }) => <StatusBadge code={getValue() as string} /> },
+      {
+        id: 'azioni', header: '', enableSorting: false,
+        cell: ({ row }) => (
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original as unknown as FormValues); }}>
+            <Pencil /> Gestisci
+          </Button>
+        ),
+      },
     ],
     [],
   );
@@ -84,6 +117,16 @@ export function ReturnsPage() {
         bulkActions={(selected, clear) => (
           <BulkDelete count={selected.length} noun="resi" onDelete={() => del.mutateAsync(selected.map((r) => r.id))} onDone={clear} />
         )}
+      />
+      <EntityFormDialog
+        open={form.open}
+        onOpenChange={form.setOpen}
+        title="Gestisci reso"
+        description="Aggiorna lo stato della richiesta e l'importo del rimborso."
+        fields={STATO_FIELDS}
+        initial={form.editing}
+        submitLabel="Salva"
+        onSubmit={onSubmit}
       />
     </div>
   );

@@ -1,18 +1,21 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { UserCog } from 'lucide-react';
+import { UserCog, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/common/empty-state';
-import { useStaff, useDeleteMany } from '@/hooks/queries';
+import { EntityFormDialog, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import { Button } from '@/components/ui/button';
+import { useStaff, useDeleteMany, useSaveEntity } from '@/hooks/queries';
 import { useAuth } from '@/hooks/use-auth';
 import { api } from '@/lib/api';
 import { date, initials } from '@/lib/format';
 import type { StaffMember } from '@/types';
 import type { ExportColumn } from '@/lib/export';
+import { toast } from 'sonner';
 
 const exportColumns: ExportColumn<StaffMember>[] = [
   { header: 'Nome', accessor: (m) => m.nome || '' },
@@ -22,11 +25,62 @@ const exportColumns: ExportColumn<StaffMember>[] = [
   { header: 'Creato il', accessor: (m) => date(m.created_at) },
 ];
 
+const ROLE_OPTS = [
+  { value: 'admin', label: 'Admin (accesso completo)' },
+  { value: 'staff', label: 'Staff (permessi limitati)' },
+];
+
 export function StaffPage() {
   const query = useStaff();
   const { me } = useAuth();
   const del = useDeleteMany<number>((id) => api.staff.delete(id), 'staff');
+  const saveMut = useSaveEntity(api.staff.create, api.staff.update, 'staff');
   const rows = query.data?.staff ?? [];
+
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<StaffMember | null>(null);
+  const [initial, setInitial] = useState<FormValues>({});
+
+  function openCreate() {
+    setEditing(null);
+    setInitial({ role: 'staff' });
+    setFormOpen(true);
+  }
+  function openEdit(m: StaffMember) {
+    setEditing(m);
+    setInitial({ nome: m.nome ?? '', email: m.email, role: m.role, password: '' });
+    setFormOpen(true);
+  }
+  const openEditRef = useRef(openEdit);
+  openEditRef.current = openEdit;
+
+  const fields = useMemo<FieldConfig[]>(() => {
+    if (editing) {
+      return [
+        { name: 'nome', label: 'Nome', required: true },
+        { name: 'role', label: 'Ruolo', type: 'select', options: ROLE_OPTS },
+        { name: 'password', label: 'Nuova password', type: 'text', help: 'Lascia vuoto per non modificarla. Minimo 8 caratteri.' },
+      ];
+    }
+    return [
+      { name: 'nome', label: 'Nome', required: true },
+      { name: 'email', label: 'Email', type: 'email', required: true },
+      { name: 'password', label: 'Password', type: 'text', required: true, help: 'Minimo 8 caratteri.' },
+      { name: 'role', label: 'Ruolo', type: 'select', options: ROLE_OPTS },
+    ];
+  }, [editing]);
+
+  async function onSubmit(v: FormValues) {
+    if (editing) {
+      const data: Record<string, unknown> = { nome: v.nome, role: v.role };
+      if (v.password) data.password = v.password;
+      await saveMut.mutateAsync({ id: editing.id, data });
+      toast.success('Membro aggiornato');
+    } else {
+      await saveMut.mutateAsync({ data: { nome: v.nome, email: v.email, password: v.password, role: v.role || 'staff' } });
+      toast.success('Membro aggiunto');
+    }
+  }
 
   const columns = useMemo<ColumnDef<StaffMember, unknown>[]>(
     () => [
@@ -70,13 +124,25 @@ export function StaffPage() {
         },
       },
       { accessorKey: 'created_at', header: 'Creato il', cell: ({ getValue }) => <span className="text-muted-foreground">{date(getValue() as string)}</span> },
+      {
+        id: 'azioni', header: '', enableSorting: false,
+        cell: ({ row }) => (
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original); }}>
+            <Pencil /> Modifica
+          </Button>
+        ),
+      },
     ],
     [],
   );
 
   return (
     <div>
-      <PageHeader title="Staff & Permessi" subtitle="Utenti amministratori e relativi permessi." />
+      <PageHeader
+        title="Staff & Permessi"
+        subtitle="Utenti amministratori e relativi permessi."
+        actions={<Button size="sm" onClick={openCreate}><Plus /> Nuovo membro</Button>}
+      />
       <DataTable
         columns={columns}
         data={rows}
@@ -102,6 +168,15 @@ export function StaffPage() {
             />
           );
         }}
+      />
+      <EntityFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        title={editing ? `Modifica membro: ${editing.nome || editing.email}` : 'Nuovo membro dello staff'}
+        fields={fields}
+        initial={initial}
+        submitLabel={editing ? 'Salva modifiche' : 'Aggiungi membro'}
+        onSubmit={onSubmit}
       />
     </div>
   );
