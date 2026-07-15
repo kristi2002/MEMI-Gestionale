@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Trash2, BadgePercent, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
+import type { FilterDef } from '@/components/data-table/filters';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -51,6 +52,16 @@ export function DiscountsPage() {
   const deleteMut = useDeleteDiscounts();
   const saveMut = useSaveEntity(api.discounts.create, api.discounts.update, 'discounts');
   const rows = query.data ?? [];
+
+  const filters = useMemo<FilterDef<Discount>[]>(
+    () => [
+      { key: 'tipo', type: 'select', label: 'Tipo', accessor: (d) => d.tipo,
+        options: [{ value: 'percentuale', label: 'Percentuale' }, { value: 'fisso', label: 'Importo fisso' }, { value: 'spedizione', label: 'Spedizione gratuita' }] },
+      { key: 'stato', type: 'select', label: 'Stato', accessor: (d) => d.stato,
+        options: [{ value: 'attivo', label: 'Attivo' }, { value: 'disattivo', label: 'Disattivo' }, { value: 'pianificato', label: 'Pianificato' }] },
+    ],
+    [],
+  );
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Discount | null>(null);
@@ -153,6 +164,8 @@ export function DiscountsPage() {
         exportName="sconti"
         exportTitle="Codici sconto"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="discounts"
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={BadgePercent} title="Nessun codice sconto" />}
         bulkActions={(selected, clear) => {

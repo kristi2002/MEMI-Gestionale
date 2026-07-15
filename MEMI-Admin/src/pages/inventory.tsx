@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { FilterDef } from '@/components/data-table/filters';
 import { useProducts, flattenProducts } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { int } from '@/lib/format';
@@ -108,7 +108,6 @@ const exportColumns: ExportColumn<ProductRow>[] = [
 
 export function InventoryPage() {
   const query = useProducts();
-  const [filter, setFilter] = useState<'all' | 'low' | 'out'>('all');
   const [stockTarget, setStockTarget] = useState<ProductRow | null>(null);
   const all = useMemo(() => flattenProducts(query.data?.pages), [query.data]);
 
@@ -122,13 +121,15 @@ export function InventoryPage() {
     return { out, low, ok };
   }, [all]);
 
-  const rows = useMemo(
-    () =>
-      all.filter((p) =>
-        filter === 'out' ? p.stock_total === 0 : filter === 'low' ? p.stock_total > 0 && p.stock_total < LOW : true,
-      ),
-    [all, filter],
-  );
+  const filters = useMemo<FilterDef<ProductRow>[]>(() => {
+    const cats = [...new Set(all.map((p) => p.categoria).filter(Boolean))].sort();
+    return [
+      { key: 'bucket', type: 'select', label: 'Scorte', accessor: (p) => (p.stock_total === 0 ? 'out' : p.stock_total < LOW ? 'low' : 'ok'),
+        options: [{ value: 'out', label: 'Esauriti' }, { value: 'low', label: 'Scorte basse' }, { value: 'ok', label: 'Disponibili' }] },
+      { key: 'categoria', type: 'select', label: 'Categoria', accessor: (p) => p.categoria, options: cats.map((c) => ({ value: c, label: c })) },
+      { key: 'stock', type: 'numberRange', label: 'Unità', accessor: (p) => p.stock_total },
+    ];
+  }, [all]);
 
   const columns = useMemo<ColumnDef<ProductRow, unknown>[]>(
     () => [
@@ -197,30 +198,20 @@ export function InventoryPage() {
 
       <DataTable
         columns={columns}
-        data={rows}
+        data={all}
         getRowId={(p) => p.id}
         searchValue={(p) => `${p.name} ${p.id} ${p.categoria}`}
         searchPlaceholder="Cerca prodotto…"
         exportName="magazzino"
         exportTitle="Magazzino"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="inventory"
         isLoading={query.isLoading}
         hasMore={query.hasNextPage}
         onLoadMore={() => query.fetchNextPage()}
         loadingMore={query.isFetchingNextPage}
         emptyState={<EmptyState icon={Boxes} title="Nessun prodotto" />}
-        toolbar={
-          <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-            <SelectTrigger className="h-9 w-[170px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tutte le scorte</SelectItem>
-              <SelectItem value="low">Solo scorte basse</SelectItem>
-              <SelectItem value="out">Solo esauriti</SelectItem>
-            </SelectContent>
-          </Select>
-        }
       />
       <StockAdjustDialog product={stockTarget} onClose={() => setStockTarget(null)} />
     </div>

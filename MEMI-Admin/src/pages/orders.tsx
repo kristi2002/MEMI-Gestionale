@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Trash2, CheckCircle2, Ban, ShoppingBag } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
+import type { FilterDef } from '@/components/data-table/filters';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -61,6 +62,18 @@ export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'G
         return all;
     }
   }, [all, tab]);
+
+  const filters = useMemo<FilterDef<OrderRow>[]>(
+    () => [
+      { key: 'order_status', type: 'select', label: 'Stato', accessor: (o) => o.order_status,
+        options: ['in_attesa', 'in_preparazione', 'spedito', 'consegnato', 'annullato'].map((s) => ({ value: s, label: statusLabel(s) })) },
+      { key: 'payment_status', type: 'select', label: 'Pagamento', accessor: (o) => o.payment_status,
+        options: ['pagato', 'in_attesa', 'rimborsato', 'fallito'].map((s) => ({ value: s, label: statusLabel(s) })) },
+      { key: 'created', type: 'dateRange', label: 'Data', accessor: (o) => o.created_at },
+      { key: 'total', type: 'numberRange', label: 'Totale', unit: '€', accessor: (o) => Number(o.total) },
+    ],
+    [],
+  );
 
   const columns = useMemo<ColumnDef<OrderRow, unknown>[]>(
     () => [
@@ -131,6 +144,8 @@ export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'G
         exportName="ordini"
         exportTitle="Ordini"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="orders"
         isLoading={query.isLoading}
         hasMore={query.hasNextPage}
         onLoadMore={() => query.fetchNextPage()}

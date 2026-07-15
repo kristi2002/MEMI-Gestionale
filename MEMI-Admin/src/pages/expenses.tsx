@@ -4,6 +4,7 @@ import { Receipt, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
+import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/common/empty-state';
@@ -47,6 +48,17 @@ export function ExpensesPage() {
   const saveMut = useSaveEntity(api.expenses.create, api.expenses.update, 'expenses');
   const form = useEntityForm();
   const rows = query.data?.expenses ?? [];
+
+  const filters = useMemo<FilterDef<Expense>[]>(() => {
+    const categorie = [...new Set(rows.map((e) => e.categoria).filter(Boolean))].sort();
+    return [
+      { key: 'categoria', type: 'select', label: 'Categoria', accessor: (e) => e.categoria, options: categorie.map((c) => ({ value: c, label: c })) },
+      { key: 'ricorrenza', type: 'select', label: 'Ricorrenza', accessor: (e) => e.ricorrenza,
+        options: [{ value: 'una_tantum', label: 'Una tantum' }, { value: 'mensile', label: 'Mensile' }, { value: 'annuale', label: 'Annuale' }] },
+      { key: 'importo', type: 'numberRange', label: 'Importo', unit: '€', accessor: (e) => Number(e.importo) },
+      { key: 'data', type: 'dateRange', label: 'Data', accessor: (e) => e.data_spesa },
+    ];
+  }, [rows]);
   const s = query.data?.summary;
 
   const openEditRef = useRef(form.openEdit);
@@ -104,6 +116,8 @@ export function ExpensesPage() {
         exportName="spese"
         exportTitle="Fatture & Spese"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="expenses"
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={Receipt} title="Nessuna spesa registrata" />}
         bulkActions={(selected, clear) => (

@@ -4,6 +4,7 @@ import { Star, MessageSquare, Check, X } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
+import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
@@ -41,6 +42,17 @@ export function ReviewsPage() {
   const del = useDeleteMany<number>((id) => api.reviews.delete(id), 'reviews');
   const update = useUpdateOne<number>((id, data) => api.reviews.update(id, data), 'reviews');
   const rows = query.data?.reviews ?? [];
+
+  const filters = useMemo<FilterDef<Review>[]>(
+    () => [
+      { key: 'stato', type: 'select', label: 'Stato', accessor: (r) => r.stato,
+        options: [{ value: 'in_attesa', label: 'In attesa' }, { value: 'pubblicata', label: 'Pubblicata' }, { value: 'rifiutata', label: 'Rifiutata' }] },
+      { key: 'rating', type: 'multiselect', label: 'Valutazione', accessor: (r) => String(r.rating),
+        options: [5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${n} ★` })) },
+      { key: 'created', type: 'dateRange', label: 'Data', accessor: (r) => r.created_at },
+    ],
+    [],
+  );
 
   const columns = useMemo<ColumnDef<Review, unknown>[]>(
     () => [
@@ -86,6 +98,8 @@ export function ReviewsPage() {
         exportName="recensioni"
         exportTitle="Recensioni"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="reviews"
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={MessageSquare} title="Nessuna recensione" />}
         bulkActions={(selected, clear) => {

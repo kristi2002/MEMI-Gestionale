@@ -4,6 +4,7 @@ import { RotateCcw, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
+import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
@@ -45,6 +46,18 @@ export function ReturnsPage() {
   const updateMut = useUpdateOne<number>((id, data) => api.resi.update(id, data), 'resi');
   const form = useEntityForm();
   const rows = query.data?.resi ?? [];
+
+  const filters = useMemo<FilterDef<Reso>[]>(
+    () => [
+      { key: 'stato', type: 'select', label: 'Stato', accessor: (r) => r.stato,
+        options: [
+          { value: 'aperto', label: 'Aperto' }, { value: 'in_analisi', label: 'In analisi' },
+          { value: 'approvato', label: 'Approvato' }, { value: 'rifiutato', label: 'Rifiutato' },
+          { value: 'rimborsato', label: 'Rimborsato' },
+        ] },
+    ],
+    [],
+  );
 
   const openEditRef = useRef(form.openEdit);
   openEditRef.current = form.openEdit;
@@ -112,6 +125,8 @@ export function ReturnsPage() {
         exportName="resi"
         exportTitle="Resi"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="returns"
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={RotateCcw} title="Nessun reso registrato" />}
         bulkActions={(selected, clear) => (

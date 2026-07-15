@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
+import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
@@ -30,6 +31,16 @@ export function InvoicesPage() {
   const query = useInvoices();
   const del = useDeleteMany<number>((id) => api.invoices.delete(id), 'invoices');
   const rows = query.data?.invoices ?? [];
+
+  const filters = useMemo<FilterDef<Invoice>[]>(
+    () => [
+      { key: 'stato', type: 'select', label: 'Stato', accessor: (i) => i.stato,
+        options: ['bozza', 'emessa', 'inviata', 'pagata', 'annullata'].map((s) => ({ value: s, label: s })) },
+      { key: 'created', type: 'dateRange', label: 'Data', accessor: (i) => i.created_at },
+      { key: 'total', type: 'numberRange', label: 'Totale', unit: '€', accessor: (i) => Number(i.total) },
+    ],
+    [],
+  );
 
   const counts = useMemo(
     () => ({
@@ -69,6 +80,8 @@ export function InvoicesPage() {
         exportName="fatture"
         exportTitle="Fatture"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="invoices"
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={FileText} title="Nessuna fattura emessa" />}
         bulkActions={(selected, clear) => (

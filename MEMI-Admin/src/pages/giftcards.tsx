@@ -4,6 +4,7 @@ import { Gift, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
+import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
@@ -44,6 +45,16 @@ export function GiftcardsPage() {
   const del = useDeleteMany<number>((id) => api.giftcards.delete(id), 'giftcards');
   const saveMut = useSaveEntity(api.giftcards.create, api.giftcards.update, 'giftcards');
   const rows = query.data?.cards ?? [];
+
+  const filters = useMemo<FilterDef<GiftCard>[]>(
+    () => [
+      { key: 'stato', type: 'select', label: 'Stato', accessor: (g) => g.stato,
+        options: [{ value: 'attiva', label: 'Attiva' }, { value: 'utilizzata', label: 'Utilizzata' }, { value: 'disattivata', label: 'Disattivata' }] },
+      { key: 'balance', type: 'numberRange', label: 'Saldo', unit: '€', accessor: (g) => Number(g.balance) },
+      { key: 'created', type: 'dateRange', label: 'Emessa', accessor: (g) => g.created_at },
+    ],
+    [],
+  );
   const s = query.data?.summary;
 
   const [formOpen, setFormOpen] = useState(false);
@@ -115,6 +126,8 @@ export function GiftcardsPage() {
         exportName="giftcard"
         exportTitle="Gift card"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="giftcards"
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={Gift} title="Nessuna gift card" />}
         bulkActions={(selected, clear) => (

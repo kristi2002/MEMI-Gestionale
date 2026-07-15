@@ -1,15 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Trash2, Tag, FileDown, Rss, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
+import type { FilterDef } from '@/components/data-table/filters';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useProducts, flattenProducts, useDeleteProducts, useCategories } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { eur } from '@/lib/format';
@@ -40,8 +40,6 @@ export function ProductsPage() {
   const query = useProducts();
   const deleteMut = useDeleteProducts();
   const navigate = useNavigate();
-  const [cat, setCat] = useState('all');
-  const [status, setStatus] = useState('all');
 
   const all = useMemo(() => flattenProducts(query.data?.pages), [query.data]);
   const categoriesQuery = useCategories();
@@ -53,12 +51,17 @@ export function ProductsPage() {
     const derived = all.map((p) => p.categoria).filter(Boolean);
     return [...new Set([...managed, ...derived])].sort();
   }, [categoriesQuery.data, all]);
-  const rows = useMemo(
-    () =>
-      all.filter(
-        (p) => (cat === 'all' || p.categoria === cat) && (status === 'all' || p.status === status),
-      ),
-    [all, cat, status],
+
+  const filters = useMemo<FilterDef<ProductRow>[]>(
+    () => [
+      { key: 'categoria', type: 'select', label: 'Categoria', accessor: (p) => p.categoria, options: categories.map((c) => ({ value: c, label: c })) },
+      { key: 'status', type: 'select', label: 'Stato', accessor: (p) => p.status, options: [
+          { value: 'attivo', label: 'Attivo' }, { value: 'bozza', label: 'Bozza' }, { value: 'esaurito', label: 'Esaurito' },
+        ] },
+      { key: 'price', type: 'numberRange', label: 'Prezzo', unit: '€', accessor: (p) => Number(p.price) },
+      { key: 'stock', type: 'numberRange', label: 'Stock', accessor: (p) => p.stock_total },
+    ],
+    [categories],
   );
 
   const columns = useMemo<ColumnDef<ProductRow, unknown>[]>(
@@ -174,46 +177,20 @@ export function ProductsPage() {
 
       <DataTable
         columns={columns}
-        data={rows}
+        data={all}
         getRowId={(p) => p.id}
         searchValue={(p) => `${p.name} ${p.id} ${p.categoria}`}
         searchPlaceholder="Cerca prodotto…"
         exportName="prodotti"
         exportTitle="Catalogo prodotti"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="products"
         isLoading={query.isLoading}
         hasMore={query.hasNextPage}
         onLoadMore={() => query.fetchNextPage()}
         loadingMore={query.isFetchingNextPage}
         emptyState={<EmptyState icon={Tag} title="Nessun prodotto" description="Il catalogo è vuoto o nessun prodotto corrisponde ai filtri." />}
-        toolbar={
-          <>
-            <Select value={cat} onValueChange={setCat}>
-              <SelectTrigger className="h-9 w-[170px]">
-                <SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tutte le categorie</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c} value={c} className="capitalize">
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="h-9 w-[150px]">
-                <SelectValue placeholder="Stato" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tutti gli stati</SelectItem>
-                <SelectItem value="attivo">Attivo</SelectItem>
-                <SelectItem value="bozza">Bozza</SelectItem>
-                <SelectItem value="esaurito">Esaurito</SelectItem>
-              </SelectContent>
-            </Select>
-          </>
-        }
         bulkActions={(selected, clear) => {
           const ids = selected.map((p) => p.id);
           return (

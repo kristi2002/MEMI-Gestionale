@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { Trash2, Users, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
+import type { FilterDef } from '@/components/data-table/filters';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { EntityFormDialog, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
@@ -44,6 +45,16 @@ export function CustomersPage() {
   const deleteMut = useDeleteCustomers();
   const saveMut = useSaveEntity(api.customers.create, api.customers.update, 'customers');
   const rows = useMemo(() => flattenCustomers(query.data?.pages), [query.data]);
+
+  const filters = useMemo<FilterDef<CustomerRow>[]>(() => {
+    const paesi = [...new Set(rows.map((c) => c.paese).filter(Boolean))].sort();
+    return [
+      { key: 'paese', type: 'select', label: 'Paese', accessor: (c) => c.paese, options: paesi.map((p) => ({ value: p, label: p })) },
+      { key: 'orders', type: 'numberRange', label: 'Ordini', accessor: (c) => c.total_orders },
+      { key: 'spent', type: 'numberRange', label: 'Speso', unit: '€', accessor: (c) => num(c.total_spent) },
+      { key: 'created', type: 'dateRange', label: 'Iscritto', accessor: (c) => c.created_at },
+    ];
+  }, [rows]);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<CustomerRow | null>(null);
@@ -166,6 +177,8 @@ export function CustomersPage() {
         exportName="clienti"
         exportTitle="Clienti"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="customers"
         isLoading={query.isLoading}
         hasMore={query.hasNextPage}
         onLoadMore={() => query.fetchNextPage()}

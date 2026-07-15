@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExportMenu } from './export-menu';
 import { BulkActionBar } from './bulk-action-bar';
+import { FilterBar, applyFilters, type FilterDef, type FilterValues } from './filters';
 import type { ExportColumn } from '@/lib/export';
 import { cn } from '@/lib/utils';
 
@@ -31,7 +32,11 @@ export interface DataTableProps<T> {
   exportName: string;
   exportColumns: ExportColumn<T>[];
   exportTitle?: string;
-  /** Extra filter controls rendered in the toolbar (selects etc.). */
+  /** Declarative filters — rendered as a consistent bar and applied to the data. */
+  filters?: FilterDef<T>[];
+  /** Stable id enabling per-table saved filter views (localStorage). */
+  tableId?: string;
+  /** Extra controls rendered in the toolbar (rarely needed alongside `filters`). */
   toolbar?: ReactNode;
   /** Bulk-action buttons; receives the selected rows + a clear() callback. */
   bulkActions?: (selected: T[], clear: () => void) => ReactNode;
@@ -53,6 +58,8 @@ export function DataTable<T>({
   exportName,
   exportColumns,
   exportTitle,
+  filters,
+  tableId,
   toolbar,
   bulkActions,
   isLoading,
@@ -66,6 +73,12 @@ export function DataTable<T>({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [globalFilter, setGlobalFilter] = useState('');
+  const [filterValues, setFilterValues] = useState<FilterValues>({});
+
+  const filteredData = useMemo(
+    () => (filters && filters.length ? applyFilters(data, filters, filterValues) : data),
+    [data, filters, filterValues],
+  );
 
   // Prepend a selection column when bulk actions are wired up.
   const allColumns = useMemo<ColumnDef<T, unknown>[]>(() => {
@@ -100,7 +113,7 @@ export function DataTable<T>({
   }, [columns, bulkActions]);
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns: allColumns,
     state: { sorting, rowSelection, globalFilter },
     getRowId,
@@ -139,6 +152,11 @@ export function DataTable<T>({
           <ExportMenu rows={filteredRows} columns={exportColumns} filename={exportName} title={exportTitle} />
         </div>
       </div>
+
+      {/* Unified filter bar */}
+      {filters && filters.length > 0 && (
+        <FilterBar defs={filters} values={filterValues} onChange={setFilterValues} tableId={tableId} />
+      )}
 
       {/* Table */}
       <div className="rounded-lg border bg-card">
