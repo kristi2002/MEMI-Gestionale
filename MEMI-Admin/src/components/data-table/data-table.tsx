@@ -38,6 +38,8 @@ export interface DataTableProps<T> {
   tableId?: string;
   /** Extra controls rendered in the toolbar (rarely needed alongside `filters`). */
   toolbar?: ReactNode;
+  /** Primary page action (e.g. the "Nuovo …" button) rendered next to Esporta. */
+  primaryAction?: ReactNode;
   /** Bulk-action buttons; receives the selected rows + a clear() callback. */
   bulkActions?: (selected: T[], clear: () => void) => ReactNode;
   isLoading?: boolean;
@@ -61,6 +63,7 @@ export function DataTable<T>({
   filters,
   tableId,
   toolbar,
+  primaryAction,
   bulkActions,
   isLoading,
   hasMore,
@@ -136,27 +139,30 @@ export function DataTable<T>({
 
   return (
     <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={globalFilter}
-            onChange={(e) => setGlobalFilter(e.target.value)}
-            placeholder={searchPlaceholder}
-            className="pl-8"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+      {/* Toolbar — search + filters (left) and actions + export (right), one row on desktop */}
+      <div className="flex flex-wrap items-start gap-2 lg:flex-nowrap">
+        {searchValue && (
+          <div className="relative w-full shrink-0 sm:w-64">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="h-9 pl-8"
+            />
+          </div>
+        )}
+        {filters && filters.length > 0 && (
+          <div className="min-w-0 flex-1">
+            <FilterBar defs={filters} values={filterValues} onChange={setFilterValues} tableId={tableId} />
+          </div>
+        )}
+        <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
           {toolbar}
+          {primaryAction}
           <ExportMenu rows={filteredRows} columns={exportColumns} filename={exportName} title={exportTitle} />
         </div>
       </div>
-
-      {/* Unified filter bar */}
-      {filters && filters.length > 0 && (
-        <FilterBar defs={filters} values={filterValues} onChange={setFilterValues} tableId={tableId} />
-      )}
 
       {/* Table */}
       <div className="rounded-lg border bg-card">

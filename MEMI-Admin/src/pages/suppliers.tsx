@@ -61,7 +61,6 @@ export function SuppliersPage() {
       <PageHeader
         title="Fornitori"
         subtitle="Anagrafica fornitori per gli ordini di acquisto."
-        actions={<Button size="sm" onClick={() => navigate('/suppliers/new')}><Plus /> Nuovo fornitore</Button>}
       />
       <DataTable
         columns={columns}
@@ -72,6 +71,7 @@ export function SuppliersPage() {
         exportName="fornitori"
         exportTitle="Fornitori"
         exportColumns={exportColumns}
+        primaryAction={<Button size="sm" onClick={() => navigate('/suppliers/new')}><Plus /> Nuovo fornitore</Button>}
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={Factory} title="Nessun fornitore" />}
         bulkActions={(selected, clear) => (

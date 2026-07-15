@@ -140,11 +140,6 @@ function TaxonomyManager({
       <PageHeader
         title={title}
         subtitle={subtitle}
-        actions={
-          <Button size="sm" onClick={() => navigate(`${basePath}/new`)}>
-            <Plus /> Nuova {singular}
-          </Button>
-        }
       />
 
       <DataTable
@@ -156,6 +151,11 @@ function TaxonomyManager({
         exportName={exportName}
         exportTitle={title}
         exportColumns={exportColumns}
+        primaryAction={
+          <Button size="sm" onClick={() => navigate(`${basePath}/new`)}>
+            <Plus /> Nuova {singular}
+          </Button>
+        }
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={Icon} title={`Nessuna ${singular}`} description="Creane una con il pulsante in alto a destra." />}
       />

@@ -71,11 +71,6 @@ export function TransfersPage() {
       <PageHeader
         title="Trasferimenti"
         subtitle="Movimenti di stock tra sedi o magazzini."
-        actions={
-          <Button size="sm" onClick={() => navigate('/transfers/new')}>
-            <Plus /> Nuovo trasferimento
-          </Button>
-        }
       />
       <DataTable
         columns={columns}
@@ -86,6 +81,11 @@ export function TransfersPage() {
         exportName="trasferimenti"
         exportTitle="Trasferimenti"
         exportColumns={exportColumns}
+        primaryAction={
+          <Button size="sm" onClick={() => navigate('/transfers/new')}>
+            <Plus /> Nuovo trasferimento
+          </Button>
+        }
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={ArrowLeftRight} title="Nessun trasferimento" />}
         bulkActions={(selected, clear) => (

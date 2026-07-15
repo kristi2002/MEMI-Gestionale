@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { ClipboardList, PackageCheck } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
+import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
@@ -30,6 +31,15 @@ export function PurchaseOrdersPage() {
   const qc = useQueryClient();
   const del = useDeleteMany<number>((id) => api.purchaseOrders.delete(id), 'purchase-orders');
   const rows = query.data ?? [];
+
+  const filters = useMemo<FilterDef<PurchaseOrder>[]>(() => {
+    const stati = [...new Set(rows.map((p) => p.stato).filter(Boolean))].sort();
+    return [
+      { key: 'stato', type: 'select', label: 'Stato', accessor: (p) => p.stato, options: stati.map((s) => ({ value: s, label: s })) },
+      { key: 'totale', type: 'numberRange', label: 'Totale', unit: '€', accessor: (p) => Number(p.totale) },
+      { key: 'created', type: 'dateRange', label: 'Data', accessor: (p) => p.created_at },
+    ];
+  }, [rows]);
 
   async function receive(po: PurchaseOrder) {
     await api.purchaseOrders.receive(po.id);
@@ -79,6 +89,8 @@ export function PurchaseOrdersPage() {
         exportName="ordini_fornitori"
         exportTitle="Ordini fornitori"
         exportColumns={exportColumns}
+        filters={filters}
+        tableId="purchase-orders"
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={ClipboardList} title="Nessun ordine fornitore" />}
         bulkActions={(selected, clear) => (

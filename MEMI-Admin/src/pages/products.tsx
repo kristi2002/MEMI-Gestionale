@@ -145,7 +145,18 @@ export function ProductsPage() {
       <PageHeader
         title="Prodotti"
         subtitle="Gestisci catalogo, varianti, prezzi e magazzino."
-        actions={
+      />
+
+      <DataTable
+        columns={columns}
+        data={all}
+        getRowId={(p) => p.id}
+        searchValue={(p) => `${p.name} ${p.id} ${p.categoria}`}
+        searchPlaceholder="Cerca prodotto…"
+        exportName="prodotti"
+        exportTitle="Catalogo prodotti"
+        exportColumns={exportColumns}
+        primaryAction={
           <>
             <Button size="sm" onClick={() => navigate('/products/new')}>
               <Plus /> Nuovo prodotto
@@ -173,17 +184,6 @@ export function ProductsPage() {
             </Button>
           </>
         }
-      />
-
-      <DataTable
-        columns={columns}
-        data={all}
-        getRowId={(p) => p.id}
-        searchValue={(p) => `${p.name} ${p.id} ${p.categoria}`}
-        searchPlaceholder="Cerca prodotto…"
-        exportName="prodotti"
-        exportTitle="Catalogo prodotti"
-        exportColumns={exportColumns}
         filters={filters}
         tableId="products"
         isLoading={query.isLoading}

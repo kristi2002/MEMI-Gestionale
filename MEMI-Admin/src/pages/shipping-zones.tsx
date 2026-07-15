@@ -63,11 +63,6 @@ export function ShippingZonesPage() {
       <PageHeader
         title="Zone & Tariffe"
         subtitle="Regole di spedizione per area geografica."
-        actions={
-          <Button size="sm" onClick={() => navigate('/shipping-zones/new')}>
-            <Plus /> Nuova zona
-          </Button>
-        }
       />
       <DataTable
         columns={columns}
@@ -78,6 +73,11 @@ export function ShippingZonesPage() {
         exportName="zone_spedizione"
         exportTitle="Zone & Tariffe"
         exportColumns={exportColumns}
+        primaryAction={
+          <Button size="sm" onClick={() => navigate('/shipping-zones/new')}>
+            <Plus /> Nuova zona
+          </Button>
+        }
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={Globe} title="Nessuna zona di spedizione" />}
         bulkActions={(selected, clear) => (

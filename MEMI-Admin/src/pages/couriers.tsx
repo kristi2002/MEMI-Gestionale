@@ -93,11 +93,6 @@ export function CouriersPage() {
       <PageHeader
         title="Corrieri"
         subtitle="Corrieri configurati e relative tariffe."
-        actions={
-          <Button size="sm" onClick={() => navigate('/couriers/new')}>
-            <Plus /> Nuovo corriere
-          </Button>
-        }
       />
       <DataTable
         columns={columns}
@@ -108,6 +103,11 @@ export function CouriersPage() {
         exportName="corrieri"
         exportTitle="Corrieri"
         exportColumns={exportColumns}
+        primaryAction={
+          <Button size="sm" onClick={() => navigate('/couriers/new')}>
+            <Plus /> Nuovo corriere
+          </Button>
+        }
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={Truck} title="Nessun corriere configurato" description="Aggiungine uno con il pulsante in alto a destra." />}
         bulkActions={(selected, clear) => {

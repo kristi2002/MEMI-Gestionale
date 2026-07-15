@@ -337,8 +337,15 @@ export function FilterBar<T>({
         })}
         {tableId && <SavedViews tableId={tableId} values={values} onApply={onChange} />}
         {activeCount > 0 && (
-          <Button type="button" variant="ghost" size="sm" className="h-9 shrink-0 gap-1 text-muted-foreground" onClick={clearAll}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-9 shrink-0 gap-1 rounded-full border border-destructive/30 bg-destructive/5 px-3 font-medium text-destructive transition-colors hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+            onClick={clearAll}
+          >
             <X className="h-3.5 w-3.5" /> Cancella filtri
+            <span className="ml-0.5 rounded-full bg-destructive/15 px-1.5 text-[11px] leading-5 tabular-nums">{activeCount}</span>
           </Button>
         )}
       </div>

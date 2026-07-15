@@ -240,7 +240,14 @@ export const api = {
   },
   newsletter: {
     list: (params?: Query) => get<NewsletterResponse>('/newsletter' + qs(params)),
+    create: (data: unknown) => post('/newsletter', data),
+    update: (id: number, data: unknown) => put('/newsletter/' + id, data),
     remove: (id: number) => del('/newsletter/' + id),
+    send: (data: { subject: string; body: string; test_email?: string }) =>
+      post<{ ok: boolean; sent?: number; recipients?: number; smtp: boolean; queued?: boolean; test?: boolean; message?: string }>(
+        '/newsletter/send',
+        data,
+      ),
   },
   giftcards: {
     list: () => get<GiftCardsResponse>('/admin/giftcards'),
@@ -355,6 +362,8 @@ export const api = {
     get: () => get<LifecycleData>('/admin/lifecycle'),
     settings: (d: unknown) => put('/admin/lifecycle/settings', d),
     run: (d?: unknown) => post('/admin/lifecycle/run', d ?? {}),
+    preview: (type: string) => post<{ ok: boolean; type: string; preview: unknown }>('/admin/lifecycle/' + type + '/preview', {}),
+    season: (d: unknown) => post('/admin/lifecycle/season', d),
   },
   settings: {
     get: () => get<StoreSettings>('/admin/settings'),

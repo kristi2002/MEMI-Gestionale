@@ -20,6 +20,8 @@ import { CourierFormPage } from '@/pages/couriers';
 import { AutomationFormPage } from '@/pages/automations';
 import { CategoryFormPage, CollectionFormPage } from '@/pages/taxonomy';
 import { ReturnFormPage } from '@/pages/returns';
+import { NewsletterSubscriberFormPage, NewsletterComposePage } from '@/pages/newsletter';
+import { LifecycleCampaignFormPage } from '@/pages/lifecycle';
 
 function FullScreenSpinner() {
   return (
@@ -79,6 +81,10 @@ export default function App() {
           <Route path="/collections/new" element={<CollectionFormPage />} />
           <Route path="/collections/:id/edit" element={<CollectionFormPage />} />
           <Route path="/returns/:id/edit" element={<ReturnFormPage />} />
+          <Route path="/newsletter/new" element={<NewsletterSubscriberFormPage />} />
+          <Route path="/newsletter/:id/edit" element={<NewsletterSubscriberFormPage />} />
+          <Route path="/newsletter/compose" element={<NewsletterComposePage />} />
+          <Route path="/lifecycle/:type/edit" element={<LifecycleCampaignFormPage />} />
           {routes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />
           ))}

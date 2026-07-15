@@ -89,11 +89,6 @@ export function AutomationsPage() {
       <PageHeader
         title="Automazioni"
         subtitle="Azioni automatiche attivate da eventi dello store."
-        actions={
-          <Button size="sm" onClick={() => navigate('/automations/new')}>
-            <Plus /> Nuova automazione
-          </Button>
-        }
       />
       <DataTable
         columns={columns}
@@ -104,6 +99,11 @@ export function AutomationsPage() {
         exportName="automazioni"
         exportTitle="Automazioni"
         exportColumns={exportColumns}
+        primaryAction={
+          <Button size="sm" onClick={() => navigate('/automations/new')}>
+            <Plus /> Nuova automazione
+          </Button>
+        }
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={Zap} title="Nessuna automazione" />}
         bulkActions={(selected, clear) => (

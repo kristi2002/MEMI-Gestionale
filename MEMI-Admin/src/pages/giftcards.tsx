@@ -84,7 +84,6 @@ export function GiftcardsPage() {
       <PageHeader
         title="Gift card"
         subtitle="Buoni regalo emessi e relativi saldi."
-        actions={<Button size="sm" onClick={() => navigate('/giftcards/new')}><Plus /> Nuova gift card</Button>}
       />
       <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard label="Totale" value={s?.total ?? 0} icon={Gift} tone="primary" loading={query.isLoading} />
@@ -101,6 +100,7 @@ export function GiftcardsPage() {
         exportName="giftcard"
         exportTitle="Gift card"
         exportColumns={exportColumns}
+        primaryAction={<Button size="sm" onClick={() => navigate('/giftcards/new')}><Plus /> Nuova gift card</Button>}
         filters={filters}
         tableId="giftcards"
         isLoading={query.isLoading}
