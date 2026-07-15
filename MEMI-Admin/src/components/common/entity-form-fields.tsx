@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import { Loader2, Upload, X } from 'lucide-react';
-import type { FieldConfig, FormValues } from './entity-form-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -9,9 +8,37 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+export type FieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'select'
+  | 'multiselect'
+  | 'checkbox'
+  | 'date'
+  | 'email'
+  | 'image'
+  | 'color';
+
+export interface FieldConfig {
+  name: string;
+  label: string;
+  type?: FieldType;
+  options?: { value: string; label: string }[];
+  placeholder?: string;
+  required?: boolean;
+  /** Full-width in the 2-col grid (default true for textarea/multiselect/image). */
+  wide?: boolean;
+  help?: string;
+  /** For type 'image': upload a File and resolve to the stored URL. */
+  upload?: (file: File) => Promise<string>;
+}
+
+export type FormValues = Record<string, string | number | boolean | string[] | null | undefined>;
+
 /**
- * The config-driven field grid, shared by EntityFormDialog (modal) and full-page
- * forms (e.g. ProductFormPage). Render it inside a
+ * The config-driven field grid, shared by the full-page entity forms
+ * (EntityFormPage, ProductFormPage). Render it inside a
  * `grid grid-cols-1 gap-4 sm:grid-cols-2` container.
  */
 export function EntityFormFields({

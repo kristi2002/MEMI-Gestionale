@@ -8,7 +8,7 @@ import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/common/empty-state';
-import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-fields';
 import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { useStaff, useDeleteMany, useSaveEntity } from '@/hooks/queries';

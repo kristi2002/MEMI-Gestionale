@@ -8,7 +8,7 @@ import { DataTable } from '@/components/data-table/data-table';
 import type { FilterDef } from '@/components/data-table/filters';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
-import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-fields';
 import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

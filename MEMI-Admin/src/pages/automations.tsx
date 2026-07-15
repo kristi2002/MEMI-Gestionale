@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { EmptyState } from '@/components/common/empty-state';
-import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-fields';
 import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

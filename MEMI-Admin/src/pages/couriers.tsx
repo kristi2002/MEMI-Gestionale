@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
-import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-fields';
 import { EntityFormPage } from '@/components/common/entity-form-page';
 import { useCouriers, useDeleteMany } from '@/hooks/queries';
 import { api } from '@/lib/api';

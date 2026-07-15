@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { PageHeader } from './page-header';
 import { EntityFormFields } from './entity-form-fields';
-import type { FieldConfig, FormValues } from './entity-form-dialog';
+import type { FieldConfig, FormValues } from './entity-form-fields';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
