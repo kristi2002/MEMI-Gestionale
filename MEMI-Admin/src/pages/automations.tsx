@@ -1,11 +1,13 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Zap, Power, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
 import { EmptyState } from '@/components/common/empty-state';
-import { EntityFormDialog, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAutomations, useDeleteMany, useUpdateOne, useSaveEntity } from '@/hooks/queries';
@@ -16,6 +18,19 @@ import type { ExportColumn } from '@/lib/export';
 import { toast } from 'sonner';
 
 const humanize = (s: string) => s.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+
+function automationFields(triggers: string[], actions: string[]): FieldConfig[] {
+  return [
+    { name: 'nome', label: 'Nome', required: true, wide: true, placeholder: 'es. Email di benvenuto' },
+    { name: 'trigger_event', label: 'Quando (trigger)', type: 'select', required: true, placeholder: 'Seleziona evento…',
+      options: triggers.map((t) => ({ value: t, label: humanize(t) })) },
+    { name: 'azione', label: 'Azione', type: 'select', required: true, placeholder: 'Seleziona azione…',
+      options: actions.map((a) => ({ value: a, label: humanize(a) })) },
+    { name: 'oggetto', label: 'Oggetto', wide: true, help: 'Facoltativo — oggetto dell’email inviata.' },
+    { name: 'messaggio', label: 'Messaggio', type: 'textarea', wide: true, help: 'Facoltativo.' },
+    { name: 'attivo', label: 'Attiva subito', type: 'checkbox' },
+  ];
+}
 
 const exportColumns: ExportColumn<Automation>[] = [
   { header: 'Nome', accessor: (a) => a.nome },
@@ -30,61 +45,8 @@ export function AutomationsPage() {
   const query = useAutomations();
   const del = useDeleteMany<number>((id) => api.automations.delete(id), 'automations');
   const update = useUpdateOne<number>((id, data) => api.automations.update(id, data), 'automations');
-  const saveMut = useSaveEntity(api.automations.create, api.automations.update, 'automations');
   const rows = query.data?.automations ?? [];
-  const triggers = query.data?.triggers ?? [];
-  const actions = query.data?.actions ?? [];
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Automation | null>(null);
-  const [initial, setInitial] = useState<FormValues>({});
-
-  const fields = useMemo<FieldConfig[]>(
-    () => [
-      { name: 'nome', label: 'Nome', required: true, wide: true, placeholder: 'es. Email di benvenuto' },
-      { name: 'trigger_event', label: 'Quando (trigger)', type: 'select', required: true, placeholder: 'Seleziona evento…',
-        options: triggers.map((t) => ({ value: t, label: humanize(t) })) },
-      { name: 'azione', label: 'Azione', type: 'select', required: true, placeholder: 'Seleziona azione…',
-        options: actions.map((a) => ({ value: a, label: humanize(a) })) },
-      { name: 'oggetto', label: 'Oggetto', wide: true, help: 'Facoltativo — oggetto dell’email inviata.' },
-      { name: 'messaggio', label: 'Messaggio', type: 'textarea', wide: true, help: 'Facoltativo.' },
-      { name: 'attivo', label: 'Attiva subito', type: 'checkbox' },
-    ],
-    [triggers, actions],
-  );
-
-  function openCreate() {
-    setEditing(null);
-    setInitial({ attivo: true, trigger_event: triggers[0] ?? '', azione: actions[0] ?? '' });
-    setFormOpen(true);
-  }
-  function openEdit(a: Automation) {
-    setEditing(a);
-    setInitial({
-      nome: a.nome,
-      trigger_event: a.trigger_event,
-      azione: a.azione,
-      oggetto: a.oggetto ?? '',
-      messaggio: a.messaggio ?? '',
-      attivo: !!a.attivo,
-    });
-    setFormOpen(true);
-  }
-  const openEditRef = useRef(openEdit);
-  openEditRef.current = openEdit;
-
-  async function onSubmit(v: FormValues) {
-    const data: Record<string, unknown> = {
-      nome: v.nome,
-      trigger_event: v.trigger_event,
-      azione: v.azione,
-      oggetto: v.oggetto || null,
-      messaggio: v.messaggio || null,
-      attivo: v.attivo ? 1 : 0,
-    };
-    await saveMut.mutateAsync({ id: editing ? editing.id : undefined, data });
-    toast.success(editing ? 'Automazione aggiornata' : 'Automazione creata');
-  }
+  const navigate = useNavigate();
 
   const columns = useMemo<ColumnDef<Automation, unknown>[]>(
     () => [
@@ -113,13 +75,13 @@ export function AutomationsPage() {
         header: '',
         enableSorting: false,
         cell: ({ row }) => (
-          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original); }}>
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/automations/${row.original.id}/edit`); }}>
             <Pencil /> Modifica
           </Button>
         ),
       },
     ],
-    [update],
+    [update, navigate],
   );
 
   return (
@@ -128,7 +90,7 @@ export function AutomationsPage() {
         title="Automazioni"
         subtitle="Azioni automatiche attivate da eventi dello store."
         actions={
-          <Button size="sm" onClick={openCreate}>
+          <Button size="sm" onClick={() => navigate('/automations/new')}>
             <Plus /> Nuova automazione
           </Button>
         }
@@ -149,15 +111,43 @@ export function AutomationsPage() {
         )}
       />
 
-      <EntityFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        title={editing ? `Modifica: ${editing.nome}` : 'Nuova automazione'}
-        fields={fields}
-        initial={initial}
-        submitLabel={editing ? 'Salva modifiche' : 'Crea automazione'}
-        onSubmit={onSubmit}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for an automation. */
+export function AutomationFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const query = useAutomations();
+  const saveMut = useSaveEntity(api.automations.create, api.automations.update, 'automations');
+  const triggers = query.data?.triggers ?? [];
+  const actions = query.data?.actions ?? [];
+  const row = editing ? (query.data?.automations ?? []).find((a) => String(a.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return { attivo: true, trigger_event: triggers[0] ?? '', azione: actions[0] ?? '' };
+    return row
+      ? { nome: row.nome, trigger_event: row.trigger_event, azione: row.azione, oggetto: row.oggetto ?? '', messaggio: row.messaggio ?? '', attivo: !!row.attivo }
+      : {};
+  }, [editing, row, triggers, actions]);
+
+  return (
+    <EntityFormPage
+      title={editing ? `Modifica${row ? `: ${row.nome}` : ' automazione'}` : 'Nuova automazione'}
+      backPath="/automations"
+      backLabel="Automazioni"
+      fields={automationFields(triggers, actions)}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Crea automazione'}
+      onSubmit={async (v) => {
+        await saveMut.mutateAsync({
+          id: editing ? Number(id) : undefined,
+          data: { nome: v.nome, trigger_event: v.trigger_event, azione: v.azione, oggetto: v.oggetto || null, messaggio: v.messaggio || null, attivo: v.attivo ? 1 : 0 },
+        });
+        toast.success(editing ? 'Automazione aggiornata' : 'Automazione creata');
+      }}
+    />
   );
 }

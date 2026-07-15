@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Layers, FolderTree, Plus, Pencil, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -6,7 +7,8 @@ import { DataTable } from '@/components/data-table/data-table';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
-import { EntityFormDialog, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCategories, useCollections, useSaveEntity, useDeleteMany } from '@/hooks/queries';
@@ -22,6 +24,24 @@ interface TaxonomyApi {
   uploadHero: (file: File) => Promise<{ url: string }>;
 }
 
+function taxonomyFields(singular: string, editing: boolean, entityApi: TaxonomyApi): FieldConfig[] {
+  const base: FieldConfig[] = [
+    { name: 'name', label: 'Nome', required: true, placeholder: `es. ${singular === 'categoria' ? 'Scarpe' : 'Estate 2025'}` },
+    { name: 'stato', label: 'Stato', type: 'select', options: [
+        { value: 'attiva', label: 'Attiva' }, { value: 'bozza', label: 'Bozza' },
+      ] },
+    { name: 'sort_order', label: 'Ordine', type: 'number', help: 'Posizione in elenco (crescente).' },
+    { name: 'description', label: 'Descrizione', type: 'textarea' },
+    { name: 'hero_image', label: 'Immagine hero', type: 'image', upload: async (file) => (await entityApi.uploadHero(file)).url },
+  ];
+  if (editing) return base;
+  return [
+    base[0],
+    { name: 'slug', label: 'Slug (URL)', placeholder: 'auto dal nome se vuoto', help: 'Identificativo univoco. Immutabile dopo la creazione.' },
+    ...base.slice(1),
+  ];
+}
+
 const exportColumns: ExportColumn<Taxonomy>[] = [
   { header: 'Nome', accessor: (r) => r.name },
   { header: 'Slug', accessor: (r) => r.slug },
@@ -35,6 +55,7 @@ function TaxonomyManager({
   subtitle,
   icon,
   singular,
+  basePath,
   entityApi,
   query,
   invalidateKey,
@@ -44,69 +65,15 @@ function TaxonomyManager({
   subtitle: string;
   icon: typeof Layers;
   singular: string; // e.g. "categoria" / "collezione"
+  basePath: string; // e.g. "/categories"
   entityApi: TaxonomyApi;
   query: ReturnType<typeof useCategories>;
   invalidateKey: string;
   exportName: string;
 }) {
   const rows = query.data ?? [];
-  const saveMut = useSaveEntity(entityApi.create, entityApi.update, invalidateKey);
   const deleteMut = useDeleteMany<number>((id) => entityApi.delete(id), invalidateKey);
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Taxonomy | null>(null);
-  const [initial, setInitial] = useState<FormValues>({});
-
-  const fields = useMemo<FieldConfig[]>(() => {
-    const base: FieldConfig[] = [
-      { name: 'name', label: 'Nome', required: true, placeholder: `es. ${singular === 'categoria' ? 'Scarpe' : 'Estate 2025'}` },
-      { name: 'stato', label: 'Stato', type: 'select', options: [
-          { value: 'attiva', label: 'Attiva' }, { value: 'bozza', label: 'Bozza' },
-        ] },
-      { name: 'sort_order', label: 'Ordine', type: 'number', help: 'Posizione in elenco (crescente).' },
-      { name: 'description', label: 'Descrizione', type: 'textarea' },
-      { name: 'hero_image', label: 'Immagine hero', type: 'image', upload: async (file) => (await entityApi.uploadHero(file)).url },
-    ];
-    // Slug is editable only on create — after that it's the key products reference.
-    if (editing) return base;
-    return [
-      base[0],
-      { name: 'slug', label: 'Slug (URL)', placeholder: 'auto dal nome se vuoto', help: 'Identificativo univoco. Immutabile dopo la creazione.' },
-      ...base.slice(1),
-    ];
-  }, [editing, singular, entityApi]);
-
-  function openCreate() {
-    setEditing(null);
-    setInitial({ stato: 'attiva', sort_order: 0 });
-    setFormOpen(true);
-  }
-  function openEdit(r: Taxonomy) {
-    setEditing(r);
-    setInitial({
-      name: r.name,
-      stato: r.stato,
-      sort_order: r.sort_order ?? 0,
-      description: r.description ?? '',
-      hero_image: r.hero_image ?? '',
-    });
-    setFormOpen(true);
-  }
-  const openEditRef = useRef(openEdit);
-  openEditRef.current = openEdit;
-
-  async function onSubmit(v: FormValues) {
-    const data: Record<string, unknown> = {
-      name: v.name,
-      stato: v.stato || 'attiva',
-      sort_order: v.sort_order || 0,
-      description: v.description || null,
-      hero_image: v.hero_image || null,
-    };
-    if (!editing && v.slug) data.slug = v.slug;
-    await saveMut.mutateAsync({ id: editing ? editing.id : undefined, data });
-    toast.success(editing ? 'Salvato' : 'Creato');
-  }
+  const navigate = useNavigate();
 
   const columns = useMemo<ColumnDef<Taxonomy, unknown>[]>(
     () => [
@@ -142,7 +109,7 @@ function TaxonomyManager({
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex justify-end gap-1">
-            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original); }}>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`${basePath}/${row.original.id}/edit`); }}>
               <Pencil /> Modifica
             </Button>
             <ConfirmDialog
@@ -164,7 +131,7 @@ function TaxonomyManager({
         ),
       },
     ],
-    [deleteMut, singular],
+    [deleteMut, singular, navigate, basePath],
   );
 
   const Icon = icon;
@@ -174,7 +141,7 @@ function TaxonomyManager({
         title={title}
         subtitle={subtitle}
         actions={
-          <Button size="sm" onClick={openCreate}>
+          <Button size="sm" onClick={() => navigate(`${basePath}/new`)}>
             <Plus /> Nuova {singular}
           </Button>
         }
@@ -192,17 +159,57 @@ function TaxonomyManager({
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={Icon} title={`Nessuna ${singular}`} description="Creane una con il pulsante in alto a destra." />}
       />
-
-      <EntityFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        title={editing ? `Modifica: ${editing.name}` : `Nuova ${singular}`}
-        fields={fields}
-        initial={initial}
-        submitLabel={editing ? 'Salva modifiche' : 'Crea'}
-        onSubmit={onSubmit}
-      />
     </div>
+  );
+}
+
+/** Generic full-page create/edit form for a taxonomy entity (category/collection). */
+function TaxonomyFormPage({
+  singular,
+  backPath,
+  backLabel,
+  entityApi,
+  query,
+  invalidateKey,
+}: {
+  singular: string;
+  backPath: string;
+  backLabel: string;
+  entityApi: TaxonomyApi;
+  query: ReturnType<typeof useCategories>;
+  invalidateKey: string;
+}) {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const saveMut = useSaveEntity(entityApi.create, entityApi.update, invalidateKey);
+  const row = editing ? (query.data ?? []).find((r) => String(r.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return { stato: 'attiva', sort_order: 0 };
+    return row
+      ? { name: row.name, stato: row.stato, sort_order: row.sort_order ?? 0, description: row.description ?? '', hero_image: row.hero_image ?? '' }
+      : {};
+  }, [editing, row]);
+
+  return (
+    <EntityFormPage
+      title={editing ? `Modifica${row ? `: ${row.name}` : ''}` : `Nuova ${singular}`}
+      backPath={backPath}
+      backLabel={backLabel}
+      fields={taxonomyFields(singular, editing, entityApi)}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Crea'}
+      onSubmit={async (v) => {
+        const data: Record<string, unknown> = {
+          name: v.name, stato: v.stato || 'attiva', sort_order: v.sort_order || 0,
+          description: v.description || null, hero_image: v.hero_image || null,
+        };
+        if (!editing && v.slug) data.slug = v.slug;
+        await saveMut.mutateAsync({ id: editing ? Number(id) : undefined, data });
+        toast.success(editing ? 'Salvato' : 'Creato');
+      }}
+    />
   );
 }
 
@@ -214,12 +221,16 @@ export function CategoriesPage() {
       subtitle="La struttura del catalogo: ogni prodotto appartiene a una categoria."
       icon={FolderTree}
       singular="categoria"
+      basePath="/categories"
       entityApi={api.categories}
       query={query}
       invalidateKey="categories"
       exportName="categorie"
     />
   );
+}
+export function CategoryFormPage() {
+  return <TaxonomyFormPage singular="categoria" backPath="/categories" backLabel="Categorie" entityApi={api.categories} query={useCategories()} invalidateKey="categories" />;
 }
 
 export function CollectionsPage() {
@@ -230,10 +241,14 @@ export function CollectionsPage() {
       subtitle="Raggruppamenti editoriali e stagionali che attraversano le categorie."
       icon={Layers}
       singular="collezione"
+      basePath="/collections"
       entityApi={api.collections}
       query={query}
       invalidateKey="collections"
       exportName="collezioni"
     />
   );
+}
+export function CollectionFormPage() {
+  return <TaxonomyFormPage singular="collezione" backPath="/collections" backLabel="Collezioni" entityApi={api.collections} query={useCollections()} invalidateKey="collections" />;
 }

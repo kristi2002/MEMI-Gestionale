@@ -15,6 +15,10 @@ import { SegmentFormPage } from '@/pages/segments';
 import { ShippingZoneFormPage } from '@/pages/shipping-zones';
 import { CustomerFormPage } from '@/pages/customers';
 import { StaffFormPage } from '@/pages/staff';
+import { ColorFormPage } from '@/pages/colors';
+import { CourierFormPage } from '@/pages/couriers';
+import { AutomationFormPage } from '@/pages/automations';
+import { CategoryFormPage, CollectionFormPage } from '@/pages/taxonomy';
 
 function FullScreenSpinner() {
   return (
@@ -63,6 +67,16 @@ export default function App() {
           <Route path="/customers/:id/edit" element={<CustomerFormPage />} />
           <Route path="/staff/new" element={<StaffFormPage />} />
           <Route path="/staff/:id/edit" element={<StaffFormPage />} />
+          <Route path="/colors/new" element={<ColorFormPage />} />
+          <Route path="/colors/:id/edit" element={<ColorFormPage />} />
+          <Route path="/couriers/new" element={<CourierFormPage />} />
+          <Route path="/couriers/:code/edit" element={<CourierFormPage />} />
+          <Route path="/automations/new" element={<AutomationFormPage />} />
+          <Route path="/automations/:id/edit" element={<AutomationFormPage />} />
+          <Route path="/categories/new" element={<CategoryFormPage />} />
+          <Route path="/categories/:id/edit" element={<CategoryFormPage />} />
+          <Route path="/collections/new" element={<CollectionFormPage />} />
+          <Route path="/collections/:id/edit" element={<CollectionFormPage />} />
           {routes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />
           ))}

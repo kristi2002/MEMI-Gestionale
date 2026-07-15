@@ -1,11 +1,13 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Palette, Plus, Pencil, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
-import { EntityFormDialog, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useColors, useSaveEntity, useDeleteMany } from '@/hooks/queries';
@@ -22,53 +24,25 @@ const exportColumns: ExportColumn<ProductColor>[] = [
   { header: 'Ordine', accessor: (r) => r.sort_order },
 ];
 
+function colorFields(editing: boolean): FieldConfig[] {
+  const base: FieldConfig[] = [
+    { name: 'name', label: 'Nome', required: true, placeholder: 'es. Rosa cipria' },
+    { name: 'hex', label: 'Colore', type: 'color', placeholder: '#E8B4B8' },
+    { name: 'sort_order', label: 'Ordine', type: 'number', help: 'Posizione nella palette (crescente).' },
+  ];
+  if (editing) return base;
+  return [
+    base[0],
+    { name: 'slug', label: 'Slug', placeholder: 'auto dal nome se vuoto', help: 'Chiave univoca referenziata dai prodotti (immutabile).' },
+    ...base.slice(1),
+  ];
+}
+
 export function ColorsPage() {
   const query = useColors();
   const rows = query.data ?? [];
-  const saveMut = useSaveEntity(api.colors.create, api.colors.update, 'colors');
   const deleteMut = useDeleteMany<number>((id) => api.colors.delete(id), 'colors');
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<ProductColor | null>(null);
-  const [initial, setInitial] = useState<FormValues>({});
-
-  const fields = useMemo<FieldConfig[]>(() => {
-    const base: FieldConfig[] = [
-      { name: 'name', label: 'Nome', required: true, placeholder: 'es. Rosa cipria' },
-      { name: 'hex', label: 'Colore', type: 'color', placeholder: '#E8B4B8' },
-      { name: 'sort_order', label: 'Ordine', type: 'number', help: 'Posizione nella palette (crescente).' },
-    ];
-    if (editing) return base;
-    return [
-      base[0],
-      { name: 'slug', label: 'Slug', placeholder: 'auto dal nome se vuoto', help: 'Chiave univoca referenziata dai prodotti (immutabile).' },
-      ...base.slice(1),
-    ];
-  }, [editing]);
-
-  function openCreate() {
-    setEditing(null);
-    setInitial({ hex: '#cccccc', sort_order: 0 });
-    setFormOpen(true);
-  }
-  function openEdit(r: ProductColor) {
-    setEditing(r);
-    setInitial({ name: r.name, hex: r.hex ?? '', sort_order: r.sort_order ?? 0 });
-    setFormOpen(true);
-  }
-  const openEditRef = useRef(openEdit);
-  openEditRef.current = openEdit;
-
-  async function onSubmit(v: FormValues) {
-    const data: Record<string, unknown> = {
-      name: v.name,
-      hex: v.hex || null,
-      sort_order: v.sort_order || 0,
-    };
-    if (!editing && v.slug) data.slug = v.slug;
-    await saveMut.mutateAsync({ id: editing ? editing.id : undefined, data });
-    toast.success(editing ? 'Colore salvato' : 'Colore creato');
-  }
+  const navigate = useNavigate();
 
   const columns = useMemo<ColumnDef<ProductColor, unknown>[]>(
     () => [
@@ -102,7 +76,7 @@ export function ColorsPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex justify-end gap-1">
-            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original); }}>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/colors/${row.original.id}/edit`); }}>
               <Pencil /> Modifica
             </Button>
             <ConfirmDialog
@@ -129,7 +103,7 @@ export function ColorsPage() {
         ),
       },
     ],
-    [query],
+    [query, navigate],
   );
 
   return (
@@ -138,7 +112,7 @@ export function ColorsPage() {
         title="Colori"
         subtitle="La palette dei colori referenziata dai prodotti."
         actions={
-          <Button size="sm" onClick={openCreate}>
+          <Button size="sm" onClick={() => navigate('/colors/new')}>
             <Plus /> Nuovo colore
           </Button>
         }
@@ -178,15 +152,38 @@ export function ColorsPage() {
         }}
       />
 
-      <EntityFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        title={editing ? `Modifica colore: ${editing.name}` : 'Nuovo colore'}
-        fields={fields}
-        initial={initial}
-        submitLabel={editing ? 'Salva modifiche' : 'Crea colore'}
-        onSubmit={onSubmit}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for a colour. */
+export function ColorFormPage() {
+  const { id } = useParams<{ id: string }>();
+  const editing = id != null;
+  const query = useColors();
+  const saveMut = useSaveEntity(api.colors.create, api.colors.update, 'colors');
+  const row = editing ? (query.data ?? []).find((c) => String(c.id) === id) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return { hex: '#cccccc', sort_order: 0 };
+    return row ? { name: row.name, hex: row.hex ?? '', sort_order: row.sort_order ?? 0 } : {};
+  }, [editing, row]);
+
+  return (
+    <EntityFormPage
+      title={editing ? `Modifica colore${row ? `: ${row.name}` : ''}` : 'Nuovo colore'}
+      backPath="/colors"
+      backLabel="Colori"
+      fields={colorFields(editing)}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Crea colore'}
+      onSubmit={async (v) => {
+        const data: Record<string, unknown> = { name: v.name, hex: v.hex || null, sort_order: v.sort_order || 0 };
+        if (!editing && v.slug) data.slug = v.slug;
+        await saveMut.mutateAsync({ id: editing ? Number(id) : undefined, data });
+        toast.success(editing ? 'Colore salvato' : 'Colore creato');
+      }}
+    />
   );
 }

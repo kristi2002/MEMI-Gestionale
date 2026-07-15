@@ -1,4 +1,5 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Truck, Plus, Pencil, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -7,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
-import { EntityFormDialog, type FieldConfig, type FormValues } from '@/components/common/entity-form-dialog';
+import type { FieldConfig, FormValues } from '@/components/common/entity-form-dialog';
+import { EntityFormPage } from '@/components/common/entity-form-page';
 import { useCouriers, useDeleteMany } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { eur } from '@/lib/format';
@@ -23,72 +25,26 @@ const exportColumns: ExportColumn<Courier>[] = [
   { header: 'Tracking URL', accessor: (c) => c.tracking_url_template || '' },
 ];
 
+function courierFields(editing: boolean): FieldConfig[] {
+  const base: FieldConfig[] = [
+    { name: 'nome', label: 'Nome', required: true, placeholder: 'es. BRT Corriere Espresso' },
+    { name: 'slug', label: 'Sigla', placeholder: 'BRT', help: 'Etichetta breve mostrata come badge.' },
+    { name: 'rate', label: 'Tariffa €', type: 'number', help: 'Costo base di spedizione.' },
+    { name: 'tracking_url_template', label: 'URL tracking', wide: true, placeholder: 'https://…?n={tracking}', help: '{tracking} viene sostituito col numero di spedizione.' },
+    { name: 'attivo', label: 'Attivo', type: 'checkbox' },
+  ];
+  if (editing) return base;
+  return [
+    { name: 'code', label: 'Codice', required: true, placeholder: 'brt', help: 'Identificativo univoco minuscolo (immutabile).' },
+    ...base,
+  ];
+}
+
 export function CouriersPage() {
   const query = useCouriers();
   const rows = query.data ?? [];
   const deleteMut = useDeleteMany<string>((code) => api.shipping.deleteCourier(code), 'couriers');
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<Courier | null>(null);
-  const [initial, setInitial] = useState<FormValues>({});
-
-  const fields = useMemo<FieldConfig[]>(() => {
-    const base: FieldConfig[] = [
-      { name: 'nome', label: 'Nome', required: true, placeholder: 'es. BRT Corriere Espresso' },
-      { name: 'slug', label: 'Sigla', placeholder: 'BRT', help: 'Etichetta breve mostrata come badge.' },
-      { name: 'rate', label: 'Tariffa €', type: 'number', help: 'Costo base di spedizione.' },
-      { name: 'tracking_url_template', label: 'URL tracking', wide: true, placeholder: 'https://…?n={tracking}', help: '{tracking} viene sostituito col numero di spedizione.' },
-      { name: 'attivo', label: 'Attivo', type: 'checkbox' },
-    ];
-    if (editing) return base;
-    return [
-      { name: 'code', label: 'Codice', required: true, placeholder: 'brt', help: 'Identificativo univoco minuscolo (immutabile).' },
-      ...base,
-    ];
-  }, [editing]);
-
-  function openCreate() {
-    setEditing(null);
-    setInitial({ attivo: true, rate: 0 });
-    setFormOpen(true);
-  }
-  function openEdit(c: Courier) {
-    setEditing(c);
-    setInitial({
-      nome: c.nome,
-      slug: c.slug ?? '',
-      rate: c.rate == null ? 0 : Number(c.rate),
-      tracking_url_template: c.tracking_url_template ?? '',
-      attivo: !!c.attivo,
-    });
-    setFormOpen(true);
-  }
-  const openEditRef = useRef(openEdit);
-  openEditRef.current = openEdit;
-
-  async function onSubmit(v: FormValues) {
-    const data: Record<string, unknown> = {
-      nome: v.nome,
-      slug: v.slug || null,
-      rate: v.rate || 0,
-      tracking_url_template: v.tracking_url_template || null,
-      attivo: v.attivo ? 1 : 0,
-    };
-    try {
-      if (editing) {
-        await api.shipping.updateCourier(editing.code, data);
-        toast.success('Corriere aggiornato');
-      } else {
-        data.code = v.code;
-        await api.shipping.createCourier(data);
-        toast.success('Corriere creato');
-      }
-      query.refetch();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Salvataggio non riuscito');
-      throw e;
-    }
-  }
+  const navigate = useNavigate();
 
   const columns = useMemo<ColumnDef<Courier, unknown>[]>(
     () => [
@@ -107,7 +63,7 @@ export function CouriersPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex justify-end gap-1">
-            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); openEditRef.current(row.original); }}>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/couriers/${encodeURIComponent(row.original.code)}/edit`); }}>
               <Pencil /> Modifica
             </Button>
             <ConfirmDialog
@@ -129,7 +85,7 @@ export function CouriersPage() {
         ),
       },
     ],
-    [deleteMut],
+    [deleteMut, navigate],
   );
 
   return (
@@ -138,7 +94,7 @@ export function CouriersPage() {
         title="Corrieri"
         subtitle="Corrieri configurati e relative tariffe."
         actions={
-          <Button size="sm" onClick={openCreate}>
+          <Button size="sm" onClick={() => navigate('/couriers/new')}>
             <Plus /> Nuovo corriere
           </Button>
         }
@@ -176,15 +132,48 @@ export function CouriersPage() {
         }}
       />
 
-      <EntityFormDialog
-        open={formOpen}
-        onOpenChange={setFormOpen}
-        title={editing ? `Modifica corriere: ${editing.nome}` : 'Nuovo corriere'}
-        fields={fields}
-        initial={initial}
-        submitLabel={editing ? 'Salva modifiche' : 'Crea corriere'}
-        onSubmit={onSubmit}
-      />
     </div>
+  );
+}
+
+/** Full-page create/edit form for a courier (keyed by code). */
+export function CourierFormPage() {
+  const { code } = useParams<{ code: string }>();
+  const editing = code != null;
+  const query = useCouriers();
+  const row = editing ? (query.data ?? []).find((c) => c.code === code) : undefined;
+
+  const initial = useMemo<FormValues>(() => {
+    if (!editing) return { attivo: true, rate: 0 };
+    return row
+      ? { nome: row.nome, slug: row.slug ?? '', rate: row.rate == null ? 0 : Number(row.rate), tracking_url_template: row.tracking_url_template ?? '', attivo: !!row.attivo }
+      : {};
+  }, [editing, row]);
+
+  return (
+    <EntityFormPage
+      title={editing ? `Modifica corriere${row ? `: ${row.nome}` : ''}` : 'Nuovo corriere'}
+      backPath="/couriers"
+      backLabel="Corrieri"
+      fields={courierFields(editing)}
+      initial={initial}
+      loading={editing && !row && query.isLoading}
+      submitLabel={editing ? 'Salva modifiche' : 'Crea corriere'}
+      onSubmit={async (v) => {
+        const data: Record<string, unknown> = {
+          nome: v.nome, slug: v.slug || null, rate: v.rate || 0,
+          tracking_url_template: v.tracking_url_template || null, attivo: v.attivo ? 1 : 0,
+        };
+        if (editing) {
+          await api.shipping.updateCourier(code, data);
+          toast.success('Corriere aggiornato');
+        } else {
+          data.code = v.code;
+          await api.shipping.createCourier(data);
+          toast.success('Corriere creato');
+        }
+        query.refetch();
+      }}
+    />
   );
 }
