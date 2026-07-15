@@ -111,6 +111,11 @@ export function DiscountsPage() {
       <PageHeader
         title="Sconti"
         subtitle="Codici promozionali e regole di sconto."
+        actions={
+          <Button size="sm" onClick={() => navigate('/discounts/new')}>
+            <Plus /> Nuovo codice
+          </Button>
+        }
       />
 
       <DataTable
@@ -122,11 +127,6 @@ export function DiscountsPage() {
         exportName="sconti"
         exportTitle="Codici sconto"
         exportColumns={exportColumns}
-        primaryAction={
-          <Button size="sm" onClick={() => navigate('/discounts/new')}>
-            <Plus /> Nuovo codice
-          </Button>
-        }
         filters={filters}
         tableId="discounts"
         isLoading={query.isLoading}

@@ -63,6 +63,11 @@ export function PickupPage() {
       <PageHeader
         title="Punti di ritiro"
         subtitle="Sedi dove i clienti possono ritirare gli ordini."
+        actions={
+          <Button size="sm" onClick={() => navigate('/pickup/new')}>
+            <Plus /> Nuovo punto
+          </Button>
+        }
       />
       <DataTable
         columns={columns}
@@ -73,11 +78,6 @@ export function PickupPage() {
         exportName="punti_ritiro"
         exportTitle="Punti di ritiro"
         exportColumns={exportColumns}
-        primaryAction={
-          <Button size="sm" onClick={() => navigate('/pickup/new')}>
-            <Plus /> Nuovo punto
-          </Button>
-        }
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={MapPin} title="Nessun punto di ritiro" />}
         bulkActions={(selected, clear) => (

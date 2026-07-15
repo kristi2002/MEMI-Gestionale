@@ -87,6 +87,7 @@ export function ExpensesPage() {
       <PageHeader
         title="Fatture & Spese"
         subtitle="Costi operativi e spese ricorrenti."
+        actions={<Button size="sm" onClick={() => navigate('/bills/new')}><Plus /> Nuova spesa</Button>}
       />
       <div className="mb-4 grid grid-cols-3 gap-4">
         <KpiCard label="Totale spese" value={eur(s?.total ?? 0)} icon={Receipt} tone="primary" loading={query.isLoading} />
@@ -102,7 +103,6 @@ export function ExpensesPage() {
         exportName="spese"
         exportTitle="Fatture & Spese"
         exportColumns={exportColumns}
-        primaryAction={<Button size="sm" onClick={() => navigate('/bills/new')}><Plus /> Nuova spesa</Button>}
         filters={filters}
         tableId="expenses"
         isLoading={query.isLoading}

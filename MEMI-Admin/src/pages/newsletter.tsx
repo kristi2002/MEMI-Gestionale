@@ -69,7 +69,20 @@ export function NewsletterPage() {
 
   return (
     <div>
-      <PageHeader title="Newsletter" subtitle="Iscritti alla newsletter e invii." />
+      <PageHeader
+        title="Newsletter"
+        subtitle="Iscritti alla newsletter e invii."
+        actions={
+          <>
+            <Button variant="outline" size="sm" onClick={() => navigate('/newsletter/compose')}>
+              <Send /> Invia newsletter
+            </Button>
+            <Button size="sm" onClick={() => navigate('/newsletter/new')}>
+              <Plus /> Nuovo iscritto
+            </Button>
+          </>
+        }
+      />
       <div className="mb-4 grid grid-cols-2 gap-4">
         <KpiCard label="Iscritti attivi" value={query.data?.total ?? 0} icon={Mail} tone="success" loading={query.isLoading} />
         <KpiCard label="Disiscritti" value={query.data?.unsubscribed ?? 0} icon={MailX} tone="muted" loading={query.isLoading} />
@@ -85,16 +98,6 @@ export function NewsletterPage() {
         exportColumns={exportColumns}
         filters={filters}
         tableId="newsletter"
-        primaryAction={
-          <>
-            <Button variant="outline" size="sm" onClick={() => navigate('/newsletter/compose')}>
-              <Send /> Invia newsletter
-            </Button>
-            <Button size="sm" onClick={() => navigate('/newsletter/new')}>
-              <Plus /> Nuovo iscritto
-            </Button>
-          </>
-        }
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={Mail} title="Nessun iscritto" />}
         bulkActions={(selected, clear) => (

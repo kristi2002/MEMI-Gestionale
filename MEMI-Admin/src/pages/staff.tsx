@@ -110,6 +110,7 @@ export function StaffPage() {
       <PageHeader
         title="Staff & Permessi"
         subtitle="Utenti amministratori e relativi permessi."
+        actions={<Button size="sm" onClick={() => navigate('/staff/new')}><Plus /> Nuovo membro</Button>}
       />
       <DataTable
         columns={columns}
@@ -120,7 +121,6 @@ export function StaffPage() {
         exportName="staff"
         exportTitle="Staff & Permessi"
         exportColumns={exportColumns}
-        primaryAction={<Button size="sm" onClick={() => navigate('/staff/new')}><Plus /> Nuovo membro</Button>}
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={UserCog} title="Nessun membro dello staff" />}
         bulkActions={(selected, clear) => {

@@ -111,6 +111,11 @@ export function ColorsPage() {
       <PageHeader
         title="Colori"
         subtitle="La palette dei colori referenziata dai prodotti."
+        actions={
+          <Button size="sm" onClick={() => navigate('/colors/new')}>
+            <Plus /> Nuovo colore
+          </Button>
+        }
       />
 
       <DataTable
@@ -122,11 +127,6 @@ export function ColorsPage() {
         exportName="colori"
         exportTitle="Palette colori"
         exportColumns={exportColumns}
-        primaryAction={
-          <Button size="sm" onClick={() => navigate('/colors/new')}>
-            <Plus /> Nuovo colore
-          </Button>
-        }
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={Palette} title="Nessun colore" description="Crea il primo colore con il pulsante in alto a destra." />}
         bulkActions={(selected, clear) => {

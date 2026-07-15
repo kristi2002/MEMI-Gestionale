@@ -38,8 +38,6 @@ export interface DataTableProps<T> {
   tableId?: string;
   /** Extra controls rendered in the toolbar (rarely needed alongside `filters`). */
   toolbar?: ReactNode;
-  /** Primary page action (e.g. the "Nuovo …" button) rendered next to Esporta. */
-  primaryAction?: ReactNode;
   /** Bulk-action buttons; receives the selected rows + a clear() callback. */
   bulkActions?: (selected: T[], clear: () => void) => ReactNode;
   isLoading?: boolean;
@@ -63,7 +61,6 @@ export function DataTable<T>({
   filters,
   tableId,
   toolbar,
-  primaryAction,
   bulkActions,
   isLoading,
   hasMore,
@@ -159,7 +156,6 @@ export function DataTable<T>({
         )}
         <div className="ml-auto flex shrink-0 flex-wrap items-center gap-2">
           {toolbar}
-          {primaryAction}
           <ExportMenu rows={filteredRows} columns={exportColumns} filename={exportName} title={exportTitle} />
         </div>
       </div>

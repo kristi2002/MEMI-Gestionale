@@ -64,6 +64,11 @@ export function SegmentsPage() {
       <PageHeader
         title="Segmenti"
         subtitle="Gruppi di clienti definiti da regole di spesa e ordini."
+        actions={
+          <Button size="sm" onClick={() => navigate('/segments/new')}>
+            <Plus /> Nuovo segmento
+          </Button>
+        }
       />
       <div className="mb-4 grid grid-cols-2 gap-4">
         <KpiCard label="Segmenti" value={rows.length} icon={PieChart} tone="primary" loading={query.isLoading} />
@@ -78,11 +83,6 @@ export function SegmentsPage() {
         exportName="segmenti"
         exportTitle="Segmenti"
         exportColumns={exportColumns}
-        primaryAction={
-          <Button size="sm" onClick={() => navigate('/segments/new')}>
-            <Plus /> Nuovo segmento
-          </Button>
-        }
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={PieChart} title="Nessun segmento" />}
         bulkActions={(selected, clear) => (

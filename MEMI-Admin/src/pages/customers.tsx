@@ -122,6 +122,7 @@ export function CustomersPage() {
       <PageHeader
         title="Clienti"
         subtitle="Anagrafica clienti, spesa e attività."
+        actions={<Button size="sm" onClick={() => navigate('/customers/new')}><Plus /> Nuovo cliente</Button>}
       />
 
       <DataTable
@@ -133,7 +134,6 @@ export function CustomersPage() {
         exportName="clienti"
         exportTitle="Clienti"
         exportColumns={exportColumns}
-        primaryAction={<Button size="sm" onClick={() => navigate('/customers/new')}><Plus /> Nuovo cliente</Button>}
         filters={filters}
         tableId="customers"
         isLoading={query.isLoading}
