@@ -453,6 +453,21 @@ export interface LoyaltyCustomersResponse {
   customers: LoyaltyCustomer[];
   summary: { total_points: number | string; members: number };
 }
+export interface LoyaltyTransaction {
+  delta: number;
+  reason: string | null;
+  order_id: number | null;
+  balance_after: number;
+  created_at: string;
+}
+export interface LoyaltyCustomerDetail {
+  id: number;
+  nome: string;
+  cognome: string;
+  email: string;
+  points: number;
+  transactions: LoyaltyTransaction[];
+}
 
 export interface Segment {
   id: number;

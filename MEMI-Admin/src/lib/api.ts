@@ -347,6 +347,9 @@ export const api = {
     config: () => get<LoyaltyConfig>('/admin/loyalty/config'),
     updateConfig: (d: unknown) => put('/admin/loyalty/config', d),
     customers: (params?: Query) => get<LoyaltyCustomersResponse>('/admin/loyalty/customers' + qs(params)),
+    customer: (id: number) => get<import('@/types').LoyaltyCustomerDetail>('/admin/loyalty/customers/' + id),
+    adjust: (id: number, data: { delta: number; reason?: string }) =>
+      post<{ ok: boolean; points: number }>('/admin/loyalty/customers/' + id + '/adjust', data),
   },
   lifecycle: {
     get: () => get<LifecycleData>('/admin/lifecycle'),
