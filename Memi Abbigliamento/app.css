@@ -50,6 +50,50 @@ html { overflow-x: clip; }
   transition: box-shadow 300ms var(--ease-out, cubic-bezier(0.22,1,0.36,1));
 }
 
+/* ── Header critical layout — centralized here so EVERY page (including ones
+   that don't inline it) renders a fully-styled header. app.js injects the
+   desktop grid + mega-menu on top of this. Rules are self-contained (the icon
+   buttons carry their own reset) so a page needs no header CSS of its own. ── */
+.announcement-bar {
+  background: var(--blush-light, #F6ECEC);
+  color: var(--brown-mid, #6B5050);
+  text-align: center;
+  padding: var(--space-2, 8px) var(--space-4, 16px);
+  font-size: var(--text-xs, 0.75rem);
+  letter-spacing: var(--tracking-wider, 0.08em);
+  text-transform: uppercase;
+  font-weight: 500;
+  border-bottom: 1px solid var(--beige, #DBDBEE);
+}
+.header-inner {
+  max-width: 1280px; margin: 0 auto; padding: 0 var(--space-4, 16px);
+  height: 64px; display: flex; align-items: center; gap: var(--space-4, 16px);
+}
+.logo { flex: 1; text-align: center; font-family: var(--font-serif, 'Cormorant Garamond', serif); font-size: var(--text-xl, 1.25rem); font-weight: 400; letter-spacing: var(--tracking-wide, 0.04em); text-transform: uppercase; }
+.logo span { color: var(--blush-dark, #6B6BA3); }
+.icon-btn {
+  position: relative; width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-full, 999px);
+  background: none; border: none; cursor: pointer; color: inherit;
+  -webkit-appearance: none; appearance: none;
+  transition: background var(--dur-fast, 150ms);
+}
+.icon-btn:hover { background: var(--bg-soft, #F4F0EA); }
+.icon-btn svg { width: 20px; height: 20px; stroke: var(--espresso, #3B2B2B); fill: none; stroke-width: 1.6; }
+.cart-badge { position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px; background: var(--blush-dark, #6B6BA3); color: var(--white, #fff); border-radius: var(--radius-full, 999px); font-size: 10px; font-weight: 600; display: flex; align-items: center; justify-content: center; padding: 0 3px; }
+.header-actions { display: flex; align-items: center; flex-shrink: 0; }
+.burger { display: flex; flex-direction: column; gap: 5px; width: 24px; padding: var(--space-1, 4px); flex-shrink: 0; background: none; border: none; cursor: pointer; }
+.burger span { display: block; height: 1.5px; background: var(--espresso, #3B2B2B); border-radius: 2px; }
+.desktop-nav { display: none; }
+@media (min-width: 900px) {
+  .burger { display: none; }
+  .logo { flex: unset; font-size: var(--text-2xl, 1.5rem); }
+  .desktop-nav { display: flex; align-items: center; gap: var(--space-8, 32px); font-size: var(--text-sm, 0.875rem); letter-spacing: var(--tracking-wide, 0.04em); text-transform: uppercase; font-weight: 500; flex: 1; justify-content: center; }
+  .desktop-nav a { color: var(--brown-mid, #6B5050); transition: color var(--dur-fast, 150ms); padding-bottom: 2px; position: relative; }
+  .desktop-nav a:hover { color: var(--espresso, #3B2B2B); }
+}
+
 /* ── Scrim / overlay base ── */
 .app-scrim {
   position: fixed;
