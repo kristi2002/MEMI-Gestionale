@@ -588,6 +588,7 @@
 
   function matchCard(card) {
     var cat   = card.dataset.categoria || '';
+    var cols  = (card.dataset.collections || '').split(' ');
     var tags  = (card.dataset.taglie  || '').split(' ');
     var col   = card.dataset.colore   || '';
     var price = parseFloat(card.dataset.prezzo || 0);
@@ -607,7 +608,7 @@
       });
       if (!catMatch) return false;
     }
-    if (af.collez === 'estate-2025' && !isNew) return false;
+    if (af.collez && cols.indexOf(af.collez) === -1) return false;
     if (af.taglie.length && !af.taglie.some(function(t){ return tags.indexOf(t) !== -1; })) return false;
     if (af.colori.length && af.colori.indexOf(col) === -1) return false;
     if (price > maxP) return false;
@@ -954,6 +955,8 @@ window.submitNewsletter = function (form) {
     var href      = '/product?id=' + encodeURIComponent(slug);
     var taglie    = Array.isArray(p.taglie) ? p.taglie : [];
     var taglieStr = taglie.map(function(t){ return t.toLowerCase(); }).join(' ') || 'unica';
+    var collez    = Array.isArray(p.collections) ? p.collections : [];
+    var collezStr = collez.map(function(c){ return String(c).toLowerCase(); }).join(' ');
     var isAcc     = ACCESSORI_CATS.indexOf(p.categoria) !== -1;
     var isOos     = p.status === 'esaurito';
 
@@ -996,6 +999,7 @@ window.submitNewsletter = function (form) {
     return '<a class="product-card-link" href="' + href + '">' +
       '<article class="product-card in-view"' +
         ' data-categoria="' + (p.categoria || '') + '"' +
+        ' data-collections="' + collezStr + '"' +
         ' data-taglie="' + taglieStr + '"' +
         ' data-colore="' + (p.colore || '') + '"' +
         ' data-prezzo="' + (p.price || 0) + '"' +

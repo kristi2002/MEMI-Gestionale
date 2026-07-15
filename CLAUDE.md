@@ -70,12 +70,18 @@ So Stripe/SMTP can stay unset for most work; don't add fake keys to make them "w
 - **`productsData.js` is no longer used at runtime** — all catalog pages read from the API via
   `catalog-loader.js`. The file remains in the repo but is not loaded by any customer-facing page.
 - **Static `collections/` pages** (and `best-seller.html`, `estate-2025.html`,
-  `products/{slug}/`) have hardcoded card counts that drift from the real catalog.
-  `Memi Abbigliamento/scripts/generate-collections.js` / `generate-products.js` regenerate
-  them, but **still read from the stale `productsData.js`**, not the live API — so counts
-  drift again as soon as products are added/edited only through the admin (tracked in
-  `docs/PRODUCTION-ROADMAP.md`). The mega-menu *Shop* links go to dynamic `/shop?categoria=…`;
-  many other links still go to static `/collections/…` — hence inconsistent counts.
+  `products/{slug}/`) no longer bake real counts — they ship `resultCount=0` and render
+  cards + counts at **runtime** via `catalog-loader.js` (`GET /api/products?collection=<slug>`),
+  so counts are live and can't drift. The generators
+  `Memi Abbigliamento/scripts/generate-collections.js` / `generate-products.js` were rewritten
+  (Jul 2026) to **fetch the live API** (`/api/products`, override with `MEMI_API_BASE`) — they no
+  longer read the stale `productsData.js`, and fail loudly if the backend is unreachable.
+  Category filtering on `/shop` matches `?categoria=` against `products.categoria`; **collection**
+  filtering matches `?collez=<slug>` against the product's real `collections` array (cards carry
+  `data-collections`), mirroring the `/collections/<slug>/` pages' `JSON_CONTAINS` backend filter.
+  Remaining nit: the mega-menu *Collezioni* column still mixes category params (`/shop?categoria=novita`,
+  `?saldi=1`) with standalone static pages (`/estate-2025`, `/best-seller`), so a few editorial links
+  are inconsistent — cosmetic, not a count-drift bug.
 - **Schema self-heals on boot** via `db/migrations.js → ensureSchema()`
   (`CREATE TABLE IF NOT EXISTS`, structural only). **Seed data** only loads on a
   fresh volume (`initdb.d`) or `npm run db:init`. If list endpoints 500 with
