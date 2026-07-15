@@ -11,7 +11,7 @@ import { api, ApiError } from '@/lib/api';
 export function LoginPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -22,7 +22,7 @@ export function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      await api.auth.login(email, password);
+      await api.auth.login(username, password);
       await qc.invalidateQueries({ queryKey: ['auth'] });
       navigate('/', { replace: true });
     } catch (err) {
@@ -50,8 +50,8 @@ export function LoginPage() {
           )}
           <form onSubmit={submit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" type="text" autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>

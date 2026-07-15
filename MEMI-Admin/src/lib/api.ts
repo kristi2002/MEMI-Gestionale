@@ -125,8 +125,8 @@ import type {
 
 export const api = {
   auth: {
-    login: (email: string, password: string) =>
-      post<{ ok?: boolean }>('/admin/auth/login', { email, password }),
+    login: (username: string, password: string) =>
+      post<{ ok?: boolean }>('/admin/auth/login', { username, password }),
     logout: () => post('/admin/auth/logout', {}),
     me: () => get<AuthMe>('/admin/auth/me'),
     changePassword: (current_password: string, new_password: string) =>

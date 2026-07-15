@@ -13,6 +13,7 @@ USE memi_db;
 CREATE TABLE IF NOT EXISTS admin_users (
   id            INT AUTO_INCREMENT PRIMARY KEY,
   email         VARCHAR(255) NOT NULL UNIQUE,
+  username      VARCHAR(100) UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   nome          VARCHAR(100),
   role          ENUM('admin','staff') DEFAULT 'admin',
@@ -21,8 +22,8 @@ CREATE TABLE IF NOT EXISTS admin_users (
 
 -- Default admin: admin@memi.it / memi2026admin
 -- (bcrypt hash of "memi2026admin", cost 10)
-INSERT INTO admin_users (email, password_hash, nome, role) VALUES
-('admin@memi.it', '$2a$10$9PikdhSZkBbcPLs/qMcSL.8iUl3fjuQXrDYELFpE4pvsDApWZeBI6', 'Admin MEMI', 'admin')
+INSERT INTO admin_users (email, username, password_hash, nome, role) VALUES
+('admin@memi.it', 'admin', '$2a$10$9PikdhSZkBbcPLs/qMcSL.8iUl3fjuQXrDYELFpE4pvsDApWZeBI6', 'Admin MEMI', 'admin')
 ON DUPLICATE KEY UPDATE email=email;
 
 -- -------------------------------------------------------------

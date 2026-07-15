@@ -41,14 +41,17 @@ function setAdminCookie(req, res, token) {
 
 /* ── POST /api/admin/auth/login ── */
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password)
-    return res.status(400).json({ error: 'Email e password obbligatori' });
+  // Login is by USERNAME now; email is still accepted as a fallback identifier so existing
+  // tooling and older sessions keep working.
+  const { username, email, password } = req.body || {};
+  const identifier = String(username || email || '').toLowerCase().trim();
+  if (!identifier || !password)
+    return res.status(400).json({ error: 'Username e password obbligatori' });
 
   try {
     const [[admin]] = await pool.execute(
-      'SELECT id, email, nome, role, permissions, password_hash FROM admin_users WHERE email = ?',
-      [email.toLowerCase().trim()]
+      'SELECT id, username, email, nome, role, permissions, password_hash FROM admin_users WHERE username = ? OR email = ? LIMIT 1',
+      [identifier, identifier]
     );
     if (!admin) return res.status(401).json({ error: 'Credenziali non valide' });
 
@@ -56,13 +59,13 @@ router.post('/login', async (req, res) => {
     if (!match) return res.status(401).json({ error: 'Credenziali non valide' });
 
     const permissions = resolvePermissions(admin.role, admin.permissions);   // array | null(full)
-    const token = signAdminToken({ id: admin.id, email: admin.email, nome: admin.nome, role: admin.role, permissions });
+    const token = signAdminToken({ id: admin.id, username: admin.username, email: admin.email, nome: admin.nome, role: admin.role, permissions });
     setAdminCookie(req, res, token);
     return res.json({
       // token kept for backward compatibility only; the client no longer stores it.
       token,
       cookie: true,
-      admin: { id: admin.id, email: admin.email, nome: admin.nome, role: admin.role, permissions },
+      admin: { id: admin.id, username: admin.username, email: admin.email, nome: admin.nome, role: admin.role, permissions },
     });
   } catch (err) {
     console.error('admin login error', err);
@@ -82,7 +85,7 @@ router.post('/logout', (req, res) => {
 router.get('/me', requireAdmin, async (req, res) => {
   try {
     const [[admin]] = await pool.execute(
-      'SELECT id, email, nome, role, permissions, created_at FROM admin_users WHERE id = ?',
+      'SELECT id, username, email, nome, role, permissions, created_at FROM admin_users WHERE id = ?',
       [req.admin.id]
     );
     if (!admin) return res.status(404).json({ error: 'Admin non trovato' });

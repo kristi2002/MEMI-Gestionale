@@ -17,6 +17,7 @@ export type DiscountStatus = 'attivo' | 'disattivo' | 'pianificato';
 
 export interface AuthMe {
   id: number;
+  username?: string;
   email: string;
   nome?: string;
   ruolo?: string;

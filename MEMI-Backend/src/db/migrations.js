@@ -417,9 +417,10 @@ async function bootstrapAdmin(pool) {
       if (!existing) {
         // First run: create the admin from env.
         const hash = await bcrypt.hash(password, 10);
+        const uname0 = (process.env.ADMIN_USERNAME || 'admin').trim().toLowerCase();
         await pool.query(
-          `INSERT INTO admin_users (email, password_hash, nome, role) VALUES (?, ?, 'Admin MEMI', 'admin')`,
-          [email, hash]
+          `INSERT INTO admin_users (email, username, password_hash, nome, role) VALUES (?, ?, ?, 'Admin MEMI', 'admin')`,
+          [email, uname0, hash]
         );
         console.log(`✅  Admin account created from env: ${email}`);
       } else if (forceReset || existing.password_hash === DEFAULT_ADMIN_HASH) {
@@ -435,6 +436,22 @@ async function bootstrapAdmin(pool) {
       }
     } catch (e) { console.error('   ! admin bootstrap failed:', e.message); }
   }
+  // Backfill a login username for any admin that lacks one. Runs independent of the
+  // ADMIN_* env so EXISTING production DBs get usernames on deploy:
+  //   1. the primary env admin -> ADMIN_USERNAME (default 'admin');
+  //   2. everyone else -> the local-part of their email (admin@memi.it -> 'admin').
+  try {
+    if (email) {
+      const uname = (process.env.ADMIN_USERNAME || 'admin').trim().toLowerCase();
+      await pool.query(
+        "UPDATE admin_users SET username = ? WHERE email = ? AND (username IS NULL OR username = '')",
+        [uname, email]
+      );
+    }
+    await pool.query(
+      "UPDATE admin_users SET username = LOWER(SUBSTRING_INDEX(email, '@', 1)) WHERE username IS NULL OR username = ''"
+    );
+  } catch (e) { /* username column absent on a very old DB, or a rare local-part collision */ }
   try {
     const [rows] = await pool.query(
       'SELECT email FROM admin_users WHERE password_hash = ?', [DEFAULT_ADMIN_HASH]
@@ -476,6 +493,7 @@ async function runMigrations(pool) {
   }
   // 3. Add columns / indexes to pre-existing tables (idempotent guards)
   try {
+    await ensureColumn(pool, 'admin_users', 'username', 'username VARCHAR(100) NULL UNIQUE');
     await ensureColumn(pool, 'customers', 'points', 'points INT NOT NULL DEFAULT 0');
     // ── Area Personale: per-customer JSON blobs + language (idempotent) ──
     await ensureColumn(pool, 'customers', 'wishlist',    'wishlist JSON NULL');          // pre-existing on new schemas; guard old DBs
