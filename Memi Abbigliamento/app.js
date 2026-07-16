@@ -543,18 +543,22 @@
         </ul>
       </div>
     </div>
+    <div class="sf2-paywrap" aria-label="Metodi di pagamento accettati">
+      <p class="sf2-pay-title">Pagamenti sicuri</p>
+      <div class="sf2-payments">
+        <span class="sf2-pay sf2-pay-visa" title="Visa">VISA</span>
+        <span class="sf2-pay" title="Mastercard"><i class="sf2-mc"><b></b><b></b></i></span>
+        <span class="sf2-pay sf2-pay-amex" title="American Express">AMEX</span>
+        <span class="sf2-pay" title="PayPal"><em>Pay</em>Pal</span>
+        <span class="sf2-pay" title="Apple Pay">&#63743; Pay</span>
+        <span class="sf2-pay" title="Google Pay">G Pay</span>
+        <span class="sf2-pay sf2-pay-klarna" title="Klarna">Klarna.</span>
+      </div>
+      <p class="sf2-pay-note"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Transazioni protette con crittografia SSL</p>
+    </div>
   </div>
   <div class="sf2-bottom">
     <p>© 2025 Memi Abbigliamento · Tutti i diritti riservati</p>
-    <div class="sf2-payments" aria-label="Metodi di pagamento accettati">
-      <span class="sf2-pay" title="Visa">VISA</span>
-      <span class="sf2-pay" title="Mastercard"><i class="sf2-mc"><b></b><b></b></i></span>
-      <span class="sf2-pay" title="American Express">AMEX</span>
-      <span class="sf2-pay" title="PayPal"><em>Pay</em>Pal</span>
-      <span class="sf2-pay" title="Apple Pay">&#63743; Pay</span>
-      <span class="sf2-pay" title="Google Pay">G Pay</span>
-      <span class="sf2-pay sf2-pay-klarna" title="Klarna">Klarna.</span>
-    </div>
     <nav class="sf2-legal" aria-label="Link legali">
       <a href="/privacy">Privacy</a>
       <a href="cookie-policy.html">Cookie</a>
@@ -582,8 +586,9 @@
           .sf2-trust-item{font-size:.6rem;letter-spacing:.04em;gap:.45rem;align-items:flex-start;line-height:1.35;}
           .sf2-trust-item svg{width:13px;height:13px;margin-top:-1px;}
         }
-        .sf2-inner{max-width:1280px;margin:0 auto;padding:3.25rem 2rem 3.5rem;display:grid;grid-template-columns:1fr 2fr;gap:4rem;align-items:start;}
-        @media(max-width:800px){.sf2-inner{grid-template-columns:1fr;gap:2.5rem;}}
+        .sf2-inner{max-width:1280px;margin:0 auto;padding:3.25rem 2rem 3.5rem;display:grid;grid-template-columns:1fr 2fr;gap:2.5rem 4rem;align-items:start;}
+        .sf2-brand{grid-row:1/-1;}
+        @media(max-width:800px){.sf2-inner{grid-template-columns:1fr;gap:2.5rem;}.sf2-brand{grid-row:auto;}}
         .sf2-logo{display:inline-block;margin-bottom:.55rem;line-height:0;text-decoration:none;}
         .sf2-logo-img{height:58px;width:auto;display:block;}
         /* prev footer lockup (revert): .sf2-logo{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:#3B2B2B;letter-spacing:.06em;display:inline-flex;align-items:center;gap:.55rem} .sf2-logo-badge{width:40px;height:40px;border-radius:11px;box-shadow:0 2px 10px rgba(107,107,163,.2)} */
@@ -614,15 +619,22 @@
         .sf2-nl-form input::placeholder{color:var(--brown-light,#9e8a8a);}
         .sf2-nl-form button{border:none;background:var(--espresso,#3B2B2B);color:#fff;padding:.5rem .85rem;cursor:pointer;font-size:.85rem;transition:background .2s;flex-shrink:0;}
         .sf2-nl-form button:hover{background:var(--blush-dark,#6B6BA3);}
-        .sf2-payments{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;}
-        .sf2-pay{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:26px;padding:0 .5rem;background:#fff;border:1px solid var(--beige-dark,#BEBEDD);border-radius:4px;font-size:.58rem;font-weight:700;letter-spacing:.05em;color:var(--espresso,#3B2B2B);white-space:nowrap;}
+        .sf2-paywrap{border-top:1px solid var(--beige,#DBDBEE);padding-top:1.5rem;}
+        .sf2-pay-title{font-size:.65rem;letter-spacing:.13em;text-transform:uppercase;color:var(--brown-light,#9e8a8a);margin-bottom:.85rem;font-weight:600;}
+        .sf2-payments{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;}
+        .sf2-pay{display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:34px;padding:0 .8rem;background:#fff;border:1px solid var(--beige-dark,#BEBEDD);border-radius:7px;font-size:.68rem;font-weight:700;letter-spacing:.05em;color:var(--espresso,#3B2B2B);white-space:nowrap;box-shadow:0 1px 3px rgba(59,43,43,.06);transition:transform .2s,box-shadow .2s,border-color .2s;cursor:default;}
+        .sf2-pay:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(59,43,43,.12);border-color:var(--brown-light,#9e8a8a);}
+        .sf2-pay-visa{color:#1A1F71;font-style:italic;letter-spacing:.02em;}
+        .sf2-pay-amex{color:#2E77BC;}
         .sf2-pay em{font-style:italic;font-weight:700;color:#253B80;}
-        .sf2-pay-klarna{background:#FFB3C7;border-color:#FFB3C7;font-weight:600;letter-spacing:0;}
+        .sf2-pay-klarna{background:#FFB3C7;border-color:#FFB3C7;font-weight:600;letter-spacing:0;color:#17120F;}
         .sf2-mc{display:inline-flex;}
-        .sf2-mc b{width:13px;height:13px;border-radius:50%;display:block;}
+        .sf2-mc b{width:15px;height:15px;border-radius:50%;display:block;}
         .sf2-mc b:first-child{background:#EB001B;}
-        .sf2-mc b:last-child{background:#F79E1B;margin-left:-5px;opacity:.9;}
-        @media(max-width:640px){.sf2-bottom{justify-content:center;text-align:center;}.sf2-payments{justify-content:center;width:100%;order:3;}}
+        .sf2-mc b:last-child{background:#F79E1B;margin-left:-6px;opacity:.9;}
+        .sf2-pay-note{display:flex;align-items:center;gap:.45rem;margin-top:.85rem;font-size:.68rem;color:var(--brown-light,#9e8a8a);}
+        .sf2-pay-note svg{width:12px;height:12px;stroke:var(--brown-light,#9e8a8a);fill:none;stroke-width:1.8;flex-shrink:0;}
+        @media(max-width:640px){.sf2-bottom{justify-content:center;text-align:center;}.sf2-payments{justify-content:center;}.sf2-paywrap{text-align:center;}.sf2-pay-note{justify-content:center;}}
       `;
       document.head.appendChild(s);
     }
