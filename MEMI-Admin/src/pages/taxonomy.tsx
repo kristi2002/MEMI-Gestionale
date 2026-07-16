@@ -237,8 +237,147 @@ export function CategoriesPage() {
     />
   );
 }
+/** Collections reachable from one category: which editorial collections the
+ *  products of this category belong to, plus the full product list with its
+ *  collection tags. Read-only — membership is edited on the product / collection. */
+function CategoryCollectionsCard({ slug }: { slug: string }) {
+  const navigate = useNavigate();
+  const productsQuery = useAllProducts();
+  const collectionsQuery = useCollections();
+  const categoriesQuery = useCategories();
+
+  const categorySlugs = useMemo(
+    () => new Set((categoriesQuery.data ?? []).map((c) => c.slug)),
+    [categoriesQuery.data],
+  );
+  // Same filter as the Collezioni list: category-mirror rows and technical tags
+  // are not editorial collections and must not be counted here.
+  const editorial = useMemo(
+    () => (collectionsQuery.data ?? []).filter((c) => !categorySlugs.has(c.slug) && !HIDDEN_COLLECTION_SLUGS.has(c.slug)),
+    [collectionsQuery.data, categorySlugs],
+  );
+  const bySlug = useMemo(() => new Map(editorial.map((c) => [c.slug, c])), [editorial]);
+
+  const products = useMemo(
+    () => (productsQuery.data?.items ?? []).filter((p) => p.categoria === slug),
+    [productsQuery.data, slug],
+  );
+  const collectionsOf = (p: ProductRow) =>
+    (Array.isArray(p.collections) ? p.collections : []).filter((s) => bySlug.has(s));
+
+  const linked = editorial
+    .map((c) => ({ collection: c, count: products.filter((p) => collectionsOf(p).includes(c.slug)).length }))
+    .filter((x) => x.count > 0);
+  const orphans = products.filter((p) => collectionsOf(p).length === 0).length;
+  const loading = productsQuery.isLoading || collectionsQuery.isLoading;
+
+  return (
+    <Card className="mt-6">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <span
+            className="inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-primary/10 px-1.5 text-xs font-semibold tabular-nums text-primary"
+            title="Collezioni collegate a questa categoria"
+          >
+            {loading ? '–' : linked.length}
+          </span>
+          Collezioni collegate
+          <span className="text-sm font-normal text-muted-foreground">({products.length} prodotti in categoria)</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {loading ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">Caricamento…</div>
+        ) : (
+          <>
+            {linked.length === 0 ? (
+              <div className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
+                Nessun prodotto di questa categoria appartiene a una collezione.
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {linked.map(({ collection, count }) => (
+                  <button
+                    key={collection.id}
+                    type="button"
+                    onClick={() => navigate(`/collections/${collection.id}/edit`)}
+                    className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-sm transition-colors hover:bg-muted"
+                  >
+                    <span className="capitalize">{collection.name}</span>
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded bg-primary/10 px-1 text-xs font-semibold tabular-nums text-primary">
+                      {count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {products.length > 0 && (
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50 text-left">
+                      <th className="px-3 py-2 font-medium">Prodotto</th>
+                      <th className="px-3 py-2 font-medium">Collezioni</th>
+                      <th className="px-3 py-2" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map((p) => {
+                      const cols = collectionsOf(p);
+                      return (
+                        <tr key={p.id} className="border-b last:border-0">
+                          <td className="px-3 py-2">
+                            <div className="font-medium">{p.name}</div>
+                            <div className="text-xs text-muted-foreground">{p.id}</div>
+                          </td>
+                          <td className="px-3 py-2">
+                            {cols.length === 0 ? (
+                              <span className="text-xs text-muted-foreground">Nessuna collezione</span>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {cols.map((s) => (
+                                  <Badge key={s} variant="neutral" className="capitalize">
+                                    {bySlug.get(s)?.name ?? s}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <Button variant="ghost" size="sm" onClick={() => navigate(`/products/${p.id}/edit`)}>
+                              <Pencil /> Modifica
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {orphans > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {orphans} prodotto{orphans === 1 ? '' : 'i'} senza collezione.
+              </p>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function CategoryFormPage() {
-  return <TaxonomyFormPage singular="categoria" backPath="/categories" backLabel="Categorie" entityApi={api.categories} query={useCategories()} invalidateKey="categories" />;
+  const query = useCategories();
+  const { id } = useParams<{ id: string }>();
+  const row = (query.data ?? []).find((r) => String(r.id) === id);
+  return (
+    <>
+      <TaxonomyFormPage singular="categoria" backPath="/categories" backLabel="Categorie" entityApi={api.categories} query={query} invalidateKey="categories" />
+      {row && <CategoryCollectionsCard slug={row.slug} />}
+    </>
+  );
 }
 
 /** Legacy technical tags that must never appear in the Collezioni list. */
