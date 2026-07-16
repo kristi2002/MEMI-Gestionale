@@ -286,6 +286,24 @@
       content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;
       border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
     }
+
+    /* ── Privacy consent warning ─────────────────────────────────────────── */
+    #consentBlock{border:1.5px solid transparent;border-radius:var(--radius-md);
+      padding:var(--space-3);transition:border-color .25s ease,background .25s ease,box-shadow .25s ease;}
+    #consentBlock.consent-error{border-color:#d9534f;background:#fdf1f0;
+      box-shadow:0 0 0 4px rgba(217,83,79,.10);
+      animation:consentShake .45s cubic-bezier(.36,.07,.19,.97) both;}
+    #consentBlock.consent-error label{color:#a63a36;}
+    #consentBlock.consent-error input#privacyConsent{outline:2px solid #d9534f;outline-offset:2px;accent-color:#d9534f;}
+    @keyframes consentShake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}
+      30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
+    #privacyWarning{display:none;align-items:flex-start;gap:10px;margin-top:var(--space-2);
+      padding:12px 14px;background:linear-gradient(135deg,#fdeceb,#fbe2e0);
+      border:1px solid #f2bcb9;border-left:4px solid #d9534f;border-radius:var(--radius-md);
+      color:#a63a36;font-size:var(--text-sm);line-height:1.5;}
+    #privacyWarning.show{display:flex;animation:consentFadeIn .3s ease both;}
+    #privacyWarning svg{width:18px;height:18px;flex-shrink:0;stroke:#d9534f;fill:none;stroke-width:2;margin-top:1px;}
+    @keyframes consentFadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
   </style>
   <link rel="stylesheet" href="app.css?v=ece23419" />
   <!-- Stripe.js — loads asynchronously, must be loaded from Stripe CDN -->
@@ -533,6 +551,10 @@
             <input type="checkbox" id="privacyConsent" />
             <span>Ho letto la <a href="privacy.html" target="_blank" style="color:inherit;text-decoration:underline;">Privacy Policy</a> e i <a href="termini.html" target="_blank" style="color:inherit;text-decoration:underline;">Termini e condizioni</a> e autorizzo il trattamento dei miei dati per la gestione dell'ordine (Reg. UE 2016/679). *</span>
           </label>
+          <div id="privacyWarning" role="alert" aria-live="assertive">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span><strong>Non puoi ancora continuare.</strong> Per completare l'ordine devi prima accettare la <em>Privacy Policy</em> e i <em>Termini e condizioni</em> spuntando la casella qui sopra.</span>
+          </div>
           <label style="display:flex;gap:8px;align-items:flex-start;font-size:var(--text-xs);color:var(--brown-mid);line-height:1.5;cursor:pointer;">
             <input type="checkbox" id="newsletterOptin" />
             <span>Autorizzo l'uso della mia email per newsletter e offerte (facoltativo, revocabile in qualsiasi momento).</span>
@@ -1170,7 +1192,7 @@
       }
       if (!privacyOk()) {
         ev.complete('fail');
-        showPaymentError('Per pagare devi prima accettare la Privacy Policy e i Termini e condizioni.');
+        showPrivacyWarning();
         return;
       }
 
@@ -1281,6 +1303,27 @@
       return !c || c.checked;
     }
 
+    // Red highlight + styled warning when the customer tries to pay without consent.
+    function showPrivacyWarning() {
+      var block = el('consentBlock'), warn = el('privacyWarning');
+      if (block) {
+        block.classList.remove('consent-error');
+        void block.offsetWidth; // restart the shake animation on repeated clicks
+        block.classList.add('consent-error');
+        try { block.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(_) { block.scrollIntoView(); }
+      }
+      if (warn) warn.classList.add('show');
+    }
+    function clearPrivacyWarning() {
+      var block = el('consentBlock'), warn = el('privacyWarning');
+      if (block) block.classList.remove('consent-error');
+      if (warn) warn.classList.remove('show');
+    }
+    (function() {
+      var c = el('privacyConsent');
+      if (c) c.addEventListener('change', function() { if (c.checked) clearPrivacyWarning(); });
+    })();
+
     // Send an order payload to the API and route to confirmation. onErr(msg) shows the error.
     function submitOrder(orderData, onErr) {
       if (window.MemiAPI) {
@@ -1307,7 +1350,7 @@
       if (!cartItems.length) { showPaymentError('Il carrello è vuoto.'); return; }
 
       var orderData = collectOrderData(payMethod);
-      if (!privacyOk()) { showPaymentError('Per completare l\'ordine devi accettare la Privacy Policy e i Termini e condizioni.'); return; }
+      if (!privacyOk()) { showPrivacyWarning(); return; }
 
       var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
       function setLoading(on) {
@@ -1396,7 +1439,7 @@
           style: { layout: 'vertical', color: 'gold', shape: 'pill', label: 'paypal' },
           onClick: function(data, actions) {
             if (!shippingFilled()) { showPaymentError('Completa i dati di spedizione prima di pagare con PayPal.'); return actions.reject(); }
-            if (!privacyOk()) { showPaymentError('Per pagare con PayPal devi prima accettare la Privacy Policy e i Termini e condizioni.'); return actions.reject(); }
+            if (!privacyOk()) { showPrivacyWarning(); return actions.reject(); }
             return actions.resolve();
           },
           createOrder: function() {
@@ -1624,6 +1667,6 @@
     });
   </script>
   <script src="api-client.js?v=7"></script>
-  <script src="app.js?v=32"></script>
+  <script src="app.js?v=33"></script>
   <script src="checkout-autofill.js?v=1"></script></body>
 </html>
