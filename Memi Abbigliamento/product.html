@@ -77,10 +77,10 @@
       gap:var(--space-8);
     }
     @media(min-width:768px){
-      .pdp-grid{grid-template-columns:55% 1fr;gap:var(--space-12);align-items:start;}
+      .pdp-grid{grid-template-columns:45% 1fr;gap:var(--space-12);align-items:start;}
     }
     @media(min-width:1024px){
-      .pdp-grid{grid-template-columns:58% 1fr;}
+      .pdp-grid{grid-template-columns:42% 1fr;}
     }
 
     /* ── Image Gallery ── */
@@ -92,6 +92,7 @@
       border-radius:var(--radius-lg);
       overflow:hidden;
       aspect-ratio:3/4;
+      max-height:68vh; /* l'immagine deve stare nel viewport senza scroll */
       background:var(--cream);
       margin-bottom:var(--space-3);
     }
@@ -214,7 +215,7 @@
 
     .btn-atc{
       width:100%;padding:var(--space-4);
-      background:var(--espresso);color:var(--white);
+      background:var(--lavender-dark,#6B6BA3);color:var(--white);
       font-size:var(--text-sm);font-weight:600;
       letter-spacing:var(--tracking-wide);text-transform:uppercase;
       border-radius:var(--radius-full);
@@ -222,7 +223,7 @@
       transition:background var(--dur-fast),transform var(--dur-fast),box-shadow var(--dur-fast);
       box-shadow:var(--shadow-sm);
     }
-    .btn-atc:hover:not(:disabled){background:#2a1e1e;transform:translateY(-1px);box-shadow:var(--shadow-md);}
+    .btn-atc:hover:not(:disabled){background:var(--brand-violet-deep,#5C5C94);transform:translateY(-1px);box-shadow:var(--shadow-md);}
     .btn-atc:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none;}
     .btn-wishlist.active{border-color:var(--blush-dark);background:var(--blush-light);color:var(--blush-dark);}
     .btn-atc svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;}
@@ -398,11 +399,12 @@
             <button class="size-btn" onclick="selectSize(this,'XL')">XL</button>
           </div>
         </div>
+        <div id="sizeAlert" role="alert" style="display:none;color:#C0392B;font-size:.8rem;font-weight:600;margin:.5rem 0 .25rem;">Seleziona una taglia prima di aggiungere al carrello.</div>
         <button type="button" class="size-guide-link" onclick="window.open('/size-guide','_blank','noopener')">Guida alle taglie →</button>
 
         <!-- CTA -->
         <div class="cta-stack">
-          <button class="btn-atc atc-btn" id="atcBtn" disabled>
+          <button class="btn-atc atc-btn" id="atcBtn">
             <span class="atc-label">
               <svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;vertical-align:middle;margin-right:6px;"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
               Aggiungi al carrello
@@ -484,7 +486,8 @@
   </main>
 
   <!-- ── Reviews ── -->
-  <section class="pdp-reviews" id="reviews" aria-label="Recensioni del prodotto">
+  <!-- Sezione temporaneamente nascosta: togliere display:none per riattivarla -->
+  <section class="pdp-reviews" id="reviews" aria-label="Recensioni del prodotto" style="display:none;">
     <div class="pdp-reviews-inner">
       <div class="rev-header">
         <h2 class="rev-title">Recensioni</h2>
@@ -589,6 +592,8 @@
       'use strict';
       var id = new URLSearchParams(window.location.search).get('id');
       var PRODUCT = null, selectedSize = null, selectedColor = '', selectedColorKey = 'ph-blush';
+      // "Completa il look" temporaneamente nascosto: rimettere a false per riattivarlo.
+      window.MEMI_HIDE_RELATED = true;
 
       function eur(n) { return '€' + (Number(n) || 0).toFixed(2).replace('.', ','); }
       function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -605,6 +610,7 @@
         document.querySelectorAll('.size-btn').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         selectedSize = size;
+        var al = document.getElementById('sizeAlert'); if (al) al.style.display = 'none';
         var l = document.getElementById('sizeLabel'); if (l) l.textContent = '— ' + size;
         var a = document.getElementById('atcBtn'); if (a) { a.disabled = false; a.style.opacity = '1'; a.style.cursor = 'pointer'; }
       };
@@ -818,7 +824,7 @@
                   '<div class="product-pricing">' + price + '</div></div>' +
                 '</article></a>';
             }).join('');
-            section.style.display = '';
+            if (!window.MEMI_HIDE_RELATED) section.style.display = '';
           })
           .catch(function () { /* section stays hidden */ });
       }
@@ -834,12 +840,15 @@
       function wireActions() {
         var atc = document.getElementById('atcBtn');
         if (atc) {
-          atc.style.opacity = '0.5'; atc.style.cursor = 'not-allowed';
           atc.addEventListener('click', function () {
             var P = window.__PDP; if (!P) return;
             var sizes = (PRODUCT && Array.isArray(PRODUCT.taglie)) ? PRODUCT.taglie : [];
             var hasReal = sizes.some(function (s) { var t = (typeof s === 'string') ? s : s.taglia; return t && String(t).toLowerCase() !== 'unica'; });
-            if (hasReal && !selectedSize) return;
+            if (hasReal && !selectedSize) {
+              var al = document.getElementById('sizeAlert');
+              if (al) { al.style.display = 'block'; al.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+              return;
+            }
             if (this.classList.contains('is-loading') || this.classList.contains('is-done')) return;
             this.classList.add('is-loading');
             var self = this;

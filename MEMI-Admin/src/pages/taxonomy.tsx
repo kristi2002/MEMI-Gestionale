@@ -241,6 +241,9 @@ export function CategoryFormPage() {
   return <TaxonomyFormPage singular="categoria" backPath="/categories" backLabel="Categorie" entityApi={api.categories} query={useCategories()} invalidateKey="categories" />;
 }
 
+/** Legacy technical tags that must never appear in the Collezioni list. */
+const HIDDEN_COLLECTION_SLUGS = new Set(['shop-all', 'accessori']);
+
 export function CollectionsPage() {
   const query = useCollections();
   const categoriesQuery = useCategories();
@@ -263,7 +266,7 @@ export function CollectionsPage() {
       query={query}
       invalidateKey="collections"
       exportName="collezioni"
-      rowFilter={(r) => !categorySlugs.has(r.slug) && r.slug !== 'shop-all'}
+      rowFilter={(r) => !categorySlugs.has(r.slug) && !HIDDEN_COLLECTION_SLUGS.has(r.slug)}
     />
   );
 }
