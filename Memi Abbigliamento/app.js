@@ -1498,8 +1498,8 @@
           : `<span class="highlight">Spedizione gratuita applicata</span>`
         }
       </div>
-      <a href="/checkout" class="btn-checkout">Vai al checkout</a>
-      <a href="/carrello" class="btn-continue-shopping" style="text-align:center;text-decoration:none;display:block;">Vedi il carrello completo</a>
+      <a href="/carrello" class="btn-checkout" style="text-align:center;text-decoration:none;display:block;">Vedi il carrello completo</a>
+      <a href="/checkout" class="btn-continue-shopping" style="text-align:center;text-decoration:none;display:block;">Vai al checkout</a>
     `;
   }
 
@@ -2829,8 +2829,9 @@
   window.appMoveToCart = function(id) {
     var entry = wishlist.find(function(i) { return i.id === id; });
     if (!entry) return;
+    var baseId = entry.productId || entry.id;
     var prod  = CATALOG.find(function(p) {
-      return p.id === (entry.productId || entry.id) || entry.id.startsWith(p.id);
+      return p.id === baseId || entry.id.startsWith(p.id);
     });
     var price = prod ? parseFloat((prod.price || '0').replace('\u20ac','').replace(',','.')) || 0 : 0;
     // Size resolution: if the customer never picked a size on the wishlist entry,
@@ -2838,15 +2839,21 @@
     // products (jewellery, bags, belts) intentionally stay without a size.
     var taglia = entry.taglia || '';
     if (!taglia) {
-      var _cat = productCategory(entry.productId || entry.id);
+      var _cat = productCategory(baseId);
       if (SIZELESS_CATS.indexOf(_cat) === -1) taglia = savedSizeForCategory(_cat);
     }
+    // Same id scheme as product.html's "Aggiungi al carrello": productId + '-' + size,
+    // lowercased. Matching schemes means an identical line already in the cart is found
+    // by addToCart() and its qty incremented instead of a duplicate row being created;
+    // a different size still yields a different id, so sizes stay separate lines.
     addToCart({
-      id:      entry.id + (taglia && !entry.taglia ? '-sz-' + taglia : '') + '-cart',
-      name:    entry.name,
-      variant: (entry.color || '') + (taglia ? ' · ' + taglia : ''),
-      price:   price,
-      color:   entry.colorKey || 'ph-blush'
+      id:         baseId + (taglia ? '-' + taglia.toLowerCase() : ''),
+      product_id: baseId,
+      taglia:     taglia || null,
+      name:       entry.name,
+      variant:    (entry.color || '') + (taglia ? ' · ' + taglia : ''),
+      price:      price,
+      color:      entry.colorKey || 'ph-blush'
     });
     window.appRemoveWishlist(id);
     closeWishlist();

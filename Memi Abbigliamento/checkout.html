@@ -731,7 +731,7 @@
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
             Torna all'indirizzo
           </button>
-          <button class="btn-next" onclick="goToStep(4)">
+          <button class="btn-next" onclick="continueToConfirm()">
             Rivedi e conferma
             <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
@@ -1086,6 +1086,7 @@
       if (n === 5 && !opts.internal) return;      // step 5 is a result screen, not a destination
       if (n > currentStep + 1) return;             // the stepper never skips ahead more than one step
       if (n > currentStep && currentStep === 2 && !validateAddressStep()) return;
+      if (n > currentStep && currentStep === 3 && !validatePaymentStep()) return;
       if (n === 4) updateReviewSummary();
 
       document.querySelectorAll('.step-panel').forEach(function(p) { p.classList.remove('active'); });
@@ -1134,6 +1135,27 @@
       }
       if (el('step1Error')) el('step1Error').style.display = valid ? 'none' : 'flex';
       return valid;
+    }
+
+    // Nothing to check for PayPal (its own button pays directly from this panel) or
+    // SumUp (same — its widget owns the pay action). Only the Stripe card tab needs a
+    // "did they actually finish typing a card" gate before Confermare.
+    function validatePaymentStep() {
+      var tabs = document.querySelectorAll('.pay-tab');
+      var activeIdx = Array.prototype.findIndex.call(tabs, function(t) { return t.classList.contains('active'); });
+      if (activeIdx === 1) return true;              // PayPal
+      if (window.__sumupMounted) return true;         // SumUp
+      if (stripeInstance && stripeCardEl && !stripeCardComplete) {
+        var errEl = el('stripeCardError');
+        if (errEl) { errEl.textContent = 'Completa i dati della carta per continuare.'; errEl.style.display = 'block'; }
+        return false;
+      }
+      return true;   // no Stripe key configured (e.g. local dev) — nothing to validate
+    }
+
+    function continueToConfirm() {
+      if (!validatePaymentStep()) return;
+      goToStep(4);
     }
 
     function continueToPayment() {
@@ -1433,6 +1455,7 @@
     // ── Stripe Elements ───────────────────────────────────────────────────────
     var stripeInstance  = null;
     var stripeCardEl    = null;
+    var stripeCardComplete = false;   // Stripe Elements' own completeness flag, set by the 'change' handler
     var stripeClientSecret = null;
     var stripePayIntentId  = null;
     var stripeIntentAmount = null;   // the cents the current client_secret was created for
@@ -1466,6 +1489,7 @@
       });
       stripeCardEl.mount('#stripeCardElement');
       stripeCardEl.on('change', function(event) {
+        stripeCardComplete = !!event.complete;
         var errEl = el('stripeCardError');
         if (errEl) {
           errEl.textContent = event.error ? event.error.message : '';
