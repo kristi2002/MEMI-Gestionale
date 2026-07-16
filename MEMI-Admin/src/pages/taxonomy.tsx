@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Layers, FolderTree, Plus, Pencil, Trash2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Layers, FolderTree, Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { StatusBadge } from '@/components/common/status-badge';
@@ -10,10 +11,12 @@ import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import type { FieldConfig, FormValues } from '@/components/common/entity-form-fields';
 import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useCategories, useCollections, useSaveEntity, useDeleteMany } from '@/hooks/queries';
+import { useCategories, useCollections, useAllProducts, useSaveEntity, useDeleteMany } from '@/hooks/queries';
 import { api } from '@/lib/api';
-import type { Taxonomy } from '@/types';
+import type { ProductRow, Taxonomy } from '@/types';
 import type { ExportColumn } from '@/lib/export';
 import { toast } from 'sonner';
 
@@ -60,6 +63,7 @@ function TaxonomyManager({
   query,
   invalidateKey,
   exportName,
+  rowFilter,
 }: {
   title: string;
   subtitle: string;
@@ -70,8 +74,11 @@ function TaxonomyManager({
   query: ReturnType<typeof useCategories>;
   invalidateKey: string;
   exportName: string;
+  /** Optional row filter (e.g. hide category-slug rows from the Collezioni list). */
+  rowFilter?: (r: Taxonomy) => boolean;
 }) {
-  const rows = query.data ?? [];
+  const all = query.data ?? [];
+  const rows = rowFilter ? all.filter(rowFilter) : all;
   const deleteMut = useDeleteMany<number>((id) => entityApi.delete(id), invalidateKey);
   const navigate = useNavigate();
 
@@ -236,6 +243,15 @@ export function CategoryFormPage() {
 
 export function CollectionsPage() {
   const query = useCollections();
+  const categoriesQuery = useCategories();
+  // Collections are editorial groupings: rows that are really categories (same
+  // slug as a managed category) and the technical shop-all tag are hidden from
+  // this list. Nothing is deleted — the rows stay in the DB and any legacy
+  // storefront page they power keeps working.
+  const categorySlugs = useMemo(
+    () => new Set((categoriesQuery.data ?? []).map((c) => c.slug)),
+    [categoriesQuery.data],
+  );
   return (
     <TaxonomyManager
       title="Collezioni"
@@ -247,9 +263,127 @@ export function CollectionsPage() {
       query={query}
       invalidateKey="collections"
       exportName="collezioni"
+      rowFilter={(r) => !categorySlugs.has(r.slug) && r.slug !== 'shop-all'}
     />
   );
 }
+/** Products belonging to one collection: full list (name + category) with add/remove.
+ *  Membership lives on the product (products.collections), so each change is a
+ *  partial product update; list + counters refresh via query invalidation. */
+function CollectionProductsCard({ slug }: { slug: string }) {
+  const qc = useQueryClient();
+  const productsQuery = useAllProducts();
+  const all = productsQuery.data?.items ?? [];
+  const isIn = (p: ProductRow) => Array.isArray(p.collections) && p.collections.includes(slug);
+  const inCollection = all.filter(isIn);
+  const available = all.filter((p) => !isIn(p));
+  const [selected, setSelected] = useState('');
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  async function saveCollections(p: ProductRow, next: string[]) {
+    setBusyId(p.id);
+    try {
+      await api.products.update(p.id, { collections: next });
+      await qc.invalidateQueries({ queryKey: ['products'] });
+      await qc.invalidateQueries({ queryKey: ['collections'] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Operazione non riuscita');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <Card className="mt-6">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Prodotti nella collezione ({inCollection.length})</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="w-80 max-w-full">
+            <Select value={selected} onValueChange={setSelected}>
+              <SelectTrigger>
+                <SelectValue placeholder={available.length ? 'Aggiungi un prodotto…' : 'Tutti i prodotti sono già inclusi'} />
+              </SelectTrigger>
+              <SelectContent>
+                {available.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} — {p.categoria}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            size="sm"
+            disabled={!selected || busyId != null}
+            onClick={async () => {
+              const p = available.find((x) => x.id === selected);
+              if (!p) return;
+              await saveCollections(p, [...(Array.isArray(p.collections) ? p.collections : []), slug]);
+              setSelected('');
+              toast.success('Prodotto aggiunto alla collezione');
+            }}
+          >
+            <Plus /> Aggiungi
+          </Button>
+        </div>
+
+        {productsQuery.isLoading ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">Caricamento…</div>
+        ) : inCollection.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">Nessun prodotto in questa collezione.</div>
+        ) : (
+          <div className="overflow-x-auto rounded-md border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50 text-left">
+                  <th className="px-3 py-2 font-medium">Prodotto</th>
+                  <th className="px-3 py-2 font-medium">Categoria</th>
+                  <th className="px-3 py-2" />
+                </tr>
+              </thead>
+              <tbody>
+                {inCollection.map((p) => (
+                  <tr key={p.id} className="border-b last:border-0">
+                    <td className="px-3 py-2">
+                      <div className="font-medium">{p.name}</div>
+                      <div className="text-xs text-muted-foreground">{p.id}</div>
+                    </td>
+                    <td className="px-3 py-2 capitalize">{p.categoria}</td>
+                    <td className="px-3 py-2 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        disabled={busyId != null}
+                        onClick={async () => {
+                          await saveCollections(p, (Array.isArray(p.collections) ? p.collections : []).filter((s) => s !== slug));
+                          toast.success('Prodotto rimosso dalla collezione');
+                        }}
+                      >
+                        {busyId === p.id ? <Loader2 className="animate-spin" /> : <Trash2 />} Rimuovi
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function CollectionFormPage() {
-  return <TaxonomyFormPage singular="collezione" backPath="/collections" backLabel="Collezioni" entityApi={api.collections} query={useCollections()} invalidateKey="collections" />;
+  const query = useCollections();
+  const { id } = useParams<{ id: string }>();
+  const row = (query.data ?? []).find((r) => String(r.id) === id);
+  return (
+    <>
+      <TaxonomyFormPage singular="collezione" backPath="/collections" backLabel="Collezioni" entityApi={api.collections} query={query} invalidateKey="collections" />
+      {row && <CollectionProductsCard slug={row.slug} />}
+    </>
+  );
 }
