@@ -553,7 +553,6 @@
         <span class="sf2-pay" title="PayPal"><em>Pay</em>Pal</span>
         <span class="sf2-pay" title="Apple Pay">&#63743; Pay</span>
         <span class="sf2-pay" title="Google Pay">G Pay</span>
-        <span class="sf2-pay sf2-pay-klarna" title="Klarna">Klarna.</span>
       </div>
       <p class="sf2-pay-note"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Transazioni protette con crittografia SSL</p>
     </div>
@@ -628,7 +627,6 @@
         .sf2-pay-visa{color:#1A1F71;font-style:italic;letter-spacing:.02em;}
         .sf2-pay-amex{color:#2E77BC;}
         .sf2-pay em{font-style:italic;font-weight:700;color:#253B80;}
-        .sf2-pay-klarna{background:#FFB3C7;border-color:#FFB3C7;font-weight:600;letter-spacing:0;color:#17120F;}
         .sf2-mc{display:inline-flex;}
         .sf2-mc b{width:15px;height:15px;border-radius:50%;display:block;}
         .sf2-mc b:first-child{background:#EB001B;}
