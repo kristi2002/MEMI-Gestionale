@@ -588,7 +588,7 @@
         }
         .sf2-inner{max-width:1280px;margin:0 auto;padding:3.25rem 2rem 3.5rem;display:grid;grid-template-columns:1fr 2fr;gap:2.5rem 4rem;align-items:start;}
         .sf2-brand{grid-row:1/-1;}
-        @media(max-width:800px){.sf2-inner{grid-template-columns:1fr;gap:2.5rem;}.sf2-brand{grid-row:auto;}}
+        @media(max-width:800px){.sf2-inner{grid-template-columns:1fr;gap:2.5rem;}.sf2-brand{grid-row:auto;}.sf2-paywrap{grid-column:auto;}.sf2-payments{flex-wrap:wrap;}}
         .sf2-logo{display:inline-block;margin-bottom:.55rem;line-height:0;text-decoration:none;}
         .sf2-logo-img{height:58px;width:auto;display:block;}
         /* prev footer lockup (revert): .sf2-logo{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:#3B2B2B;letter-spacing:.06em;display:inline-flex;align-items:center;gap:.55rem} .sf2-logo-badge{width:40px;height:40px;border-radius:11px;box-shadow:0 2px 10px rgba(107,107,163,.2)} */
@@ -619,9 +619,9 @@
         .sf2-nl-form input::placeholder{color:var(--brown-light,#9e8a8a);}
         .sf2-nl-form button{border:none;background:var(--espresso,#3B2B2B);color:#fff;padding:.5rem .85rem;cursor:pointer;font-size:.85rem;transition:background .2s;flex-shrink:0;}
         .sf2-nl-form button:hover{background:var(--blush-dark,#6B6BA3);}
-        .sf2-paywrap{border-top:1px solid var(--beige,#DBDBEE);padding-top:1.5rem;}
+        .sf2-paywrap{grid-column:2;border-top:1px solid var(--beige,#DBDBEE);padding-top:1.5rem;}
         .sf2-pay-title{font-size:.65rem;letter-spacing:.13em;text-transform:uppercase;color:var(--brown-light,#9e8a8a);margin-bottom:.85rem;font-weight:600;}
-        .sf2-payments{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;}
+        .sf2-payments{display:flex;align-items:center;gap:.55rem;flex-wrap:nowrap;}
         .sf2-pay{display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:34px;padding:0 .8rem;background:#fff;border:1px solid var(--beige-dark,#BEBEDD);border-radius:7px;font-size:.68rem;font-weight:700;letter-spacing:.05em;color:var(--espresso,#3B2B2B);white-space:nowrap;box-shadow:0 1px 3px rgba(59,43,43,.06);transition:transform .2s,box-shadow .2s,border-color .2s;cursor:default;}
         .sf2-pay:hover{transform:translateY(-2px);box-shadow:0 4px 10px rgba(59,43,43,.12);border-color:var(--brown-light,#9e8a8a);}
         .sf2-pay-visa{color:#1A1F71;font-style:italic;letter-spacing:.02em;}
