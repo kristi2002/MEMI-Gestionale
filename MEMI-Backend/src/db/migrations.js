@@ -525,6 +525,29 @@ async function bootstrapAdmin(pool) {
 }
 
 /**
+ * Ensure the four canonical editorial collections exist in the managed list so
+ * the admin product form can offer them without anyone touching the DB by hand.
+ * INSERT IGNORE only — never deletes or renames rows, so admin edits (and any
+ * pre-existing collections) are always preserved.
+ */
+const EDITORIAL_COLLECTIONS = [
+  ['novita', 'Nuovi arrivi'],
+  ['saldi', 'Saldi'],
+  ['estate-2025', 'Estate 2025'],
+  ['best-seller', 'Best Sellers'],
+];
+
+async function ensureEditorialCollections(pool) {
+  try {
+    for (const [slug, name] of EDITORIAL_COLLECTIONS) {
+      await pool.query('INSERT IGNORE INTO product_collections (slug, name) VALUES (?, ?)', [slug, name]);
+    }
+  } catch (err) {
+    console.error('   ! ensureEditorialCollections skipped:', err.message);
+  }
+}
+
+/**
  * Seed the managed taxonomy tables from the values already present on products,
  * but ONLY when a table is still empty — so an admin who later renames or deletes
  * a category/collection is never overruled on the next boot. Best-effort: any
@@ -677,6 +700,8 @@ async function runMigrations(pool) {
   }
   // 3b. Seed managed taxonomy tables from existing catalog values (idempotent).
   await seedTaxonomies(pool);
+  // 3c. Make sure the canonical editorial collections are always available.
+  await ensureEditorialCollections(pool);
   // 4. Admin bootstrap + default-credential safety check
   await bootstrapAdmin(pool);
   console.log(`✅  Migrations applied (${STATEMENTS.length} feature tables + columns/indexes ensured)`);

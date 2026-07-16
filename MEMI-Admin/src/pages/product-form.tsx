@@ -11,6 +11,14 @@ import { useCategories, useCollections, useColors } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
+/** The only collections assignable from this form — editorial groupings, not categories. */
+const EDITORIAL_COLLECTIONS = [
+  { value: 'novita', label: 'Nuovi arrivi' },
+  { value: 'saldi', label: 'Saldi' },
+  { value: 'estate-2025', label: 'Estate 2025' },
+  { value: 'best-seller', label: 'Best Sellers' },
+];
+
 /** "S:10, M:5, Unica:20" → [{taglia:'S',stock:10}, …]. Bare labels default to stock 0. */
 function parseSizes(s: string): { taglia: string; stock: number }[] {
   return String(s || '')
@@ -131,16 +139,16 @@ export function ProductFormPage() {
     return managed;
   }, [categoriesQuery.data, values.categoria]);
 
-  // Collection options come from the managed Collezioni entity; any current
-  // slugs not in the managed list are appended so legacy tags still show.
+  // The product form offers ONLY the editorial collections — categories are a
+  // separate axis (the Categoria field) and must not appear here. Labels come
+  // from the managed Collezioni entity when available, else the fixed fallback.
   const collectionOptions = useMemo(() => {
-    const managed = (collectionsQuery.data ?? []).map((c) => ({ value: c.slug, label: c.name }));
-    const cur = Array.isArray(values.collections) ? (values.collections as string[]) : [];
-    cur.forEach((slug) => {
-      if (slug && !managed.some((o) => o.value === slug)) managed.push({ value: slug, label: slug });
-    });
-    return managed;
-  }, [collectionsQuery.data, values.collections]);
+    const managed = collectionsQuery.data ?? [];
+    return EDITORIAL_COLLECTIONS.map(({ value, label }) => ({
+      value,
+      label: managed.find((c) => c.slug === value)?.name ?? label,
+    }));
+  }, [collectionsQuery.data]);
 
   // Colour options come from the managed Colori entity; current value always included.
   const colorOptions = useMemo(() => {
@@ -225,7 +233,11 @@ export function ProductFormPage() {
         discount_pct: values.discount_pct || 0,
         status: values.status || 'attivo',
         description: values.description || null,
-        collections: Array.isArray(values.collections) ? values.collections : [],
+        // Persist only editorial collection slugs; legacy category-named tags
+        // on this product are dropped when it is saved (deliberate cleanup).
+        collections: Array.isArray(values.collections)
+          ? (values.collections as string[]).filter((s) => EDITORIAL_COLLECTIONS.some((o) => o.value === s))
+          : [],
       };
       const sizes = parseSizes(values.sizes as string);
       if (sizes.length) data.taglie = sizes;
