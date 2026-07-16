@@ -164,8 +164,67 @@ async function verifyPaypalWebhook(headers, event) {
   return { verified: res && res.verification_status === 'SUCCESS', reason: (res && res.verification_status) || 'unknown' };
 }
 
+// ── SumUp (Online Payments — Checkouts v0.1) ─────────────────
+// Config-gated exactly like PayPal: without credentials every entry point reports
+// "not configured", the storefront keeps using Stripe and nothing breaks. Env:
+//   SUMUP_API_KEY (secret, Bearer), SUMUP_MERCHANT_CODE (merchant identifier)
+// SumUp has no separate sandbox host — testing uses a sandbox merchant account
+// (developer.sumup.com) against the same api.sumup.com base URL.
+function sumupConfigured() {
+  return Boolean(process.env.SUMUP_API_KEY && process.env.SUMUP_MERCHANT_CODE);
+}
+const SUMUP_BASE = 'https://api.sumup.com';
+function sumupHeaders() {
+  return { Authorization: `Bearer ${process.env.SUMUP_API_KEY}`, 'Content-Type': 'application/json' };
+}
+
+/** Create a SumUp checkout for `amountCents` EUR. Returns { id, status }. */
+async function createSumupCheckout(amountCents, reference) {
+  const body = await httpJson(`${SUMUP_BASE}/v0.1/checkouts`, {
+    method: 'POST',
+    headers: sumupHeaders(),
+    body: JSON.stringify({
+      checkout_reference: reference,
+      amount: Math.round(amountCents) / 100,
+      currency: 'EUR',
+      merchant_code: process.env.SUMUP_MERCHANT_CODE,
+      description: 'Ordine MEMI Abbigliamento',
+    }),
+  });
+  return { id: body.id, status: body.status };
+}
+
+/** Inspect a SumUp checkout. Returns { status, amountCents, currency, transactionId }. */
+async function getSumupCheckout(checkoutId) {
+  const body = await httpJson(`${SUMUP_BASE}/v0.1/checkouts/${encodeURIComponent(checkoutId)}`, {
+    headers: { Authorization: `Bearer ${process.env.SUMUP_API_KEY}` },
+  });
+  const txns = Array.isArray(body.transactions) ? body.transactions : [];
+  const okTxn = txns.find(t => t && (t.status === 'SUCCESSFUL' || t.status === 'PAID')) || txns[0] || null;
+  return {
+    status: body.status,                     // PENDING | PAID | FAILED
+    amountCents: body.amount != null ? Math.round(Number(body.amount) * 100) : null,
+    currency: body.currency || null,
+    transactionId: okTxn ? (okTxn.id || okTxn.transaction_code || null) : null,
+  };
+}
+
+/** Refund a PAID SumUp checkout for `amountCents` (full or partial). */
+async function refundSumupCheckout(checkoutId, amountCents) {
+  const info = await getSumupCheckout(checkoutId);
+  if (info.status !== 'PAID' || !info.transactionId)
+    throw new Error(`SumUp checkout ${checkoutId} not refundable (status ${info.status})`);
+  await httpJson(`${SUMUP_BASE}/v0.1/me/refund/${encodeURIComponent(info.transactionId)}`, {
+    method: 'POST',
+    headers: sumupHeaders(),
+    body: JSON.stringify({ amount: Math.round(amountCents) / 100 }),
+  });
+  return { ok: true, transactionId: info.transactionId };
+}
+
 module.exports = {
   paypalConfigured, paypalEnv,
+  sumupConfigured, createSumupCheckout, getSumupCheckout, refundSumupCheckout,
   createPaypalOrder, capturePaypalOrder, inspectPaypalOrder, verifyPaypalOrder,
   verifyPaypalWebhook,
 };

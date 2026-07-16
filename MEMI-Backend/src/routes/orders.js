@@ -200,6 +200,25 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
     let paypalCaptureAfterCommit = false;   // PayPal: capture only after the order is persisted
     if (total === 0 && (giftCard || discountCode)) {
       paymentStatus = 'pagato';
+    } else if (payment_method === 'carta' && req.body.sumup_checkout_id) {
+      // SumUp card payment (config-gated). The widget already charged the buyer, so we
+      // only accept the order if the checkout is PAID for exactly the server-computed
+      // total — same trust model as the Stripe branch below.
+      if (!providers.sumupConfigured())
+        return res.status(503).json({ error: 'SumUp non disponibile al momento.' });
+      try {
+        const info = await providers.getSumupCheckout(String(req.body.sumup_checkout_id));
+        if (info.status !== 'PAID')
+          throw new Error('SumUp checkout not paid (status ' + info.status + ')');
+        if (info.currency !== 'EUR' || Number(info.amountCents) !== expectedCents)
+          throw new Error('SumUp amount/currency mismatch');
+        // 'sumup_' prefix keeps provider detection unambiguous for refunds (Stripe = pi_…).
+        paymentRef = 'sumup_' + String(req.body.sumup_checkout_id);
+        paymentStatus = 'pagato';
+      } catch (suErr) {
+        (req.log || console).error({ err: suErr, ref: req.body.sumup_checkout_id }, 'SumUp verify error');
+        return res.status(402).json({ error: 'Impossibile verificare il pagamento. Riprova.' });
+      }
     } else if (payment_method === 'carta' && process.env.STRIPE_SECRET_KEY) {
       if (!payment_intent_id)
         return res.status(402).json({ error: 'Dati di pagamento mancanti. Riprova.' });

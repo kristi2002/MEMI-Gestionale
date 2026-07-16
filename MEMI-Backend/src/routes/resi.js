@@ -21,6 +21,7 @@ function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) return null;
   return require('stripe')(process.env.STRIPE_SECRET_KEY);
 }
+const providers = require('../payment-providers');   // SumUp refunds (config-gated)
 
 /* ── GET /api/admin/resi ── */
 router.get('/', requireAdmin, async (req, res) => {
@@ -166,7 +167,8 @@ router.post('/:id/refund', requireAdmin, async (req, res) => {
   // bonifico): skip the Stripe call but run the exact same bookkeeping.
   const manual = !!(req.body && req.body.manual === true);
   const stripe = getStripe();
-  if (!stripe && !manual) return res.status(503).json({ error: 'Stripe non configurato sul server.' });
+  if (!stripe && !manual && !providers.sumupConfigured())
+    return res.status(503).json({ error: 'Nessun provider di pagamento configurato sul server.' });
 
   try {
     const [[row]] = await pool.execute(
@@ -193,11 +195,21 @@ router.post('/:id/refund', requireAdmin, async (req, res) => {
 
     let refund = null;
     if (!manual) {
+      const isSumup = /^sumup_/.test(String(row.payment_intent_id || ''));
       try {
-        refund = await stripe.refunds.create({ payment_intent: row.payment_intent_id, amount: amountCents });
-      } catch (stripeErr) {
-        (req.log || console).error({ err: stripeErr, resiId: req.params.id, orderId: row.order_id }, '[Stripe] refund error');
-        return res.status(502).json({ error: 'Errore Stripe: ' + (stripeErr.message || 'sconosciuto') });
+        if (isSumup) {
+          // Order was paid via the SumUp widget: refund through the SumUp API.
+          if (!providers.sumupConfigured())
+            return res.status(503).json({ error: 'SumUp non configurato sul server.' });
+          const r = await providers.refundSumupCheckout(String(row.payment_intent_id).slice('sumup_'.length), amountCents);
+          refund = { id: r.transactionId };
+        } else {
+          if (!stripe) return res.status(503).json({ error: 'Stripe non configurato sul server.' });
+          refund = await stripe.refunds.create({ payment_intent: row.payment_intent_id, amount: amountCents });
+        }
+      } catch (refundErr) {
+        (req.log || console).error({ err: refundErr, resiId: req.params.id, orderId: row.order_id }, '[Refund] provider error');
+        return res.status(502).json({ error: 'Errore rimborso: ' + (refundErr.message || 'sconosciuto') });
       }
     }
 

@@ -66,6 +66,7 @@ router.get('/config', (req, res) => {
     providers: {
       stripe: Boolean(process.env.STRIPE_SECRET_KEY),
       paypal: providers.paypalConfigured(),
+      sumup:  providers.sumupConfigured(),
     },
     paypal: providers.paypalConfigured()
       ? { clientId: process.env.PAYPAL_CLIENT_ID, env: providers.paypalEnv() }
@@ -103,6 +104,26 @@ router.post('/paypal/capture', async (req, res) => {
   } catch (err) {
     (req.log || console).error({ err }, '[PayPal] capture error');
     return res.status(502).json({ error: 'Errore PayPal: ' + (err.message || 'sconosciuto') });
+  }
+});
+
+// ── SumUp (config-gated) ──────────────────────────────────────
+// Creates a SumUp hosted checkout for the card widget. The final trust check is re-done
+// server-side in POST /api/orders (getSumupCheckout → status PAID + exact amount match),
+// so this endpoint is a convenience for the widget, not the source of truth.
+router.post('/sumup/create-checkout', validateBody(createIntentSchema), async (req, res) => {
+  if (!providers.sumupConfigured())
+    return res.status(503).json({ error: 'SumUp non configurato sul server.' });
+  const { amount_cents } = req.body;
+  if (!amount_cents || typeof amount_cents !== 'number' || amount_cents < 50)
+    return res.status(400).json({ error: 'Importo non valido (minimo €0.50).' });
+  try {
+    const reference = 'MEMI-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    const co = await providers.createSumupCheckout(amount_cents, reference);
+    return res.json(co);   // { id, status }
+  } catch (err) {
+    (req.log || console).error({ err }, '[SumUp] create-checkout error');
+    return res.status(502).json({ error: 'Errore SumUp: ' + (err.message || 'sconosciuto') });
   }
 });
 

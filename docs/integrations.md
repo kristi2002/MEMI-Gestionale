@@ -191,6 +191,10 @@ In development (running files locally without Docker), set the meta content to `
   return **503**.
 - Routes: `POST /paypal/create-order`, `POST /paypal/capture`, `POST /klarna/create-session`,
   `POST /klarna/create-order`, plus `POST /paypal/webhook` + `POST /klarna/webhook`.
+- SumUp (config-gated via `SUMUP_API_KEY` + `SUMUP_MERCHANT_CODE`): `POST /api/payments/sumup/create-checkout`
+  creates a hosted checkout for the card widget; `POST /api/orders` re-verifies PAID + amount; refunds via
+  `POST /api/admin/resi/:id/refund` (orders with `payment_intent_id` prefixed `sumup_`). When configured, the
+  storefront card tab mounts the SumUp widget instead of Stripe Elements.
 - `orders.js` re-verifies the provider transaction amount server-side (`verifyPaypalOrder` /
   `verifyKlarnaOrder`) before marking `pagato`; the reference is stored in the UNIQUE
   `orders.payment_intent_id`. Klarna's frontend widget is `TODO(klarna-live)`. See `docs/ENVIRONMENT.md`.

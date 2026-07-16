@@ -325,6 +325,14 @@ fi
 C="$(code -X POST -H 'Content-Type: application/json' -d '{"amount_cents":5000}' "$BASE/api/payments/paypal/create-order")"
 [ "$C" = "503" ] && ok "POST /paypal/create-order unconfigured -> 503" || ko "paypal/create-order -> HTTP $C (expected 503 when PAYPAL_* unset)"
 
+echo "$CFG" | grep -q '"sumup"' \
+  && ok "GET /api/payments/config -> sumup advertised" \
+  || ko "GET /api/payments/config missing sumup provider flag"
+CS="$(code -X POST -H 'Content-Type: application/json' -d '{"amount_cents":5000}' "$BASE/api/payments/sumup/create-checkout")"
+if [ "$CS" = "503" ]; then ok "POST /sumup/create-checkout unconfigured -> 503"
+elif [ "$CS" = "200" ]; then ok "POST /sumup/create-checkout configured -> 200"
+else ko "sumup/create-checkout -> HTTP $CS (expected 503 unconfigured / 200 configured)"; fi
+
 echo
 echo "------------------------------"
 echo "  passed: $pass   failed: $fail"

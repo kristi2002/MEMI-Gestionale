@@ -110,9 +110,14 @@ ok(/stock >= \?/.test(orders) && /affectedRows === 0/.test(orders), 'checkout st
 ok(orders.includes('ensureInvoiceForOrder(pool, orderId)'),      'auto-invoice on paid checkout/admin order');
 ok(/payment_status === 'pagato'[\s\S]{0,200}ensureInvoiceForOrder/.test(orders), 'auto-invoice on pagato transition');
 ok(resiRt.includes("compensateOrder(conn, orderRow, 'refund')"), 'Stripe refund restocks goods');
-ok(/manual === true/.test(resiRt) && /if \(!stripe && !manual\)/.test(resiRt), 'manual refund path (PayPal/bonifico)');
+ok(/manual === true/.test(resiRt) && /if \(!stripe && !manual && !providers\.sumupConfigured\(\)\)/.test(resiRt), 'manual refund path (PayPal/bonifico) + SumUp-aware provider guard');
 ok(resiRt.includes('sendRefundNotification'),                    'refund notifies the customer by email');
 ok(/payment_status = 'pagato' WHERE id = \?", \[existing\.id\]/.test(payRt), 'webhook reconciles late payments to pagato');
+const provRt = read('MEMI-Backend/src/payment-providers.js');
+ok(/sumupConfigured/.test(provRt) && /v0\.1\/checkouts/.test(provRt), 'SumUp provider implemented (config-gated)');
+ok(/sumup\/create-checkout/.test(payRt), 'payments router exposes /sumup/create-checkout');
+const ordRt = read('MEMI-Backend/src/routes/orders.js');
+ok(/getSumupCheckout/.test(ordRt) && /sumup_checkout_id/.test(ordRt), 'orders verify SumUp checkouts server-side');
 ok(comp.includes('reverseOrderPoints') && comp.includes('GREATEST(0, utilizzi - 1)'), 'compensation module reverses points + frees discount');
 ok(invoic.includes("payment_status !== 'pagato'"),               'invoicing only fires for paid orders');
 ok(adminApp.includes('_apiFail'),                                'admin shows API-offline banner (no silent mock data)');
