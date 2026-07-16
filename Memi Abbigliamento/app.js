@@ -512,6 +512,7 @@
         <p class="sf2-nl-privacy" style="margin-top:.5rem;font-size:.65rem;line-height:1.5;opacity:.65;">Iscrivendoti autorizzi l'uso della tua email per l'invio della newsletter (<a href="/privacy" style="color:inherit;text-decoration:underline;">Privacy Policy</a>). Puoi disiscriverti in qualsiasi momento.</p>
       </div>
     </div>
+    <div class="sf2-right">
     <div class="sf2-nav">
       <div class="sf2-col">
         <h4>Negozio</h4>
@@ -556,6 +557,7 @@
       </div>
       <p class="sf2-pay-note"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Transazioni protette con crittografia SSL</p>
     </div>
+    </div>
   </div>
   <div class="sf2-bottom">
     <p>© 2025 Memi Abbigliamento · Tutti i diritti riservati</p>
@@ -586,9 +588,8 @@
           .sf2-trust-item{font-size:.6rem;letter-spacing:.04em;gap:.45rem;align-items:flex-start;line-height:1.35;}
           .sf2-trust-item svg{width:13px;height:13px;margin-top:-1px;}
         }
-        .sf2-inner{max-width:1280px;margin:0 auto;padding:3.25rem 2rem 3.5rem;display:grid;grid-template-columns:1fr 2fr;gap:2.5rem 4rem;align-items:start;}
-        .sf2-brand{grid-row:1/-1;}
-        @media(max-width:800px){.sf2-inner{grid-template-columns:1fr;gap:2.5rem;}.sf2-brand{grid-row:auto;}.sf2-paywrap{grid-column:auto;}.sf2-payments{flex-wrap:wrap;}}
+        .sf2-inner{max-width:1280px;margin:0 auto;padding:3.25rem 2rem 3.5rem;display:grid;grid-template-columns:1fr 2fr;gap:4rem;align-items:start;}
+        @media(max-width:800px){.sf2-inner{grid-template-columns:1fr;gap:2.5rem;}.sf2-payments{flex-wrap:wrap;}}
         .sf2-logo{display:inline-block;margin-bottom:.55rem;line-height:0;text-decoration:none;}
         .sf2-logo-img{height:58px;width:auto;display:block;}
         /* prev footer lockup (revert): .sf2-logo{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;color:#3B2B2B;letter-spacing:.06em;display:inline-flex;align-items:center;gap:.55rem} .sf2-logo-badge{width:40px;height:40px;border-radius:11px;box-shadow:0 2px 10px rgba(107,107,163,.2)} */
@@ -619,7 +620,7 @@
         .sf2-nl-form input::placeholder{color:var(--brown-light,#9e8a8a);}
         .sf2-nl-form button{border:none;background:var(--espresso,#3B2B2B);color:#fff;padding:.5rem .85rem;cursor:pointer;font-size:.85rem;transition:background .2s;flex-shrink:0;}
         .sf2-nl-form button:hover{background:var(--blush-dark,#6B6BA3);}
-        .sf2-paywrap{grid-column:2;border-top:1px solid var(--beige,#DBDBEE);padding-top:1.5rem;}
+        .sf2-paywrap{margin-top:2.25rem;}
         .sf2-pay-title{font-size:.65rem;letter-spacing:.13em;text-transform:uppercase;color:var(--brown-light,#9e8a8a);margin-bottom:.85rem;font-weight:600;}
         .sf2-payments{display:flex;align-items:center;gap:.55rem;flex-wrap:nowrap;}
         .sf2-pay{display:inline-flex;align-items:center;justify-content:center;min-width:56px;height:34px;padding:0 .8rem;background:#fff;border:1px solid var(--beige-dark,#BEBEDD);border-radius:7px;font-size:.68rem;font-weight:700;letter-spacing:.05em;color:var(--espresso,#3B2B2B);white-space:nowrap;box-shadow:0 1px 3px rgba(59,43,43,.06);transition:transform .2s,box-shadow .2s,border-color .2s;cursor:default;}
