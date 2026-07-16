@@ -304,6 +304,14 @@
     #privacyWarning.show{display:flex;animation:consentFadeIn .3s ease both;}
     #privacyWarning svg{width:18px;height:18px;flex-shrink:0;stroke:#d9534f;fill:none;stroke-width:2;margin-top:1px;}
     @keyframes consentFadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+    @media(max-width:479px){
+      #consentBlock{padding:var(--space-2);}
+      #consentBlock.consent-error{box-shadow:0 0 0 3px rgba(217,83,79,.08);}
+      @keyframes consentShake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(1px)}
+        30%,50%,70%{transform:translateX(-2px)}40%,60%{transform:translateX(2px)}}
+      #privacyWarning{padding:10px 12px;gap:8px;font-size:var(--text-xs);border-left-width:3px;border-radius:var(--radius-sm);}
+      #privacyWarning svg{width:16px;height:16px;}
+    }
   </style>
   <link rel="stylesheet" href="app.css?v=ece23419" />
   <!-- Stripe.js — loads asynchronously, must be loaded from Stripe CDN -->
