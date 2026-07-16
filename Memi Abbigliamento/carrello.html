@@ -20,58 +20,89 @@
     a{color:inherit;text-decoration:none;}
     img{max-width:100%;display:block;}
 
-    .page-wrap{max-width:1160px;margin:0 auto;padding:clamp(32px,6vw,72px) clamp(16px,4vw,40px) 100px;}
-    .page-head{margin-bottom:clamp(24px,4vw,40px);padding-bottom:1.5rem;border-bottom:1px solid var(--border,#e8e2da);}
-    .page-eyebrow{font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--brown-light,#a08d80);font-weight:500;margin-bottom:.75rem;}
-    .page-title{font-family:var(--font-serif);font-size:clamp(2rem,5vw,3rem);font-weight:300;line-height:1.05;}
+    /* ── Compact "above the fold" shell ──────────────────────────────────
+       Header (announcement 32px + nav 64px ≈ 96px) + this page must fit a
+       1-2 item cart inside a ~760px viewport with zero scroll: the eyebrow
+       is gone, the title is one line, and every vertical gap below is cut
+       to the minimum that still reads as breathing room, not clutter. */
+    .page-wrap{max-width:1160px;margin:0 auto;padding:clamp(14px,2vw,20px) clamp(16px,4vw,40px) 56px;}
+    .page-head{margin-bottom:clamp(14px,2vw,20px);display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+    .page-title{font-family:var(--font-serif);font-size:clamp(1.5rem,2.6vw,2rem);font-weight:400;line-height:1.05;}
     .page-title em{font-style:italic;color:var(--blush-dark,#b98a8a);}
+    .page-count{font-size:.82rem;color:var(--brown-light,#a08d80);font-weight:500;}
 
-    .cart-layout{display:grid;grid-template-columns:1fr;gap:clamp(24px,4vw,48px);}
+    .cart-layout{display:grid;grid-template-columns:1fr;gap:clamp(18px,3vw,32px);}
     @media(min-width:900px){.cart-layout{grid-template-columns:1.6fr .9fr;align-items:start;}}
 
-    .cart-lines{display:flex;flex-direction:column;gap:14px;}
-    .cline{display:grid;grid-template-columns:96px 1fr auto;gap:16px;background:var(--white,#fff);border:1px solid var(--border,#ece7e0);border-radius:14px;padding:14px;align-items:center;}
-    .cline-img{width:96px;aspect-ratio:3/4;border-radius:10px;overflow:hidden;background:var(--blush-light,#f6ecec);}
-    .cline-img img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;}
-    .cline-info{display:flex;flex-direction:column;gap:8px;min-width:0;}
-    .cline-name{font-size:.98rem;font-weight:500;color:var(--espresso);line-height:1.35;}
-    .cline-name a{color:inherit;text-decoration:none;}
+    /* ── Product lines — elevated card, soft shadow instead of a flat
+       border, gentle hover lift + image zoom, icon-based remove control. ── */
+    .cart-lines{display:flex;flex-direction:column;gap:12px;}
+    .cline{display:grid;grid-template-columns:88px 1fr auto;gap:16px;background:var(--white,#fff);
+      border:1px solid var(--cream-dark,#ece7e0);border-radius:16px;padding:14px;align-items:center;
+      box-shadow:var(--shadow-xs);transition:box-shadow .25s var(--ease-out,ease),transform .25s var(--ease-out,ease),border-color .25s;}
+    .cline:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);border-color:transparent;}
+    .cline-img{width:88px;aspect-ratio:3/4;border-radius:11px;overflow:hidden;background:var(--blush-light,#f6ecec);position:relative;}
+    .cline-img img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;transition:transform .5s var(--ease-out,ease);}
+    .cline:hover .cline-img img{transform:scale(1.06);}
+    .cline-info{display:flex;flex-direction:column;gap:9px;min-width:0;}
+    .cline-name{font-family:var(--font-serif);font-size:1.08rem;font-weight:500;color:var(--espresso);line-height:1.3;}
+    .cline-name a{color:inherit;text-decoration:none;background-image:linear-gradient(currentColor,currentColor);
+      background-size:0 1px;background-repeat:no-repeat;background-position:0 100%;transition:background-size .25s;}
+    .cline-name a:hover{background-size:100% 1px;}
     .cline-tags{display:flex;flex-wrap:wrap;gap:6px;}
-    .cline-tag{font-size:.68rem;padding:3px 9px;border-radius:20px;background:var(--blush-light,#f6ecec);color:var(--brown-mid,#6b5050);}
-    .cline-tag.none{background:#f4f0ea;color:var(--brown-light,#a08d80);font-style:italic;}
-    .qty{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--border,#e2dcd4);border-radius:22px;padding:2px;width:max-content;}
-    .qty button{width:30px;height:30px;border:none;background:none;cursor:pointer;font-size:1.05rem;color:var(--espresso);border-radius:50%;transition:background .15s;}
-    .qty button:hover{background:var(--blush-light,#f6ecec);}
-    .qty span{min-width:26px;text-align:center;font-size:.9rem;}
+    .cline-tag{font-size:.68rem;padding:3px 10px;border-radius:20px;background:var(--sage-light,#EAF1E0);color:var(--sage-dark,#5F7A3F);font-weight:500;}
+    .cline-tag.none{background:#f4f0ea;color:var(--brown-light,#a08d80);font-style:italic;font-weight:400;}
+    .qty{display:inline-flex;align-items:center;gap:2px;border:1px solid var(--cream-dark,#e2dcd4);border-radius:22px;padding:2px;width:max-content;background:var(--cream,#F7F5F0);}
+    .qty button{width:26px;height:26px;border:none;background:none;cursor:pointer;font-size:1rem;color:var(--espresso);border-radius:50%;transition:background .15s,color .15s;display:flex;align-items:center;justify-content:center;}
+    .qty button:hover{background:var(--white);color:var(--blush-dark,#6B6BA3);}
+    .qty span{min-width:22px;text-align:center;font-size:.86rem;font-weight:500;}
     .cline-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;height:100%;justify-content:space-between;}
-    .cline-price{font-size:1rem;font-weight:600;color:var(--espresso);white-space:nowrap;}
-    .cline-remove{background:none;border:none;cursor:pointer;font-size:.74rem;color:var(--brown-light,#a08d80);text-decoration:underline;text-underline-offset:3px;}
-    .cline-remove:hover{color:var(--blush-dark,#b98a8a);}
+    .cline-price{font-family:var(--font-serif);font-size:1.15rem;font-weight:600;color:var(--espresso);white-space:nowrap;}
+    .cline-remove{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      background:none;border:none;cursor:pointer;color:var(--brown-light,#a08d80);transition:background .15s,color .15s;}
+    .cline-remove:hover{background:var(--blush-light,#f6ecec);color:var(--blush-dark,#b98a8a);}
+    .cline-remove svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.7;}
 
-    .summary{background:var(--white,#fff);border:1px solid var(--border,#ece7e0);border-radius:16px;padding:clamp(20px,3vw,28px);position:sticky;top:24px;}
-    .summary h2{font-family:var(--font-serif);font-size:1.35rem;font-weight:300;margin-bottom:1.25rem;}
-    .sum-row{display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:.75rem;color:var(--brown-mid,#6b5050);}
-    .sum-row.total{font-size:1.15rem;font-weight:600;color:var(--espresso);border-top:1px solid var(--border,#ece7e0);padding-top:1rem;margin-top:1rem;}
-    .ship-bar{height:6px;border-radius:6px;background:var(--blush-light,#f6ecec);overflow:hidden;margin:.4rem 0 .6rem;}
-    .ship-bar > i{display:block;height:100%;background:var(--blush-dark,#c99);transition:width .4s;}
-    .ship-note{font-size:.76rem;color:var(--brown-light,#a08d80);margin-bottom:1.25rem;}
+    .summary{background:var(--white,#fff);border:1px solid var(--cream-dark,#ece7e0);border-radius:18px;padding:clamp(18px,2.4vw,24px);position:sticky;top:16px;box-shadow:var(--shadow-xs);}
+    .summary h2{font-family:var(--font-serif);font-size:1.2rem;font-weight:400;margin-bottom:1rem;}
+    .sum-row{display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:.65rem;color:var(--brown-mid,#6b5050);}
+    .sum-row.total{font-size:1.1rem;font-weight:600;color:var(--espresso);border-top:1px solid var(--cream-dark,#ece7e0);padding-top:.85rem;margin-top:.85rem;}
+    .ship-bar{height:6px;border-radius:6px;background:var(--blush-light,#f6ecec);overflow:hidden;margin:.35rem 0 .55rem;}
+    .ship-bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--sage-dark,#5F7A3F),var(--sage,#D5E4C3));transition:width .4s;}
+    .ship-note{font-size:.75rem;color:var(--brown-light,#a08d80);margin-bottom:1.1rem;}
     .ship-note strong{color:var(--espresso);}
     .ship-note .ok{color:#5F7A3F;font-weight:500;}
-    .btn-co{display:block;width:100%;text-align:center;padding:.95rem;background:var(--espresso,#3b2b2b);color:#fff;border-radius:10px;text-decoration:none;font-size:.86rem;letter-spacing:.05em;transition:background .2s;border:none;cursor:pointer;}
-    .btn-co:hover{background:var(--blush-dark,#b98a8a);}
-    .express-label{text-align:center;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light,#a08d80);margin:1.1rem 0 .6rem;}
-    .express-row{display:flex;gap:.5rem;}
-    .express-row button{flex:1;height:40px;border-radius:9px;border:1.5px solid var(--beige,#DBDBEE);background:#fff;cursor:pointer;font-size:.72rem;font-weight:700;transition:border-color .18s;}
-    .express-row button:hover{border-color:var(--beige-dark,#BEBEDD);}
-    .express-row .apple{color:var(--espresso,#3b2b2b);} .express-row .gpay{color:#3c4043;} .express-row .paypal{color:#003087;}
-    .cart-cont{display:block;text-align:center;margin-top:1rem;font-size:.8rem;color:var(--brown-mid,#6b5050);text-decoration:underline;text-underline-offset:3px;}
+    .btn-co{display:block;width:100%;text-align:center;padding:.9rem;background:var(--espresso,#3b2b2b);color:#fff;border-radius:11px;text-decoration:none;font-size:.86rem;font-weight:500;letter-spacing:.04em;transition:background .2s,transform .2s;border:none;cursor:pointer;box-shadow:var(--shadow-sm);}
+    .btn-co:hover{background:var(--blush-dark,#6B6BA3);transform:translateY(-1px);}
 
-    .cart-empty{text-align:center;padding:clamp(48px,10vw,96px) 1rem;}
-    .cart-empty svg{width:60px;height:60px;stroke:var(--blush,#e6c6c6);fill:none;stroke-width:1.3;margin-bottom:1.25rem;}
-    .cart-empty h2{font-family:var(--font-serif);font-size:1.6rem;font-weight:300;margin-bottom:.5rem;}
-    .cart-empty p{color:var(--brown-light,#a08d80);font-size:.9rem;margin-bottom:1.75rem;}
+    /* ── Checkout rapido — real wallet-brand pills instead of plain
+       bordered text buttons, with a proper "oppure" divider. ── */
+    .express-label{display:flex;align-items:center;gap:10px;text-align:center;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light,#a08d80);margin:1.2rem 0 .7rem;}
+    .express-label::before,.express-label::after{content:'';flex:1;height:1px;background:var(--cream-dark,#e8e2da);}
+    .express-row{display:flex;gap:.5rem;}
+    .express-row button{flex:1;height:42px;border-radius:11px;border:1.5px solid var(--cream-dark,#DBDBEE);background:#fff;cursor:pointer;
+      font-size:.74rem;font-weight:700;letter-spacing:.01em;display:flex;align-items:center;justify-content:center;gap:5px;
+      transition:border-color .18s,transform .18s,box-shadow .18s;}
+    .express-row button:hover{transform:translateY(-1px);box-shadow:var(--shadow-xs);}
+    .express-row .apple{background:var(--espresso,#17181A);color:#fff;border-color:var(--espresso,#17181A);}
+    .express-row .apple:hover{background:#000;}
+    .express-row .apple svg{width:13px;height:13px;fill:#fff;}
+    .express-row .gpay{color:#3c4043;border-color:var(--cream-dark,#DBDBEE);}
+    .express-row .gpay:hover{border-color:#8f8fc1;}
+    .express-row .gpay .g-blue{color:#4285F4;} .express-row .gpay .g-red{color:#EA4335;}
+    .express-row .gpay .g-yellow{color:#FBBC05;} .express-row .gpay .g-green{color:#34A853;}
+    .express-row .paypal{color:#003087;border-color:var(--cream-dark,#DBDBEE);}
+    .express-row .paypal:hover{border-color:#003087;}
+    .express-row .paypal em{font-style:italic;font-weight:800;color:#009cde;}
+    .cart-cont{display:block;text-align:center;margin-top:.9rem;font-size:.8rem;color:var(--brown-mid,#6b5050);text-decoration:underline;text-underline-offset:3px;}
+
+    .cart-empty{text-align:center;padding:clamp(40px,8vw,72px) 1rem;}
+    .cart-empty svg{width:52px;height:52px;stroke:var(--blush,#e6c6c6);fill:none;stroke-width:1.3;margin-bottom:1.1rem;}
+    .cart-empty h2{font-family:var(--font-serif);font-size:1.5rem;font-weight:300;margin-bottom:.5rem;}
+    .cart-empty p{color:var(--brown-light,#a08d80);font-size:.9rem;margin-bottom:1.6rem;}
     .cart-cta{display:inline-block;padding:.8rem 2.2rem;background:var(--espresso,#3b2b2b);color:#fff;border-radius:9px;text-decoration:none;font-size:.82rem;letter-spacing:.05em;}
     .cart-cta:hover{background:var(--blush-dark,#b98a8a);}
+
   </style>
 </head>
 <body>
@@ -79,8 +110,8 @@
   <div data-include="site-header"></div>
   <main class="page-wrap">
     <div class="page-head">
-      <p class="page-eyebrow">Riepilogo</p>
       <h1 class="page-title">Il tuo <em>carrello</em></h1>
+      <span class="page-count" id="pageCount"></span>
     </div>
     <div id="cartRoot"></div>
   </main>
@@ -113,6 +144,8 @@
       var cart = loadCart();
       var root = document.getElementById('cartRoot');
       if(!cart.length){
+        var countElEmpty = document.getElementById('pageCount');
+        if (countElEmpty) countElEmpty.textContent = '';
         root.innerHTML =
           '<div class="cart-empty"><svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>' +
           '<h2>Il carrello è vuoto</h2><p>Aggiungi qualcosa di bello per iniziare.</p>' +
@@ -120,6 +153,9 @@
         return;
       }
       var subtotal = cart.reduce(function(s,i){ return s + (Number(i.price)||0)*(i.qty||1); }, 0);
+      var totalQty = cart.reduce(function(s,i){ return s + (i.qty||1); }, 0);
+      var countEl = document.getElementById('pageCount');
+      if (countEl) countEl.textContent = totalQty + (totalQty === 1 ? ' articolo' : ' articoli');
       var remaining = Math.max(0, FREE_SHIP - subtotal);
       var progress = Math.min(100, subtotal/FREE_SHIP*100);
 
@@ -141,7 +177,7 @@
           '</div>' +
           '<div class="cline-right">' +
             '<span class="cline-price">'+money((Number(item.price)||0)*(item.qty||1))+'</span>' +
-            '<button class="cline-remove" data-remove="'+esc(item.id)+'">Rimuovi</button>' +
+            '<button class="cline-remove" data-remove="'+esc(item.id)+'" aria-label="Rimuovi" title="Rimuovi"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/></svg></button>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -164,9 +200,9 @@
             '<a class="btn-co" href="/checkout">Vai al checkout</a>' +
             '<p class="express-label">oppure checkout rapido</p>' +
             '<div class="express-row">' +
-              '<button class="apple" data-express="applepay">Apple Pay</button>' +
-              '<button class="gpay" data-express="gpay">Google Pay</button>' +
-              '<button class="paypal" data-express="paypal">PayPal</button>' +
+              '<button class="apple" data-express="applepay"><svg viewBox="0 0 24 24"><path d="M16.36 1.43c0 1.14-.47 2.16-1.24 2.9-.83.8-2 .19-1.24-.24C13.9 3.5 14.36 2.3 14.36 1.14c0-.15-.01-.3-.03-.14C15.44.2 16.36-.02 16.36 1.43zM19.7 17.1c-.35.8-.77 1.55-1.26 2.24-.67.94-1.22 1.6-1.65 1.96-.66.6-1.37.9-2.13.92-.55.01-1.2-.15-1.97-.48-.77-.33-1.48-.49-2.12-.49-.67 0-1.4.16-2.18.49-.79.33-1.42.5-1.9.51-.72.03-1.45-.28-2.18-.94-.46-.4-1.04-1.09-1.74-2.08-.75-1.06-1.37-2.3-1.85-3.71-.52-1.53-.78-3.02-.78-4.45 0-1.64.35-3.05 1.06-4.24.56-.95 1.3-1.7 2.23-2.25.93-.55 1.93-.83 3.02-.85.58 0 1.35.18 2.3.53.95.35 1.56.53 1.82.53.2 0 .87-.21 2.02-.62 1.09-.38 2-.54 2.75-.48 2.03.16 3.55.96 4.57 2.4-1.82 1.1-2.72 2.64-2.7 4.62.01 1.54.56 2.83 1.65 3.85.49.47 1.04.83 1.65 1.09-.13.39-.27.76-.43 1.13z"/></svg>Pay</button>' +
+              '<button class="gpay" data-express="gpay"><span class="g-blue">G</span><span class="g-red">o</span><span class="g-yellow">o</span><span class="g-blue">g</span><span class="g-green">l</span><span class="g-red">e</span>&nbsp;Pay</button>' +
+              '<button class="paypal" data-express="paypal"><em>Pay</em>Pal</button>' +
             '</div>' +
             '<a class="cart-cont" href="/shop">Continua lo shopping</a>' +
           '</aside>' +
