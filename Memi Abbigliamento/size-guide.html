@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Guida alle Taglie — Memi Abbigliamento</title>
-  <meta name="description" content="Guida completa alle taglie Memi Abbigliamento. Tabelle di misurazione per abbigliamento (IT 36–48) e calzature (EU 36–42).">
+  <title>Guida alle Taglie Donna — Memi Abbigliamento</title>
+  <meta name="description" content="Guida alle taglie donna Memi Abbigliamento: tabelle di conversione IT/EU/UK/US in cm e pollici per abbigliamento, pantaloni e calzature, con istruzioni su come misurarti.">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="tokens.css?v=70c280df" />
   <link rel="stylesheet" href="shop.css?v=26123529" />
@@ -23,53 +23,85 @@
       padding:var(--space-2) var(--space-4);font-size:var(--text-xs);
       letter-spacing:var(--tracking-wider);text-transform:uppercase;font-weight:500;
       border-bottom:1px solid var(--beige);}
-    .sg-page{max-width:860px;margin:0 auto;padding:3.5rem 1.5rem 6rem;}
+    .sg-page{max-width:920px;margin:0 auto;padding:3rem 1.5rem 6rem;}
     .sg-breadcrumb{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
-      color:var(--brown-light);margin-bottom:2.5rem;display:flex;align-items:center;gap:.5rem;}
+      color:var(--brown-light);margin-bottom:2rem;display:flex;align-items:center;gap:.5rem;}
     .sg-breadcrumb a{color:var(--brown-light);transition:color .2s;}
     .sg-breadcrumb a:hover{color:var(--espresso);}
     .sg-breadcrumb svg{width:12px;height:12px;stroke:var(--brown-light);fill:none;stroke-width:2;}
-    .sg-hero{margin-bottom:3rem;}
+    .sg-hero{margin-bottom:2rem;}
     .sg-hero h1{font-family:var(--font-serif);font-size:clamp(2rem,5vw,3.2rem);
       font-weight:300;color:var(--espresso);line-height:1.15;margin-bottom:.75rem;}
     .sg-hero h1 em{font-style:italic;color:var(--brown-mid);}
-    .sg-hero p{font-size:.92rem;color:var(--brown-light);max-width:560px;line-height:1.7;}
-    .sg-tip{background:var(--lavender-light);border-left:3px solid var(--lavender-dark);
-      padding:1rem 1.25rem;border-radius:0 4px 4px 0;margin-bottom:2.5rem;
-      font-size:.85rem;color:var(--espresso);line-height:1.6;}
-    .sg-tip strong{font-weight:500;}
-    .sg-section{margin-bottom:3rem;}
-    .sg-section-title{font-family:var(--font-serif);font-size:1.35rem;font-weight:300;
-      color:var(--espresso);margin-bottom:1.25rem;padding-bottom:.6rem;
+    .sg-hero p{font-size:.92rem;color:var(--brown-light);max-width:620px;line-height:1.7;}
+
+    /* ── ASOS-style category tabs ── */
+    .sg-tabs{display:flex;gap:.5rem;flex-wrap:wrap;position:sticky;top:0;z-index:5;
+      background:var(--bg-base);padding:.9rem 0;margin-bottom:1.75rem;
       border-bottom:1px solid var(--beige);}
-    .sg-section-title em{font-style:italic;color:var(--brown-mid);}
-    .sg-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:1rem;}
-    .sg-table{width:100%;border-collapse:collapse;font-size:.83rem;}
-    .sg-table th{background:var(--espresso);color:#fff;padding:.6rem .9rem;
-      font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;
+    .sg-tab{padding:.55rem 1.3rem;border:1px solid var(--beige-dark,#BEBEDD);border-radius:999px;
+      font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;font-weight:500;
+      color:var(--brown-mid);background:#fff;transition:all .2s;}
+    .sg-tab:hover{border-color:var(--espresso);color:var(--espresso);}
+    .sg-tab.active{background:var(--espresso);border-color:var(--espresso);color:#fff;}
+
+    /* ── unit toggle (cm / in) ── */
+    .sg-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;
+      flex-wrap:wrap;margin-bottom:1.25rem;}
+    .sg-panel-title{font-family:var(--font-serif);font-size:1.45rem;font-weight:300;color:var(--espresso);}
+    .sg-panel-title em{font-style:italic;color:var(--brown-mid);}
+    .sg-units{display:inline-flex;border:1px solid var(--beige-dark,#BEBEDD);border-radius:999px;overflow:hidden;}
+    .sg-unit{padding:.4rem 1.1rem;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;
+      font-weight:600;color:var(--brown-mid);background:#fff;transition:all .2s;}
+    .sg-unit.active{background:var(--espresso);color:#fff;}
+
+    .sg-panel{display:none;}
+    .sg-panel.active{display:block;}
+
+    /* ── tables ── */
+    .sg-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:1rem;
+      border:1px solid var(--beige);border-radius:4px;background:#fff;}
+    .sg-table{width:100%;border-collapse:collapse;font-size:.83rem;min-width:560px;}
+    .sg-table th{background:var(--espresso);color:#fff;padding:.65rem .9rem;
+      font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;font-weight:500;
       text-align:center;white-space:nowrap;}
-    .sg-table th:first-child{text-align:left;}
-    .sg-table td{padding:.55rem .9rem;border-bottom:1px solid var(--beige);text-align:center;
-      color:var(--espresso);}
-    .sg-table td:first-child{text-align:left;font-weight:500;color:var(--brown-mid);}
-    .sg-table tbody tr:nth-child(even){background:var(--bg-base);}
-    .sg-table tbody tr:hover{background:var(--lavender-light);}
-    .sg-note{font-size:.78rem;color:var(--brown-light);margin-top:.75rem;line-height:1.6;}
-    .sg-how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-      gap:1.5rem;margin-top:1.5rem;}
-    .sg-how-item{background:#fff;border:1px solid var(--beige);border-radius:2px;padding:1.5rem;}
-    .sg-how-item h3{font-family:var(--font-serif);font-size:1rem;font-weight:400;
-      color:var(--espresso);margin-bottom:.4rem;}
-    .sg-how-item p{font-size:.8rem;color:var(--brown-light);line-height:1.6;}
+    .sg-table th:first-child,.sg-table td:first-child{text-align:left;position:sticky;left:0;}
+    .sg-table th:first-child{background:var(--espresso);z-index:2;}
+    .sg-table td{padding:.6rem .9rem;border-bottom:1px solid var(--beige);text-align:center;
+      color:var(--espresso);white-space:nowrap;}
+    .sg-table td:first-child{font-weight:600;color:var(--espresso);background:var(--lavender-light,#F1F0F8);z-index:1;}
+    .sg-table tbody tr:last-child td{border-bottom:none;}
+    .sg-table tbody tr:hover td{background:var(--blush-light,#F6EFF3);}
+    .sg-table tbody tr:hover td:first-child{background:var(--beige,#DBDBEE);}
+    .sg-note{font-size:.78rem;color:var(--brown-light);margin:.75rem 0 2.25rem;line-height:1.6;}
+
+    /* ── how to measure (ASOS-style numbered guide) ── */
+    .sg-measure{margin-top:3rem;padding-top:2.25rem;border-top:1px solid var(--beige);}
+    .sg-measure-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:1.25rem;margin-top:1.5rem;}
+    .sg-measure-item{background:#fff;border:1px solid var(--beige);border-radius:4px;padding:1.4rem;display:flex;gap:.9rem;align-items:flex-start;}
+    .sg-measure-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--espresso);
+      color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:600;}
+    .sg-measure-item h3{font-family:var(--font-serif);font-size:1.05rem;font-weight:400;color:var(--espresso);margin-bottom:.35rem;}
+    .sg-measure-item p{font-size:.8rem;color:var(--brown-light);line-height:1.6;}
+    .sg-tip{background:var(--lavender-light);border-left:3px solid var(--lavender-dark,#8F8FC1);
+      padding:1rem 1.25rem;border-radius:0 4px 4px 0;margin-top:1.75rem;
+      font-size:.85rem;color:var(--espresso);line-height:1.6;}
+    .sg-tip strong{font-weight:600;}
+
     .sg-cta{text-align:center;padding:2.5rem;background:#fff;border:1px solid var(--beige);
-      border-radius:2px;margin-top:1rem;}
-    .sg-cta h2{font-family:var(--font-serif);font-size:1.4rem;font-weight:300;
-      color:var(--espresso);margin-bottom:.5rem;}
+      border-radius:4px;margin-top:3rem;}
+    .sg-cta h2{font-family:var(--font-serif);font-size:1.4rem;font-weight:300;color:var(--espresso);margin-bottom:.5rem;}
     .sg-cta p{font-size:.85rem;color:var(--brown-light);margin-bottom:1.25rem;}
     .btn-shop{display:inline-block;padding:.75rem 2rem;background:var(--espresso);
       color:#fff;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;
       border-radius:2px;transition:background .2s;}
     .btn-shop:hover{background:var(--brown-mid);}
+    @media(max-width:640px){
+      .sg-page{padding:2rem 1rem 4rem;}
+      .sg-tabs{gap:.4rem;padding:.75rem 0;}
+      .sg-tab{padding:.5rem 1rem;font-size:.7rem;}
+      .sg-toolbar{align-items:flex-start;}
+    }
   </style>
 </head>
 <body>
@@ -80,125 +112,133 @@
 <main class="sg-page">
 
   <nav class="sg-breadcrumb">
-    <a href="index.html">Home</a>
+    <a href="/">Home</a>
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    <span>Guida alle Taglie</span>
+    <span>Guida alle Taglie Donna</span>
   </nav>
 
   <div class="sg-hero">
-    <h1>Guida alle <em>Taglie</em></h1>
-    <p>Per trovare la tua taglia perfetta, usa le tabelle qui sotto. Se sei tra due taglie, ti consigliamo di scegliere la più grande per un fit più confortevole.</p>
+    <h1>Guida alle taglie <em>Donna</em></h1>
+    <p>Trova la tua taglia perfetta con le nostre tabelle di conversione internazionali. Se sei tra due taglie, ti consigliamo la più grande per un fit più confortevole.</p>
   </div>
 
-  <div class="sg-tip">
-    <strong>Come prendere le misure:</strong> Misura sempre su indumenti leggeri o a corpo nudo, tenendo il metro ben aderente ma non stretto. Per il seno misura nel punto più ampio; per la vita nel punto più stretto; per i fianchi nel punto più largo.
+  <!-- Category tabs -->
+  <div class="sg-tabs" role="tablist" aria-label="Categoria taglie">
+    <button class="sg-tab active" role="tab" aria-selected="true" data-panel="abbigliamento">Abbigliamento</button>
+    <button class="sg-tab" role="tab" aria-selected="false" data-panel="pantaloni">Pantaloni &amp; Gonne</button>
+    <button class="sg-tab" role="tab" aria-selected="false" data-panel="scarpe">Calzature</button>
   </div>
 
   <!-- ABBIGLIAMENTO -->
-  <section class="sg-section">
-    <h2 class="sg-section-title">Abbigliamento — Taglie <em>Lettera</em> (XS–XL)</h2>
+  <section class="sg-panel active" id="panel-abbigliamento">
+    <div class="sg-toolbar">
+      <h2 class="sg-panel-title">Abbigliamento — <em>Vestiti, Top &amp; Camicie</em></h2>
+      <div class="sg-units" role="group" aria-label="Unità di misura">
+        <button class="sg-unit active" data-unit="cm" aria-pressed="true">cm</button>
+        <button class="sg-unit" data-unit="in" aria-pressed="false">pollici</button>
+      </div>
+    </div>
     <div class="sg-table-wrap">
       <table class="sg-table">
         <thead>
           <tr>
-            <th>Taglia</th>
-            <th>IT/EU</th>
-            <th>FR</th>
-            <th>UK</th>
-            <th>US</th>
-            <th>Seno (cm)</th>
-            <th>Vita (cm)</th>
-            <th>Fianchi (cm)</th>
+            <th>Taglia</th><th>IT/EU</th><th>FR</th><th>UK</th><th>US</th>
+            <th>Seno</th><th>Vita</th><th>Fianchi</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td>XS</td><td>36</td><td>34</td><td>6</td><td>2</td><td>80–83</td><td>60–63</td><td>86–89</td></tr>
-          <tr><td>S</td><td>38</td><td>36</td><td>8</td><td>4</td><td>84–87</td><td>64–67</td><td>90–93</td></tr>
-          <tr><td>M</td><td>40</td><td>38</td><td>10</td><td>6</td><td>88–91</td><td>68–71</td><td>94–97</td></tr>
-          <tr><td>L</td><td>42</td><td>40</td><td>12</td><td>8</td><td>92–96</td><td>72–76</td><td>98–102</td></tr>
-          <tr><td>XL</td><td>44</td><td>42</td><td>14</td><td>10</td><td>97–101</td><td>77–81</td><td>103–107</td></tr>
+          <tr><td>XS</td><td>36</td><td>34</td><td>6</td><td>2</td><td data-cm="80–83">80–83</td><td data-cm="60–63">60–63</td><td data-cm="86–89">86–89</td></tr>
+          <tr><td>S</td><td>38</td><td>36</td><td>8</td><td>4</td><td data-cm="84–87">84–87</td><td data-cm="64–67">64–67</td><td data-cm="90–93">90–93</td></tr>
+          <tr><td>M</td><td>40</td><td>38</td><td>10</td><td>6</td><td data-cm="88–91">88–91</td><td data-cm="68–71">68–71</td><td data-cm="94–97">94–97</td></tr>
+          <tr><td>L</td><td>42</td><td>40</td><td>12</td><td>8</td><td data-cm="92–96">92–96</td><td data-cm="72–76">72–76</td><td data-cm="98–102">98–102</td></tr>
+          <tr><td>XL</td><td>44</td><td>42</td><td>14</td><td>10</td><td data-cm="97–101">97–101</td><td data-cm="77–81">77–81</td><td data-cm="103–107">103–107</td></tr>
         </tbody>
       </table>
     </div>
     <p class="sg-note">* Le taglie possono variare leggermente in base al tessuto e al modello. Consulta sempre la descrizione del singolo capo.</p>
   </section>
 
-  <!-- PANTALONI NUMERICI -->
-  <section class="sg-section">
-    <h2 class="sg-section-title">Pantaloni — Taglie <em>Numeriche</em> (IT 38–48)</h2>
+  <!-- PANTALONI -->
+  <section class="sg-panel" id="panel-pantaloni">
+    <div class="sg-toolbar">
+      <h2 class="sg-panel-title">Pantaloni &amp; Gonne — <em>Taglie numeriche</em></h2>
+      <div class="sg-units" role="group" aria-label="Unità di misura">
+        <button class="sg-unit active" data-unit="cm" aria-pressed="true">cm</button>
+        <button class="sg-unit" data-unit="in" aria-pressed="false">pollici</button>
+      </div>
+    </div>
     <div class="sg-table-wrap">
       <table class="sg-table">
         <thead>
           <tr>
-            <th>Taglia IT</th>
-            <th>Taglia EU</th>
-            <th>UK</th>
-            <th>US</th>
-            <th>Vita (cm)</th>
-            <th>Fianchi (cm)</th>
-            <th>Cavallo (cm)</th>
+            <th>Taglia IT</th><th>EU</th><th>UK</th><th>US</th>
+            <th>Vita</th><th>Fianchi</th><th>Cavallo</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td>38</td><td>34</td><td>6</td><td>2</td><td>60–62</td><td>86–88</td><td>72–74</td></tr>
-          <tr><td>40</td><td>36</td><td>8</td><td>4</td><td>64–66</td><td>90–92</td><td>75–77</td></tr>
-          <tr><td>42</td><td>38</td><td>10</td><td>6</td><td>68–70</td><td>94–96</td><td>78–80</td></tr>
-          <tr><td>44</td><td>40</td><td>12</td><td>8</td><td>72–74</td><td>98–100</td><td>81–83</td></tr>
-          <tr><td>46</td><td>42</td><td>14</td><td>10</td><td>76–78</td><td>102–104</td><td>84–86</td></tr>
-          <tr><td>48</td><td>44</td><td>16</td><td>12</td><td>80–82</td><td>106–108</td><td>87–89</td></tr>
+          <tr><td>38</td><td>34</td><td>6</td><td>2</td><td data-cm="60–62">60–62</td><td data-cm="86–88">86–88</td><td data-cm="72–74">72–74</td></tr>
+          <tr><td>40</td><td>36</td><td>8</td><td>4</td><td data-cm="64–66">64–66</td><td data-cm="90–92">90–92</td><td data-cm="75–77">75–77</td></tr>
+          <tr><td>42</td><td>38</td><td>10</td><td>6</td><td data-cm="68–70">68–70</td><td data-cm="94–96">94–96</td><td data-cm="78–80">78–80</td></tr>
+          <tr><td>44</td><td>40</td><td>12</td><td>8</td><td data-cm="72–74">72–74</td><td data-cm="98–100">98–100</td><td data-cm="81–83">81–83</td></tr>
+          <tr><td>46</td><td>42</td><td>14</td><td>10</td><td data-cm="76–78">76–78</td><td data-cm="102–104">102–104</td><td data-cm="84–86">84–86</td></tr>
+          <tr><td>48</td><td>44</td><td>16</td><td>12</td><td data-cm="80–82">80–82</td><td data-cm="106–108">106–108</td><td data-cm="87–89">87–89</td></tr>
         </tbody>
       </table>
     </div>
+    <p class="sg-note">* Misure del corpo, non del capo. Per i modelli a vita alta considera 2–3 cm in più sulla vita.</p>
   </section>
 
-  <!-- CALZATURE -->
-  <section class="sg-section">
-    <h2 class="sg-section-title">Calzature — Taglie <em>EU</em> (36–42)</h2>
+  <!-- SCARPE -->
+  <section class="sg-panel" id="panel-scarpe">
+    <div class="sg-toolbar">
+      <h2 class="sg-panel-title">Calzature — <em>EU 36–42</em></h2>
+      <div class="sg-units" role="group" aria-label="Unità di misura">
+        <button class="sg-unit active" data-unit="cm" aria-pressed="true">cm</button>
+        <button class="sg-unit" data-unit="in" aria-pressed="false">pollici</button>
+      </div>
+    </div>
     <div class="sg-table-wrap">
       <table class="sg-table">
         <thead>
-          <tr>
-            <th>EU</th>
-            <th>IT</th>
-            <th>UK</th>
-            <th>US</th>
-            <th>Lunghezza piede (cm)</th>
-          </tr>
+          <tr><th>EU</th><th>IT</th><th>UK</th><th>US</th><th>Lunghezza piede</th></tr>
         </thead>
         <tbody>
-          <tr><td>36</td><td>36</td><td>3</td><td>5.5</td><td>22.5–23.0</td></tr>
-          <tr><td>37</td><td>37</td><td>4</td><td>6.5</td><td>23.5–24.0</td></tr>
-          <tr><td>38</td><td>38</td><td>5</td><td>7.5</td><td>24.5–25.0</td></tr>
-          <tr><td>39</td><td>39</td><td>6</td><td>8.5</td><td>25.5–26.0</td></tr>
-          <tr><td>40</td><td>40</td><td>6.5</td><td>9</td><td>26.0–26.5</td></tr>
-          <tr><td>41</td><td>41</td><td>7.5</td><td>10</td><td>26.5–27.0</td></tr>
-          <tr><td>42</td><td>42</td><td>8</td><td>10.5</td><td>27.0–27.5</td></tr>
+          <tr><td>36</td><td>36</td><td>3</td><td>5.5</td><td data-cm="22.5–23.0">22.5–23.0</td></tr>
+          <tr><td>37</td><td>37</td><td>4</td><td>6.5</td><td data-cm="23.5–24.0">23.5–24.0</td></tr>
+          <tr><td>38</td><td>38</td><td>5</td><td>7.5</td><td data-cm="24.5–25.0">24.5–25.0</td></tr>
+          <tr><td>39</td><td>39</td><td>6</td><td>8.5</td><td data-cm="25.5–26.0">25.5–26.0</td></tr>
+          <tr><td>40</td><td>40</td><td>6.5</td><td>9</td><td data-cm="26.0–26.5">26.0–26.5</td></tr>
+          <tr><td>41</td><td>41</td><td>7.5</td><td>10</td><td data-cm="26.5–27.0">26.5–27.0</td></tr>
+          <tr><td>42</td><td>42</td><td>8</td><td>10.5</td><td data-cm="27.0–27.5">27.0–27.5</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="sg-note">Per le scarpe, misura la lunghezza del piede stando in piedi su un foglio piano. Disegna il profilo e misura dalla punta al tallone.</p>
+    <p class="sg-note">Misura la lunghezza del piede stando in piedi su un foglio piano: disegna il profilo e misura dalla punta del dito più lungo al tallone.</p>
   </section>
 
-  <!-- COME MISURARE -->
-  <section class="sg-section">
-    <h2 class="sg-section-title">Come <em>Misurarsi</em></h2>
-    <div class="sg-how">
-      <div class="sg-how-item">
-        <h3>Seno</h3>
-        <p>Passa il metro intorno alla parte più ampia del petto, tenendolo orizzontale e parallelo al pavimento.</p>
+  <!-- COME MISURARTI -->
+  <section class="sg-measure">
+    <h2 class="sg-panel-title">Non conosci la tua taglia? <em>Come misurarti</em></h2>
+    <div class="sg-measure-grid">
+      <div class="sg-measure-item">
+        <span class="sg-measure-num">1</span>
+        <div><h3>Seno</h3><p>Passa il metro intorno alla parte più ampia del petto, tenendolo orizzontale e parallelo al pavimento.</p></div>
       </div>
-      <div class="sg-how-item">
-        <h3>Vita</h3>
-        <p>Misura nel punto più stretto del busto, solitamente sopra l'ombelico. Tieni il metro abbastanza aderente ma non costrittivo.</p>
+      <div class="sg-measure-item">
+        <span class="sg-measure-num">2</span>
+        <div><h3>Vita</h3><p>Misura nel punto più stretto del busto, solitamente sopra l'ombelico. Metro aderente ma non costrittivo.</p></div>
       </div>
-      <div class="sg-how-item">
-        <h3>Fianchi</h3>
-        <p>Misura nella parte più larga dei fianchi/glutei, tenendo i piedi uniti e il metro parallelo al pavimento.</p>
+      <div class="sg-measure-item">
+        <span class="sg-measure-num">3</span>
+        <div><h3>Fianchi</h3><p>Misura nella parte più larga dei fianchi/glutei, con i piedi uniti e il metro parallelo al pavimento.</p></div>
       </div>
-      <div class="sg-how-item">
-        <h3>Lunghezza piede</h3>
-        <p>Metti il piede su un foglio, traccia il profilo e misura dalla punta del dito più lungo al tallone.</p>
+      <div class="sg-measure-item">
+        <span class="sg-measure-num">4</span>
+        <div><h3>Lunghezza piede</h3><p>Piede su un foglio, traccia il profilo e misura dalla punta del dito più lungo al tallone.</p></div>
       </div>
+    </div>
+    <div class="sg-tip">
+      <strong>Consiglio:</strong> misura sempre su indumenti leggeri o a corpo nudo. In caso di dubbio tra due taglie, scegli la più grande — il reso è gratuito entro 30 giorni.
     </div>
   </section>
 
@@ -206,7 +246,7 @@
   <div class="sg-cta">
     <h2>Hai trovato la tua taglia?</h2>
     <p>Esplora la nostra collezione e trova il capo perfetto per te.</p>
-    <a href="shop.html" class="btn-shop">Vai allo Shop</a>
+    <a href="/shop" class="btn-shop">Vai allo Shop</a>
   </div>
 
 </main>
@@ -214,5 +254,39 @@
 <div data-include="site-footer"></div>
 
 <script src="api-client.js?v=7"></script>
-<script src="app.js?v=28"></script></body>
+<script src="app.js?v=29"></script>
+<script>
+(function () {
+  /* tabs */
+  var tabs = document.querySelectorAll('.sg-tab');
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      document.querySelectorAll('.sg-panel').forEach(function (p) { p.classList.remove('active'); });
+      var panel = document.getElementById('panel-' + tab.getAttribute('data-panel'));
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  /* cm / inches toggle — converts every data-cm cell, one decimal */
+  function toIn(v) { return String(Math.round((parseFloat(v.replace(',', '.')) / 2.54) * 10) / 10); }
+  function setUnit(unit) {
+    document.querySelectorAll('td[data-cm]').forEach(function (td) {
+      var cm = td.getAttribute('data-cm');
+      td.textContent = unit === 'cm' ? cm : cm.split('–').map(toIn).join('–');
+    });
+    document.querySelectorAll('.sg-unit').forEach(function (b) {
+      var on = b.getAttribute('data-unit') === unit;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+  document.querySelectorAll('.sg-unit').forEach(function (b) {
+    b.addEventListener('click', function () { setUnit(b.getAttribute('data-unit')); });
+  });
+})();
+</script>
+</body>
 </html>

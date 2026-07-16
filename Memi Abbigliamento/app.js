@@ -537,6 +537,7 @@
         <ul>
           <li><a href="mailto:info@memi.testdemo.it">Contattaci</a></li>
           <li><a href="/returns">Spedizioni &amp; Resi</a></li>
+          <li><a href="/size-guide">Guida alle Taglie</a></li>
           <li><a href="/order-tracking">Traccia il tuo ordine</a></li>
           <li><a href="/privacy">Privacy Policy</a></li>
         </ul>
@@ -545,6 +546,15 @@
   </div>
   <div class="sf2-bottom">
     <p>© 2025 Memi Abbigliamento · Tutti i diritti riservati</p>
+    <div class="sf2-payments" aria-label="Metodi di pagamento accettati">
+      <span class="sf2-pay" title="Visa">VISA</span>
+      <span class="sf2-pay" title="Mastercard"><i class="sf2-mc"><b></b><b></b></i></span>
+      <span class="sf2-pay" title="American Express">AMEX</span>
+      <span class="sf2-pay" title="PayPal"><em>Pay</em>Pal</span>
+      <span class="sf2-pay" title="Apple Pay">&#63743; Pay</span>
+      <span class="sf2-pay" title="Google Pay">G Pay</span>
+      <span class="sf2-pay sf2-pay-klarna" title="Klarna">Klarna.</span>
+    </div>
     <nav class="sf2-legal" aria-label="Link legali">
       <a href="/privacy">Privacy</a>
       <a href="cookie-policy.html">Cookie</a>
@@ -604,6 +614,15 @@
         .sf2-nl-form input::placeholder{color:var(--brown-light,#9e8a8a);}
         .sf2-nl-form button{border:none;background:var(--espresso,#3B2B2B);color:#fff;padding:.5rem .85rem;cursor:pointer;font-size:.85rem;transition:background .2s;flex-shrink:0;}
         .sf2-nl-form button:hover{background:var(--blush-dark,#6B6BA3);}
+        .sf2-payments{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;}
+        .sf2-pay{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:26px;padding:0 .5rem;background:#fff;border:1px solid var(--beige-dark,#BEBEDD);border-radius:4px;font-size:.58rem;font-weight:700;letter-spacing:.05em;color:var(--espresso,#3B2B2B);white-space:nowrap;}
+        .sf2-pay em{font-style:italic;font-weight:700;color:#253B80;}
+        .sf2-pay-klarna{background:#FFB3C7;border-color:#FFB3C7;font-weight:600;letter-spacing:0;}
+        .sf2-mc{display:inline-flex;}
+        .sf2-mc b{width:13px;height:13px;border-radius:50%;display:block;}
+        .sf2-mc b:first-child{background:#EB001B;}
+        .sf2-mc b:last-child{background:#F79E1B;margin-left:-5px;opacity:.9;}
+        @media(max-width:640px){.sf2-bottom{justify-content:center;text-align:center;}.sf2-payments{justify-content:center;width:100%;order:3;}}
       `;
       document.head.appendChild(s);
     }
