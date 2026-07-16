@@ -1,6 +1,6 @@
 # Project: MEMI Abbigliamento//
 
-E-commerce platform, three apps in one repo, Italian-language product/UI.
+E-commerce platform, three apps in one repo, Italian-language product/UI.  
 
 ## Structure
 - `Memi Abbigliamento/` — storefront. **Static** HTML/CSS/JS (nginx). Products are
