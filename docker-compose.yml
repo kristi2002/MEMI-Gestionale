@@ -42,6 +42,13 @@ services:
       context: ./MEMI-Backend
       dockerfile: Dockerfile
     restart: unless-stopped
+    # Tell Coolify/Traefik the port to route the backend domain (api.memi.testdemo.it) to.
+    # The app listens on 3000. Without an exposed port, Coolify's compose domain routing
+    # defaults the upstream to port 80 → Traefik finds no healthy server → 503 on the api.
+    # subdomain (while the storefront/admin nginx proxies keep working over the internal
+    # network). Exposing 3000 makes Coolify route the domain to the correct port.
+    expose:
+      - "3000"
     depends_on:
       mysql:
         condition: service_healthy
