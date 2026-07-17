@@ -2334,6 +2334,8 @@
             locale: 'it-IT',
             showAmount: true,   // the "Paga" button shows the server-side checkout amount
             onResponse: function(type, body) {
+              try { console.log('[SumUp DEBUG] onResponse type=' + type + ' body=' + JSON.stringify(body)); }
+              catch (_) { console.log('[SumUp DEBUG] onResponse', type, body); }
               if (type === 'sent') stageSumupPendingOrder();   // freshest form data before any 3DS redirect
               if (type === 'success' && body && body.status === 'PAID') {
                 // Charged. Place the order; the server verifies the checkout independently.
@@ -2342,7 +2344,9 @@
                 orderData.sumup_checkout_id = sumupCheckoutId;
                 submitOrder(orderData, function(msg) { showPaymentError(msg); });
               } else if (type === 'error' || type === 'fail' || (type === 'success' && (!body || body.status !== 'PAID'))) {
-                showPaymentError('Pagamento non riuscito. Controlla i dati della carta e riprova.');
+                console.error('[SumUp DEBUG] payment NOT completed', { type: type, status: body && body.status, message: body && body.message, body: body });
+                var reason = (body && (body.message || body.status)) ? (' (' + (body.message || body.status) + ')') : '';
+                showPaymentError('Pagamento non riuscito' + reason + '. Controlla i dati della carta e riprova.');
               }
             },
           });

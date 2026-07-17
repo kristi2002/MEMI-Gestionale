@@ -208,10 +208,15 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
         return res.status(503).json({ error: 'SumUp non disponibile al momento.' });
       try {
         const info = await providers.getSumupCheckout(String(req.body.sumup_checkout_id));
+        (req.log || console).info(
+          { ref: req.body.sumup_checkout_id, sumupStatus: info.status, sumupAmountCents: info.amountCents,
+            sumupCurrency: info.currency, expectedCents, merchantSandbox: info.merchantSandbox, txnStatuses: info.txnStatuses },
+          '[SumUp DEBUG] verifying checkout at order time'
+        );
         if (info.status !== 'PAID')
           throw new Error('SumUp checkout not paid (status ' + info.status + ')');
         if (info.currency !== 'EUR' || Number(info.amountCents) !== expectedCents)
-          throw new Error('SumUp amount/currency mismatch');
+          throw new Error('SumUp amount/currency mismatch (got ' + info.amountCents + ' ' + info.currency + ', expected ' + expectedCents + ' EUR)');
         // 'sumup_' prefix keeps provider detection unambiguous for refunds (Stripe = pi_…).
         paymentRef = 'sumup_' + String(req.body.sumup_checkout_id);
         paymentStatus = 'pagato';
