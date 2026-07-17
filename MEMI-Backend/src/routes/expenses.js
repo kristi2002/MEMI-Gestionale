@@ -15,7 +15,8 @@ const { requireAdmin, requireRole } = require('../middleware/auth');
 const { logAdminAction } = require('../audit');
 
 const ALLOWED_RICORRENZA = ['una_tantum', 'mensile', 'annuale'];
-const ALLOWED_CATEGORIE  = ['piano', 'app', 'dominio', 'marketing', 'logistica', 'fornitore', 'generale'];
+const ALLOWED_CATEGORIE  = ['piano', 'app', 'dominio', 'marketing', 'logistica', 'fornitore', 'generale',
+                            'affitto', 'utenze', 'stipendi', 'merce', 'software', 'spedizioni', 'tasse'];
 
 /* ── GET /api/admin/expenses ── */
 router.get('/', requireAdmin, async (req, res) => {

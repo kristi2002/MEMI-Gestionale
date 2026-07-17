@@ -54,6 +54,7 @@ var BG = {
   vestiti:   'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1920&q=85',
   gonne:     'https://images.unsplash.com/photo-1583496661160-fb5218f5a9c4?auto=format&fit=crop&w=1920&q=85',
   top:       'https://images.unsplash.com/photo-1596783074918-c84cb06531ca?auto=format&fit=crop&w=1920&q=85',
+  blusa:     'https://images.unsplash.com/photo-1551803091-e20673f15770?auto=format&fit=crop&w=1920&q=85',
   pantaloni: 'https://images.unsplash.com/photo-1594938298603-c8148c4b5a3a?auto=format&fit=crop&w=1920&q=85',
   blazer:    'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?auto=format&fit=crop&w=1920&q=85',
   set:       'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=1920&q=85'
@@ -63,7 +64,8 @@ var COLLECTIONS = [
   { slug: 'shop-all',    label: 'Tutti i Capi',      heroTitleHTML: 'Tutto <em>il Catalogo</em>',     eyebrow: 'Collezione Estate 2025',  heroType: 'editorial', bg: BG_DEFAULT, includeCategoryFilter: true },
   { slug: 'novita',      label: 'Novità',            heroType: 'novita', includeCategoryFilter: true },
   { slug: 'vestiti',     label: 'Vestiti',            heroTitleHTML: 'I nostri <em>Vestiti</em>',      eyebrow: 'Abbigliamento', heroType: 'editorial', bg: BG.vestiti },
-  { slug: 'top',         label: 'Top & Bluse',        heroTitleHTML: 'Top <em>&amp; Bluse</em>',       eyebrow: 'Abbigliamento', heroType: 'editorial', bg: BG.top },
+  { slug: 'top',         label: 'Top',                heroTitleHTML: 'I nostri <em>Top</em>',          eyebrow: 'Abbigliamento', heroType: 'editorial', bg: BG.top },
+  { slug: 'blusa',       label: 'Blusa & Camicie',    heroTitleHTML: 'Blusa <em>&amp; Camicie</em>',   eyebrow: 'Abbigliamento', heroType: 'editorial', bg: BG.blusa },
   { slug: 'pantaloni',   label: 'Pantaloni',          heroTitleHTML: 'I nostri <em>Pantaloni</em>',    eyebrow: 'Abbigliamento', heroType: 'editorial', bg: BG.pantaloni },
   { slug: 'gonne',       label: 'Gonne',              heroTitleHTML: 'Le nostre <em>Gonne</em>',       eyebrow: 'Abbigliamento', heroType: 'editorial', bg: BG.gonne },
   { slug: 'blazer',      label: 'Blazer',             heroTitleHTML: 'Blazer <em>&amp; Giacche</em>',  eyebrow: 'Abbigliamento', heroType: 'editorial', bg: BG.blazer },
@@ -83,8 +85,8 @@ var ICONS = {
   belt:  '<rect x="14" y="100" width="92" height="16" rx="4" fill="white" opacity=".45"/><rect x="47" y="88" width="26" height="40" rx="4" stroke="white" stroke-width="5" opacity=".45"/>'
 };
 
-var CATEGORIA_LABEL = { vestiti: 'Vestiti', top: 'Top & Bluse', pantaloni: 'Pantaloni', gonne: 'Gonne', blazer: 'Blazer', set: 'Set Coordinati', borse: 'Borse', gioielli: 'Gioielli', scarpe: 'Scarpe' };
-var CATEGORIA_COUNT_ORDER = ['vestiti', 'top', 'pantaloni', 'gonne', 'blazer', 'set', 'borse', 'gioielli', 'scarpe'];
+var CATEGORIA_LABEL = { vestiti: 'Vestiti', top: 'Top', blusa: 'Blusa & Camicie', pantaloni: 'Pantaloni', gonne: 'Gonne', blazer: 'Blazer', set: 'Set Coordinati', borse: 'Borse', gioielli: 'Gioielli', scarpe: 'Scarpe' };
+var CATEGORIA_COUNT_ORDER = ['vestiti', 'top', 'blusa', 'pantaloni', 'gonne', 'blazer', 'set', 'borse', 'gioielli', 'scarpe'];
 
 var WISHLIST_SVG = '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
 
@@ -203,7 +205,7 @@ function renderPage(meta, productsInCollection) {
 '  <meta name="viewport" content="width=device-width, initial-scale=1.0" />\n' +
 '  <title>' + meta.label + ' — Memi Abbigliamento</title>\n' +
 '  <meta name="description" content="Scopri la collezione ' + meta.label + ' di Memi Abbigliamento: capi e accessori pastello selezionati con cura." />\n' +
-'  <link rel="canonical" href="https://memi.testdemo.it/collections/' + slug + '/" />\n' +
+'  <link rel="canonical" href="https://memi.testdemo.it/collections/' + meta.slug + '/" />\n' +
 '  <link rel="preconnect" href="https://fonts.googleapis.com" />\n' +
 '  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />\n' +
 '  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />\n' +
@@ -236,7 +238,7 @@ renderFilterPanel(productsInCollection, !!meta.includeCategoryFilter) + '\n\n' +
 // collections/<slug>/index.html, or regenerating a page would silently break it (no
 // catalog-loader.js -> empty product grid forever). Keep the app.js?v= in sync with
 // CLAUDE.md's current cache-bust version when that changes.
-'<script src="../../app.js?v=21"></script>\n' +
+'<script src="../../app.js?v=35"></script>\n' +
 '<script src="../../shop-filters.js"></script>\n' +
 '<script>window.MEMI_CATALOG={collection:\'' + meta.slug + '\'};</script>\n' +
 '<script src="../../catalog-loader.js?v=3"></script>\n' +

@@ -83,6 +83,12 @@ services:
       PAYPAL_CLIENT_ID:      ${PAYPAL_CLIENT_ID:-}
       PAYPAL_SECRET:         ${PAYPAL_SECRET:-}
       PAYPAL_ENV:            ${PAYPAL_ENV:-sandbox}
+      # SumUp (scaffolding — leave unset until a merchant account exists;
+      # the checkout hides Carta/SumUp and falls back to Stripe, or 503s if Stripe is
+      # also unset). API key from me.sumup.com > Settings > API Keys, merchant code
+      # from Settings > Account.
+      SUMUP_API_KEY:         ${SUMUP_API_KEY:-}
+      SUMUP_MERCHANT_CODE:   ${SUMUP_MERCHANT_CODE:-}
       # SMTP / nodemailer — set in Coolify env vars
       SMTP_HOST:             ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT:             ${SMTP_PORT:-587}

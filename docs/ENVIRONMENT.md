@@ -114,9 +114,29 @@ merchant accounts (`src/payment-providers.js`).
 > The order handler re-verifies every PayPal transaction amount server-side before
 > marking `pagato` (never trusts the client). See `docs/SECURITY.md`.
 >
-> **Klarna was removed (Luglio 2026).** No `KLARNA_*` variables are read any more — delete them
-> from Coolify. `orders.payment_method` keeps `klarna` in its ENUM so historical orders stay
-> readable; nothing new can be created with it.
+> **Klarna (re-added Luglio 2026)** rides on Stripe — no separate `KLARNA_*` variables exist.
+> It uses the same `STRIPE_SECRET_KEY`/`STRIPE_PUBLISHABLE_KEY` PaymentIntent as the card flow,
+> mounted as a Stripe Payment Element scoped to `paymentMethodOrder: ['klarna']`, redirect-based
+> (buyer completes on Klarna's hosted page, returns to `checkout.html?payment_intent_client_secret=...`).
+> Klarna must also be enabled for the Stripe account in the Stripe Dashboard (Settings > Payment
+> methods) for the account's country/currency — the Payment Element mounts empty otherwise.
+
+## SumUp (alternative card processor — scaffolding)
+
+Config-gated exactly like PayPal: with credentials unset, the checkout hides Carta/SumUp and
+falls back to Stripe Elements (or 503s if Stripe is also unset) — nothing breaks. When set,
+SumUp's widget REPLACES the Stripe card form (takes priority over Stripe for card payments);
+Klarna and PayPal are unaffected either way. Set these once the client provides a SumUp
+merchant account (`src/payment-providers.js`).
+
+| Variable | Level | Default | Controls | If wrong / missing |
+|----------|-------|---------|----------|--------------------|
+| `SUMUP_API_KEY` | Optional | *unset* | SumUp secret API key (Bearer token) — generated in the SumUp merchant dashboard (`me.sumup.com` > Settings > API Keys), **not** the developer.sumup.com OAuth app flow. | Unset → Carta falls back to Stripe; `/api/payments/sumup/*` → 503. |
+| `SUMUP_MERCHANT_CODE` | Optional | *unset* | SumUp merchant identifier (`me.sumup.com` > Settings > Account), short alphanumeric id. | Unset → SumUp disabled. |
+
+> The order handler re-verifies every SumUp checkout's status AND amount server-side
+> (`getSumupCheckout`) before marking `pagato` — never trusts the client-reported `sumup_checkout_id`
+> alone. See `docs/SECURITY.md`.
 
 ## SMTP / Email
 

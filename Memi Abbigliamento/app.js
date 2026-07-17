@@ -35,7 +35,8 @@
     { href: 'shop',                     label: 'Abbigliamento', children: [
       { href: '/shop',                    label: 'Tutti i capi' },
       { href: '/shop?categoria=vestiti',  label: 'Vestiti' },
-      { href: '/shop?categoria=top',      label: 'Top & Bluse' },
+      { href: '/shop?categoria=top',      label: 'Top' },
+      { href: '/shop?categoria=blusa',    label: 'Blusa & Camicie' },
       { href: '/shop?categoria=pantaloni',label: 'Pantaloni' },
       { href: '/shop?categoria=gonne',    label: 'Gonne' },
       { href: '/shop?categoria=blazer',   label: 'Blazer' },
@@ -125,7 +126,8 @@
               '<p class="mega-col-title">Abbigliamento</p>' +
               '<a href="/shop" class="mega-link">Tutti i capi</a>' +
               '<a href="/shop?categoria=vestiti" class="mega-link">Vestiti</a>' +
-              '<a href="/shop?categoria=top" class="mega-link">Top &amp; Bluse</a>' +
+              '<a href="/shop?categoria=top" class="mega-link">Top</a>' +
+              '<a href="/shop?categoria=blusa" class="mega-link">Blusa &amp; Camicie</a>' +
               '<a href="/shop?categoria=pantaloni" class="mega-link">Pantaloni</a>' +
               '<a href="/shop?categoria=gonne" class="mega-link">Gonne</a>' +
               '<a href="/shop?categoria=blazer" class="mega-link">Blazer</a>' +

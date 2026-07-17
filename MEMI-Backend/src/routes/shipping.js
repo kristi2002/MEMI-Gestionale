@@ -18,7 +18,7 @@
 
 const router = require('express').Router();
 const { pool }         = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, requirePermission } = require('../middleware/auth');
 const { sendShippingConfirmation } = require('../email');
 
 // Build a courier deep-link from its template ({tracking} → the number).
@@ -52,7 +52,7 @@ router.get('/couriers', async (req, res) => {
 });
 
 /* ── POST /api/shipping/zones ── (admin) ── */
-router.post('/zones', requireAdmin, async (req, res) => {
+router.post('/zones', requireAdmin, requirePermission('shipping-zones'), async (req, res) => {
   const { nome, paesi, metodo, prezzo, spedizione_gratuita_da } = req.body;
   try {
     const [r] = await pool.execute(
@@ -66,7 +66,7 @@ router.post('/zones', requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /api/shipping/zones/:id ── (admin) ── */
-router.put('/zones/:id', requireAdmin, async (req, res) => {
+router.put('/zones/:id', requireAdmin, requirePermission('shipping-zones'), async (req, res) => {
   const { nome, paesi, metodo, prezzo, spedizione_gratuita_da } = req.body;
   try {
     await pool.execute(
@@ -80,7 +80,7 @@ router.put('/zones/:id', requireAdmin, async (req, res) => {
 });
 
 /* ── DELETE /api/shipping/zones/:id ── (admin) ── */
-router.delete('/zones/:id', requireAdmin, async (req, res) => {
+router.delete('/zones/:id', requireAdmin, requirePermission('shipping-zones'), async (req, res) => {
   try {
     await pool.execute('DELETE FROM shipping_zones WHERE id = ?', [req.params.id]);
     return res.json({ ok: true });
@@ -90,7 +90,7 @@ router.delete('/zones/:id', requireAdmin, async (req, res) => {
 });
 
 /* ── POST /api/shipping/couriers ── (admin) — add a new courier ── */
-router.post('/couriers', requireAdmin, async (req, res) => {
+router.post('/couriers', requireAdmin, requirePermission('couriers'), async (req, res) => {
   let { code, nome, slug, rate = 6.00, attivo = true, tracking_url_template = null } = req.body;
   if (!code || !nome) return res.status(400).json({ error: 'Codice e nome obbligatori' });
   code = String(code).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
@@ -110,7 +110,7 @@ router.post('/couriers', requireAdmin, async (req, res) => {
 });
 
 /* ── DELETE /api/shipping/couriers/:code ── (admin) ── */
-router.delete('/couriers/:code', requireAdmin, async (req, res) => {
+router.delete('/couriers/:code', requireAdmin, requirePermission('couriers'), async (req, res) => {
   try {
     const [result] = await pool.execute('DELETE FROM couriers WHERE code = ?', [req.params.code]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Corriere non trovato' });
@@ -121,7 +121,7 @@ router.delete('/couriers/:code', requireAdmin, async (req, res) => {
 });
 
 /* ── POST /api/shipping/shipments ── (admin) — create a shipment for an order ── */
-router.post('/shipments', requireAdmin, async (req, res) => {
+router.post('/shipments', requireAdmin, requirePermission('shipments'), async (req, res) => {
   const { order_id, courier_code, tracking_number, destinazione, eta, stato = 'preso_in_carico' } = req.body;
   if (!order_id || !courier_code || !tracking_number)
     return res.status(400).json({ error: 'order_id, courier_code e tracking_number obbligatori' });
@@ -178,7 +178,7 @@ router.post('/shipments', requireAdmin, async (req, res) => {
 });
 
 /* ── Pickup points (admin) ── */
-router.get('/pickup', requireAdmin, async (req, res) => {
+router.get('/pickup', requireAdmin, requirePermission('pickup'), async (req, res) => {
   try {
     const [rows] = await pool.execute('SELECT * FROM pickup_points ORDER BY created_at DESC');
     return res.json(rows);
@@ -187,7 +187,7 @@ router.get('/pickup', requireAdmin, async (req, res) => {
   }
 });
 
-router.post('/pickup', requireAdmin, async (req, res) => {
+router.post('/pickup', requireAdmin, requirePermission('pickup'), async (req, res) => {
   const { nome, indirizzo, corriere, orari, attivo = true } = req.body;
   if (!nome || !indirizzo) return res.status(400).json({ error: 'Nome e indirizzo obbligatori' });
   try {
@@ -201,7 +201,7 @@ router.post('/pickup', requireAdmin, async (req, res) => {
   }
 });
 
-router.put('/pickup/:id', requireAdmin, async (req, res) => {
+router.put('/pickup/:id', requireAdmin, requirePermission('pickup'), async (req, res) => {
   const { nome, indirizzo, corriere, orari, attivo } = req.body;
   try {
     const fields = [];
@@ -222,7 +222,7 @@ router.put('/pickup/:id', requireAdmin, async (req, res) => {
   }
 });
 
-router.delete('/pickup/:id', requireAdmin, async (req, res) => {
+router.delete('/pickup/:id', requireAdmin, requirePermission('pickup'), async (req, res) => {
   try {
     const [result] = await pool.execute('DELETE FROM pickup_points WHERE id = ?', [req.params.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Punto non trovato' });
@@ -233,7 +233,7 @@ router.delete('/pickup/:id', requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /api/shipping/couriers/:code ── (admin) ── */
-router.put('/couriers/:code', requireAdmin, async (req, res) => {
+router.put('/couriers/:code', requireAdmin, requirePermission('couriers'), async (req, res) => {
   const { attivo, rate, nome, tracking_url_template } = req.body;
   try {
     const fields = [];
@@ -252,7 +252,7 @@ router.put('/couriers/:code', requireAdmin, async (req, res) => {
 });
 
 /* ── GET /api/shipping/shipments ── (admin) ── */
-router.get('/shipments', requireAdmin, async (req, res) => {
+router.get('/shipments', requireAdmin, requirePermission('shipments'), async (req, res) => {
   try {
     const [rows] = await pool.execute(
       `SELECT s.*, o.order_number, o.customer_nome, o.customer_cognome
@@ -266,7 +266,7 @@ router.get('/shipments', requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /api/shipping/shipments/:id ── (admin) ── */
-router.put('/shipments/:id', requireAdmin, async (req, res) => {
+router.put('/shipments/:id', requireAdmin, requirePermission('shipments'), async (req, res) => {
   const { stato, eta } = req.body;
   const fields = [];
   const vals   = [];

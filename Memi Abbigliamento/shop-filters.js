@@ -49,7 +49,7 @@
   var PRICE_MAX = 300, activeCategorie = new Set(), activeTaglie = new Set(), activeColori = new Set(), activePrezzo = PRICE_MAX;
   var X_SVG = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
   var coloreLabel = { blush: 'Rosa cipria', salvia: 'Salvia', lavanda: 'Lavanda', avorio: 'Avorio', menta: 'Menta', antico: 'Rosa antico', espresso: 'Espresso', 'avorio chiaro': 'Avorio chiaro' };
-  var categoriaLabel = { vestiti: 'Vestiti', top: 'Top & Bluse', pantaloni: 'Pantaloni', gonne: 'Gonne', blazer: 'Blazer', set: 'Set Coordinati', borse: 'Borse', gioielli: 'Gioielli', scarpe: 'Scarpe', cinture: 'Cinture & Bijoux' };
+  var categoriaLabel = { vestiti: 'Vestiti', top: 'Top', blusa: 'Blusa & Camicie', pantaloni: 'Pantaloni', gonne: 'Gonne', blazer: 'Blazer', set: 'Set Coordinati', borse: 'Borse', gioielli: 'Gioielli', scarpe: 'Scarpe', cinture: 'Cinture & Bijoux' };
 
   function applyFilters() {
     var cards = document.querySelectorAll('#productGrid .product-card'), visible = 0;

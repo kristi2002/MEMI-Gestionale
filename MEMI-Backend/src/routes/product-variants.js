@@ -13,7 +13,7 @@
 
 const router = require('express').Router();
 const { pool }         = require('../db');
-const { requireAdmin } = require('../middleware/auth');
+const { requireAdmin, requirePermission } = require('../middleware/auth');
 const { logAdminAction } = require('../audit');
 
 function parseOptions(v) {
@@ -36,7 +36,7 @@ router.get('/:id/variants', async (req, res) => {
 });
 
 /* ── POST /api/products/:id/variants ── */
-router.post('/:id/variants', requireAdmin, async (req, res) => {
+router.post('/:id/variants', requireAdmin, requirePermission('products'), async (req, res) => {
   const b = req.body || {};
   const options = (b.options && typeof b.options === 'object') ? b.options : {};
   if (!Object.keys(options).length) return res.status(400).json({ error: 'Specifica almeno un attributo (es. colore/taglia)' });
@@ -59,7 +59,7 @@ router.post('/:id/variants', requireAdmin, async (req, res) => {
 });
 
 /* ── PUT /api/products/:id/variants/:vid ── */
-router.put('/:id/variants/:vid', requireAdmin, async (req, res) => {
+router.put('/:id/variants/:vid', requireAdmin, requirePermission('products'), async (req, res) => {
   const b = req.body || {};
   try {
     const fields = [], vals = [];
@@ -82,7 +82,7 @@ router.put('/:id/variants/:vid', requireAdmin, async (req, res) => {
 });
 
 /* ── DELETE /api/products/:id/variants/:vid ── */
-router.delete('/:id/variants/:vid', requireAdmin, async (req, res) => {
+router.delete('/:id/variants/:vid', requireAdmin, requirePermission('products'), async (req, res) => {
   try {
     const [result] = await pool.execute('DELETE FROM product_variants WHERE id = ? AND product_id = ?', [req.params.vid, req.params.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Variante non trovata' });

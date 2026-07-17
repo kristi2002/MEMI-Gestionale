@@ -482,7 +482,11 @@ router.get('/admin/list', requireAdmin, requirePermission('orders'), async (req,
     let where = 'WHERE 1=1';
     const filterParams = [];
 
-    if (stato)     { where += ' AND order_status = ?';   filterParams.push(stato); }
+    if (stato) {
+      const statoList = String(stato).split(',').map(s => s.trim()).filter(Boolean);
+      if (statoList.length === 1) { where += ' AND order_status = ?'; filterParams.push(statoList[0]); }
+      else if (statoList.length > 1) { where += ' AND order_status IN (' + statoList.map(() => '?').join(',') + ')'; filterParams.push(...statoList); }
+    }
     if (pagamento) { where += ' AND payment_status = ?'; filterParams.push(pagamento); }
     if (q) {
       where += ' AND (customer_nome LIKE ? OR customer_cognome LIKE ? OR customer_email LIKE ? OR order_number LIKE ?)';

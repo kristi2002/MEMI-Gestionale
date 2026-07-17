@@ -28,10 +28,33 @@ router.get('/config', requireAdmin, async (req, res) => {
 });
 
 router.put('/config', requireAdmin, async (req, res) => {
-  const allowed = ['loyalty_enabled', 'loyalty_signup_bonus', 'loyalty_points_per_euro',
-                   'loyalty_point_value_eur', 'loyalty_min_redeem'];
+  // Accept BOTH the camelCase shape the admin UI sends (mirrors GET /config)
+  // and the raw snake_case store_settings keys (legacy jQuery admin). Without
+  // the map the UI's payload matched no key and every save returned 400.
+  const FIELD_MAP = {
+    enabled:       'loyalty_enabled',
+    signupBonus:   'loyalty_signup_bonus',
+    pointsPerEuro: 'loyalty_points_per_euro',
+    pointValueEur: 'loyalty_point_value_eur',
+    minRedeem:     'loyalty_min_redeem',
+  };
+  const allowed = Object.values(FIELD_MAP);
+  const normalize = (key, value) => {
+    if (key === 'loyalty_enabled') {
+      return value === true || value === 1 || value === '1' || value === 'true' ? '1' : '0';
+    }
+    const n = Number(value);
+    return Number.isFinite(n) && n >= 0 ? String(n) : null;
+  };
   try {
-    const entries = Object.entries(req.body || {}).filter(([k]) => allowed.includes(k));
+    const entries = [];
+    for (const [rawKey, rawVal] of Object.entries(req.body || {})) {
+      const key = FIELD_MAP[rawKey] || (allowed.includes(rawKey) ? rawKey : null);
+      if (!key) continue;
+      const value = normalize(key, rawVal);
+      if (value === null) continue;
+      entries.push([key, value]);
+    }
     if (!entries.length) return res.status(400).json({ error: 'Nessun campo valido' });
     for (const [key, value] of entries) {
       await pool.execute(
