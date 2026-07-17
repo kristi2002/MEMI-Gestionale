@@ -236,8 +236,13 @@
     try {
       const raw = localStorage.getItem(CART_KEY);
       const items = raw ? JSON.parse(raw) : [];
-      const clean = items.filter(i => i.id && !isNaN(i.price) && i.price > 0);
-      if (clean.length !== items.length) localStorage.setItem(CART_KEY, JSON.stringify(clean));
+      const clean = items
+        .filter(i => i && i.id != null && i.id !== '' && !isNaN(i.price) && i.price > 0)
+        .map(i => (typeof i.id === 'string' ? i : Object.assign({}, i, { id: String(i.id) })));
+      // Rewrite if we dropped rows OR coerced any non-string id, so the fix persists.
+      const changed = clean.length !== items.length ||
+        clean.some((c, idx) => items[idx] && c.id !== items[idx].id);
+      if (changed) localStorage.setItem(CART_KEY, JSON.stringify(clean));
       return clean;
     } catch (_) { return []; }
   }
@@ -413,6 +418,7 @@
   // Find a catalog product's real image by a cart/wishlist item id (base id or id+size).
   function catalogImg(id) {
     if (!id) return '';
+    id = String(id);   // stale/legacy carts can hold a NUMERIC id; String() so indexOf works
     for (var i = 0; i < CATALOG.length; i++) {
       var p = CATALOG[i];
       if (id === p.id || id.indexOf(p.id + '-') === 0) return p.img || '';
@@ -427,6 +433,7 @@
   var SIZELESS_CATS = ['gioielli', 'borse', 'cinture', 'accessori', 'bijoux'];
   function productCategory(id) {
     if (!id) return '';
+    id = String(id);   // numeric ids from stale carts would break indexOf below
     for (var i = 0; i < CATALOG.length; i++) {
       var p = CATALOG[i];
       if (id === p.id || id.indexOf(p.id + '-') === 0) {
