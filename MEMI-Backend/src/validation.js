@@ -158,6 +158,8 @@ const createIntentSchema = z.object({
   // Optional: restrict the intent to specific methods (e.g. the Klarna element needs a
   // klarna-only intent, otherwise the Payment Element surfaces every enabled method).
   payment_method_types: z.array(z.enum(['klarna', 'card'])).min(1).max(6).optional(),
+  // Where SumUp Hosted Checkout returns the customer after payment (validated server-side).
+  return_url: z.string().url().max(500).optional(),
 });
 
 /**

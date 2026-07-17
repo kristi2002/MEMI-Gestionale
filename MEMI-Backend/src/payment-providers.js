@@ -179,19 +179,27 @@ function sumupHeaders() {
 }
 
 /** Create a SumUp checkout for `amountCents` EUR. Returns { id, status }. */
-async function createSumupCheckout(amountCents, reference) {
+async function createSumupCheckout(amountCents, reference, redirectUrl) {
+  const payload = {
+    checkout_reference: reference,
+    amount: Math.round(amountCents) / 100,
+    currency: 'EUR',
+    merchant_code: process.env.SUMUP_MERCHANT_CODE,
+    description: 'Ordine MEMI Abbigliamento',
+  };
+  // Hosted Checkout: card entry + 3-D Secure happen on SumUp's own page (no embedded widget /
+  // iframe on our domain, which avoids the third-party-cookie/3DS failures). The customer is
+  // returned to redirect_url with a ?checkout_id=... query param after paying.
+  if (redirectUrl) {
+    payload.hosted_checkout = { enabled: true };
+    payload.redirect_url = redirectUrl;
+  }
   const body = await httpJson(`${SUMUP_BASE}/v0.1/checkouts`, {
     method: 'POST',
     headers: sumupHeaders(),
-    body: JSON.stringify({
-      checkout_reference: reference,
-      amount: Math.round(amountCents) / 100,
-      currency: 'EUR',
-      merchant_code: process.env.SUMUP_MERCHANT_CODE,
-      description: 'Ordine MEMI Abbigliamento',
-    }),
+    body: JSON.stringify(payload),
   });
-  return { id: body.id, status: body.status };
+  return { id: body.id, status: body.status, hosted_checkout_url: body.hosted_checkout_url || null };
 }
 
 /** Inspect a SumUp checkout. Returns { status, amountCents, currency, transactionId }. */

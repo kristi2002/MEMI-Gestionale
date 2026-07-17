@@ -1175,9 +1175,6 @@
       if (n > currentStep + 1) return;             // the stepper never skips ahead more than one step
       if (n > currentStep && currentStep === 2 && !validateAddressStep()) return;
       if (n > currentStep && currentStep === 3 && !validatePaymentStep()) return;
-      // SumUp card completes on the payment step (its widget pays in place) — there is no
-      // separate review-and-pay step for it, so don't advance to Conferma.
-      if (n === 4 && activePayMethod === 'carta' && sumupAvailable() && currentAmountCents() > 0 && !window.__sumupFailed) return;
       if (n === 4) updateReviewSummary();
 
       document.querySelectorAll('.step-panel').forEach(function(p) { p.classList.remove('active'); });
@@ -1957,31 +1954,19 @@
       }
     }
 
-    // SumUp card lives on THIS (payment) step: mount the hosted widget in the card tab with a
-    // consent checkbox beside it (ticking it lifts the widget's consent gate) and hide the
-    // step's "Rivedi e conferma" button — the widget's own pay button completes the order here.
+    // SumUp card uses Hosted Checkout: the customer enters the card + completes 3-D Secure on
+    // SumUp's own secure page. So the payment step just picks the method and explains the
+    // redirect; the actual pay happens on the Conferma step ("Conferma e paga" -> redirect).
     function prepareSumupPaymentStep() {
       if (activePayMethod !== 'carta') return;   // SumUp only backs the card tab
-      var stepNextBtn = document.querySelector('.btn-next[onclick="continueToConfirm()"]');
-      // Zero-total order (gift card / 100% discount): nothing to charge — skip the SumUp
-      // widget and use the generic review-and-place flow (keep "Rivedi e conferma").
-      if (currentAmountCents() === 0) {
-        var wrap0 = el('sumupCardWrap'); if (wrap0) wrap0.style.display = 'none';
-        var consent0 = el('cardConsentLabel'); if (consent0) consent0.style.display = 'none';
-        if (stepNextBtn) stepNextBtn.style.display = '';
-        return;
-      }
-      window.__sumupFailed = false;
-      initSumupCheckout();                              // idempotent: mounts the SumUp widget
-      var wrap = el('sumupCardWrap'); if (wrap) wrap.style.display = 'block';
+      var wrap = el('sumupCardWrap'); if (wrap) wrap.style.display = 'none';
       var stripeEl = el('stripeCardElement'); if (stripeEl) stripeEl.style.display = 'none';
-      var consent = el('cardConsentLabel'); if (consent) consent.style.display = 'flex';
+      var consent = el('cardConsentLabel'); if (consent) consent.style.display = 'none';
       var note = el('cardProcessorNote');
-      if (note) note.innerHTML = 'Pagamento crittografato &amp; elaborato da ' +
-        '<strong style="color:var(--espresso);">SumUp</strong>. I dati della carta non passano per i nostri server.';
+      if (note) note.innerHTML = 'Verrai reindirizzato alla pagina sicura di ' +
+        '<strong style="color:var(--espresso);">SumUp</strong> per inserire la carta e completare il pagamento in modo sicuro (con 3-D Secure).';
       var stepNext = document.querySelector('.btn-next[onclick="continueToConfirm()"]');
-      if (stepNext) stepNext.style.display = 'none';
-      wireSumupConsentGate();
+      if (stepNext) stepNext.style.display = '';   // review-and-pay happens on the Conferma step
     }
 
     // On returning to the payment step, put each provider control back where it belongs so
@@ -2118,11 +2103,22 @@
       // so place the order directly. The backend re-applies this rule server-side.
       if (currentAmountCents() === 0 && (appliedGiftCard || appliedCode)) { placeOrder(null); return; }
 
-      if (activePayMethod === 'carta' && window.__sumupMounted) {
-        // SumUp widget active: it has its own pay button. This branch only fires if the
-        // generic Conferma button was somehow visible.
-        setLoading(false);
-        showPaymentError('Completa il pagamento con il modulo carta qui sopra.');
+      if (activePayMethod === 'carta' && sumupAvailable()) {
+        // SumUp Hosted Checkout: create a hosted checkout for the current total and send the
+        // customer to SumUp's secure page (card entry + 3-D Secure happen there). The order is
+        // placed on return (handleSumupReturn); POST /orders re-verifies PAID + amount server-side.
+        var apiBase = (window.MemiAPI && window.MemiAPI._base) || '/api';
+        fetch(apiBase + '/payments/sumup/create-checkout', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
+          body: JSON.stringify({ amount_cents: currentAmountCents(), return_url: window.location.origin + window.location.pathname }),
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (!d || !d.hosted_checkout_url) throw new Error((d && d.error) || 'Impossibile avviare il pagamento SumUp. Riprova.');
+            try { sessionStorage.setItem('memi_sumup_pending', JSON.stringify(orderData)); } catch (_) {}
+            window.location.href = d.hosted_checkout_url;
+          })
+          .catch(function(err) { setLoading(false); showPaymentError((err && err.message) || 'Errore SumUp. Riprova.'); });
         return;
       }
 
@@ -2365,28 +2361,28 @@
         .then(function() { sumupCreating = false; });
     }
 
-    // Totals changed (promo / gift card): the old checkout would charge the wrong amount,
-    // so drop it and create a fresh one for the new total (server rejects any mismatch).
-    function refreshSumupCheckout() {
-      // Only relevant while SumUp is the active card processor.
-      if (activePayMethod !== 'carta' || !sumupAvailable()) return;
-      var wantCents = currentAmountCents();
-      if (wantCents === 0) {
-        // Gift card / discount covers everything: unmount and use the generic zero-total flow.
-        if (sumupWidget && sumupWidget.unmount) { try { sumupWidget.unmount(); } catch(_) {} }
-        sumupWidget = null; sumupCheckoutId = null; window.__sumupMounted = false;
-        var wrap = el('sumupCardWrap'); if (wrap) wrap.style.display = 'none';
-        var ccZero = el('cardConsentLabel'); if (ccZero) ccZero.style.display = 'none';
-        var snZero = document.querySelector('.btn-next[onclick="continueToConfirm()"]'); if (snZero) snZero.style.display = '';
-        var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
-        if (confirmBtn) confirmBtn.style.display = '';
-        return;
-      }
-      if (window.__sumupMounted && sumupCheckoutAmount === wantCents) return;   // mounted & current
-      // Total changed, or it was dropped when the total hit 0 and is now > 0 again: (re)build.
-      if (sumupWidget && sumupWidget.unmount) { try { sumupWidget.unmount(); } catch(_) {} }
-      sumupWidget = null; sumupCheckoutId = null;
-      prepareSumupPaymentStep();
+    // SumUp now uses Hosted Checkout (the amount is read fresh when the customer is redirected
+    // from the Conferma step), so there is no embedded widget/intent to refresh on a totals change.
+    function refreshSumupCheckout() { /* no-op — see confirmOrder's SumUp Hosted Checkout branch */ }
+
+    // Return from SumUp Hosted Checkout: the page reloads with ?checkout_id=... — place the
+    // staged order (POST /orders re-verifies the checkout is PAID for the exact amount).
+    function handleSumupReturn() {
+      var params = new URLSearchParams(window.location.search);
+      var checkoutId = params.get('checkout_id');
+      if (!checkoutId) return;
+      var raw = null; try { raw = sessionStorage.getItem('memi_sumup_pending'); } catch (_) {}
+      history.replaceState(null, '', window.location.pathname);
+      if (!raw) return;
+      var orderData;
+      try { orderData = JSON.parse(raw); } catch (_) { return; }
+      try { sessionStorage.removeItem('memi_sumup_pending'); } catch (_) {}
+      orderData.sumup_checkout_id = checkoutId;
+      currentStep = 4;
+      submitOrder(orderData, function(msg) {
+        goToStep(3);
+        showPaymentError(msg || 'Pagamento non completato. Riprova.');
+      });
     }
 
     // GDPR gate: the widget's pay button lives in SumUp's iframe, so consent is enforced
@@ -2617,6 +2613,7 @@
             // Show/hide PayPal based on whether the server has its credentials.
             if (typeof applyPaymentProviders === 'function') applyPaymentProviders(data || {});
             if (typeof handleKlarnaReturn === 'function') handleKlarnaReturn();
+            if (typeof handleSumupReturn === 'function') handleSumupReturn();
           })
           .catch(function() { /* no-op — Stripe will fail gracefully at mount time */ });
       })();

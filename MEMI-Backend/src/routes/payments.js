@@ -115,6 +115,29 @@ router.post('/paypal/capture', async (req, res) => {
 // Creates a SumUp hosted checkout for the card widget. The final trust check is re-done
 // server-side in POST /api/orders (getSumupCheckout → status PAID + exact amount match),
 // so this endpoint is a convenience for the widget, not the source of truth.
+// Where SumUp returns the customer after Hosted Checkout. Only accept an origin we trust
+// (ALLOWED_ORIGINS / FRONTEND_URL / localhost) so this can't become an open redirect.
+function resolveReturnUrl(req) {
+  const allowed = new Set(
+    String(process.env.ALLOWED_ORIGINS || '').split(',').map((x) => x.trim()).filter(Boolean)
+  );
+  if (process.env.FRONTEND_URL) { try { allowed.add(new URL(process.env.FRONTEND_URL).origin); } catch (_) {} }
+  const ok = (u) => {
+    try {
+      const url = new URL(u);
+      if (!/^https?:$/.test(url.protocol)) return null;
+      const isLocal = /^(localhost|127\.0\.0\.1)$/.test(url.hostname);
+      return (isLocal || allowed.has(url.origin)) ? (url.origin + url.pathname) : null;
+    } catch (_) { return null; }
+  };
+  const raw = req.body && req.body.return_url;
+  if (raw) { const v = ok(raw); if (v) return v; }
+  if (process.env.FRONTEND_URL) { const v = ok(process.env.FRONTEND_URL.replace(/\/$/, '') + '/checkout.html'); if (v) return v; }
+  const origin = req.headers && req.headers.origin;
+  if (origin) { const v = ok(origin.replace(/\/$/, '') + '/checkout.html'); if (v) return v; }
+  return null;
+}
+
 router.post('/sumup/create-checkout', validateBody(createIntentSchema), async (req, res) => {
   if (!providers.sumupConfigured())
     return res.status(503).json({ error: 'SumUp non configurato sul server.' });
@@ -123,8 +146,9 @@ router.post('/sumup/create-checkout', validateBody(createIntentSchema), async (r
     return res.status(400).json({ error: 'Importo non valido (minimo €0.50).' });
   try {
     const reference = 'MEMI-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
-    const co = await providers.createSumupCheckout(amount_cents, reference);
-    return res.json(co);   // { id, status }
+    const redirectUrl = resolveReturnUrl(req);
+    const co = await providers.createSumupCheckout(amount_cents, reference, redirectUrl);
+    return res.json(co);   // { id, status, hosted_checkout_url }
   } catch (err) {
     (req.log || console).error({ err }, '[SumUp] create-checkout error');
     return res.status(502).json({ error: 'Errore SumUp: ' + (err.message || 'sconosciuto') });
