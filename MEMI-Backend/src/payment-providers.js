@@ -178,8 +178,8 @@ function sumupHeaders() {
   return { Authorization: `Bearer ${process.env.SUMUP_API_KEY}`, 'Content-Type': 'application/json' };
 }
 
-/** Create a SumUp checkout for `amountCents` EUR. Returns { id, status }. */
-async function createSumupCheckout(amountCents, reference, redirectUrl) {
+/** Create a SumUp checkout for `amountCents` EUR. Returns { id, status, hosted_checkout_url }. */
+async function createSumupCheckout(amountCents, reference, redirectUrl, hosted) {
   const payload = {
     checkout_reference: reference,
     amount: Math.round(amountCents) / 100,
@@ -187,13 +187,15 @@ async function createSumupCheckout(amountCents, reference, redirectUrl) {
     merchant_code: process.env.SUMUP_MERCHANT_CODE,
     description: 'Ordine MEMI Abbigliamento',
   };
-  // Hosted Checkout: card entry + 3-D Secure happen on SumUp's own page (no embedded widget /
-  // iframe on our domain, which avoids the third-party-cookie/3DS failures). The customer is
-  // returned to redirect_url with a ?checkout_id=... query param after paying.
-  if (redirectUrl) {
-    payload.hosted_checkout = { enabled: true };
-    payload.redirect_url = redirectUrl;
-  }
+  // redirect_url gives 3-D Secure a top-level-redirect escape hatch for the EMBEDDED widget:
+  // a challenge bounces the browser to the issuer and SumUp returns it to
+  // redirect_url?checkout_id=… . Without it the widget attempts 3DS in a nested iframe, which
+  // third-party-cookie/storage restrictions break (the Jul 2026 "ACS Method call 400").
+  if (redirectUrl) payload.redirect_url = redirectUrl;
+  // Hosted Checkout (opt-in fallback, hosted=true): card entry + 3DS happen entirely on
+  // SumUp's own page and the response carries hosted_checkout_url. The storefront now uses
+  // the embedded widget and does not request this.
+  if (hosted && redirectUrl) payload.hosted_checkout = { enabled: true };
   const body = await httpJson(`${SUMUP_BASE}/v0.1/checkouts`, {
     method: 'POST',
     headers: sumupHeaders(),

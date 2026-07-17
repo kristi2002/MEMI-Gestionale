@@ -72,6 +72,10 @@ const createOrderSchema = z.object({
   // Generic transaction reference for non-Stripe providers (PayPal order id).
   // Stored in orders.payment_intent_id (UNIQUE → cross-provider replay protection).
   payment_reference: z.string().trim().max(255).optional().nullable(),
+  // SumUp checkout id from the widget / 3DS-return path. MUST be declared here: validateBody
+  // replaces req.body with the zod-parsed object (unknown keys stripped), so without this
+  // field orders.js never saw the id and every SumUp order 402'd AFTER the customer paid.
+  sumup_checkout_id: z.string().trim().max(64).optional().nullable(),
   // GDPR consents from the checkout page (privacy required client-side; newsletter optional)
   privacy_consent:  z.coerce.boolean().optional(),
   newsletter_optin: z.coerce.boolean().optional(),
@@ -158,8 +162,10 @@ const createIntentSchema = z.object({
   // Optional: restrict the intent to specific methods (e.g. the Klarna element needs a
   // klarna-only intent, otherwise the Payment Element surfaces every enabled method).
   payment_method_types: z.array(z.enum(['klarna', 'card'])).min(1).max(6).optional(),
-  // Where SumUp Hosted Checkout returns the customer after payment (validated server-side).
+  // Where SumUp returns the customer after payment / a 3DS redirect (validated server-side).
   return_url: z.string().url().max(500).optional(),
+  // SumUp only: opt into Hosted Checkout (card entry on SumUp's page) instead of the widget.
+  hosted: z.boolean().optional(),
 });
 
 /**

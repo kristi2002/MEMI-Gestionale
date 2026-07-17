@@ -192,12 +192,14 @@ In development (running files locally without Docker), set the meta content to `
 - Routes: `POST /paypal/create-order`, `POST /paypal/capture`, `POST /klarna/create-session`,
   `POST /klarna/create-order`, plus `POST /paypal/webhook` + `POST /klarna/webhook`.
 - SumUp (config-gated via `SUMUP_API_KEY` + `SUMUP_MERCHANT_CODE`): `POST /api/payments/sumup/create-checkout`
-  creates a **Hosted Checkout** (`hosted_checkout.enabled` + a validated `redirect_url` from the request's
-  `return_url`/`ALLOWED_ORIGINS`/`FRONTEND_URL`) and returns `hosted_checkout_url`. The storefront card tab
-  redirects the buyer to that URL (card entry + 3-D Secure happen entirely on SumUp's page — no embedded
-  widget/iframe on our domain), and SumUp returns them to `redirect_url?checkout_id=…`, where the storefront
-  places the staged order. `POST /api/orders` re-verifies the checkout is PAID for the exact amount; refunds via
-  `POST /api/admin/resi/:id/refund` (orders with `payment_intent_id` prefixed `sumup_`).
+  creates a widget checkout with a validated `redirect_url` (from the request's `return_url`/
+  `ALLOWED_ORIGINS`/`FRONTEND_URL`). The storefront card tab mounts SumUp's **embedded card widget** on the
+  Pagamento step (in-page entry: titolare, numero carta, scadenza, CVV); frictionless 3-D Secure completes
+  in-widget, a challenge leaves via top-level redirect and returns to `redirect_url?checkout_id=…`, where the
+  storefront places the staged order. Passing `{ hosted: true }` opts into the legacy **Hosted Checkout**
+  (`hosted_checkout.enabled`, response carries `hosted_checkout_url`, card entry on SumUp's page) — kept as a
+  rollback path, not used by the storefront. `POST /api/orders` re-verifies the checkout is PAID for the exact
+  amount; refunds via `POST /api/admin/resi/:id/refund` (orders with `payment_intent_id` prefixed `sumup_`).
 - `orders.js` re-verifies the provider transaction amount server-side (`verifyPaypalOrder` /
   `verifyKlarnaOrder`) before marking `pagato`; the reference is stored in the UNIQUE
   `orders.payment_intent_id`. Klarna's frontend widget is `TODO(klarna-live)`. See `docs/ENVIRONMENT.md`.

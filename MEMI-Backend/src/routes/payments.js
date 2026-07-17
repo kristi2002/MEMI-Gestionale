@@ -147,8 +147,10 @@ router.post('/sumup/create-checkout', validateBody(createIntentSchema), async (r
   try {
     const reference = 'MEMI-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
     const redirectUrl = resolveReturnUrl(req);
-    const co = await providers.createSumupCheckout(amount_cents, reference, redirectUrl);
-    return res.json(co);   // { id, status, hosted_checkout_url }
+    // Default: widget checkout (redirect_url = validated 3DS return). Hosted Checkout —
+    // card entry on SumUp's page — stays available as an explicit opt-in via { hosted: true }.
+    const co = await providers.createSumupCheckout(amount_cents, reference, redirectUrl, req.body.hosted === true);
+    return res.json(co);   // { id, status, hosted_checkout_url (hosted only) }
   } catch (err) {
     (req.log || console).error({ err }, '[SumUp] create-checkout error');
     return res.status(502).json({ error: 'Errore SumUp: ' + (err.message || 'sconosciuto') });
