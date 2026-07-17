@@ -1208,6 +1208,7 @@
         setTimeout(function() {
           if (sumupAvailable()) { if (activePayMethod === 'carta') prepareSumupPaymentStep(); }
           else initStripeElements();
+          refreshKlarnaElement();   // rebuild Klarna if the total drifted (e.g. shipping changed via back-nav)
         }, 80);
         if (window.__walletIntent) setTimeout(revealWalletIntent, 750);
       }
@@ -1533,6 +1534,7 @@
             // Total changed — rebuild the PaymentIntent so the card is charged the discounted amount.
             if (stripeCardEl) fetchPaymentIntent();
       refreshSumupCheckout();
+      refreshKlarnaElement();
           })
           .catch(function(err) {
             if (feedEl) { feedEl.textContent = (err && err.error) || 'Codice non valido.'; feedEl.style.color = 'var(--blush-dark)'; feedEl.style.display = 'block'; }
@@ -1559,6 +1561,7 @@
       // Total changed back — rebuild the PaymentIntent for the full amount.
       if (stripeCardEl) fetchPaymentIntent();
       refreshSumupCheckout();
+      refreshKlarnaElement();
     }
 
     // ── Gift Card ─────────────────────────────────────────────────────────────
@@ -1589,6 +1592,7 @@
             // Total changed — rebuild the PaymentIntent so the card is charged the reduced amount.
             if (stripeCardEl) fetchPaymentIntent();
       refreshSumupCheckout();
+      refreshKlarnaElement();
           })
           .catch(function(err) {
             if (feedEl) { feedEl.textContent = (err && err.error) || 'Gift card non valida.'; feedEl.style.color = 'var(--blush-dark)'; feedEl.style.display = 'block'; }
@@ -1613,6 +1617,7 @@
       updateTotals();
       if (stripeCardEl) fetchPaymentIntent();
       refreshSumupCheckout();
+      refreshKlarnaElement();
     }
 
     // ── Stripe Elements ───────────────────────────────────────────────────────
@@ -1696,22 +1701,22 @@
 
     // ── Klarna — Stripe Payment Element, redirect-based (Paga in 3 rate) ─────────────
     var klarnaElements = null, klarnaPayEl = null, klarnaMounted = false;
-    var klarnaClientSecret = null;
+    var klarnaClientSecret = null, klarnaIntentAmount = null;
 
     // Klarna needs a PaymentIntent restricted to Klarna; a shared automatic-methods intent
     // makes Stripe's Payment Element surface every enabled method (card, Satispay, Amazon
     // Pay, …) inside the Klarna tab. Create a dedicated klarna-only intent for it.
     function fetchKlarnaIntent() {
       var amountCents = currentAmountCents();
-      if (!amountCents) { klarnaClientSecret = null; return Promise.resolve(null); }
+      if (!amountCents) { klarnaClientSecret = null; klarnaIntentAmount = null; return Promise.resolve(null); }
       return fetch('/api/payments/create-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount_cents: amountCents, payment_method_types: ['klarna'] }),
       })
         .then(function(r) { return r.json(); })
-        .then(function(d) { klarnaClientSecret = (d && d.client_secret) || null; return klarnaClientSecret; })
-        .catch(function() { klarnaClientSecret = null; return null; });
+        .then(function(d) { klarnaClientSecret = (d && d.client_secret) || null; klarnaIntentAmount = klarnaClientSecret ? amountCents : null; return klarnaClientSecret; })
+        .catch(function() { klarnaClientSecret = null; klarnaIntentAmount = null; return null; });
     }
 
     function ensureKlarnaElement() {
@@ -1734,6 +1739,19 @@
           if (errEl) { errEl.textContent = 'Klarna non è disponibile al momento.'; errEl.style.display = 'block'; }
         }
       });
+    }
+
+    // The Klarna Payment Element is bound to a PaymentIntent created for a fixed amount. If the
+    // total later changes (discount / gift card / shipping), tear it down and rebuild it for the
+    // new amount, so Klarna never authorises a stale total (which the server rejects with 402).
+    function refreshKlarnaElement() {
+      if (!klarnaMounted) return;
+      if (klarnaIntentAmount === currentAmountCents()) return;   // already current
+      if (klarnaPayEl && klarnaPayEl.unmount) { try { klarnaPayEl.unmount(); } catch(_) {} }
+      klarnaPayEl = null; klarnaElements = null; klarnaMounted = false;
+      klarnaClientSecret = null; klarnaIntentAmount = null;
+      var host = el('stripeKlarnaElement'); if (host) host.innerHTML = '';
+      if (activePayMethod === 'klarna') ensureKlarnaElement();   // re-mount if the buyer is on the Klarna tab
     }
 
     // A return trip from Klarna's hosted flow lands back here with
@@ -2138,6 +2156,15 @@
         if (!stripeInstance || !klarnaElements) {
           setLoading(false);
           showPaymentError(isLocalDev ? 'Klarna richiede una chiave Stripe configurata (non impostata in locale).' : 'Klarna non è disponibile al momento.');
+          return;
+        }
+        // Stale-amount guard: if the total changed after the Klarna element mounted, rebuild it
+        // for the new amount and ask the buyer to confirm again (never authorise the old amount —
+        // the server would reject the order with 402 on return from Klarna).
+        if (klarnaIntentAmount !== currentAmountCents()) {
+          setLoading(false);
+          refreshKlarnaElement();
+          showPaymentError('L\'importo dell\'ordine è cambiato. Ricontrolla il totale e premi di nuovo "Conferma e paga".');
           return;
         }
         try { sessionStorage.setItem('memi_pending_order', JSON.stringify(orderData)); } catch (_) {}
