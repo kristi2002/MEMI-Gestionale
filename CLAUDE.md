@@ -2,6 +2,11 @@
 
 E-commerce platform, three apps in one repo, Italian-language product/UI.  
 
+> **📖 Documentation:** the whole application is documented in a 10-file blueprint at
+> **`docs/01-overview.md` → `docs/10-testing-runbook.md`** (start at `01-overview.md`).
+> It was consolidated & code-verified Jul 2026 and **supersedes every older `docs/*.md` /
+> `docs/admin/*` path referenced in the historical update logs further down this file.**
+
 ## Structure
 - `Memi Abbigliamento/` — storefront. **Static** HTML/CSS/JS (nginx). Products are
   hardcoded in HTML for SEO/speed; the API is used only for runtime actions
@@ -90,8 +95,8 @@ So Stripe/SMTP can stay unset for most work; don't add fake keys to make them "w
 ## Definition of done
 1. `docker compose ... up --build` comes up with no errors in backend logs.
 2. `./smoke-test.sh` exits 0 (and `bash verify/run.sh` for the no-DB-needed checks).
-3. New backend route → add an assertion to `smoke-test.sh` AND a row to
-   `docs/integrations.md` route map.
+3. New backend route → add an assertion to `smoke-test.sh` AND a row to the route map in
+   `docs/03-backend-api.md`.
 4. Touched `app.js` → bump `?v=N` everywhere.
 5. Summarize what changed, what was tested, and any assumption made.
 

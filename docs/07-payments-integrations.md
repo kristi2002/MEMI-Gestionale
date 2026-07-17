@@ -1,0 +1,197 @@
+# 07. Payments & Integrations
+
+> How money moves through MEMI: three card/wallet providers (Stripe, SumUp, PayPal) plus Klarna, all **config-gated**, all **re-verified server-side** against a total the browser cannot influence. Payments are where a one-cent drift breaks *every* order — read the total-parity rule first.
+
+This is the highest-risk surface in the codebase. Every claim here is checked against `MEMI-Backend/src/routes/payments.js`, `src/payment-providers.js`, `src/routes/orders.js`, `src/routes/resi.js`, `src/invoicing.js`, `src/order-compensation.js`, and `Memi Abbigliamento/checkout.html`. When docs and code disagree, the code wins.
+
+---
+
+## The config-gating principle
+
+Every provider is **enabled only if its server credentials exist**. With no credentials, the entry point reports "not configured" and the route returns **503** — the storefront reads that and **hides the option** rather than dead-ending the buyer. Nothing fake is ever offered.
+
+`GET /api/payments/config` is the single source of truth the checkout reads on load:
+
+```jsonc
+{
+  "publishableKey": "pk_live_… | null",         // Stripe publishable (safe to expose)
+  "providers": { "stripe": true, "paypal": false, "sumup": true },
+  "paypal": { "clientId": "…", "env": "sandbox" } | null
+}
+```
+
+- `stripe` → `Boolean(process.env.STRIPE_SECRET_KEY)`
+- `paypal` → `paypalConfigured()` = `PAYPAL_CLIENT_ID && PAYPAL_SECRET`
+- `sumup`  → `sumupConfigured()`  = `SUMUP_API_KEY && SUMUP_MERCHANT_CODE`
+
+Publishable keys and the PayPal client-id are designed to be public; **secrets never leave the server**.
+
+## Provider comparison
+
+| Provider | Method / API | Where the buyer pays | Create endpoint | Server-side verify (in `orders.js`) | Enabled by |
+|---|---|---|---|---|---|
+| **Stripe** (card) | PaymentIntent, `automatic_payment_methods` | Stripe Elements, in-page | `POST /api/payments/create-intent` | `paymentIntents.retrieve` → `status==='succeeded'` + `amount`/`currency` match | `STRIPE_SECRET_KEY` |
+| **Klarna** | Stripe PaymentIntent restricted to `payment_method_types:['klarna']` | Stripe Payment Element, redirect to Klarna | `POST /api/payments/create-intent` (klarna-only) | same Stripe branch (`payment_method:'carta'` + `payment_intent_id`) | `STRIPE_SECRET_KEY` |
+| **SumUp** (card) | Online Payments Checkouts v0.1 | **Embedded SumUp widget, in-page** on the Pagamento step | `POST /api/payments/sumup/create-checkout` | `getSumupCheckout` → `status==='PAID'` + `amount`/`currency` match | `SUMUP_API_KEY` + `SUMUP_MERCHANT_CODE` |
+| **PayPal** | Orders v2 (create → approve → capture-after-commit) | PayPal JS SDK popup | `POST /api/payments/paypal/create-order` → `/paypal/capture` | `inspectPaypalOrder` → `APPROVED`/`COMPLETED` + amount match, then capture | `PAYPAL_CLIENT_ID` + `PAYPAL_SECRET` |
+
+All amounts are **EUR**, integer cents. Every verification path rejects with **402** on any mismatch and **503** if a selected provider is unconfigured. `orders.payment_intent_id` is **UNIQUE**, giving cross-provider replay protection (a checkout id / PI id / PayPal order id can back exactly one order).
+
+---
+
+> ## ⚠️ THE TOTAL-PARITY RULE (memorize this)
+>
+> **`checkout.html` computes the amount charged; `POST /api/orders` recomputes the total server-side and rejects any mismatch with `402 "Importo del pagamento non corrisponde"`.** A one-cent drift between the two breaks *every* card order.
+>
+> - Line prices are re-resolved from the `products` table server-side — the browser cannot set a price.
+> - **Shipping is server-authoritative** in `MEMI-Backend/src/shipping-rates.js`: `standard €5.90` (**free once goods after discount ≥ €100**), `express €8.90` (**never free**), `ritiro €0`. The browser sends only `shipping_method` and mirrors these constants for display. A configured `shipping_zones` row can override the standard rate/threshold; express stays a flat upgrade.
+> - The free-shipping copy (drawer, ~35 storefront pages) mirrors the €100 threshold. **Change the server const → change the copy too.**
+> - `bash verify/run.sh` **§7c** diffs the two implementations and fails on drift. Run it after touching either side.
+
+The comparison happens per-provider in `routes/orders.js`: `expectedCents = Math.round(total * 100)`, then each branch requires the charged/authorised amount to equal `expectedCents` exactly and the currency to be EUR.
+
+---
+
+## Stripe
+
+**PaymentIntent creation** — `POST /api/payments/create-intent` (`routes/payments.js`):
+- `503` if `STRIPE_SECRET_KEY` unset; `400` if `amount_cents < 50` (Stripe €0.50 minimum).
+- Default intent uses `automatic_payment_methods:{enabled:true}`.
+- If the body carries `payment_method_types` (e.g. `['klarna']`), the intent is **restricted to exactly those types** so the Klarna tab doesn't surface every method enabled on the account.
+
+**Order-time verification** (`routes/orders.js`, `payment_method:'carta'` + Stripe configured + `payment_intent_id`):
+```
+pi = stripe.paymentIntents.retrieve(payment_intent_id)
+pi.status !== 'succeeded'                         → 402 "Pagamento non completato"
+pi.currency !== 'eur' || pi.amount !== expected   → 402 "Importo del pagamento non corrisponde" (logged as possible tampering)
+```
+
+**Klarna** is a Stripe product here: the checkout mints a **dedicated klarna-only PaymentIntent** (`payment_method_types:['klarna']`), mounts a Stripe Payment Element, and redirects the buyer to Klarna. Because a Klarna intent is bound to a fixed amount, `refreshKlarnaElement()` **rebuilds it whenever the total drifts** (shipping change via back-nav, promo, gift card) — otherwise Klarna would authorise a stale total the server then rejects with 402. On return, `handleKlarnaReturn()` reads the redirect params and finalizes.
+
+**Webhook** — `POST /api/payments/webhook` (`stripeWebhookHandler`, mounted on `app` **before** `express.json()` so it gets the **raw body** for signature verification):
+- `503` if `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` unset; `400` on bad signature.
+- It is a **safety net, not the order-creation path** (orders are created by `POST /api/orders` after client-side confirm).
+- `payment_intent.succeeded` **with a matching `in_attesa` order** → reconciled to `pagato` + `ensureInvoiceForOrder`. With **no** matching order → loud warning (customer charged, no order — manual follow-up; the handler will not guess an order from a bare PI).
+- `charge.dispute.created` → logged for admin visibility, no automated action.
+
+---
+
+## SumUp
+
+The card option is the **embedded SumUp widget mounted in-page on the Pagamento step** (step 3), replacing Stripe Elements when SumUp is configured. Card data never touches MEMI servers.
+
+**Flow** (`checkout.html` `initSumupCheckout` → `payment-providers.js` `createSumupCheckout`):
+1. On reaching step 3 with the Carta tab active, load the SumUp SDK (`https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js`).
+2. `POST /api/payments/sumup/create-checkout` with `amount_cents` and a validated `return_url`. Server creates a checkout (`checkout_reference = MEMI-<ts>-<rand>`, `currency EUR`, `merchant_code`) and returns `{ id, status }`.
+3. `window.SumUpCard.mount({ checkoutId, showAmount:true, onResponse })`. On `success` + `body.status==='PAID'`, the client places the order with `sumup_checkout_id` attached.
+4. **`redirect_url`** is passed to give 3-D Secure a **top-level-redirect escape hatch** — a challenge bounces the browser to the issuer and SumUp returns to `?checkout_id=…`, handled by `handleSumupReturn()` (which finalizes a *staged* order). Without it the widget attempts 3DS in a nested iframe, which third-party-cookie restrictions break (the Jul 2026 "ACS Method call 400"). If the SDK fails to load, checkout **falls back to Stripe Elements** — never a dead-end.
+
+**Order-time verification** (`routes/orders.js`, `payment_method:'carta'` + `sumup_checkout_id` present):
+```
+info = getSumupCheckout(sumup_checkout_id)
+info.status !== 'PAID'                                → 402
+info.currency !== 'EUR' || info.amountCents !== exp   → 402
+paymentRef = 'sumup_' + checkout_id                   // 'sumup_' prefix → unambiguous for refunds
+```
+The `sumup_` prefix on `payment_intent_id` is how the refund path (`resi.js`) tells a SumUp order (`sumup_…`) from a Stripe one (`pi_…`).
+
+> ### ⚠️ SumUp test cards work ONLY on a SANDBOX merchant account
+> This is a recurring support question. SumUp has **no separate sandbox host** — everything hits `https://api.sumup.com`. What decides test vs live is the **merchant account** behind `SUMUP_MERCHANT_CODE`:
+> - **Sandbox merchant** (`MWJ0XBGY`): the checkout response carries `merchant_sandbox:true` and **test cards are accepted**.
+> - **Live merchant** (`MRRCM5V4`): `merchant_sandbox` is absent/false and **test cards are declined** (the classic "bounces back to the form" symptom).
+>
+> Both `createSumupCheckout` and `getSumupCheckout` log `merchant_sandbox` to make this diagnosable. To run test payments locally, point `SUMUP_MERCHANT_CODE` (and matching API key) at the sandbox merchant.
+
+**Hosted Checkout** (card entry + 3DS entirely on SumUp's page, returning `hosted_checkout_url`) is **retained only as a rollback** — the code path exists (`hosted:true` opt-in in `createSumupCheckout`, a commented block in `checkout.html`) but the storefront uses the embedded widget.
+
+**Env:** `SUMUP_API_KEY` (secret Bearer), `SUMUP_MERCHANT_CODE`.
+
+---
+
+## PayPal
+
+Standard **Orders v2**: `create-order → buyer approves in popup → capture`. The convenience routes drive the PayPal JS SDK; the **source of truth is the server re-check in `POST /api/orders`**.
+
+- `POST /api/payments/paypal/create-order` → `createPaypalOrder` (`intent:'CAPTURE'`, EUR). `503` unconfigured, `400` if `amount_cents < 50`.
+- `POST /api/payments/paypal/capture` → `capturePaypalOrder`.
+
+**Order-time verification** (`routes/orders.js`, `payment_method:'paypal'` + `payment_reference`):
+```
+info = inspectPaypalOrder(payment_reference)          // inspect WITHOUT capturing
+status not APPROVED/COMPLETED                          → 402
+currency !== 'EUR' || amountCents !== expected         → 402
+COMPLETED  → paymentStatus = 'pagato' (idempotent retry, already captured)
+APPROVED   → paypalCaptureAfterCommit = true           // capture ONLY after the order + atomic
+                                                        // stock decrement commit
+```
+**Capture-after-commit** is deliberate: capturing before persistence could leave a buyer charged with no order if a concurrent oversell 409s. If the post-commit capture fails, the order is left `in_attesa` with a CRITICAL log for manual follow-up.
+
+**Webhook** — `POST /api/payments/paypal/webhook` (JSON-parsed router):
+- With `PAYPAL_WEBHOOK_ID` set → `verifyPaypalWebhook` (POSTs the event + `paypal-transmission-*` headers to `/v1/notifications/verify-webhook-signature`); a failed verification is **rejected (400)**.
+- **Without `PAYPAL_WEBHOOK_ID` → the event is acknowledged (200) but NEVER reconciled** — a forged event could otherwise flip an order to `pagato`. Set it before going live.
+- On a verified `CHECKOUT.ORDER.APPROVED` / `PAYMENT.CAPTURE.COMPLETED`, `reconcileByReference` flips a matching `in_attesa` order to `pagato` + emits the invoice.
+
+**Env:** `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_ENV=sandbox|live`, `PAYPAL_WEBHOOK_ID` (required to trust webhooks).
+
+---
+
+## Invoicing (automatic)
+
+`src/invoicing.js` — `ensureInvoiceForOrder(db, orderId)` emits a fiscal document **the first time an order becomes `pagato`**, so revenue never sits without an invoice. Called from checkout, admin order creation, admin status change, and both webhook reconciliations.
+
+- Number format **`F-YYYY-NNNN`** (year-scoped, zero-padded), computed from `MAX()` with a one-retry guard on a concurrent numbering collision.
+- **Idempotent** — skips if the order already has an invoice or isn't `pagato`.
+- VAT model: prices are IVA-inclusive (22%); `imponibile = total / 1.22`, IVA extracted from the gross.
+- **Opt-out:** `store_settings.auto_invoice = '0'` (default on).
+- An invoicing failure is swallowed (logged) — it must **never** break the payment/order flow.
+
+## Order compensation (undo side effects)
+
+`src/order-compensation.js` — cancelling, deleting, or refunding an order must move back the four things order creation moved. Used by `PUT /orders/admin/:id/status` (annullato), `DELETE /orders/admin/:id`, `PUT /admin/resi/:id`, `POST /admin/resi/:id/refund`.
+
+| Restored | Notes |
+|---|---|
+| **Stock** (`product_sizes`) | re-adds each sized line's qty |
+| **Gift-card balance** | re-credits and re-activates a card depleted by the order |
+| **Discount-code usage** | released on **cancel only** (global counter + per-email row) |
+| **Loyalty points** | reversed via ledger storno, **idempotent** |
+| **Customer totals** | denormalized `speso`/points corrected |
+
+`annullato` is **terminal** (re-activating → 409). `DELETE` skips compensation if the order was already `annullato`/`rimborsato` (avoids double-compensation). All functions expect an **open transaction**; callers commit/rollback and guard against double-compensation with a status-transition check.
+
+## Refunds
+
+`POST /api/admin/resi/:id/refund` (`routes/resi.js`, `requireAdmin`):
+- **Provider auto-detected** from `payment_intent_id`: `sumup_…` → `refundSumupCheckout`; otherwise a real `stripe.refunds.create`.
+- **`{ manual: true }`** = money returned **outside** Stripe/SumUp (PayPal / Klarna / bonifico): skips the provider call but runs the **exact same bookkeeping**. A non-Stripe order with no `payment_intent_id` **requires** the manual path (400 otherwise).
+- **Full** refund → order marked `rimborsato` + `compensateOrder` (stock/gift-card/loyalty restored). **Partial** refund → order stays a paid order (net of the slice); only the customer's `speso` is reduced, inventory adjusted manually.
+- Every refund fires `sendRefundNotification` and writes an admin audit-log row.
+
+---
+
+## Email
+
+`src/email.js` (nodemailer). **No-op contract:** if SMTP is not fully configured (**both** `SMTP_USER` *and* `SMTP_PASS` — a half-config with only `SMTP_USER` is treated as unconfigured and logs a warning), **every send function is a silent no-op that never throws**, so callers stay fire-and-forget.
+
+**Transactional:** order confirmation, shipping confirmation, welcome, password reset, gift-card delivery, refund notification, **newsletter welcome** (`sendNewsletterWelcome`, fired best-effort from `POST /api/newsletter/subscribe`).
+
+**Lifecycle engine** — `src/lifecycle.js` (campaigns) + `src/scheduler.js` (in-process daily runner, **no cron dependency**; hourly tick, batch at `LIFECYCLE_SEND_HOUR` local, default 09:00; idle without SMTP or with `DISABLE_EMAIL_SCHEDULER=1`). Started from `server.js` after migrations.
+
+| Campaign | Trigger | Sends |
+|---|---|---|
+| `birthday` | customer's birthday today | personal % code |
+| `winback` | ordered before, dormant (default 120 days) | "we miss you" + code |
+| `points_reminder` | has redeemable loyalty points, idle | reminder of their € value |
+| `anniversary` | 1+ year since registration | thank-you + small code |
+| `new_season` | admin broadcast | to all consented customers (+ opted-in newsletter subs) |
+
+**Three invariants on every send:**
+1. **GDPR-gated** — only `customers.marketing_consent = 1` are ever targeted (season broadcast may also include opted-in newsletter subscribers).
+2. **Idempotent** — a row is claimed in `email_events (type, dedup_key, email)` **before** sending, so no double-send across restarts/instances, and the claim precedes minting any discount code (no orphan codes).
+3. **Best-effort** — silent no-op without SMTP.
+
+Admin API (gated `requirePermission('marketing')`): `GET /api/admin/lifecycle`, `PUT /api/admin/lifecycle/settings`, `POST /api/admin/lifecycle/run` (`{dryRun}`), `POST /api/admin/lifecycle/:type/preview`, `POST /api/admin/lifecycle/season`. Tunables live in `store_settings` keys `lifecycle_*`.
+
+---
+
+*Consolidated from: integrations.md, admin/07-integrations.md, SECURITY.md (payments), DEPLOYMENT.md (payments).*
