@@ -487,7 +487,11 @@ router.get('/admin/list', requireAdmin, requirePermission('orders'), async (req,
       if (statoList.length === 1) { where += ' AND order_status = ?'; filterParams.push(statoList[0]); }
       else if (statoList.length > 1) { where += ' AND order_status IN (' + statoList.map(() => '?').join(',') + ')'; filterParams.push(...statoList); }
     }
-    if (pagamento) { where += ' AND payment_status = ?'; filterParams.push(pagamento); }
+    if (pagamento) {
+      const pagList = String(pagamento).split(',').map(s => s.trim()).filter(Boolean);
+      if (pagList.length === 1) { where += ' AND payment_status = ?'; filterParams.push(pagList[0]); }
+      else if (pagList.length > 1) { where += ' AND payment_status IN (' + pagList.map(() => '?').join(',') + ')'; filterParams.push(...pagList); }
+    }
     if (q) {
       where += ' AND (customer_nome LIKE ? OR customer_cognome LIKE ? OR customer_email LIKE ? OR order_number LIKE ?)';
       const like = `%${q}%`;

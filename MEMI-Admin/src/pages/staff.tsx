@@ -27,22 +27,41 @@ const exportColumns: ExportColumn<StaffMember>[] = [
   { header: 'Creato il', accessor: (m) => date(m.created_at) },
 ];
 
-const ROLE_OPTS = [
+// Named permission profiles — MIRRORS MEMI-Backend/src/permissions.js PRESETS.
+// A profile stores an explicit permissions array on the account (admin ⇒ null =
+// full access); this is what makes least-privilege reachable from the UI.
+const PERMISSION_PRESETS: Record<string, string[] | null> = {
+  admin: null,
+  staff: ['dashboard', 'orders', 'orders-drafts', 'orders-abandoned', 'returns', 'invoices', 'products', 'inventory', 'transfers', 'collections', 'categories', 'giftcards', 'customers', 'loyalty', 'segments', 'reviews', 'marketing', 'automations', 'lifecycle', 'newsletter', 'popups', 'discounts', 'content', 'blog', 'files', 'couriers', 'shipments', 'tracking', 'shipping-zones', 'pickup', 'chat', 'online-store', 'social', 'pos', 'apps'],
+  warehouse: ['dashboard', 'products', 'inventory', 'transfers', 'collections', 'categories', 'giftcards', 'couriers', 'shipments', 'tracking', 'shipping-zones', 'pickup', 'orders', 'orders-drafts', 'orders-abandoned'],
+  customer_service: ['dashboard', 'orders', 'orders-drafts', 'orders-abandoned', 'returns', 'invoices', 'customers', 'loyalty', 'segments', 'reviews', 'chat', 'newsletter'],
+  marketing: ['dashboard', 'marketing', 'automations', 'lifecycle', 'newsletter', 'popups', 'discounts', 'content', 'blog', 'files', 'analytics', 'reports', 'reviews'],
+};
+const PROFILO_OPTS = [
   { value: 'admin', label: 'Admin (accesso completo)' },
-  { value: 'staff', label: 'Staff (permessi limitati)' },
+  { value: 'staff', label: 'Staff (completo)' },
+  { value: 'warehouse', label: 'Magazzino' },
+  { value: 'customer_service', label: 'Servizio clienti' },
+  { value: 'marketing', label: 'Marketing' },
 ];
 
-const STAFF_EDIT_FIELDS: FieldConfig[] = [
-  { name: 'nome', label: 'Nome', required: true },
-  { name: 'password', label: 'Nuova password', type: 'text', help: 'Lascia vuoto per non modificarla. Minimo 8 caratteri.' },
-  { name: 'role', label: 'Ruolo', type: 'select', side: true, options: ROLE_OPTS },
-];
-const STAFF_CREATE_FIELDS: FieldConfig[] = [
-  { name: 'nome', label: 'Nome', required: true },
-  { name: 'email', label: 'Email', type: 'email', required: true },
-  { name: 'password', label: 'Password', type: 'text', required: true, help: 'Minimo 8 caratteri.' },
-  { name: 'role', label: 'Ruolo', type: 'select', side: true, options: ROLE_OPTS },
-];
+function sameSet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const s = new Set(a);
+  return b.every((x) => s.has(x));
+}
+/** Which named profile a stored member matches ('custom' if an unrecognised set). */
+function profiloOf(row?: StaffMember): string {
+  if (!row) return 'staff';
+  if (row.role === 'admin') return 'admin';
+  const p = row.permissions;
+  if (!p) return 'staff';
+  const match = Object.keys(PERMISSION_PRESETS).find((k) => {
+    const arr = PERMISSION_PRESETS[k];
+    return Array.isArray(arr) && sameSet(arr, p);
+  });
+  return match ?? 'custom';
+}
 
 export function StaffPage() {
   const query = useStaff();
@@ -150,10 +169,30 @@ export function StaffFormPage() {
   const saveMut = useSaveEntity(api.staff.create, api.staff.update, 'staff');
   const row = editing ? (query.data?.staff ?? []).find((m) => String(m.id) === id) : undefined;
 
+  const profilo = profiloOf(row);
+  const profiloOptions = useMemo(() => {
+    const opts = [...PROFILO_OPTS];
+    if (profilo === 'custom') opts.push({ value: 'custom', label: 'Personalizzato (attuale)' });
+    return opts;
+  }, [profilo]);
+
+  const fields = useMemo<FieldConfig[]>(() => {
+    const f: FieldConfig[] = [{ name: 'nome', label: 'Nome', required: true }];
+    if (!editing) {
+      f.push({ name: 'email', label: 'Email', type: 'email', required: true });
+      f.push({ name: 'password', label: 'Password', type: 'text', required: true, help: 'Minimo 8 caratteri.' });
+    } else {
+      f.push({ name: 'password', label: 'Nuova password', type: 'text', help: 'Lascia vuoto per non modificarla. Minimo 8 caratteri.' });
+    }
+    f.push({ name: 'profilo', label: 'Profilo permessi', type: 'select', side: true, options: profiloOptions,
+      help: 'Definisce quali sezioni del gestionale può usare il membro.' });
+    return f;
+  }, [editing, profiloOptions]);
+
   const initial = useMemo<FormValues>(() => {
-    if (!editing) return { role: 'staff' };
-    return row ? { nome: row.nome ?? '', email: row.email, role: row.role, password: '' } : {};
-  }, [editing, row]);
+    if (!editing) return { profilo: 'staff' };
+    return row ? { nome: row.nome ?? '', email: row.email, profilo, password: '' } : {};
+  }, [editing, row, profilo]);
 
   return (
     <EntityFormPage
@@ -161,19 +200,25 @@ export function StaffFormPage() {
       backPath="/staff"
       backLabel="Staff & Permessi"
       mainTitle={editing ? 'Membro' : 'Account'}
-      sideTitle="Ruolo"
-      fields={editing ? STAFF_EDIT_FIELDS : STAFF_CREATE_FIELDS}
+      sideTitle="Permessi"
+      fields={fields}
       initial={initial}
       loading={editing && !row && query.isLoading}
       submitLabel={editing ? 'Salva modifiche' : 'Aggiungi membro'}
       onSubmit={async (v) => {
+        const prof = (v.profilo as string) || 'staff';
+        const data: Record<string, unknown> = { nome: v.nome };
+        if (prof === 'admin') { data.role = 'admin'; data.permissions = null; }
+        else if (prof === 'custom') { data.role = 'staff'; data.permissions = row?.permissions ?? null; }
+        else { data.role = 'staff'; data.permissions = PERMISSION_PRESETS[prof]; }
         if (editing) {
-          const data: Record<string, unknown> = { nome: v.nome, role: v.role };
           if (v.password) data.password = v.password;
           await saveMut.mutateAsync({ id: Number(id), data });
           toast.success('Membro aggiornato');
         } else {
-          await saveMut.mutateAsync({ data: { nome: v.nome, email: v.email, password: v.password, role: v.role || 'staff' } });
+          data.email = v.email;
+          data.password = v.password;
+          await saveMut.mutateAsync({ data });
           toast.success('Membro aggiunto');
         }
       }}

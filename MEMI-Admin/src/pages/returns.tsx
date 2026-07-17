@@ -13,7 +13,8 @@ import type { FieldConfig, FormValues } from '@/components/common/entity-form-fi
 import { EntityFormPage } from '@/components/common/entity-form-page';
 import { Button } from '@/components/ui/button';
 import { useResi, useDeleteMany, useUpdateOne } from '@/hooks/queries';
-import { api } from '@/lib/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { api, ApiError } from '@/lib/api';
 import { eur, date } from '@/lib/format';
 import { statusLabel } from '@/lib/status';
 import type { Reso } from '@/types';
@@ -133,6 +134,7 @@ export function ReturnsPage() {
 export function ReturnFormPage() {
   const { id } = useParams<{ id: string }>();
   const query = useResi();
+  const qc = useQueryClient();
   const updateMut = useUpdateOne<number>((rid, data) => api.resi.update(rid, data), 'resi');
   const row = (query.data?.resi ?? []).find((r) => String(r.id) === id);
 
@@ -154,9 +156,32 @@ export function ReturnFormPage() {
       loading={!row && query.isLoading}
       submitLabel="Salva"
       onSubmit={async (v) => {
+        const amount = v.rimborso_amount === '' || v.rimborso_amount == null ? undefined : Number(v.rimborso_amount);
+        const wantsRefund = v.stato === 'rimborsato' && row?.stato !== 'rimborsato';
+        if (wantsRefund) {
+          // Issue a REAL refund (Stripe/SumUp) + restock/points. If the order has no
+          // card payment to reverse, fall back to a manual (offline) refund.
+          try {
+            try {
+              await api.resi.refund(Number(id), amount != null ? { amount } : {});
+              toast.success('Rimborso emesso e reso aggiornato');
+            } catch (e) {
+              if (e instanceof ApiError && e.status === 400) {
+                await api.resi.refund(Number(id), { manual: true, ...(amount != null ? { amount } : {}) });
+                toast.success('Rimborso manuale registrato (nessun pagamento carta sull’ordine)');
+              } else {
+                throw e;
+              }
+            }
+            qc.invalidateQueries({ queryKey: ['resi'] });
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Rimborso non riuscito');
+          }
+          return;
+        }
         await updateMut.mutateAsync({
           id: Number(id),
-          data: { stato: v.stato, rimborso_amount: v.rimborso_amount === '' || v.rimborso_amount == null ? null : v.rimborso_amount },
+          data: { stato: v.stato, rimborso_amount: amount ?? null },
         });
         toast.success('Reso aggiornato');
       }}

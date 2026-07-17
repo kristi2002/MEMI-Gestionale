@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Trash2, Users, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
-import type { FilterDef } from '@/components/data-table/filters';
+import { useDebouncedValue } from '@/lib/utils';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import type { FieldConfig, FormValues } from '@/components/common/entity-form-fields';
@@ -56,20 +56,12 @@ const CREATE_FIELDS: FieldConfig[] = [
 ];
 
 export function CustomersPage() {
-  const query = useCustomers();
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const query = useCustomers({ q: debouncedSearch || undefined });
   const deleteMut = useDeleteCustomers();
   const navigate = useNavigate();
   const rows = useMemo(() => flattenCustomers(query.data?.pages), [query.data]);
-
-  const filters = useMemo<FilterDef<CustomerRow>[]>(() => {
-    const paesi = [...new Set(rows.map((c) => c.paese).filter(Boolean))].sort();
-    return [
-      { key: 'paese', type: 'select', label: 'Paese', accessor: (c) => c.paese, options: paesi.map((p) => ({ value: p, label: p })) },
-      { key: 'orders', type: 'numberRange', label: 'Ordini', accessor: (c) => c.total_orders },
-      { key: 'spent', type: 'numberRange', label: 'Speso', unit: '€', accessor: (c) => num(c.total_spent) },
-      { key: 'created', type: 'dateRange', label: 'Iscritto', accessor: (c) => c.created_at },
-    ];
-  }, [rows]);
 
   const columns = useMemo<ColumnDef<CustomerRow, unknown>[]>(
     () => [
@@ -129,12 +121,11 @@ export function CustomersPage() {
         columns={columns}
         data={rows}
         getRowId={(c) => String(c.id)}
-        searchValue={(c) => `${fullName(c)} ${c.email} ${c.citta ?? ''}`}
+        externalSearch={{ value: search, onChange: setSearch }}
         searchPlaceholder="Cerca cliente o email…"
         exportName="clienti"
         exportTitle="Clienti"
         exportColumns={exportColumns}
-        filters={filters}
         tableId="customers"
         isLoading={query.isLoading}
         hasMore={query.hasNextPage}

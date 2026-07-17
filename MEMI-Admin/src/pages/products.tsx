@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Trash2, Tag, FileDown, Rss, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
-import type { FilterDef } from '@/components/data-table/filters';
+import { useDebouncedValue } from '@/lib/utils';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -37,32 +37,19 @@ const exportColumns: ExportColumn<ProductRow>[] = [
 ];
 
 export function ProductsPage() {
-  const query = useProducts();
+  const [search, setSearch] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [status, setStatus] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  const query = useProducts({ q: debouncedSearch || undefined, categoria: categoria || undefined, status: status || undefined });
   const deleteMut = useDeleteProducts();
   const navigate = useNavigate();
 
   const all = useMemo(() => flattenProducts(query.data?.pages), [query.data]);
   const categoriesQuery = useCategories();
-  // Prefer the managed Categorie list (complete regardless of pagination); fall
-  // back to / merge with categories derived from whatever products are loaded so
-  // a legacy product with an unmanaged slug is still filterable.
-  const categories = useMemo(() => {
-    const managed = (categoriesQuery.data ?? []).map((c) => c.slug);
-    const derived = all.map((p) => p.categoria).filter(Boolean);
-    return [...new Set([...managed, ...derived])].sort();
-  }, [categoriesQuery.data, all]);
-
-  const filters = useMemo<FilterDef<ProductRow>[]>(
-    () => [
-      { key: 'categoria', type: 'select', label: 'Categoria', accessor: (p) => p.categoria, options: categories.map((c) => ({ value: c, label: c })) },
-      { key: 'status', type: 'select', label: 'Stato', accessor: (p) => p.status, options: [
-          { value: 'attivo', label: 'Attivo' }, { value: 'bozza', label: 'Bozza' }, { value: 'esaurito', label: 'Esaurito' },
-        ] },
-      { key: 'price', type: 'numberRange', label: 'Prezzo', unit: '€', accessor: (p) => Number(p.price) },
-      { key: 'stock', type: 'numberRange', label: 'Stock', accessor: (p) => p.stock_total },
-    ],
-    [categories],
-  );
+  // Options come from the managed Categorie entity (complete regardless of
+  // pagination); category + status + search are all applied SERVER-side.
+  const categoryOptions = useMemo(() => (categoriesQuery.data ?? []).map((c) => c.slug).sort(), [categoriesQuery.data]);
 
   const columns = useMemo<ColumnDef<ProductRow, unknown>[]>(
     () => [
@@ -179,13 +166,28 @@ export function ProductsPage() {
         columns={columns}
         data={all}
         getRowId={(p) => p.id}
-        searchValue={(p) => `${p.name} ${p.id} ${p.categoria}`}
+        externalSearch={{ value: search, onChange: setSearch }}
         searchPlaceholder="Cerca prodotto…"
         exportName="prodotti"
         exportTitle="Catalogo prodotti"
         exportColumns={exportColumns}
-        filters={filters}
         tableId="products"
+        toolbar={
+          <>
+            <select value={categoria} onChange={(e) => setCategoria(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm capitalize">
+              <option value="">Tutte le categorie</option>
+              {categoryOptions.map((c) => (<option key={c} value={c}>{c}</option>))}
+            </select>
+            <select value={status} onChange={(e) => setStatus(e.target.value)}
+              className="h-9 rounded-md border border-input bg-background px-2 text-sm">
+              <option value="">Tutti gli stati</option>
+              <option value="attivo">Attivo</option>
+              <option value="bozza">Bozza</option>
+              <option value="esaurito">Esaurito</option>
+            </select>
+          </>
+        }
         isLoading={query.isLoading}
         hasMore={query.hasNextPage}
         onLoadMore={() => query.fetchNextPage()}

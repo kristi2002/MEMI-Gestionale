@@ -16,7 +16,7 @@ export function useDashboard() {
 const PAGE = 50;
 
 /* ── Orders (infinite) ─────────────────────────────────── */
-export function useOrders(filters: { stato?: string; pagamento?: string } = {}) {
+export function useOrders(filters: { stato?: string; pagamento?: string; q?: string } = {}) {
   return useInfiniteQuery({
     queryKey: ['orders', filters],
     queryFn: ({ pageParam = 0 }) => api.orders.list({ limit: PAGE, offset: pageParam, ...filters }),
@@ -29,10 +29,11 @@ export function useOrders(filters: { stato?: string; pagamento?: string } = {}) 
 }
 
 /* ── Products (infinite; total from X-Total-Count) ─────── */
-export function useProducts() {
+export function useProducts(params: { q?: string; categoria?: string; status?: string } = {}) {
   return useInfiniteQuery({
-    queryKey: ['products'],
-    queryFn: ({ pageParam = 0 }) => api.products.listPaged({ limit: 60, offset: pageParam }),
+    queryKey: ['products', params],
+    queryFn: ({ pageParam = 0 }) =>
+      api.products.listPaged({ limit: 60, offset: pageParam, q: params.q, categoria: params.categoria, status: params.status || 'all' }),
     initialPageParam: 0,
     getNextPageParam: (last, pages) => {
       const loaded = pages.reduce((n, p) => n + p.items.length, 0);
@@ -42,10 +43,10 @@ export function useProducts() {
 }
 
 /* ── Customers (infinite) ──────────────────────────────── */
-export function useCustomers() {
+export function useCustomers(params: { q?: string } = {}) {
   return useInfiniteQuery({
-    queryKey: ['customers'],
-    queryFn: ({ pageParam = 0 }) => api.customers.list({ limit: PAGE, offset: pageParam }),
+    queryKey: ['customers', params],
+    queryFn: ({ pageParam = 0 }) => api.customers.list({ limit: PAGE, offset: pageParam, q: params.q }),
     initialPageParam: 0,
     getNextPageParam: (last, pages) => {
       const loaded = pages.reduce((n, p) => n + p.customers.length, 0);

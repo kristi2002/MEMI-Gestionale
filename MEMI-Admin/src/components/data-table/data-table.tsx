@@ -28,6 +28,8 @@ export interface DataTableProps<T> {
   getRowId: (row: T) => string;
   /** Text search — a stringifier that returns the haystack for a row. */
   searchValue?: (row: T) => string;
+  /** Server-side search: when set, the box is bound to this value and no client filtering happens. */
+  externalSearch?: { value: string; onChange: (v: string) => void };
   searchPlaceholder?: string;
   exportName: string;
   exportColumns: ExportColumn<T>[];
@@ -54,6 +56,7 @@ export function DataTable<T>({
   data,
   getRowId,
   searchValue,
+  externalSearch,
   searchPlaceholder = 'Cerca…',
   exportName,
   exportColumns,
@@ -138,12 +141,12 @@ export function DataTable<T>({
     <div className="space-y-3">
       {/* Toolbar — search + filters (left) and actions + export (right), one row on desktop */}
       <div className="flex flex-wrap items-start gap-2 lg:flex-nowrap">
-        {searchValue && (
+        {(searchValue || externalSearch) && (
           <div className="relative w-full shrink-0 sm:w-64">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              value={globalFilter}
-              onChange={(e) => setGlobalFilter(e.target.value)}
+              value={externalSearch ? externalSearch.value : globalFilter}
+              onChange={(e) => (externalSearch ? externalSearch.onChange(e.target.value) : setGlobalFilter(e.target.value))}
               placeholder={searchPlaceholder}
               className="h-9 pl-8"
             />

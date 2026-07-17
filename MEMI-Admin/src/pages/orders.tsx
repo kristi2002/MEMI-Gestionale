@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Trash2, CheckCircle2, Ban, ShoppingBag } from 'lucide-react';
+import { Trash2, CheckCircle2, Ban, ShoppingBag, Truck } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
-import type { FilterDef } from '@/components/data-table/filters';
+import { ShipOrderDialog } from '@/components/ship-order-dialog';
+import { useDebouncedValue } from '@/lib/utils';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
@@ -43,37 +44,24 @@ const exportColumns: ExportColumn<OrderRow>[] = [
 
 export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'Gestisci tutti gli ordini ricevuti dallo store.' }: { initialTab?: (typeof TABS)[number]['key']; title?: string; subtitle?: string } = {}) {
   const [tab, setTab] = useState<(typeof TABS)[number]['key']>(initialTab);
-  const query = useOrders();
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 300);
+  // Tabs map to SERVER-side filters so tabs + search cover the whole dataset, not
+  // just the rows already loaded. `stato`/`pagamento` accept comma lists (SQL IN).
+  const serverFilters = useMemo<{ stato?: string; pagamento?: string }>(() => {
+    switch (tab) {
+      case 'unpaid':    return { pagamento: 'in_attesa,fallito' };
+      case 'toship':    return { stato: 'in_attesa,in_preparazione' };
+      case 'shipped':   return { stato: 'spedito,consegnato' };
+      case 'cancelled': return { stato: 'annullato' };
+      default:          return {};
+    }
+  }, [tab]);
+  const query = useOrders({ ...serverFilters, q: debouncedSearch || undefined });
   const statusMut = useOrderStatusMutation();
   const deleteMut = useDeleteOrders();
 
-  const all = useMemo(() => flattenOrders(query.data?.pages), [query.data]);
-  const rows = useMemo(() => {
-    switch (tab) {
-      case 'unpaid':
-        return all.filter((o) => o.payment_status !== 'pagato');
-      case 'toship':
-        return all.filter((o) => o.order_status === 'in_attesa' || o.order_status === 'in_preparazione');
-      case 'shipped':
-        return all.filter((o) => o.order_status === 'spedito' || o.order_status === 'consegnato');
-      case 'cancelled':
-        return all.filter((o) => o.order_status === 'annullato');
-      default:
-        return all;
-    }
-  }, [all, tab]);
-
-  const filters = useMemo<FilterDef<OrderRow>[]>(
-    () => [
-      { key: 'order_status', type: 'select', label: 'Stato', accessor: (o) => o.order_status,
-        options: ['in_attesa', 'in_preparazione', 'spedito', 'consegnato', 'annullato'].map((s) => ({ value: s, label: statusLabel(s) })) },
-      { key: 'payment_status', type: 'select', label: 'Pagamento', accessor: (o) => o.payment_status,
-        options: ['pagato', 'in_attesa', 'rimborsato', 'fallito'].map((s) => ({ value: s, label: statusLabel(s) })) },
-      { key: 'created', type: 'dateRange', label: 'Data', accessor: (o) => o.created_at },
-      { key: 'total', type: 'numberRange', label: 'Totale', unit: '€', accessor: (o) => Number(o.total) },
-    ],
-    [],
-  );
+  const rows = useMemo(() => flattenOrders(query.data?.pages), [query.data]);
 
   const columns = useMemo<ColumnDef<OrderRow, unknown>[]>(
     () => [
@@ -109,6 +97,20 @@ export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'G
         header: 'Corriere',
         cell: ({ getValue }) => <span className="text-muted-foreground">{((getValue() as string) || '—').toUpperCase()}</span>,
       },
+      {
+        id: 'azioni', header: '', enableSorting: false,
+        cell: ({ row }) =>
+          row.original.order_status === 'annullato' ? null : (
+            <ShipOrderDialog
+              order={row.original}
+              trigger={
+                <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+                  <Truck /> {row.original.tracking_number ? 'Tracking' : 'Spedisci'}
+                </Button>
+              }
+            />
+          ),
+      },
     ],
     [],
   );
@@ -139,12 +141,11 @@ export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'G
         columns={columns}
         data={rows}
         getRowId={(o) => String(o.id)}
-        searchValue={(o) => `${o.order_number} ${o.customer_nome} ${o.customer_cognome} ${o.customer_email}`}
+        externalSearch={{ value: search, onChange: setSearch }}
         searchPlaceholder="Cerca ordine o cliente…"
         exportName="ordini"
         exportTitle="Ordini"
         exportColumns={exportColumns}
-        filters={filters}
         tableId="orders"
         isLoading={query.isLoading}
         hasMore={query.hasNextPage}

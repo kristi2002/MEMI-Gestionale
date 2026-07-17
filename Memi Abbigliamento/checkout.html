@@ -860,6 +860,11 @@
           </label>
         </div>
 
+        <!-- Providers that own their pay control (SumUp hosted widget, PayPal Buttons,
+             Apple/Google Pay) get that control moved here so payment always completes on
+             this final step. Stripe card / Klarna / local dev use the generic button below. -->
+        <div id="providerPayArea" style="display:none;margin-top:var(--space-4);"></div>
+
         <div class="form-actions">
           <button class="btn-back" onclick="goToStep(3)">
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
@@ -1188,9 +1193,11 @@
       // Mount the card UI when reaching the payment step — SumUp widget when the server
       // has SumUp credentials, Stripe Elements otherwise.
       if (n === 3) {
+        restorePaymentWidgets();
         setTimeout(function() { if (sumupAvailable()) initSumupCheckout(); else initStripeElements(); }, 80);
         if (window.__walletIntent) setTimeout(revealWalletIntent, 750);
       }
+      if (n === 4) setTimeout(setupConfirmPayment, 60);
     }
 
     // ── Validation ────────────────────────────────────────────────────────────
@@ -1867,6 +1874,54 @@
       if (confirmBtn) confirmBtn.style.display = (paypalActive || sumupActive) ? 'none' : '';
     }
 
+    // The Confermare step is where the customer pays. Providers with their own hosted pay
+    // control (SumUp card widget, PayPal Buttons, Apple/Google Pay) have that control moved
+    // into #providerPayArea here, so the final step always offers a working pay action;
+    // Stripe card / Klarna / local dev keep the generic "Conferma e paga" button.
+    function setupConfirmPayment() {
+      var area = el('providerPayArea');
+      var genericBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
+      var cents = currentAmountCents();
+      var useSumup  = sumupAvailable() && activePayMethod === 'carta' && cents > 0;
+      var useApple  = activePayMethod === 'apple' && cents > 0;
+      var usePaypal = activePayMethod === 'paypal' && cents > 0 &&
+                      window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers.paypal;
+
+      function moveInto(node) { if (node && area && node.parentNode !== area) area.appendChild(node); }
+
+      if (useSumup) {
+        initSumupCheckout();                 // idempotent: mounts the widget if not yet mounted
+        var wrap = el('sumupCardWrap');
+        moveInto(wrap);
+        if (wrap) wrap.style.display = 'block';
+        if (area) area.style.display = 'block';
+        if (genericBtn) genericBtn.style.display = 'none';
+        wireSumupConsentGate();
+      } else if (usePaypal) {
+        moveInto(el('paypalButtons'));
+        if (area) area.style.display = 'block';
+        if (genericBtn) genericBtn.style.display = 'none';
+      } else if (useApple) {
+        moveInto(el('paymentRequestButton'));
+        if (area) area.style.display = 'block';
+        if (genericBtn) genericBtn.style.display = 'none';
+      } else {
+        if (area) area.style.display = 'none';
+        if (genericBtn) genericBtn.style.display = '';
+      }
+    }
+
+    // On returning to the payment step, put each provider control back where it belongs so
+    // step 3 renders correctly if the customer navigates back.
+    function restorePaymentWidgets() {
+      var wrap = el('sumupCardWrap'), cardForm = el('cardForm'), note = el('cardProcessorNote');
+      if (wrap && cardForm && wrap.parentNode !== cardForm) cardForm.insertBefore(wrap, note || null);
+      var pp = el('paypalButtons'), ppPanel = el('paypalPanel');
+      if (pp && ppPanel && pp.parentNode !== ppPanel) ppPanel.appendChild(pp);
+      var prb = el('paymentRequestButton'), applePanel = el('applePanel');
+      if (prb && applePanel && prb.parentNode !== applePanel) applePanel.appendChild(prb);
+    }
+
     function showPaymentError(msg) {
       var errEl = el('paymentError');
       if (errEl) { errEl.textContent = msg; errEl.style.display = 'flex'; } else if (msg) alert(msg);
@@ -2209,6 +2264,8 @@
           initStripeElements();
           var confirmBtn2 = document.querySelector('.btn-next[onclick="confirmOrder()"]');
           if (confirmBtn2) confirmBtn2.style.display = '';
+          // SumUp unavailable: fall back to the generic button and drop the (now empty) confirm-step widget slot.
+          var pa2 = el('providerPayArea'); if (pa2) pa2.style.display = 'none';
         })
         .then(function() { sumupCreating = false; });
     }
