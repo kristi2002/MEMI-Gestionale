@@ -760,6 +760,14 @@
               <div id="sumupCard"></div>
               <div id="sumupConsentGate" style="display:none;position:absolute;inset:0;z-index:5;cursor:pointer;background:transparent;"></div>
             </div>
+            <label id="cardConsentLabel" style="display:none;gap:8px;align-items:flex-start;font-size:var(--text-xs);color:var(--brown-mid);line-height:1.5;cursor:pointer;margin-top:var(--space-3);">
+              <input type="checkbox" id="cardConsent" style="margin-top:2px;flex-shrink:0;" />
+              <span>Ho letto la <a href="privacy.html" target="_blank" style="color:inherit;text-decoration:underline;">Privacy Policy</a> e i <a href="termini.html" target="_blank" style="color:inherit;text-decoration:underline;">Termini e condizioni</a> e autorizzo il trattamento dei miei dati per la gestione dell'ordine (Reg. UE 2016/679). *</span>
+            </label>
+            <div id="cardConsentWarn" role="alert" style="display:none;align-items:center;gap:8px;margin-top:var(--space-2);font-size:var(--text-xs);color:#d9534f;">
+              <svg style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0;" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span><strong>Spunta la casella qui sopra</strong> per autorizzare e completare il pagamento con carta.</span>
+            </div>
             <p id="cardProcessorNote" style="font-size:var(--text-xs);color:var(--brown-light);margin-top:var(--space-3);">
               Pagamento crittografato &amp; elaborato da <strong style="color:var(--espresso);">Stripe</strong>. I dati della carta non passano per i nostri server.
             </p>
@@ -1167,6 +1175,9 @@
       if (n > currentStep + 1) return;             // the stepper never skips ahead more than one step
       if (n > currentStep && currentStep === 2 && !validateAddressStep()) return;
       if (n > currentStep && currentStep === 3 && !validatePaymentStep()) return;
+      // SumUp card completes on the payment step (its widget pays in place) — there is no
+      // separate review-and-pay step for it, so don't advance to Conferma.
+      if (n === 4 && activePayMethod === 'carta' && sumupAvailable() && currentAmountCents() > 0 && !window.__sumupFailed) return;
       if (n === 4) updateReviewSummary();
 
       document.querySelectorAll('.step-panel').forEach(function(p) { p.classList.remove('active'); });
@@ -1194,7 +1205,10 @@
       // has SumUp credentials, Stripe Elements otherwise.
       if (n === 3) {
         restorePaymentWidgets();
-        setTimeout(function() { if (sumupAvailable()) prepareSumupPaymentStep(); else initStripeElements(); }, 80);
+        setTimeout(function() {
+          if (sumupAvailable()) { if (activePayMethod === 'carta') prepareSumupPaymentStep(); }
+          else initStripeElements();
+        }, 80);
         if (window.__walletIntent) setTimeout(revealWalletIntent, 750);
       }
       if (n === 4) setTimeout(setupConfirmPayment, 60);
@@ -1518,7 +1532,7 @@
             updateTotals();
             // Total changed — rebuild the PaymentIntent so the card is charged the discounted amount.
             if (stripeCardEl) fetchPaymentIntent();
-      if (window.__sumupMounted) refreshSumupCheckout();
+      refreshSumupCheckout();
           })
           .catch(function(err) {
             if (feedEl) { feedEl.textContent = (err && err.error) || 'Codice non valido.'; feedEl.style.color = 'var(--blush-dark)'; feedEl.style.display = 'block'; }
@@ -1544,7 +1558,7 @@
       updateTotals();
       // Total changed back — rebuild the PaymentIntent for the full amount.
       if (stripeCardEl) fetchPaymentIntent();
-      if (window.__sumupMounted) refreshSumupCheckout();
+      refreshSumupCheckout();
     }
 
     // ── Gift Card ─────────────────────────────────────────────────────────────
@@ -1574,7 +1588,7 @@
             updateTotals();
             // Total changed — rebuild the PaymentIntent so the card is charged the reduced amount.
             if (stripeCardEl) fetchPaymentIntent();
-      if (window.__sumupMounted) refreshSumupCheckout();
+      refreshSumupCheckout();
           })
           .catch(function(err) {
             if (feedEl) { feedEl.textContent = (err && err.error) || 'Gift card non valida.'; feedEl.style.color = 'var(--blush-dark)'; feedEl.style.display = 'block'; }
@@ -1598,7 +1612,7 @@
       if (applyBtn) { applyBtn.style.display = 'inline-flex'; applyBtn.textContent = 'Applica'; applyBtn.disabled = false; }
       updateTotals();
       if (stripeCardEl) fetchPaymentIntent();
-      if (window.__sumupMounted) refreshSumupCheckout();
+      refreshSumupCheckout();
     }
 
     // ── Stripe Elements ───────────────────────────────────────────────────────
@@ -1682,6 +1696,23 @@
 
     // ── Klarna — Stripe Payment Element, redirect-based (Paga in 3 rate) ─────────────
     var klarnaElements = null, klarnaPayEl = null, klarnaMounted = false;
+    var klarnaClientSecret = null;
+
+    // Klarna needs a PaymentIntent restricted to Klarna; a shared automatic-methods intent
+    // makes Stripe's Payment Element surface every enabled method (card, Satispay, Amazon
+    // Pay, …) inside the Klarna tab. Create a dedicated klarna-only intent for it.
+    function fetchKlarnaIntent() {
+      var amountCents = currentAmountCents();
+      if (!amountCents) { klarnaClientSecret = null; return Promise.resolve(null); }
+      return fetch('/api/payments/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount_cents: amountCents, payment_method_types: ['klarna'] }),
+      })
+        .then(function(r) { return r.json(); })
+        .then(function(d) { klarnaClientSecret = (d && d.client_secret) || null; return klarnaClientSecret; })
+        .catch(function() { klarnaClientSecret = null; return null; });
+    }
 
     function ensureKlarnaElement() {
       if (klarnaMounted) return;
@@ -1692,9 +1723,7 @@
         return;
       }
       if (!stripeInstance) stripeInstance = window.Stripe(pk);
-      var wantCents = currentAmountCents();
-      var ensureSecret = (stripeClientSecret && stripeIntentAmount === wantCents) ? Promise.resolve(stripeClientSecret) : fetchPaymentIntent();
-      ensureSecret.then(function(secret) {
+      fetchKlarnaIntent().then(function(secret) {
         if (!secret || klarnaMounted) return;
         try {
           klarnaElements = stripeInstance.elements({ clientSecret: secret, locale: 'it' });
@@ -1866,12 +1895,20 @@
       });
       if (el('paymentError')) el('paymentError').style.display = 'none';
       if (method === 'klarna') ensureKlarnaElement();
-      // PayPal / Apple Pay / Klarna each drive their own action (button, wallet sheet,
-      // redirect) — hide the generic Conferma button on those tabs.
+
+      // SumUp card pays in-widget on THIS step: mount it and hide "Rivedi e conferma".
+      // Every other method reviews on the Conferma step, so restore that button.
+      var stepNext = document.querySelector('.btn-next[onclick="continueToConfirm()"]');
+      if (method === 'carta' && sumupAvailable()) {
+        prepareSumupPaymentStep();
+      } else if (stepNext) {
+        stepNext.style.display = '';
+      }
+
+      // PayPal drives its own button — hide the generic Conferma button on that tab.
       var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
       var paypalActive = method === 'paypal' && window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers.paypal;
-      var sumupActive  = method === 'carta' && window.__sumupMounted;
-      if (confirmBtn) confirmBtn.style.display = (paypalActive || sumupActive) ? 'none' : '';
+      if (confirmBtn) confirmBtn.style.display = paypalActive ? 'none' : '';
     }
 
     // The Confermare step is where the customer pays. Providers with their own hosted pay
@@ -1882,22 +1919,13 @@
       var area = el('providerPayArea');
       var genericBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
       var cents = currentAmountCents();
-      var useSumup  = sumupAvailable() && activePayMethod === 'carta' && cents > 0;
       var useApple  = activePayMethod === 'apple' && cents > 0;
       var usePaypal = activePayMethod === 'paypal' && cents > 0 &&
                       window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers.paypal;
 
       function moveInto(node) { if (node && area && node.parentNode !== area) area.appendChild(node); }
 
-      if (useSumup) {
-        initSumupCheckout();                 // idempotent: mounts the widget if not yet mounted
-        var wrap = el('sumupCardWrap');
-        moveInto(wrap);
-        if (wrap) wrap.style.display = 'block';
-        if (area) area.style.display = 'block';
-        if (genericBtn) genericBtn.style.display = 'none';
-        wireSumupConsentGate();
-      } else if (usePaypal) {
+      if (usePaypal) {
         moveInto(el('paypalButtons'));
         if (area) area.style.display = 'block';
         if (genericBtn) genericBtn.style.display = 'none';
@@ -1911,15 +1939,31 @@
       }
     }
 
-    // With SumUp, the hosted card widget and its consent gate live on the Conferma step
-    // (step 4), beside the privacy checkbox that lifts the gate. So step 3 shows no card
-    // widget — just the method choice and a note pointing to the confirmation step.
+    // SumUp card lives on THIS (payment) step: mount the hosted widget in the card tab with a
+    // consent checkbox beside it (ticking it lifts the widget's consent gate) and hide the
+    // step's "Rivedi e conferma" button — the widget's own pay button completes the order here.
     function prepareSumupPaymentStep() {
+      if (activePayMethod !== 'carta') return;   // SumUp only backs the card tab
+      var stepNextBtn = document.querySelector('.btn-next[onclick="continueToConfirm()"]');
+      // Zero-total order (gift card / 100% discount): nothing to charge — skip the SumUp
+      // widget and use the generic review-and-place flow (keep "Rivedi e conferma").
+      if (currentAmountCents() === 0) {
+        var wrap0 = el('sumupCardWrap'); if (wrap0) wrap0.style.display = 'none';
+        var consent0 = el('cardConsentLabel'); if (consent0) consent0.style.display = 'none';
+        if (stepNextBtn) stepNextBtn.style.display = '';
+        return;
+      }
+      window.__sumupFailed = false;
+      initSumupCheckout();                              // idempotent: mounts the SumUp widget
+      var wrap = el('sumupCardWrap'); if (wrap) wrap.style.display = 'block';
       var stripeEl = el('stripeCardElement'); if (stripeEl) stripeEl.style.display = 'none';
-      var wrap = el('sumupCardWrap'); if (wrap) wrap.style.display = 'none';
+      var consent = el('cardConsentLabel'); if (consent) consent.style.display = 'flex';
       var note = el('cardProcessorNote');
-      if (note) note.innerHTML = 'Inserirai i dati della carta in modo sicuro al passaggio di ' +
-        '<strong style="color:var(--espresso);">Conferma</strong> (pagamento elaborato da SumUp).';
+      if (note) note.innerHTML = 'Pagamento crittografato &amp; elaborato da ' +
+        '<strong style="color:var(--espresso);">SumUp</strong>. I dati della carta non passano per i nostri server.';
+      var stepNext = document.querySelector('.btn-next[onclick="continueToConfirm()"]');
+      if (stepNext) stepNext.style.display = 'none';
+      wireSumupConsentGate();
     }
 
     // On returning to the payment step, put each provider control back where it belongs so
@@ -1973,7 +2017,7 @@
         gift_card_code: appliedGiftCard ? appliedGiftCard.code : undefined,
         payment_method: payMethod,
         shipping_method: shippingMethod,
-        privacy_consent:  !!((el('privacyConsent')  || {}).checked) || undefined,
+        privacy_consent:  (!!((el('privacyConsent') || {}).checked) || !!((el('cardConsent') || {}).checked)) || undefined,
         newsletter_optin: !!((el('newsletterOptin') || {}).checked) || undefined,
       };
     }
@@ -1986,7 +2030,8 @@
     // GDPR: the required privacy/termini checkbox on the payment step.
     // Checked BEFORE charging on every path (card, wallet, PayPal).
     function privacyOk() {
-      var c = el('privacyConsent');
+      var c = el('privacyConsent'), cc = el('cardConsent');
+      if (cc && cc.checked) return true;   // SumUp card tab uses its own consent checkbox
       return !c || c.checked;
     }
 
@@ -2137,7 +2182,7 @@
       if (fastBadge) fastBadge.style.display = prov.paypal ? '' : 'none';
       // SumUp replaces Stripe Elements on the card tab. If the customer is already on the
       // payment step when the config arrives, mount immediately; otherwise goToStep(3) does it.
-      if (prov.sumup && currentStep === 3) initSumupCheckout();
+      if (prov.sumup && currentStep === 3 && activePayMethod === 'carta') prepareSumupPaymentStep();
     }
     function markProviderTab(panelId, available) {
       if (available) return;
@@ -2260,6 +2305,15 @@
           });
           window.__sumupMounted = true;
           wireSumupConsentGate();
+          // Whatever path mounted the widget (payment step or a late config resolve), make sure
+          // the consent checkbox shows and the card tab drives SumUp — never a blocked gate with
+          // no visible checkbox, and never a stray Stripe field / "Rivedi e conferma".
+          if (activePayMethod === 'carta') {
+            var consentLbl = el('cardConsentLabel'); if (consentLbl) consentLbl.style.display = 'flex';
+            var stripeElNow = el('stripeCardElement'); if (stripeElNow) stripeElNow.style.display = 'none';
+            var stepNextNow = document.querySelector('.btn-next[onclick="continueToConfirm()"]');
+            if (stepNextNow) stepNextNow.style.display = 'none';
+          }
           // The widget has its own pay button — hide the generic Conferma on the card tab.
           var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
           if (confirmBtn && activePayMethod === 'carta') confirmBtn.style.display = 'none';
@@ -2275,6 +2329,11 @@
           if (confirmBtn2) confirmBtn2.style.display = '';
           // SumUp unavailable: fall back to the generic button and drop the (now empty) confirm-step widget slot.
           var pa2 = el('providerPayArea'); if (pa2) pa2.style.display = 'none';
+          // Now a normal Stripe-card flow: restore "Rivedi e conferma", drop the SumUp-only
+          // consent checkbox, and flag failure so the Conferma step is reachable again.
+          window.__sumupFailed = true;
+          var ccFail = el('cardConsentLabel'); if (ccFail) ccFail.style.display = 'none';
+          var snFail = document.querySelector('.btn-next[onclick="continueToConfirm()"]'); if (snFail) snFail.style.display = '';
         })
         .then(function() { sumupCreating = false; });
     }
@@ -2282,31 +2341,39 @@
     // Totals changed (promo / gift card): the old checkout would charge the wrong amount,
     // so drop it and create a fresh one for the new total (server rejects any mismatch).
     function refreshSumupCheckout() {
-      if (!window.__sumupMounted) return;
+      // Only relevant while SumUp is the active card processor.
+      if (activePayMethod !== 'carta' || !sumupAvailable()) return;
       var wantCents = currentAmountCents();
-      if (sumupCheckoutAmount === wantCents) return;
-      if (sumupWidget && sumupWidget.unmount) { try { sumupWidget.unmount(); } catch(_) {} }
-      sumupWidget = null;
-      sumupCheckoutId = null;
-      if (!wantCents) {
-        // Gift card / discount covers everything: back to the generic Conferma flow.
-        window.__sumupMounted = false;
-        var wrap = el('sumupCardWrap');
-        if (wrap) wrap.style.display = 'none';
+      if (wantCents === 0) {
+        // Gift card / discount covers everything: unmount and use the generic zero-total flow.
+        if (sumupWidget && sumupWidget.unmount) { try { sumupWidget.unmount(); } catch(_) {} }
+        sumupWidget = null; sumupCheckoutId = null; window.__sumupMounted = false;
+        var wrap = el('sumupCardWrap'); if (wrap) wrap.style.display = 'none';
+        var ccZero = el('cardConsentLabel'); if (ccZero) ccZero.style.display = 'none';
+        var snZero = document.querySelector('.btn-next[onclick="continueToConfirm()"]'); if (snZero) snZero.style.display = '';
         var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
         if (confirmBtn) confirmBtn.style.display = '';
         return;
       }
-      initSumupCheckout();
+      if (window.__sumupMounted && sumupCheckoutAmount === wantCents) return;   // mounted & current
+      // Total changed, or it was dropped when the total hit 0 and is now > 0 again: (re)build.
+      if (sumupWidget && sumupWidget.unmount) { try { sumupWidget.unmount(); } catch(_) {} }
+      sumupWidget = null; sumupCheckoutId = null;
+      prepareSumupPaymentStep();
     }
 
     // GDPR gate: the widget's pay button lives in SumUp's iframe, so consent is enforced
     // with a click-capturing overlay that lifts as soon as the checkbox is ticked.
     function wireSumupConsentGate() {
-      var gate = el('sumupConsentGate'), c = el('privacyConsent');
+      var gate = el('sumupConsentGate'), c = el('cardConsent'), warn = el('cardConsentWarn'), mirror = el('privacyConsent');
       if (!gate) return;
-      function sync() { gate.style.display = (c && !c.checked) ? 'block' : 'none'; }
-      gate.onclick = function() { showPrivacyWarning(); };
+      function sync() {
+        var ok = !!(c && c.checked);
+        gate.style.display = ok ? 'none' : 'block';
+        if (mirror && c) mirror.checked = c.checked;   // keep the order payload's privacy_consent in sync
+        if (ok && warn) warn.style.display = 'none';
+      }
+      gate.onclick = function() { if (warn) warn.style.display = 'flex'; if (c) { try { c.focus(); } catch(_) {} } };
       if (c && !gate.__consentWired) { gate.__consentWired = true; c.addEventListener('change', sync); }
       sync();
     }

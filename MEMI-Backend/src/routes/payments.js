@@ -39,11 +39,15 @@ router.post('/create-intent', validateBody(createIntentSchema), async (req, res)
   }
 
   try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount:   Math.round(amount_cents),
-      currency: 'eur',
-      automatic_payment_methods: { enabled: true },
-    });
+    const intentParams = { amount: Math.round(amount_cents), currency: 'eur' };
+    if (Array.isArray(req.body.payment_method_types) && req.body.payment_method_types.length) {
+      // A specific method was requested (e.g. the Klarna element, which must not surface every
+      // method enabled on the Stripe account). Restrict the intent to exactly those types.
+      intentParams.payment_method_types = req.body.payment_method_types;
+    } else {
+      intentParams.automatic_payment_methods = { enabled: true };
+    }
+    const paymentIntent = await stripe.paymentIntents.create(intentParams);
 
     res.json({
       client_secret:     paymentIntent.client_secret,

@@ -155,6 +155,9 @@ const staffUpdateSchema = z.object({
 /* ── POST /api/payments/create-intent ── */
 const createIntentSchema = z.object({
   amount_cents: z.coerce.number().int().min(50, 'Importo minimo €0.50'),
+  // Optional: restrict the intent to specific methods (e.g. the Klarna element needs a
+  // klarna-only intent, otherwise the Payment Element surfaces every enabled method).
+  payment_method_types: z.array(z.enum(['klarna', 'card'])).min(1).max(6).optional(),
 });
 
 /**
