@@ -1194,7 +1194,7 @@
       // has SumUp credentials, Stripe Elements otherwise.
       if (n === 3) {
         restorePaymentWidgets();
-        setTimeout(function() { if (sumupAvailable()) initSumupCheckout(); else initStripeElements(); }, 80);
+        setTimeout(function() { if (sumupAvailable()) prepareSumupPaymentStep(); else initStripeElements(); }, 80);
         if (window.__walletIntent) setTimeout(revealWalletIntent, 750);
       }
       if (n === 4) setTimeout(setupConfirmPayment, 60);
@@ -1911,11 +1911,20 @@
       }
     }
 
+    // With SumUp, the hosted card widget and its consent gate live on the Conferma step
+    // (step 4), beside the privacy checkbox that lifts the gate. So step 3 shows no card
+    // widget — just the method choice and a note pointing to the confirmation step.
+    function prepareSumupPaymentStep() {
+      var stripeEl = el('stripeCardElement'); if (stripeEl) stripeEl.style.display = 'none';
+      var wrap = el('sumupCardWrap'); if (wrap) wrap.style.display = 'none';
+      var note = el('cardProcessorNote');
+      if (note) note.innerHTML = 'Inserirai i dati della carta in modo sicuro al passaggio di ' +
+        '<strong style="color:var(--espresso);">Conferma</strong> (pagamento elaborato da SumUp).';
+    }
+
     // On returning to the payment step, put each provider control back where it belongs so
     // step 3 renders correctly if the customer navigates back.
     function restorePaymentWidgets() {
-      var wrap = el('sumupCardWrap'), cardForm = el('cardForm'), note = el('cardProcessorNote');
-      if (wrap && cardForm && wrap.parentNode !== cardForm) cardForm.insertBefore(wrap, note || null);
       var pp = el('paypalButtons'), ppPanel = el('paypalPanel');
       if (pp && ppPanel && pp.parentNode !== ppPanel) ppPanel.appendChild(pp);
       var prb = el('paymentRequestButton'), applePanel = el('applePanel');
