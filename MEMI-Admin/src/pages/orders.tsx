@@ -104,7 +104,7 @@ export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'G
             <ShipOrderDialog
               order={row.original}
               trigger={
-                <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="sm">
                   <Truck /> {row.original.tracking_number ? 'Tracking' : 'Spedisci'}
                 </Button>
               }
