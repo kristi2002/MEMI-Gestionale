@@ -8,3 +8,9 @@ _sync_probe.txt
 
 # local env with real keys — never commit
 .env
+
+# generated catalog export (regenerable via scripts/export-catalog.js) — not source
+catalog-export/
+
+# raw source media staging (not served; storefront assets live in "Memi Abbigliamento/media/")
+photos e videos/
