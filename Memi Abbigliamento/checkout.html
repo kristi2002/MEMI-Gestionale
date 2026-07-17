@@ -417,6 +417,24 @@
       display:flex;align-items:center;justify-content:center;margin-bottom:var(--space-5);}
     .success-check svg{width:26px;height:26px;stroke:var(--sage-dark,#5F7A3F);fill:none;stroke-width:2.5;}
 
+  
+    /* ── Indirizzo step v2: two-column address/billing layout, no summary sidebar ── */
+    .checkout-layout.hide-summary .order-summary{display:none;}
+    @media(min-width:768px){
+      .checkout-layout.hide-summary{grid-template-columns:1fr;}
+    }
+
+    .address-billing-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-6);align-items:start;}
+    @media(max-width:700px){.address-billing-grid{grid-template-columns:1fr;}}
+    .address-col{display:flex;flex-direction:column;min-width:0;}
+
+    /* Read-only summary cards (personal info / registered address) — shown instead of
+       raw form fields until the customer explicitly asks to change them. */
+    .personal-readonly{padding:var(--space-4);border:1.5px solid var(--beige);border-radius:var(--radius-md);
+      background:var(--bg-soft);margin-bottom:var(--space-2);}
+    .addr-readonly-card{display:flex;align-items:flex-start;justify-content:space-between;gap:var(--space-3);
+      padding:var(--space-4);border:1.5px solid var(--beige);border-radius:var(--radius-md);background:var(--bg-soft);}
+
   </style>
   <link rel="stylesheet" href="app.css?v=ece23419" />
   <!-- Stripe.js — loads asynchronously, must be loaded from Stripe CDN -->
@@ -538,82 +556,110 @@
         <h2 class="panel-title">Indirizzo</h2>
 
         <h3 class="field-group-title">Dati personali</h3>
-        <div class="field-row two-col">
-          <div class="field">
-            <label for="firstName">Nome</label>
-            <input type="text" id="firstName" placeholder="Sofia" autocomplete="given-name" />
-          </div>
-          <div class="field">
-            <label for="lastName">Cognome</label>
-            <input type="text" id="lastName" placeholder="Rossi" autocomplete="family-name" />
-          </div>
+
+        <!-- Logged-in: read-only, sourced from the account (see paintAccountState()).
+             Guest: no account to read from, so the fields below stay editable. -->
+        <div id="personalReadonly" style="display:none;" class="personal-readonly">
+          <p class="review-value" id="personalReadonlyText">—</p>
         </div>
-        <div class="field-row two-col">
-          <div class="field">
-            <label for="email">Email</label>
-            <input type="email" id="email" placeholder="sofia@esempio.it" autocomplete="email" />
+        <div id="personalEditable">
+          <div class="field-row two-col">
+            <div class="field">
+              <label for="firstName">Nome</label>
+              <input type="text" id="firstName" placeholder="Sofia" autocomplete="given-name" />
+            </div>
+            <div class="field">
+              <label for="lastName">Cognome</label>
+              <input type="text" id="lastName" placeholder="Rossi" autocomplete="family-name" />
+            </div>
           </div>
-          <div class="field">
-            <label for="phone">Telefono</label>
-            <input type="tel" id="phone" placeholder="+39 333 000 0000" autocomplete="tel" />
+          <div class="field-row two-col">
+            <div class="field">
+              <label for="email">Email</label>
+              <input type="email" id="email" placeholder="sofia@esempio.it" autocomplete="email" />
+            </div>
+            <div class="field">
+              <label for="phone">Telefono</label>
+              <input type="tel" id="phone" placeholder="+39 333 000 0000" autocomplete="tel" />
+            </div>
           </div>
         </div>
 
         <div class="panel-divider"></div>
-        <h3 class="field-group-title">Indirizzo di consegna</h3>
 
-        <div id="savedAddressList" style="display:none;margin-bottom:var(--space-5);"></div>
+        <div class="address-billing-grid">
 
-        <div class="field-row">
-          <div class="field">
-            <label for="address">Indirizzo</label>
-            <input type="text" id="address" placeholder="Via Roma, 12" autocomplete="street-address" />
+          <!-- LEFT: Indirizzo di consegna -->
+          <div class="address-col">
+            <h3 class="field-group-title">Indirizzo di consegna</h3>
+
+            <!-- Registered-address view: just the text, until "Modifica" is clicked. -->
+            <div id="addressReadonly" style="display:none;" class="addr-readonly-card">
+              <p class="review-value" id="addressReadonlyText">—</p>
+              <button type="button" class="review-edit" onclick="toggleAddressEdit(true)">Modifica</button>
+            </div>
+
+            <!-- Editable view: saved-address picker + manual fields. Default for guests
+                 and for logged-in customers with no saved address yet. -->
+            <div id="addressEditable">
+              <div id="savedAddressList" style="display:none;margin-bottom:var(--space-5);"></div>
+
+              <div class="field-row">
+                <div class="field">
+                  <label for="address">Indirizzo</label>
+                  <input type="text" id="address" placeholder="Via Roma, 12" autocomplete="street-address" />
+                </div>
+              </div>
+
+              <div class="field-row two-col">
+                <div class="field">
+                  <label for="city">Città</label>
+                  <input type="text" id="city" placeholder="Milano" autocomplete="address-level2" />
+                </div>
+                <div class="field">
+                  <label for="cap">CAP</label>
+                  <input type="text" id="cap" placeholder="20121" autocomplete="postal-code" inputmode="numeric" />
+                </div>
+              </div>
+
+              <div class="field-row two-col">
+                <div class="field">
+                  <label for="province">Provincia</label>
+                  <input type="text" id="province" placeholder="MI" maxlength="2" />
+                </div>
+                <div class="field">
+                  <label for="country">Paese</label>
+                  <select id="country" autocomplete="country">
+                    <option value="IT" selected>Italia</option>
+                    <option value="DE">Germania</option>
+                    <option value="FR">Francia</option>
+                    <option value="ES">Spagna</option>
+                    <option value="NL">Paesi Bassi</option>
+                  </select>
+                </div>
+              </div>
+
+              <label id="saveAddressRow" style="display:none;align-items:center;gap:8px;font-size:var(--text-xs);color:var(--brown-mid);cursor:pointer;margin-top:var(--space-1);margin-bottom:var(--space-2);">
+                <input type="checkbox" id="saveNewAddress" />
+                Salva questo indirizzo per i prossimi ordini
+              </label>
+            </div>
           </div>
+
+          <!-- RIGHT: Indirizzo di fatturazione -->
+          <div class="address-col">
+            <h3 class="field-group-title">Indirizzo di fatturazione</h3>
+            <div class="billing-card">
+              <p class="billing-card-state">Coincide con l'indirizzo di consegna</p>
+              <button type="button" class="billing-edit" onclick="toggleBillingNote()">Modifica</button>
+            </div>
+            <p class="billing-note" id="billingNote" style="display:none;">
+              La fattura viene emessa sull'indirizzo di consegna inserito qui sopra. Per una fatturazione diversa (es. azienda), scrivici a
+              <a href="mailto:info@memi.testdemo.it" style="text-decoration:underline;">info@memi.testdemo.it</a> dopo l'ordine.
+            </p>
+          </div>
+
         </div>
-
-        <div class="field-row two-col">
-          <div class="field">
-            <label for="city">Città</label>
-            <input type="text" id="city" placeholder="Milano" autocomplete="address-level2" />
-          </div>
-          <div class="field">
-            <label for="cap">CAP</label>
-            <input type="text" id="cap" placeholder="20121" autocomplete="postal-code" inputmode="numeric" />
-          </div>
-        </div>
-
-        <div class="field-row two-col">
-          <div class="field">
-            <label for="province">Provincia</label>
-            <input type="text" id="province" placeholder="MI" maxlength="2" />
-          </div>
-          <div class="field">
-            <label for="country">Paese</label>
-            <select id="country" autocomplete="country">
-              <option value="IT" selected>Italia</option>
-              <option value="DE">Germania</option>
-              <option value="FR">Francia</option>
-              <option value="ES">Spagna</option>
-              <option value="NL">Paesi Bassi</option>
-            </select>
-          </div>
-        </div>
-
-        <label id="saveAddressRow" style="display:none;align-items:center;gap:8px;font-size:var(--text-xs);color:var(--brown-mid);cursor:pointer;margin-top:var(--space-1);margin-bottom:var(--space-2);">
-          <input type="checkbox" id="saveNewAddress" />
-          Salva questo indirizzo per i prossimi ordini
-        </label>
-
-        <div class="panel-divider"></div>
-        <h3 class="field-group-title">Indirizzo di fatturazione</h3>
-        <div class="billing-card">
-          <p class="billing-card-state">Coincide con l'indirizzo di consegna</p>
-          <button type="button" class="billing-edit" onclick="toggleBillingNote()">Modifica</button>
-        </div>
-        <p class="billing-note" id="billingNote" style="display:none;">
-          La fattura viene emessa sull'indirizzo di consegna inserito qui sopra. Per una fatturazione diversa (es. azienda), scrivici a
-          <a href="mailto:info@memi.testdemo.it" style="text-decoration:underline;">info@memi.testdemo.it</a> dopo l'ordine.
-        </p>
 
         <div class="panel-divider"></div>
         <h3 class="field-group-title">Metodo di spedizione</h3>
@@ -1091,6 +1137,8 @@
 
       document.querySelectorAll('.step-panel').forEach(function(p) { p.classList.remove('active'); });
       el('panel' + n).classList.add('active');
+      var layoutEl = document.querySelector('.checkout-layout');
+      if (layoutEl) layoutEl.classList.toggle('hide-summary', n === 2);
 
       for (var i = 1; i <= 5; i++) {
         var btn = el('stepBtn' + i);
@@ -1181,11 +1229,30 @@
       if (inEl)  inEl.style.display  = loggedIn ? 'block' : 'none';
       if (outEl) outEl.style.display = loggedIn ? 'none'  : 'block';
       if (saveRow) saveRow.style.display = loggedIn ? 'flex' : 'none';
+
+      // "Dati personali" is read-only and sourced from the account once logged in —
+      // there is no account to read from for a guest, so their fields stay editable.
+      var personalRO = el('personalReadonly'), personalEd = el('personalEditable');
+      if (personalRO) personalRO.style.display = loggedIn ? 'block' : 'none';
+      if (personalEd) personalEd.style.display = loggedIn ? 'none'  : 'block';
+
       if (loggedIn) {
         window.MemiAPI.auth.me().then(function(d) {
           var u = (d && (d.user || d)) || {};
-          if (el('accountChipName'))  el('accountChipName').textContent  = ((u.nome || '') + ' ' + (u.cognome || '')).trim() || 'Cliente Memi';
+          var fullName = ((u.nome || '') + ' ' + (u.cognome || '')).trim() || 'Cliente Memi';
+          if (el('accountChipName'))  el('accountChipName').textContent  = fullName;
           if (el('accountChipEmail')) el('accountChipEmail').textContent = u.email || '';
+          // Fill the (hidden) inputs so validateAddressStep()/collectOrderData() keep
+          // working unchanged, then paint the read-only text the customer actually sees.
+          if (el('firstName') && !el('firstName').value) el('firstName').value = u.nome || '';
+          if (el('lastName')  && !el('lastName').value)  el('lastName').value  = u.cognome || '';
+          if (el('email')     && !el('email').value)     el('email').value    = u.email || '';
+          if (el('phone')     && !el('phone').value && u.telefono) el('phone').value = u.telefono;
+          var txt = el('personalReadonlyText');
+          if (txt) {
+            txt.innerHTML = '<strong style="color:var(--espresso);">' + fullName + '</strong><br>' +
+              (u.email || '') + (u.telefono ? '<br>' + u.telefono : '');
+          }
         }).catch(function() {});
       }
     }
@@ -1226,11 +1293,56 @@
     function escAddrHtml(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
     function loadSavedAddresses() {
-      if (!(window.MemiAPI && window.MemiAPI.auth.isLoggedIn() && window.MemiAPI.auth.addresses)) return;
+      if (!(window.MemiAPI && window.MemiAPI.auth.isLoggedIn() && window.MemiAPI.auth.addresses)) { decideAddressDisplayMode(); return; }
       window.MemiAPI.auth.addresses.list().then(function(d) {
         savedAddresses = (d && d.addresses) || [];
         renderSavedAddresses();
-      }).catch(function() {});
+        var def = savedAddresses.filter(function(a) { return a.is_default; })[0] || savedAddresses[0];
+        if (def) {
+          if (el('address') && !el('address').value) el('address').value = [def.indirizzo, def.numero_civico].filter(Boolean).join(', ');
+          if (el('city')    && !el('city').value)    el('city').value = def.citta || '';
+          if (el('cap')     && !el('cap').value)     el('cap').value  = def.cap   || '';
+          if (el('phone')   && def.telefono && !el('phone').value) el('phone').value = def.telefono;
+          var sel = el('country');
+          if (sel && def.paese) {
+            var opt = Array.prototype.filter.call(sel.options, function(o) { return o.text === def.paese; })[0];
+            if (opt) sel.value = opt.value;
+          }
+        }
+        decideAddressDisplayMode();
+      }).catch(function() { decideAddressDisplayMode(); });
+    }
+
+    // "Registered address" view vs. raw form fields: a logged-in customer who already
+    // has an address on file sees it as plain text (renderAddressReadonly), never the
+    // input boxes, until they explicitly click "Modifica" or pick "+ Usa un indirizzo
+    // nuovo" from the saved-address list. Guests, and logged-in customers with nothing
+    // saved yet, get the editable fields directly — there's nothing to display instead.
+    function decideAddressDisplayMode() {
+      var loggedIn = window.MemiAPI && window.MemiAPI.auth.isLoggedIn();
+      var hasAddr = loggedIn && el('address') && el('address').value.trim();
+      if (hasAddr) {
+        renderAddressReadonly();
+        toggleAddressEdit(false);
+      } else {
+        toggleAddressEdit(true);
+      }
+    }
+
+    function renderAddressReadonly() {
+      var addr = (el('address') || {value:''}).value;
+      var city = (el('city')    || {value:''}).value;
+      var cap  = (el('cap')     || {value:''}).value;
+      var cEl  = el('country');
+      var country = cEl ? cEl.options[cEl.selectedIndex].text : 'Italia';
+      var txt = el('addressReadonlyText');
+      if (txt) txt.innerHTML = addr + '<br>' + cap + ' ' + city + ', ' + country;
+    }
+
+    function toggleAddressEdit(showEdit) {
+      var ro = el('addressReadonly'), ed = el('addressEditable');
+      if (ro) ro.style.display = showEdit ? 'none' : 'flex';
+      if (ed) ed.style.display = showEdit ? 'block' : 'none';
     }
 
     function clearAddressFields() {
@@ -1275,6 +1387,10 @@
             var opt = Array.prototype.filter.call(sel.options, function(o) { return o.text === a.paese; })[0];
             if (opt) sel.value = opt.value;
           }
+          // A specific registered address was (re-)selected — collapse back to the
+          // read-only view; only "+ Usa un indirizzo nuovo" leaves the fields open.
+          renderAddressReadonly();
+          toggleAddressEdit(false);
         });
       });
     }
