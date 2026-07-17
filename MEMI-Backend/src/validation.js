@@ -46,7 +46,7 @@ const loginSchema = z.object({
 
 /* ── POST /api/orders ── */
 const orderItemSchema = z.object({
-  product_id: z.string().trim().min(1).max(100),
+  product_id: z.coerce.string().trim().min(1).max(100),
   taglia:     z.string().trim().max(20).optional().nullable(),
   colore:     z.string().trim().max(40).optional().nullable(),
   qty:        z.coerce.number().int().min(1).max(99),
