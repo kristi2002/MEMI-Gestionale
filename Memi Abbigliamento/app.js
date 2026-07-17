@@ -933,10 +933,6 @@
                   </div>
                   <span class="auth-field-hint" id="authRegPwdHint"></span>
                 </div>
-                <div class="auth-field" id="authRegBirthdayField">
-                  <label for="authRegBirthday">Data di nascita <span style="opacity:.6;font-weight:400;">(facoltativa — per il regalo di compleanno 🎁)</span></label>
-                  <input type="date" id="authRegBirthday" autocomplete="bday" max="2020-12-31" />
-                </div>
                 <div class="auth-consent" style="margin:.25rem 0 .75rem;">
                   <label style="display:flex;gap:.5rem;align-items:flex-start;font-size:.72rem;line-height:1.45;cursor:pointer;margin-bottom:.5rem;">
                     <input type="checkbox" id="authRegPrivacy" style="margin-top:2px;flex-shrink:0;" />
@@ -2219,14 +2215,11 @@
       /* Loading state */
       if (btn) btn.classList.add('is-loading');
 
-      var bdayEl = document.getElementById('authRegBirthday');
-      var birthday = (bdayEl && bdayEl.value && /^\d{4}-\d{2}-\d{2}$/.test(bdayEl.value)) ? bdayEl.value : null;
-
       authRegister(name, email, pwd, {
         privacy_consent:   true,
         marketing_consent: !!(marketingEl && marketingEl.checked),
         cognome:           lastName,
-      }, birthday).then(function(res) {
+      }).then(function(res) {
         if (btn) btn.classList.remove('is-loading');
         if (!res.ok) { errEl.textContent = res.msg; return; }
         closeAuthDrawer();
