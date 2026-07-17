@@ -675,6 +675,9 @@ async function runMigrations(pool) {
     // Gift-card redemption at checkout (Phase 3 of docs/PRODUCTION-ROADMAP.md).
     await ensureColumn(pool, 'orders', 'gift_card_code', 'gift_card_code VARCHAR(40) NULL');
     await ensureColumn(pool, 'orders', 'gift_card_amount', 'gift_card_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00');
+    // Delivery timestamp — stamped when order_status first becomes 'consegnato';
+    // powers the return window (reso can be opened within reso_window_days of delivery).
+    await ensureColumn(pool, 'orders', 'delivered_at', 'delivered_at TIMESTAMP NULL');
     try {
       await ensureUniqueIndex(pool, 'orders', 'uq_orders_payment_intent', 'payment_intent_id');
     } catch (e) { console.error('   ! uq_orders_payment_intent skipped:', e.message); }

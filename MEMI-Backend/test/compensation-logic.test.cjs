@@ -227,6 +227,7 @@ Module._load = function (request) {
   if (request === '../email') return {
     sendOrderConfirmation: async () => {}, sendShippingConfirmation: async () => {},
     sendRefundNotification: async (d) => { refundEmails.push(d); },
+    sendOrderCancellation: async () => {}, sendReturnRequestReceived: async () => {},
   };
   if (request === '../audit') return { logAdminAction: async () => {} };
   if (request === 'stripe') return function () {

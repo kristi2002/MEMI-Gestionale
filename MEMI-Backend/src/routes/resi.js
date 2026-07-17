@@ -16,11 +16,7 @@ const { requireAdmin } = require('../middleware/auth');
 const { logAdminAction } = require('../audit');
 const { compensateOrder } = require('../order-compensation');
 const { sendRefundNotification } = require('../email');
-
-function getStripe() {
-  if (!process.env.STRIPE_SECRET_KEY) return null;
-  return require('stripe')(process.env.STRIPE_SECRET_KEY);
-}
+const { issueProviderRefund, getStripe } = require('../refunds');
 const providers = require('../payment-providers');   // SumUp refunds (config-gated)
 
 /* ── GET /api/admin/resi ── */
@@ -88,18 +84,21 @@ router.post('/', requireAdmin, async (req, res) => {
 
   try {
     const [[order]] = await pool.execute(
-      'SELECT order_number, customer_nome, customer_cognome, customer_email FROM orders WHERE id = ?',
+      'SELECT order_number, customer_nome, customer_cognome, customer_email, total FROM orders WHERE id = ?',
       [order_id]
     );
     if (!order) return res.status(404).json({ error: 'Ordine non trovato' });
 
     const rma_number = `R-${Date.now().toString().slice(-6)}`;
     const customer_nome = `${order.customer_nome} ${order.customer_cognome}`.trim();
+    // Pre-fill the refund amount with the full order total so the operator never
+    // has to type it — they only adjust it down for a partial refund.
+    const defaultAmount = Number(order.total) || null;
 
     const [result] = await pool.execute(
-      `INSERT INTO resi (rma_number, order_id, order_number, customer_nome, customer_email, motivo, descrizione)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [rma_number, order_id, order.order_number, customer_nome, order.customer_email, motivo, descrizione || null]
+      `INSERT INTO resi (rma_number, order_id, order_number, customer_nome, customer_email, motivo, descrizione, rimborso_amount)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [rma_number, order_id, order.order_number, customer_nome, order.customer_email, motivo, descrizione || null, defaultAmount]
     );
     const [[reso]] = await pool.execute('SELECT * FROM resi WHERE id = ?', [result.insertId]);
     return res.status(201).json({ reso });
@@ -195,19 +194,12 @@ router.post('/:id/refund', requireAdmin, async (req, res) => {
 
     let refund = null;
     if (!manual) {
-      const isSumup = /^sumup_/.test(String(row.payment_intent_id || ''));
       try {
-        if (isSumup) {
-          // Order was paid via the SumUp widget: refund through the SumUp API.
-          if (!providers.sumupConfigured())
-            return res.status(503).json({ error: 'SumUp non configurato sul server.' });
-          const r = await providers.refundSumupCheckout(String(row.payment_intent_id).slice('sumup_'.length), amountCents);
-          refund = { id: r.transactionId };
-        } else {
-          if (!stripe) return res.status(503).json({ error: 'Stripe non configurato sul server.' });
-          refund = await stripe.refunds.create({ payment_intent: row.payment_intent_id, amount: amountCents });
-        }
+        // Single money-back primitive (SumUp vs Stripe by payment_intent_id prefix).
+        refund = await issueProviderRefund(row.payment_intent_id, amountCents);
       } catch (refundErr) {
+        if (refundErr.code === 'NO_PROVIDER')
+          return res.status(503).json({ error: refundErr.message });
         (req.log || console).error({ err: refundErr, resiId: req.params.id, orderId: row.order_id }, '[Refund] provider error');
         return res.status(502).json({ error: 'Errore rimborso: ' + (refundErr.message || 'sconosciuto') });
       }

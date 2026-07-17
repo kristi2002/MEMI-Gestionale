@@ -224,6 +224,19 @@ else
   ko "skipped — no admin token"
 fi
 
+# 8e — Reso policy (public) + customer order cancellation gating
+echo
+echo "[8e] Reso config + customer cancel"
+C="$(code "$BASE/api/resi/config")"
+[ "$C" = "200" ] && ok "GET /api/resi/config (public) -> 200" || ko "resi config -> HTTP $C (expected 200)"
+RC="$(curl -fsS "$BASE/api/resi/config" 2>/dev/null)"
+echo "$RC" | grep -q '"reasons"' && ok "resi config exposes reasons + window" || ko "resi config missing reasons ($RC)"
+# Customer-only routes must reject anonymous callers (route mounted + gated)
+C="$(code "$BASE/api/resi/my")"
+[ "$C" = "401" ] && ok "GET /api/resi/my without token -> 401" || ko "resi/my unauth -> HTTP $C (expected 401)"
+C="$(code -X POST -H 'Content-Type: application/json' -d '{}' "$BASE/api/orders/my/1/cancel")"
+[ "$C" = "401" ] && ok "POST /api/orders/my/:id/cancel without token -> 401" || ko "cancel unauth -> HTTP $C (expected 401)"
+
 # 8b — Lifecycle marketing emails (GDPR-gated, idempotent, dry-runnable)
 echo
 echo "[8b] Lifecycle emails"

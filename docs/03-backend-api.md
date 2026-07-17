@@ -175,11 +175,12 @@ in_attesa|in_preparazione|spedito|consegnato|annullato`.
 | POST | `/api/orders/validate-discount` | Public | Preview a discount code vs subtotal |
 | GET | `/api/orders/my` | Cust | List own orders |
 | GET | `/api/orders/my/:id` | Cust | Own order detail + items |
+| POST | `/api/orders/my/:id/cancel` | Cust | Self-cancel BEFORE shipping (`in_attesa`/`in_preparazione` only); paid orders auto-refunded to card (Stripe/SumUp), stock+points+giftcard+discount restored; sends cancellation email |
 | GET | `/api/orders/track` | Public | Guest tracking `?number=&email=` (both required, anti-enumeration) |
 | GET | `/api/orders/admin/list` | Admin+perm `orders` | List all (filters + pagination) |
 | POST | `/api/orders/admin` | Admin+perm `orders` | Manual order (`in_preparazione`) |
 | GET | `/api/orders/admin/:id` | Admin+perm `orders` | Detail + items + shipment |
-| PUT | `/api/orders/admin/:id/status` | Admin+perm `orders` | Update status; cancel compensates; first→`pagato` emits invoice |
+| PUT | `/api/orders/admin/:id/status` | Admin+perm `orders` | Update status; cancel compensates **and auto-refunds** a paid order to the card; stamps `delivered_at` on first→`consegnato`; first→`pagato` emits invoice |
 | PUT | `/api/orders/admin/:id/ship` | Admin+perm `orders` | Assign courier+tracking → `spedito` + email |
 | POST | `/api/orders/admin/:id/send-tracking` | Admin+perm `orders` | Re-send tracking email |
 | POST | `/api/orders/admin/:id/refresh-tracking` | Admin+perm `orders` | Refresh courier tracking status |
@@ -212,7 +213,9 @@ in_attesa|in_preparazione|spedito|consegnato|annullato`.
 
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| POST | `/api/resi/request` | Public (`optionalCustomer`) | Return request (order_number + email); only `spedito`/`consegnato`. Rate-limited 10/15min |
+| GET | `/api/resi/config` | Public | Return policy: `{enabled, windowDays, reasons[]}` from `store_settings` `reso_*` (defaults in `reso-config.js`) |
+| POST | `/api/resi/request` | Public (`optionalCustomer`) | Return request (order_number + email); only `spedito`/`consegnato`; gated by `reso_enabled`, return window (days since `delivered_at`) and allowed reasons; pre-fills `rimborso_amount`=order total; sends ack email. Rate-limited 10/15min |
+| GET | `/api/resi/my` | Cust | The logged-in customer's own return requests (joined via `orders.customer_id`/email) |
 | GET | `/api/admin/resi` | Admin+perm `returns` | List returns (filter, paginated) |
 | GET | `/api/admin/resi/:id` | Admin+perm `returns` | Detail + order + items |
 | POST | `/api/admin/resi` | Admin+perm `returns` | Create return (`R-XXXXXX` RMA) |

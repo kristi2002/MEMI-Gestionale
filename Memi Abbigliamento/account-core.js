@@ -68,6 +68,9 @@
       'wl.empty.t':'La tua lista è vuota','wl.empty.p':'Salva i capi che ami con il cuoricino e ritrovali qui.','wl.browse':'Scopri la collezione',
       'wl.tocart':'Nel carrello','wl.view':'Vedi','wl.remove':'Rimuovi','wl.page':'Pagina','wl.of':'di','wl.prev':'Precedente','wl.next':'Successivo',
       'ord.empty.t':'Nessun ordine ancora','ord.empty.p':'Quando farai il tuo primo ordine, lo troverai qui.','ord.shop':'Inizia lo shopping','ord.detail':'Dettaglio','ord.total':'Totale','ord.date':'Data','ord.status':'Stato','ord.pay':'Pagamento','ord.track':'Tracking','ord.product':'Prodotto','ord.qty':'Qtà','ord.price':'Prezzo','ord.reso':'Richiedi un reso','ord.nodetail':'Impossibile caricare il dettaglio.','ord.order':'Ordine',
+      'ord.cancel':'Annulla ordine','ord.cancel.q':'Vuoi annullare questo ordine? Se già pagato, il rimborso verrà accreditato sul metodo di pagamento originale.','ord.cancel.yes':'Sì, annulla','ord.cancel.no':'No, mantieni','ord.cancelling':'Annullamento…','ord.cancel.ok':'Ordine annullato.','ord.cancel.okr':'Ordine annullato — rimborso emesso.','ord.cancel.err':'Impossibile annullare l\'ordine. Riprova o contatta l\'assistenza.',
+      'reso.myreq':'Le mie richieste di reso','reso.rma':'RMA','reso.reqnone':'Nessuna richiesta di reso inviata.',
+      'rst.aperto':'In attesa','rst.in_analisi':'In analisi','rst.approvato':'Approvato','rst.rifiutato':'Rifiutato','rst.rimborsato':'Rimborsato',
       'aiuto.contact':'Contattaci','aiuto.contact.p':'Scrivici, rispondiamo entro 24 ore nei giorni lavorativi.','aiuto.email':'Scrivi una email','aiuto.faq':'Domande frequenti','aiuto.q1':'Spedizioni & consegne','aiuto.q2':'Resi & rimborsi','aiuto.q3':'Guida alle taglie','aiuto.q4':'Traccia il tuo ordine',
       'st.in_attesa':'In attesa','st.in_preparazione':'In preparazione','st.spedito':'Spedita','st.consegnato':'Consegnato','st.annullato':'Annullato','st.pagato':'Pagato','st.non_pagato':'Da pagare','st.rimborsato':'Rimborsato',
       'greet.morning':'Buongiorno','greet.afternoon':'Buon pomeriggio','greet.evening':'Buonasera',
@@ -128,6 +131,9 @@
       'wl.empty.t':'Your wishlist is empty','wl.empty.p':'Save the pieces you love with the heart and find them here.','wl.browse':'Explore the collection',
       'wl.tocart':'Add to cart','wl.view':'View','wl.remove':'Remove','wl.page':'Page','wl.of':'of','wl.prev':'Previous','wl.next':'Next',
       'ord.empty.t':'No orders yet','ord.empty.p':'When you place your first order, it will appear here.','ord.shop':'Start shopping','ord.detail':'Details','ord.total':'Total','ord.date':'Date','ord.status':'Status','ord.pay':'Payment','ord.track':'Tracking','ord.product':'Product','ord.qty':'Qty','ord.price':'Price','ord.reso':'Request a return','ord.nodetail':'Unable to load details.','ord.order':'Order',
+      'ord.cancel':'Cancel order','ord.cancel.q':'Cancel this order? If it was already paid, the refund will be credited to your original payment method.','ord.cancel.yes':'Yes, cancel','ord.cancel.no':'No, keep it','ord.cancelling':'Cancelling…','ord.cancel.ok':'Order cancelled.','ord.cancel.okr':'Order cancelled — refund issued.','ord.cancel.err':'Could not cancel the order. Try again or contact support.',
+      'reso.myreq':'My return requests','reso.rma':'RMA','reso.reqnone':'No return requests submitted.',
+      'rst.aperto':'Pending','rst.in_analisi':'Under review','rst.approvato':'Approved','rst.rifiutato':'Rejected','rst.rimborsato':'Refunded',
       'aiuto.contact':'Contact us','aiuto.contact.p':'Write to us, we reply within 24h on business days.','aiuto.email':'Send an email','aiuto.faq':'FAQ','aiuto.q1':'Shipping & delivery','aiuto.q2':'Returns & refunds','aiuto.q3':'Size guide','aiuto.q4':'Track your order',
       'st.in_attesa':'Pending','st.in_preparazione':'Preparing','st.spedito':'Shipped','st.consegnato':'Delivered','st.annullato':'Cancelled','st.pagato':'Paid','st.non_pagato':'Unpaid','st.rimborsato':'Refunded',
       'greet.morning':'Good morning','greet.afternoon':'Good afternoon','greet.evening':'Good evening',
@@ -145,6 +151,7 @@
   var loadedOrders = [];
   var loadedUser = null;
   var loadedLoy = null;
+  var loadedReturns = [];
   var loyaltyConfig = { pointValueEur: 0.01, minRedeem: 100 };
   var wishlistPage = 1;
   var WL_PER_PAGE = 6;
@@ -276,11 +283,49 @@
           '<th style="padding:8px 0;text-align:left;font-weight:500">' + t('ord.product') + '</th><th style="text-align:center;font-weight:500">' + t('ord.qty') + '</th><th style="text-align:right;font-weight:500">' + t('ord.price') + '</th></tr></thead>' +
           '<tbody>' + rows + '</tbody><tfoot><tr><td colspan="2" style="padding:10px 0;font-size:.85rem;font-weight:500;border-top:1px solid var(--beige)">' + t('ord.total') + '</td>' +
           '<td style="text-align:right;font-size:.95rem;font-weight:600;border-top:1px solid var(--beige)">' + fmtPrice(o.total) + '</td></tr></tfoot></table>' : '') +
-        '<div style="margin-top:16px;text-align:right"><a href="returns.html" style="font-size:.8rem;color:var(--espresso);text-decoration:underline">' + t('ord.reso') + ' ›</a></div>')
+        '<div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;gap:12px">' +
+          ((o.order_status==='in_attesa'||o.order_status==='in_preparazione')
+            ? '<button type="button" id="apCancelOrderBtn" data-oid="'+esc(String(o.id))+'" style="font-size:.8rem;color:#b91c1c;background:none;border:1px solid #f0d0d0;border-radius:6px;padding:6px 12px;cursor:pointer">'+t('ord.cancel')+'</button>'
+            : '<span></span>') +
+          '<a href="returns.html?order='+encodeURIComponent(o.order_number)+'" style="font-size:.8rem;color:var(--espresso);text-decoration:underline">' + t('ord.reso') + ' ›</a>' +
+        '</div>' +
+        '<div id="apCancelConfirm" style="display:none;margin-top:12px;padding:14px 16px;background:#fff6f6;border:1px solid #f0d0d0;border-radius:8px">' +
+          '<p style="font-size:.82rem;color:#7a3b3b;margin:0 0 10px">'+t('ord.cancel.q')+'</p>' +
+          '<div id="apCancelMsg" style="font-size:.8rem;margin:0 0 10px;display:none"></div>' +
+          '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+            '<button type="button" id="apCancelNo" style="font-size:.8rem;background:none;border:1px solid var(--beige,#e6ddd4);border-radius:6px;padding:6px 12px;cursor:pointer">'+t('ord.cancel.no')+'</button>' +
+            '<button type="button" id="apCancelYes" style="font-size:.8rem;background:#b91c1c;color:#fff;border:none;border-radius:6px;padding:6px 14px;cursor:pointer">'+t('ord.cancel.yes')+'</button>' +
+          '</div>' +
+        '</div>')
         : '<p style="color:var(--brown-light)">' + t('ord.nodetail') + '</p>') +
       '</div>';
     document.body.appendChild(overlay);
     overlay.addEventListener('click', function(e){ if (e.target===overlay || e.target.classList.contains('apCloseModal')) overlay.remove(); });
+    // Cancel-order flow: reveal a styled inline confirmation, then call the API.
+    (function(){
+      var openBtn = overlay.querySelector('#apCancelOrderBtn');
+      if (!openBtn) return;
+      var box = overlay.querySelector('#apCancelConfirm');
+      var noBtn = overlay.querySelector('#apCancelNo');
+      var yesBtn = overlay.querySelector('#apCancelYes');
+      var msg = overlay.querySelector('#apCancelMsg');
+      openBtn.addEventListener('click', function(){ box.style.display='block'; openBtn.style.display='none'; });
+      noBtn.addEventListener('click', function(){ box.style.display='none'; openBtn.style.display=''; });
+      yesBtn.addEventListener('click', function(){
+        yesBtn.disabled=true; noBtn.disabled=true; yesBtn.textContent=t('ord.cancelling');
+        window.MemiAPI.orders.cancel(openBtn.dataset.oid).then(function(res){
+          var ord = loadedOrders.filter(function(x){ return String(x.id)===String(openBtn.dataset.oid); })[0];
+          if (ord){ ord.order_status='annullato'; if (res && res.refunded) ord.payment_status='rimborsato'; }
+          msg.style.display='block'; msg.style.color='#5F7A3F';
+          msg.textContent = (res && res.refunded) ? t('ord.cancel.okr') : t('ord.cancel.ok');
+          setTimeout(function(){ overlay.remove(); if (typeof rerenderPanel==='function') rerenderPanel(); if (typeof refreshCounts==='function') refreshCounts(); }, 1100);
+        }).catch(function(err){
+          yesBtn.disabled=false; noBtn.disabled=false; yesBtn.textContent=t('ord.cancel.yes');
+          msg.style.display='block'; msg.style.color='#b91c1c';
+          msg.textContent = (err && err.error) || t('ord.cancel.err');
+        });
+      });
+    })();
   }
 
   /* ══════════════════ RESO ══════════════════ */
@@ -293,7 +338,22 @@
         '<a class="btn-shop" style="align-self:center" href="returns.html?order=' + encodeURIComponent(o.order_number) + '">' + t('reso.cta') + '</a>' +
       '</div>';
     }).join('') : '<p style="font-size:.85rem;color:var(--brown-light)">' + t('reso.none') + '</p>';
+
+    // Persisted return requests the customer has already submitted (from /resi/my).
+    var reqList = (loadedReturns && loadedReturns.length) ? loadedReturns.map(function(r){
+      var st = r.stato || 'aperto';
+      var label = t('rst.' + st) !== 'rst.' + st ? t('rst.' + st) : st;
+      var amount = (r.rimborso_amount != null) ? (' · ' + fmtPrice(r.rimborso_amount)) : '';
+      return '<div class="order-row" style="grid-template-columns:1fr auto">' +
+        '<div><div class="order-number">' + t('reso.rma') + ' ' + esc(r.rma_number || '—') + '</div>' +
+          '<div class="order-date">' + esc(r.order_number || '') + ' · ' + fmtDate(r.created_at) + ' · ' + esc(r.motivo || '') + amount + '</div></div>' +
+        '<span class="reso-status ' + esc(st) + '" style="align-self:center;font-size:.72rem;padding:4px 10px;border-radius:999px;background:var(--beige,#f0e9e2);color:var(--espresso,#3b2b2b)">' + esc(label) + '</span>' +
+      '</div>';
+    }).join('') : '<p style="font-size:.85rem;color:var(--brown-light)">' + t('reso.reqnone') + '</p>';
+
     return '<div class="ap-block" style="margin-bottom:1.25rem"><div class="ap-hint"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg><span>' + t('reso.info') + '</span></div></div>' +
+      '<h3 class="ap-subhead">' + t('reso.myreq') + '</h3>' +
+      '<div class="orders-list" style="margin-bottom:1.75rem">' + reqList + '</div>' +
       '<h3 class="ap-subhead">' + t('reso.eligible') + '</h3>' +
       '<div class="orders-list">' + list + '</div>';
   }
@@ -839,6 +899,12 @@
         }
       }).catch(function(){});
     }
+    if (key === 'reso' && window.MemiAPI.resi && window.MemiAPI.resi.myReturns){
+      window.MemiAPI.resi.myReturns().then(function(res){
+        loadedReturns = (res && Array.isArray(res.resi)) ? res.resi : loadedReturns;
+        if (currentPanel === 'reso') rerenderPanel();
+      }).catch(function(){});
+    }
   }
 
   /* ══════════════════ WIRING ══════════════════ */
@@ -1329,11 +1395,13 @@
     window.MemiAPI.auth.me(),
     window.MemiAPI.orders.myOrders().catch(function(){ return []; }),
     window.MemiAPI.auth.loyalty().catch(function(){ return null; }),
-    loadCatalog()
+    loadCatalog(),
+    (window.MemiAPI.resi && window.MemiAPI.resi.myReturns ? window.MemiAPI.resi.myReturns().catch(function(){ return { resi: [] }; }) : Promise.resolve({ resi: [] }))
   ]).then(function(results){
     loadedUser = results[0].user || results[0];
     loadedOrders = Array.isArray(results[1]) ? results[1] : (results[1].orders || []);
     loadedLoy = results[2];
+    loadedReturns = (results[4] && Array.isArray(results[4].resi)) ? results[4].resi : [];
     // Hydrate local caches from the server profile (only when the field exists,
     // so an older backend that doesn't return them still works via localStorage).
     if (loadedUser) {

@@ -2060,6 +2060,33 @@
       if (c) c.addEventListener('change', function() { if (c.checked) clearPrivacyWarning(); });
     })();
 
+    // Stable identity for a cart line, so we remove ONLY the purchased items from
+    // the cart (leaving anything the customer didn't check out untouched).
+    function cartLineKey(it) {
+      return [
+        String(it.id || it.product_id || ''),
+        String(it.variant || ''),
+        String(it.taglia || ''),
+        String(it.colore || it.color || ''),
+      ].join('|');
+    }
+    // Remove just the ordered lines from memi_cart; keep the rest.
+    function clearOrderedFromCart(orderedItems) {
+      try {
+        var orderedKeys = {};
+        (orderedItems || []).forEach(function(it) { orderedKeys[cartLineKey(it)] = true; });
+        var remaining = [];
+        try {
+          var arr = JSON.parse(localStorage.getItem('memi_cart')) || [];
+          remaining = arr.filter(function(it) { return !orderedKeys[cartLineKey(it)]; });
+        } catch (_) { remaining = []; }
+        if (remaining.length) localStorage.setItem('memi_cart', JSON.stringify(remaining));
+        else                  localStorage.removeItem('memi_cart');
+        sessionStorage.removeItem('memi_cart');
+        try { document.dispatchEvent(new CustomEvent('memi:cart:changed')); } catch (_) {}
+      } catch (_) {}
+    }
+
     // Send an order payload to the API and route to confirmation. onErr(msg) shows the error.
     function submitOrder(orderData, onErr) {
       if (window.MemiAPI) {
@@ -2067,7 +2094,7 @@
           .then(function(data) {
             try { sessionStorage.setItem('memi_last_order', JSON.stringify({ order_number: data.order_number, total: data.total, email: orderData.email })); } catch(_) {}
             try { sessionStorage.setItem('memi_confirm_cart', JSON.stringify(cartItems)); } catch(_) {}
-            try { localStorage.removeItem('memi_cart'); sessionStorage.removeItem('memi_cart'); } catch(_) {}
+            clearOrderedFromCart(cartItems);
             goToStep(5, { internal: true });
             setTimeout(function() { window.location.href = 'order-confirm.html'; }, 900);
           })
@@ -2662,7 +2689,7 @@
       })();
     });
   </script>
-  <script src="api-client.js?v=7"></script>
+  <script src="api-client.js?v=8"></script>
   <script src="app.js?v=35"></script>
   <script src="checkout-autofill.js?v=1"></script></body>
 </html>

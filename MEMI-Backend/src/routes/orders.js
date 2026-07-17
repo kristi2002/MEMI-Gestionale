@@ -18,9 +18,10 @@
 const router = require('express').Router();
 const { pool }                           = require('../db');
 const { requireCustomer, requireAdmin, requirePermission, optionalCustomer } = require('../middleware/auth');
-const { sendOrderConfirmation, sendShippingConfirmation } = require('../email');
+const { sendOrderConfirmation, sendShippingConfirmation, sendOrderCancellation } = require('../email');
 const { awardPurchasePoints } = require('../loyalty');
 const { compensateOrder } = require('../order-compensation');
+const { issueProviderRefund, canRefund } = require('../refunds');
 const { ensureInvoiceForOrder } = require('../invoicing');
 const { validateBody, createOrderSchema } = require('../validation');
 const { logAdminAction } = require('../audit');
@@ -33,6 +34,10 @@ const PAYMENT_STATUSES = ['in_attesa', 'pagato', 'rimborsato', 'fallito'];
 const ORDER_STATUSES   = ['in_attesa', 'in_preparazione', 'spedito', 'consegnato', 'annullato'];
 const PAYMENT_METHODS  = ['carta', 'paypal'];
 
+/* Order statuses that mean "not yet shipped" — the only ones a full cancellation
+   (with automatic refund) is allowed for. */
+const CANCELLABLE_STATUSES = ['in_attesa', 'in_preparazione'];
+
 /* ── helpers ── */
 async function nextOrderNumber(conn) {
   const [[row]] = await conn.execute(
@@ -40,6 +45,42 @@ async function nextOrderNumber(conn) {
   );
   const next = (row.max_n || 10254) + 1;
   return `#${next}`;
+}
+
+/**
+ * Attempt the automatic card refund for a FULL order reversal (cancellation).
+ * The provider call happens OUTSIDE any DB transaction (mirrors resi.js): money
+ * first, bookkeeping second. Only the card-charged portion is refunded
+ * (total − gift-card portion); the gift-card balance is given back separately by
+ * compensateOrder. Throws on a real provider error (caller should abort + 502);
+ * a missing/incompatible provider degrades to refundPending (admin does it by hand).
+ * @returns {Promise<{refunded, refundPending, refundId, cardAmount, markRefunded, total}>}
+ */
+async function autoRefundForCancel(order) {
+  const isPaid  = order.payment_status === 'pagato';
+  const total   = Number(order.total) || 0;
+  const giftAmt = Number(order.gift_card_amount) || 0;
+  const cardAmt = Math.max(0, Math.round((total - giftAmt) * 100) / 100);
+
+  let refunded = false, refundPending = false, refundId = null;
+  if (isPaid && cardAmt > 0) {
+    if (order.payment_intent_id && canRefund(order.payment_intent_id)) {
+      try {
+        const r = await issueProviderRefund(order.payment_intent_id, Math.round(cardAmt * 100));
+        refunded = true; refundId = r.id;
+      } catch (e) {
+        if (e.code === 'NO_PROVIDER') refundPending = true;   // degrade to manual
+        else throw e;                                          // real failure → caller aborts
+      }
+    } else {
+      // Paid on a rail we can't auto-refund (PayPal/manual, or no intent stored).
+      refundPending = true;
+    }
+  }
+  // "markRefunded" = the whole order value has been (or will be) returned:
+  //   provider-refunded card, OR a gift-card-only order (nothing hit a card).
+  const markRefunded = isPaid && !refundPending;
+  return { refunded, refundPending, refundId, cardAmount: cardAmt, markRefunded, total };
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -434,6 +475,82 @@ router.get('/my/:id', requireCustomer, async (req, res) => {
   }
 });
 
+/* ── POST /api/orders/my/:id/cancel ── customer self-cancel BEFORE shipping ──
+   Eligible only while the order is still in_attesa / in_preparazione. A paid order
+   is refunded to the original payment method immediately (Stripe/SumUp); stock,
+   gift-card balance, discount redemption and loyalty points are all restored. */
+router.post('/my/:id/cancel', requireCustomer, async (req, res) => {
+  try {
+    const [[order]] = await pool.execute(
+      'SELECT * FROM orders WHERE id = ? AND customer_id = ?',
+      [req.params.id, req.customer.id]
+    );
+    if (!order) return res.status(404).json({ error: 'Ordine non trovato' });
+    if (order.order_status === 'annullato')
+      return res.status(409).json({ error: 'Ordine già annullato' });
+    if (!CANCELLABLE_STATUSES.includes(order.order_status))
+      return res.status(400).json({
+        error: 'Questo ordine è già stato spedito e non può più essere annullato. Puoi richiedere un reso dopo la consegna.',
+      });
+
+    // 1. Money back first (outside the DB transaction).
+    let refundInfo;
+    try {
+      refundInfo = await autoRefundForCancel(order);
+    } catch (refundErr) {
+      (req.log || console).error({ err: refundErr, orderId: order.id }, '[Cancel] provider refund error');
+      return res.status(502).json({ error: 'Non è stato possibile elaborare il rimborso. Riprova o contatta l\'assistenza.' });
+    }
+
+    // 2. Bookkeeping in a transaction (re-validate under lock).
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+      const [[locked]] = await conn.execute('SELECT * FROM orders WHERE id = ? FOR UPDATE', [order.id]);
+      if (!locked || locked.order_status === 'annullato' || !CANCELLABLE_STATUSES.includes(locked.order_status)) {
+        await conn.rollback();
+        return res.status(409).json({ error: 'Lo stato dell\'ordine è cambiato. Ricarica la pagina.' });
+      }
+      if (locked.payment_status !== 'rimborsato') await compensateOrder(conn, locked, 'cancel');
+      const sets = ["order_status = 'annullato'"];
+      if (refundInfo.markRefunded) sets.push("payment_status = 'rimborsato'");
+      await conn.execute(`UPDATE orders SET ${sets.join(', ')} WHERE id = ?`, [order.id]);
+      await conn.commit();
+    } catch (dbErr) {
+      await conn.rollback();
+      if (refundInfo.refunded) {
+        (req.log || console).error(
+          { err: dbErr, orderId: order.id, refundId: refundInfo.refundId, amount: refundInfo.cardAmount },
+          'CRITICAL: cancellation refund succeeded but DB update failed — manual reconciliation required'
+        );
+        return res.status(200).json({ ok: true, cancelled: true, refunded: true, amount: refundInfo.cardAmount,
+          warning: 'Rimborso eseguito ma aggiornamento ordine fallito — contatta l\'assistenza per conferma.' });
+      }
+      (req.log || console).error({ err: dbErr, orderId: order.id }, 'cancel order (customer) db error');
+      return res.status(500).json({ error: 'Errore server' });
+    } finally {
+      conn.release();
+    }
+
+    sendOrderCancellation({
+      order_number: order.order_number, nome: order.customer_nome,
+      email: order.customer_email, refunded: refundInfo.markRefunded,
+      amount: refundInfo.markRefunded ? (Number(order.total) || 0) : 0,
+    }).catch(() => {});
+    try { require('../automations').runOrderStatusAutomations(pool, order.id, { order_status: 'annullato' }); } catch (_) {}
+
+    return res.json({
+      ok: true, cancelled: true,
+      refunded: refundInfo.markRefunded,
+      refund_pending: refundInfo.refundPending,
+      amount: refundInfo.markRefunded ? (Number(order.total) || 0) : 0,
+    });
+  } catch (err) {
+    (req.log || console).error({ err }, 'cancel order (customer) error');
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 /* ── GET /api/orders/track ── guest order lookup (no auth required) ──
    Public endpoint so customers can track without an account.
    Requires BOTH order_number and email to avoid enumeration attacks.    */
@@ -637,6 +754,24 @@ router.put('/admin/:id/status', requireAdmin, requirePermission('orders'), async
   if (!order_status && !payment_status)
     return res.status(400).json({ error: 'Nessun campo da aggiornare' });
 
+  // Pre-read (no lock) to decide whether this is a cancellation that should also
+  // refund the card. The provider call must happen BEFORE the DB transaction.
+  const [[pre]] = await pool.execute('SELECT * FROM orders WHERE id = ?', [req.params.id]);
+  if (!pre) return res.status(404).json({ error: 'Ordine non trovato' });
+  if (pre.order_status === 'annullato' && order_status && order_status !== 'annullato')
+    return res.status(409).json({ error: 'Ordine annullato: non può essere riattivato. Crea un nuovo ordine.' });
+
+  const cancelling = order_status === 'annullato' && pre.order_status !== 'annullato';
+  let refundInfo = { refunded: false, refundPending: false, refundId: null, markRefunded: false, cardAmount: 0 };
+  if (cancelling && pre.payment_status !== 'rimborsato') {
+    try {
+      refundInfo = await autoRefundForCancel(pre);   // money back first
+    } catch (refundErr) {
+      (req.log || console).error({ err: refundErr, orderId: pre.id }, '[Cancel/admin] provider refund error');
+      return res.status(502).json({ error: 'Errore durante il rimborso: ' + (refundErr.message || 'sconosciuto') });
+    }
+  }
+
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -652,35 +787,59 @@ router.put('/admin/:id/status', requireAdmin, requirePermission('orders'), async
       return res.status(409).json({ error: 'Ordine annullato: non può essere riattivato. Crea un nuovo ordine.' });
     }
 
-    const cancelling = order_status === 'annullato' && order.order_status !== 'annullato';
-    if (cancelling && order.payment_status !== 'rimborsato') {
+    const cancellingLocked = order_status === 'annullato' && order.order_status !== 'annullato';
+    if (cancellingLocked && order.payment_status !== 'rimborsato') {
       // Put everything back: stock, gift-card balance, discount redemption,
       // loyalty points and the customer's totals. (Skipped when a refund via
       // Resi already compensated this order.)
       await compensateOrder(conn, order, 'cancel');
     }
 
+    // An auto-refunded cancellation forces payment_status to 'rimborsato'.
+    let effPaymentStatus = payment_status;
+    if (cancellingLocked && refundInfo.markRefunded) effPaymentStatus = 'rimborsato';
+    // Stamp the delivery time on the first transition to 'consegnato' (drives the return window).
+    const nowDelivered = order_status === 'consegnato' && order.order_status !== 'consegnato' && !order.delivered_at;
+
     const fields = [];
     const vals   = [];
-    if (order_status)   { fields.push('order_status = ?');   vals.push(order_status); }
-    if (payment_status) { fields.push('payment_status = ?'); vals.push(payment_status); }
-    vals.push(req.params.id);
-    await conn.execute(`UPDATE orders SET ${fields.join(', ')} WHERE id = ?`, vals);
+    if (order_status)     { fields.push('order_status = ?');   vals.push(order_status); }
+    if (effPaymentStatus) { fields.push('payment_status = ?'); vals.push(effPaymentStatus); }
+    if (nowDelivered)     { fields.push('delivered_at = CURRENT_TIMESTAMP'); }
+    if (fields.length) {
+      vals.push(req.params.id);
+      await conn.execute(`UPDATE orders SET ${fields.join(', ')} WHERE id = ?`, vals);
+    }
     await conn.commit();
 
-    if (payment_status === 'pagato' && order.payment_status !== 'pagato')
+    if (effPaymentStatus === 'pagato' && order.payment_status !== 'pagato')
       ensureInvoiceForOrder(pool, order.id).catch(() => {});
+    if (cancellingLocked) {
+      sendOrderCancellation({
+        order_number: order.order_number, nome: order.customer_nome, email: order.customer_email,
+        refunded: refundInfo.markRefunded, amount: refundInfo.markRefunded ? (Number(order.total) || 0) : 0,
+      }).catch(() => {});
+    }
 
     logAdminAction({
       adminId: req.admin.id, adminEmail: req.admin.email,
-      action: cancelling ? 'order.cancel' : 'order.status_update',
-      entityType: 'order', entityId: req.params.id, details: { order_status, payment_status },
+      action: cancellingLocked ? 'order.cancel' : 'order.status_update',
+      entityType: 'order', entityId: req.params.id,
+      details: { order_status, payment_status: effPaymentStatus, refunded: refundInfo.markRefunded },
     }).catch(() => {});
     // Fire marketing automations for this transition (best-effort, never blocks).
-    try { require('../automations').runOrderStatusAutomations(pool, order.id, { order_status, payment_status }); } catch (_) {}
-    return res.json({ ok: true, cancelled: !!cancelling });
+    try { require('../automations').runOrderStatusAutomations(pool, order.id, { order_status, payment_status: effPaymentStatus }); } catch (_) {}
+    return res.json({ ok: true, cancelled: !!cancellingLocked, refunded: refundInfo.markRefunded, refund_pending: refundInfo.refundPending });
   } catch (err) {
     await conn.rollback();
+    if (refundInfo.refunded) {
+      (req.log || console).error(
+        { err, orderId: req.params.id, refundId: refundInfo.refundId, amount: refundInfo.cardAmount },
+        'CRITICAL: admin cancellation refund succeeded but DB update failed — manual reconciliation required'
+      );
+      return res.status(200).json({ ok: true, cancelled: true, refunded: true, amount: refundInfo.cardAmount,
+        warning: 'Rimborso eseguito ma aggiornamento ordine fallito — verifica manualmente.' });
+    }
     (req.log || console).error({ err }, 'update order status error');
     return res.status(500).json({ error: 'Errore server' });
   } finally {
@@ -814,7 +973,11 @@ router.post('/admin/:id/refresh-tracking', requireAdmin, requirePermission('orde
     await pool.execute('UPDATE shipments SET stato = ? WHERE order_id = ?', [status, o.id]);
     let orderPromoted = false;
     if (status === 'consegnato' && o.order_status !== 'consegnato') {
-      await pool.execute("UPDATE orders SET order_status = 'consegnato' WHERE id = ?", [o.id]);
+      // Stamp delivered_at too (drives the return window) — only if not already set.
+      await pool.execute(
+        "UPDATE orders SET order_status = 'consegnato', delivered_at = COALESCE(delivered_at, CURRENT_TIMESTAMP) WHERE id = ?",
+        [o.id]
+      );
       orderPromoted = true;
     }
 

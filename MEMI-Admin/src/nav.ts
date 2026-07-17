@@ -45,7 +45,6 @@ export const NAV: NavGroup[] = [
     icon: ShoppingBag,
     children: [
       { label: 'Tutti gli ordini', to: '/orders', ready: true },
-      { label: 'Bozze', to: '/orders/drafts' , ready: true },
       { label: 'Carrelli abbandonati', to: '/orders/abandoned', ready: true },
       { label: 'Resi', to: '/returns', ready: true },
       { label: 'Fatture', to: '/invoices', ready: true },

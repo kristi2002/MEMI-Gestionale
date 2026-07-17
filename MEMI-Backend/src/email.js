@@ -413,6 +413,108 @@ async function sendRefundNotification(data) {
 }
 
 /**
+ * Acknowledge a newly-opened return request (reso). Best-effort, no-op without SMTP.
+ * @param {{ rma_number, order_number, nome, email, motivo }} data
+ */
+async function sendReturnRequestReceived(data) {
+  const t = getTransporter();
+  if (!t) return;
+  const { rma_number, order_number, nome, email, motivo } = data || {};
+  if (!email) return;
+  const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Richiesta di reso ricevuta</title></head>
+<body style="margin:0;padding:0;background:#faf7f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#3B2B2B;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.06);">
+    <div style="background:#3B2B2B;padding:32px 40px;text-align:center;">
+      <h1 style="color:#fff;font-size:28px;font-weight:300;letter-spacing:.12em;margin:0;">Memi<span style="color:#c9897a;">.</span></h1>
+    </div>
+    <div style="padding:36px 40px;">
+      <h2 style="font-size:20px;font-weight:400;margin:0 0 8px;">Richiesta di reso ricevuta</h2>
+      <p style="color:#7a6060;font-size:14px;line-height:1.6;margin:0 0 20px;">
+        Ciao ${nome || ''}, abbiamo ricevuto la tua richiesta di reso per l'ordine <strong>${order_number}</strong>.
+      </p>
+      <div style="background:#faf7f4;border-radius:8px;padding:18px 22px;margin:0 0 20px;">
+        <p style="margin:0 0 6px;font-size:15px;"><strong>Numero RMA:</strong> ${rma_number || '—'}</p>
+        ${motivo ? `<p style="margin:0;font-size:15px;"><strong>Motivo:</strong> ${motivo}</p>` : ''}
+      </div>
+      <p style="color:#7a6060;font-size:13px;line-height:1.6;margin:0;">
+        Un nostro operatore verificherà la richiesta e le condizioni del prodotto restituito. Ti
+        contatteremo entro 2 giorni lavorativi con l'esito e, se approvato, con le istruzioni di rientro.
+        Il rimborso viene emesso solo dopo il controllo della merce.
+      </p>
+    </div>
+    <div style="background:#faf7f4;padding:20px 40px;text-align:center;">
+      <p style="color:#b5a0a0;font-size:12px;margin:0;">Memi Abbigliamento · Grazie per aver scelto Memi</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    await t.sendMail({ from, to: email, subject: `Richiesta di reso ${rma_number || ''} ricevuta — Memi`, html });
+    console.log(`[email] return-request ack sent to ${email} for ${order_number}`);
+  } catch (err) {
+    console.error('[email] return-request ack failed:', err.message);
+  }
+}
+
+/**
+ * Confirm an order cancellation (with the refund note when money was returned).
+ * Best-effort, no-op without SMTP.
+ * @param {{ order_number, nome, email, refunded, amount }} data
+ */
+async function sendOrderCancellation(data) {
+  const t = getTransporter();
+  if (!t) return;
+  const { order_number, nome, email, refunded, amount } = data || {};
+  if (!email) return;
+  const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
+  const amountStr = (Number(amount) || 0).toFixed(2).replace('.', ',');
+
+  const html = `
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>Ordine annullato</title></head>
+<body style="margin:0;padding:0;background:#faf7f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#3B2B2B;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.06);">
+    <div style="background:#3B2B2B;padding:32px 40px;text-align:center;">
+      <h1 style="color:#fff;font-size:28px;font-weight:300;letter-spacing:.12em;margin:0;">Memi<span style="color:#c9897a;">.</span></h1>
+    </div>
+    <div style="padding:36px 40px;">
+      <h2 style="font-size:20px;font-weight:400;margin:0 0 8px;">Ordine annullato ✓</h2>
+      <p style="color:#7a6060;font-size:14px;line-height:1.6;margin:0 0 20px;">
+        Ciao ${nome || ''}, l'ordine <strong>${order_number}</strong> è stato annullato come richiesto.
+      </p>
+      ${refunded ? `<div style="background:#faf7f4;border-radius:8px;padding:18px 22px;margin:0 0 20px;">
+        <p style="margin:0;font-size:15px;"><strong>Importo rimborsato:</strong> € ${amountStr}</p>
+      </div>
+      <p style="color:#7a6060;font-size:13px;line-height:1.6;margin:0;">
+        Il rimborso è stato elaborato sul metodo di pagamento originale. A seconda della banca
+        l'accredito può richiedere 5–10 giorni lavorativi.
+      </p>` : `<p style="color:#7a6060;font-size:13px;line-height:1.6;margin:0;">
+        Nessun addebito era stato completato, quindi non è previsto alcun rimborso.
+      </p>`}
+    </div>
+    <div style="background:#faf7f4;padding:20px 40px;text-align:center;">
+      <p style="color:#b5a0a0;font-size:12px;margin:0;">Memi Abbigliamento · A presto</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    await t.sendMail({ from, to: email, subject: `Ordine ${order_number} annullato — Memi`, html });
+    console.log(`[email] cancellation notice sent to ${email} for ${order_number}`);
+  } catch (err) {
+    console.error('[email] cancellation notice failed:', err.message);
+  }
+}
+
+/**
  * Generic email sender for automations. No-ops silently when SMTP is not
  * configured (same guard as the typed senders), and never throws to the caller
  * beyond the awaited promise.
@@ -470,4 +572,4 @@ async function sendNewsletterWelcome(email) {
   }
 }
 
-module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification, sendGenericEmail, sendNewsletterWelcome, isEmailConfigured, verifyEmailTransport };
+module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification, sendReturnRequestReceived, sendOrderCancellation, sendGenericEmail, sendNewsletterWelcome, isEmailConfigured, verifyEmailTransport };

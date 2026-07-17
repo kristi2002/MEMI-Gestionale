@@ -136,6 +136,7 @@ CREATE TABLE IF NOT EXISTS orders (
   courier_code       VARCHAR(20) NULL,
   tracking_number    VARCHAR(100) NULL,
   payment_intent_id  VARCHAR(255) NULL,
+  delivered_at       TIMESTAMP NULL,
   notes              TEXT,
   created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

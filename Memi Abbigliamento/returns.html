@@ -266,7 +266,7 @@
     <p>© 2026 Memi Abbigliamento · <a href="privacy.html">Privacy Policy</a> · <a href="about.html">Chi siamo</a> · <a href="collections/shop-all/index.html">Shop</a></p>
   </footer>
 
-  <script src="api-client.js?v=7"></script>
+  <script src="api-client.js?v=8"></script>
   <script src="app.js?v=35"></script>  <script>
     function toggleFaq(btn) {
       const item = btn.closest('.faq-item');
@@ -274,6 +274,30 @@
       document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
       if (!wasOpen) item.classList.add('open');
     }
+
+    // Populate the reason list and the enabled/disabled state from the live policy.
+    (function loadResoPolicy() {
+      if (!window.MemiAPI || !window.MemiAPI.resi || !window.MemiAPI.resi.config) return;
+      window.MemiAPI.resi.config().then(function(cfg) {
+        if (!cfg) return;
+        var sel = document.getElementById('retMotivo');
+        if (sel && Array.isArray(cfg.reasons) && cfg.reasons.length) {
+          sel.innerHTML = '<option value="">— Seleziona il motivo —</option>';
+          cfg.reasons.forEach(function(r) {
+            var o = document.createElement('option'); o.value = r; o.textContent = r; sel.appendChild(o);
+          });
+        }
+        if (cfg.enabled === false) {
+          var btn = document.getElementById('returnSubmitBtn');
+          var msgEl = document.getElementById('returnMsg');
+          if (btn) { btn.disabled = true; btn.style.opacity = '.5'; btn.style.cursor = 'not-allowed'; }
+          if (msgEl) {
+            msgEl.style.display = 'block'; msgEl.style.background = '#fef2f2'; msgEl.style.color = '#b91c1c';
+            msgEl.textContent = 'Il servizio di reso online non è al momento disponibile. Contatta l\'assistenza.';
+          }
+        }
+      }).catch(function() {});
+    })();
 
     document.getElementById('returnForm').addEventListener('submit', function(e) {
       e.preventDefault();

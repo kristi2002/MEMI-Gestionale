@@ -210,6 +210,9 @@
     /** Single order detail for the logged-in customer. */
     myOrder: function(id) { return get('/orders/my/' + encodeURIComponent(id)); },
 
+    /** Cancel an unshipped order (logged-in customer); paid orders are refunded. */
+    cancel: function(id) { return post('/orders/my/' + encodeURIComponent(id) + '/cancel', {}); },
+
     /** Public order lookup — no login required. Needs order number + email. */
     track: function(orderNumber, email) {
       return get('/orders/track?number=' + encodeURIComponent(orderNumber) + '&email=' + encodeURIComponent(email));
@@ -250,6 +253,12 @@
   var resi = {
     /** Submit a return request — verified by order_number + email. */
     request: function(data) { return post('/resi/request', data); },
+
+    /** Public return policy (enabled, window days, allowed reasons). */
+    config: function() { return get('/resi/config'); },
+
+    /** The logged-in customer's own return requests. */
+    myReturns: function() { return get('/resi/my'); },
   };
 
   /* ── Expose public API ──────────────────────────────────── */
