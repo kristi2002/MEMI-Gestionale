@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Trash2, CheckCircle2, Ban, ShoppingBag, Truck } from 'lucide-react';
+import { Trash2, CheckCircle2, Ban, ShoppingBag, Truck, MapPin, PackageCheck } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
-import { ShipOrderDialog } from '@/components/ship-order-dialog';
+import { OrderTrackingDialog } from '@/components/order-tracking-dialog';
 import { useDebouncedValue } from '@/lib/utils';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
@@ -99,17 +99,28 @@ export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'G
       },
       {
         id: 'azioni', header: '', enableSorting: false,
-        cell: ({ row }) =>
-          row.original.order_status === 'annullato' ? null : (
-            <ShipOrderDialog
+        cell: ({ row }) => {
+          const st = row.original.order_status;
+          // Each state opens its own dedicated modal (prepare / tracking / delivered / cancelled).
+          const btn =
+            st === 'spedito'
+              ? { icon: <MapPin />, label: 'Tracking' }
+              : st === 'consegnato'
+                ? { icon: <PackageCheck />, label: 'Consegnato' }
+                : st === 'annullato'
+                  ? { icon: <Ban />, label: 'Annullato' }
+                  : { icon: <Truck />, label: 'Spedisci' };
+          return (
+            <OrderTrackingDialog
               order={row.original}
               trigger={
                 <Button variant="ghost" size="sm">
-                  <Truck /> {row.original.tracking_number ? 'Tracking' : 'Spedisci'}
+                  {btn.icon} {btn.label}
                 </Button>
               }
             />
-          ),
+          );
+        },
       },
     ],
     [],

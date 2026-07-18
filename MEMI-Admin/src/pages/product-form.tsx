@@ -7,25 +7,13 @@ import { EntityFormFields } from '@/components/common/entity-form-fields';
 import type { FieldConfig, FormValues } from '@/components/common/entity-form-fields';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SizeStockEditor, type SizeStock } from '@/components/common/size-stock-editor';
 import { useCategories, useCollections, useColors } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 
 /** The only collections assignable from this form — editorial groupings, not categories. */
 // (Collections assignable from this form are the managed Collezioni entities.)
-
-/** "S:10, M:5, Unica:20" → [{taglia:'S',stock:10}, …]. Bare labels default to stock 0. */
-function parseSizes(s: string): { taglia: string; stock: number }[] {
-  return String(s || '')
-    .split(',')
-    .map((x) => x.trim())
-    .filter(Boolean)
-    .map((seg) => {
-      const [t, st] = seg.split(':').map((y) => y.trim());
-      return { taglia: t, stock: st != null && st !== '' ? Number(st) || 0 : 0 };
-    })
-    .filter((x) => x.taglia);
-}
 
 type ProductDetail = {
   name?: string;
@@ -82,6 +70,7 @@ export function ProductFormPage() {
   const colorsQuery = useColors();
 
   const [values, setValues] = useState<FormValues>({ status: 'attivo', discount_pct: 0 });
+  const [sizes, setSizes] = useState<SizeStock[]>([]);
   const [loading, setLoading] = useState<boolean>(editing);
   const [busy, setBusy] = useState(false);
 
@@ -93,9 +82,11 @@ export function ProductFormPage() {
       try {
         const d = (await api.products.get(id!)) as unknown as ProductDetail;
         if (!alive) return;
-        const sizes = Array.isArray(d.taglie)
-          ? d.taglie.map((s) => (typeof s === 'string' ? s : `${s.taglia}:${s.stock ?? 0}`)).join(', ')
-          : '';
+        setSizes(
+          Array.isArray(d.taglie)
+            ? d.taglie.map((s) => (typeof s === 'string' ? { taglia: s, stock: 0 } : { taglia: s.taglia, stock: Number(s.stock) || 0 }))
+            : [],
+        );
         setValues({
           name: d.name ?? '',
           categoria: d.categoria ?? '',
@@ -107,7 +98,6 @@ export function ProductFormPage() {
           status: d.status ?? 'attivo',
           description: d.description ?? '',
           collections: Array.isArray(d.collections) ? d.collections : [],
-          sizes,
         });
       } catch {
         toast.error('Prodotto non trovato');
@@ -172,10 +162,6 @@ export function ProductFormPage() {
     { name: 'discount_pct', label: 'Sconto %', type: 'number' },
   ];
 
-  const stockFields: FieldConfig[] = [
-    { name: 'sizes', label: 'Taglie e stock', wide: true, placeholder: 'S:10, M:5, L:0', help: 'Coppie taglia:quantità separate da virgola. Taglia unica → "Unica:20". Le immagini si caricano via importazione CSV.' },
-  ];
-
   const statusFields: FieldConfig[] = [
     { name: 'status', label: 'Stato', type: 'select', wide: true, options: [
         { value: 'attivo', label: 'Attivo' }, { value: 'bozza', label: 'Bozza' }, { value: 'esaurito', label: 'Esaurito' },
@@ -233,8 +219,8 @@ export function ProductFormPage() {
         // membership in a custom collection must survive an edit of any other field.
         collections: Array.isArray(values.collections) ? (values.collections as string[]) : [],
       };
-      const sizes = parseSizes(values.sizes as string);
-      if (sizes.length) data.taglie = sizes;
+      const cleanSizes = sizes.filter((s) => s.taglia.trim());
+      if (cleanSizes.length) data.taglie = cleanSizes;
 
       if (editing) {
         await api.products.update(id!, data);
@@ -278,7 +264,17 @@ export function ProductFormPage() {
             <div className="space-y-6 lg:col-span-2">
               <FormSection title="Dettagli" fields={detailFields} values={values} set={set} />
               <FormSection title="Prezzi" fields={priceFields} values={values} set={set} />
-              <FormSection title="Taglie e magazzino" fields={stockFields} values={values} set={set} />
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Taglie e magazzino</CardTitle>
+                  <CardDescription>
+                    Seleziona le taglie disponibili e imposta lo stock per ciascuna. Le immagini si caricano via importazione CSV.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <SizeStockEditor value={sizes} onChange={setSizes} />
+                </CardContent>
+              </Card>
             </div>
             {/* Side column */}
             <div className="space-y-6">

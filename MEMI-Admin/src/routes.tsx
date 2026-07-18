@@ -31,6 +31,7 @@ import { LifecyclePage } from '@/pages/lifecycle';
 import { CategoriesPage, CollectionsPage } from '@/pages/taxonomy';
 import { ColorsPage } from '@/pages/colors';
 import { FinancePage } from '@/pages/finance';
+import { PayoutsPage } from '@/pages/payouts';
 import { AnalyticsPage } from '@/pages/analytics';
 import { TaxesPage } from '@/pages/taxes';
 import { LiveviewPage } from '@/pages/liveview';
@@ -74,7 +75,7 @@ const READY_PAGES: Record<string, ReactElement> = {
   '/analytics': <AnalyticsPage />,
   '/liveview': <LiveviewPage />,
   '/finance': <FinancePage />,
-  '/payouts': <FinancePage />,
+  '/payouts': <PayoutsPage />,
   '/taxes': <TaxesPage />,
   '/integrations': <IntegrationsPage />,
   '/reports': <ReportsPage />,

@@ -3,6 +3,19 @@
 -- Engine: MySQL 8.0+
 -- Charset: utf8mb4
 -- =============================================================
+--
+-- SCOPE: this file is the CORE SEED schema, applied once on a fresh volume
+-- (docker initdb.d). It is NOT the full picture. The extended tables (marketing,
+-- warehouse, taxonomy, CMS, live-view, etc.) are created at boot by
+-- `db/migrations.js → ensureSchema()` (CREATE TABLE IF NOT EXISTS, structural
+-- only), which is the CANONICAL source for those. Both run at startup, so every
+-- table always exists.
+--
+-- Do NOT hand-copy the migrations.js tables here — that would create two
+-- definitions to keep in sync. Adding a brand-new table to migrations.js is
+-- guarded by `test/schema-drift.test.cjs` (verify/run.sh sec 6e): a new table
+-- must be either added to this file or acknowledged in that test's allow-list.
+-- =============================================================
 
 CREATE DATABASE IF NOT EXISTS memi_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE memi_db;
@@ -221,6 +234,7 @@ CREATE TABLE IF NOT EXISTS discount_codes (
   scadenza    DATE NULL,
   stato       ENUM('attivo','disattivo','pianificato') DEFAULT 'attivo',
   min_order   DECIMAL(10,2) DEFAULT 0.00,
+  product_ids JSON NULL,   -- NULL = whole order; else the discount applies only to these product_ids
   created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

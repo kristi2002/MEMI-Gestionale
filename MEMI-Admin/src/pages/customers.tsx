@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Trash2, Users, Plus, Pencil } from 'lucide-react';
+import { Trash2, Users, Plus, Pencil, Eye } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDebouncedValue } from '@/lib/utils';
@@ -36,6 +36,7 @@ const exportColumns: ExportColumn<CustomerRow>[] = [
 const ADDRESS_FIELDS: FieldConfig[] = [
   { name: 'nome', label: 'Nome', required: true },
   { name: 'cognome', label: 'Cognome' },
+  { name: 'email', label: 'Email', type: 'email', required: true },
   { name: 'telefono', label: 'Telefono' },
   { name: 'indirizzo', label: 'Indirizzo', side: true },
   { name: 'citta', label: 'Città', side: true },
@@ -100,9 +101,14 @@ export function CustomersPage() {
       {
         id: 'azioni', header: '', enableSorting: false,
         cell: ({ row }) => (
-          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/customers/${row.original.id}/edit`); }}>
-            <Pencil /> Modifica
-          </Button>
+          <div className="flex items-center justify-end gap-1">
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/customers/${row.original.id}`); }}>
+              <Eye /> Scheda
+            </Button>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/customers/${row.original.id}/edit`); }}>
+              <Pencil /> Modifica
+            </Button>
+          </div>
         ),
       },
     ],
@@ -175,7 +181,7 @@ export function CustomerFormPage() {
     if (!editing) return { paese: 'Italia' };
     return d
       ? {
-          nome: (d.nome as string) ?? '', cognome: (d.cognome as string) ?? '', telefono: (d.telefono as string) ?? '',
+          nome: (d.nome as string) ?? '', cognome: (d.cognome as string) ?? '', email: (d.email as string) ?? '', telefono: (d.telefono as string) ?? '',
           indirizzo: (d.indirizzo as string) ?? '', citta: (d.citta as string) ?? '', cap: (d.cap as string) ?? '',
           paese: (d.paese as string) ?? 'Italia',
         }
@@ -197,7 +203,7 @@ export function CustomerFormPage() {
         if (editing) {
           await saveMut.mutateAsync({
             id: Number(id),
-            data: { nome: v.nome, cognome: v.cognome || '', telefono: v.telefono || null, indirizzo: v.indirizzo || null, citta: v.citta || null, cap: v.cap || null, paese: v.paese || 'Italia' },
+            data: { nome: v.nome, cognome: v.cognome || '', email: v.email, telefono: v.telefono || null, indirizzo: v.indirizzo || null, citta: v.citta || null, cap: v.cap || null, paese: v.paese || 'Italia' },
           });
           toast.success('Cliente aggiornato');
         } else {

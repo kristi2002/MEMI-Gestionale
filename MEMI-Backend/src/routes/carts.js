@@ -63,26 +63,97 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   }
 });
 
-/* ── POST /api/admin/carts/:id/recover ── */
+/** Mint a unique single-use discount code, expiring in `days`. When `productIds` is a
+ *  non-empty array the code is product-scoped (discounts only those items at checkout). */
+async function mintCartDiscount(tipo, valore, days = 14, productIds = null) {
+  const scad = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+  const scope = Array.isArray(productIds) && productIds.length ? JSON.stringify(productIds.map(String)) : null;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const code = `CART-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    try {
+      await pool.execute(
+        `INSERT INTO discount_codes (code, tipo, valore, max_utilizzi, scadenza, stato, min_order, product_ids)
+         VALUES (?, ?, ?, 1, ?, 'attivo', 0, ?)`,
+        [code, tipo, valore, scad, scope]
+      );
+      return { code, scadenza: scad, scoped: !!scope };
+    } catch (e) {
+      if (e && e.code === 'ER_DUP_ENTRY') continue;
+      throw e;
+    }
+  }
+  return null;
+}
+
+function euro(n) { return (Number(n) || 0).toFixed(2).replace('.', ','); }
+
+/* ── POST /api/admin/carts/:id/recover ──
+ * Body (all optional — plain reminder when omitted):
+ *   discount   { tipo:'percentuale'|'fisso', valore:number }  → mints a code, featured in the email
+ *   item_ids   string[]  → cart item ids to feature as the incentive
+ */
 router.post('/:id/recover', requireAdmin, async (req, res) => {
   try {
-    const [[cart]] = await pool.execute('SELECT id, email, total FROM carts WHERE id = ?', [req.params.id]);
+    const [[cart]] = await pool.execute(
+      'SELECT id, email, total, items FROM carts WHERE id = ?', [req.params.id]
+    );
     if (!cart) return res.status(404).json({ error: 'Carrello non trovato' });
     if (!cart.email) return res.status(400).json({ error: 'Nessuna email associata a questo carrello' });
 
+    const b = req.body || {};
+    const cartItems = parseItems(cart.items);
+    const wantIds = Array.isArray(b.item_ids) ? b.item_ids.map(String) : [];
+    const featured = wantIds.length
+      ? cartItems.filter((it) => wantIds.includes(String(it && it.id)))
+      : [];
+
+    // Optional discount: validate + mint a single-use code.
+    let discount = null;
+    if (b.discount && b.discount.valore != null) {
+      const tipo = b.discount.tipo === 'fisso' ? 'fisso' : 'percentuale';
+      const valore = Number(b.discount.valore);
+      if (!(valore > 0) || (tipo === 'percentuale' && valore > 100)) {
+        return res.status(400).json({ error: 'Valore sconto non valido' });
+      }
+      // Scope the code to the featured items when the admin selected specific ones;
+      // otherwise it's a whole-order code.
+      const scopeIds = featured.length ? featured.map((it) => it.id) : null;
+      discount = await mintCartDiscount(tipo, valore, 14, scopeIds);
+      if (!discount) return res.status(500).json({ error: 'Impossibile generare il codice sconto' });
+      discount.tipo = tipo;
+      discount.valore = valore;
+    }
+
     const shop = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
     const link = shop ? (shop + '/cart') : '/cart';
-    const total = (Number(cart.total) || 0).toFixed(2).replace('.', ',');
-    await sendGenericEmail({
-      to: cart.email,
-      subject: 'Hai lasciato qualcosa nel carrello — Memi',
-      html: `<p>Ciao! 👋</p><p>Hai ancora degli articoli nel carrello (totale € ${total}). ` +
-            `Completa l'ordine quando vuoi:</p><p><a href="${link}">Riprendi il tuo carrello</a></p>`,
-    });
+    const total = euro(cart.total);
+
+    // Build the email body.
+    let html = `<p>Ciao! 👋</p><p>Hai ancora degli articoli nel carrello (totale € ${total}).</p>`;
+    if (featured.length) {
+      const rows = featured.map((it) =>
+        `<li><strong>${(it.name || 'Prodotto')}</strong>${it.taglia ? ' — Taglia ' + it.taglia : ''} — € ${euro(it.price)}</li>`
+      ).join('');
+      html += `<p>In particolare ti aspettano:</p><ul>${rows}</ul>`;
+    }
+    if (discount) {
+      const desc = discount.tipo === 'percentuale' ? `${discount.valore}% di sconto` : `€ ${euro(discount.valore)} di sconto`;
+      const onItems = discount.scoped ? ' sugli articoli qui sopra' : '';
+      html += `<p style="font-size:16px">🎁 Solo per te: <strong>${desc}${onItems}</strong> con il codice ` +
+              `<strong style="letter-spacing:1px">${discount.code}</strong> (valido fino al ${discount.scadenza}).</p>`;
+    }
+    html += `<p><a href="${link}">Riprendi il tuo carrello</a></p>`;
+
+    const subject = discount
+      ? 'Un regalo per il tuo carrello 🎁 — Memi'
+      : 'Hai lasciato qualcosa nel carrello — Memi';
+
+    await sendGenericEmail({ to: cart.email, subject, html });
     await pool.execute("UPDATE carts SET status = 'recuperato', recovered_at = NOW() WHERE id = ?", [req.params.id]);
     logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'cart.recover',
-      entityType: 'carts', entityId: String(req.params.id), details: { email: cart.email } }).catch(() => {});
-    return res.json({ ok: true, sent_to: cart.email });
+      entityType: 'carts', entityId: String(req.params.id),
+      details: { email: cart.email, discount_code: discount ? discount.code : null, featured: featured.length } }).catch(() => {});
+    return res.json({ ok: true, sent_to: cart.email, discount_code: discount ? discount.code : null });
   } catch (err) {
     console.error('cart recover error', err);
     return res.status(500).json({ error: 'Errore server' });

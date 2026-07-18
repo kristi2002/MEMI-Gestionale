@@ -38,6 +38,23 @@ const PAYMENT_METHODS  = ['carta', 'paypal'];
    (with automatic refund) is allowed for. */
 const CANCELLABLE_STATUSES = ['in_attesa', 'in_preparazione'];
 
+/* Parse a discount code's product scope. Returns a Set of product-id strings, or
+   null (whole-order discount). */
+function discountScope(product_ids) {
+  if (!product_ids) return null;
+  try {
+    const a = Array.isArray(product_ids) ? product_ids : JSON.parse(product_ids);
+    return Array.isArray(a) && a.length ? new Set(a.map(String)) : null;
+  } catch (_) { return null; }
+}
+
+/* Base amount a code discounts: the sum of only the scoped line items, or the whole
+   subtotal when unscoped. `items` = [{product_id, price, qty}, …]. */
+function discountBase(scope, items, subtotal) {
+  if (!scope) return subtotal;
+  return items.reduce((s, i) => (scope.has(String(i.product_id)) ? s + (Number(i.price) || 0) * (parseInt(i.qty) || 1) : s), 0);
+}
+
 /* ── helpers ── */
 async function nextOrderNumber(conn) {
   const [[row]] = await conn.execute(
@@ -188,8 +205,10 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
 
       discountCode = dc;
       const dcValore = Number(dc.valore);
-      if (dc.tipo === 'percentuale')      discountAmount = subtotal * (dcValore / 100);
-      else if (dc.tipo === 'fisso')       discountAmount = Math.min(dcValore, subtotal);
+      // Product-scoped codes discount only their matching line items (else whole subtotal).
+      const dcBase = discountBase(discountScope(dc.product_ids), resolved, subtotal);
+      if (dc.tipo === 'percentuale')      discountAmount = dcBase * (dcValore / 100);
+      else if (dc.tipo === 'fisso')       discountAmount = Math.min(dcValore, dcBase);
       else if (dc.tipo === 'spedizione')  freeShippingCode = true;
     }
 
@@ -881,14 +900,28 @@ router.put('/admin/:id/ship', requireAdmin, requirePermission('orders'), async (
     // Order just became 'spedito' → fire automations (best-effort, never blocks).
     try { require('../automations').runOrderStatusAutomations(pool, req.params.id, { order_status: 'spedito' }); } catch (_) {}
 
-    // Fetch order for email (non-blocking)
+    // Fetch order for email (non-blocking). Attach the order's invoice PDF to the
+    // shipping confirmation when one exists (auto-emitted at payment).
     pool.execute('SELECT order_number, customer_nome AS nome, customer_email AS email FROM orders WHERE id = ?', [req.params.id])
-      .then(([[o]]) => {
-        if (o) sendShippingConfirmation({
+      .then(async ([[o]]) => {
+        if (!o) return;
+        let attachments;
+        try {
+          const [[inv]] = await pool.execute(
+            'SELECT * FROM invoices WHERE order_id = ? ORDER BY id DESC LIMIT 1', [req.params.id]
+          );
+          if (inv) {
+            const [items] = await pool.execute('SELECT * FROM order_items WHERE order_id = ?', [req.params.id]);
+            const { generateInvoicePdf } = require('../invoice-pdf');
+            const pdf = await generateInvoicePdf({ ...inv, order_number: o.order_number }, items);
+            attachments = [{ filename: `${inv.invoice_number || 'fattura'}.pdf`, content: pdf, contentType: 'application/pdf' }];
+          }
+        } catch (e) { (req.log || console).error({ err: e }, 'invoice pdf attach failed'); }
+        sendShippingConfirmation({
           order_number: o.order_number,
           nome: o.nome,
           email: o.email,
-          courier_code, tracking_number, eta,
+          courier_code, tracking_number, eta, attachments,
         }).catch(() => {});
       }).catch(() => {});
 
@@ -1050,12 +1083,12 @@ router.delete('/admin/:id', requireAdmin, requirePermission('orders'), async (re
 
 /* ── POST /api/orders/validate-discount ── */
 router.post('/validate-discount', async (req, res) => {
-  const { code, subtotal = 0, email } = req.body;
+  const { code, subtotal = 0, email, items = [] } = req.body;
   if (!code) return res.status(400).json({ error: 'Codice mancante' });
 
   try {
     const [[dc]] = await pool.execute(
-      `SELECT id, code, tipo, valore, stato, scadenza, max_utilizzi, utilizzi, min_order
+      `SELECT id, code, tipo, valore, stato, scadenza, max_utilizzi, utilizzi, min_order, product_ids
        FROM discount_codes
        WHERE code = ? AND stato = 'attivo'
          AND (scadenza IS NULL OR scadenza >= CURDATE())
@@ -1081,10 +1114,18 @@ router.post('/validate-discount', async (req, res) => {
     if (dcMinOrder > 0 && sub < dcMinOrder)
       return res.status(400).json({ error: `Ordine minimo EUR${dcMinOrder.toFixed(2)} per questo codice` });
 
+    // Product-scoped codes: the discount base is only the matching cart items. The
+    // preview MUST match POST /api/orders' computation (else the card 402s), so the
+    // storefront passes the same items it will send at order creation.
+    const scope = discountScope(dc.product_ids);
+    const base  = discountBase(scope, Array.isArray(items) ? items : [], sub);
+    if (scope && base <= 0)
+      return res.status(400).json({ error: 'Il codice si applica solo ad articoli non presenti nel carrello' });
+
     let discountAmount = 0;
     let freeShipping   = false;
-    if (dc.tipo === 'percentuale')  discountAmount = sub * (dcValore / 100);
-    else if (dc.tipo === 'fisso')   discountAmount = Math.min(dcValore, sub);
+    if (dc.tipo === 'percentuale')  discountAmount = base * (dcValore / 100);
+    else if (dc.tipo === 'fisso')   discountAmount = Math.min(dcValore, base);
     else if (dc.tipo === 'spedizione') freeShipping = true;
 
     return res.json({
@@ -1094,10 +1135,11 @@ router.post('/validate-discount', async (req, res) => {
       valore: dcValore,
       discount_amount: discountAmount,
       free_shipping: freeShipping,
+      product_scoped: !!scope,
       label: dc.tipo === 'percentuale'
-        ? `${dcValore}% di sconto`
+        ? `${dcValore}% di sconto${scope ? ' su articoli selezionati' : ''}`
         : dc.tipo === 'fisso'
-          ? `EUR ${dcValore.toFixed(2)} di sconto`
+          ? `EUR ${dcValore.toFixed(2)} di sconto${scope ? ' su articoli selezionati' : ''}`
           : 'Spedizione gratuita',
     });
   } catch (err) {
@@ -1107,3 +1149,7 @@ router.post('/validate-discount', async (req, res) => {
 });
 
 module.exports = router;
+// Exposed for unit tests (verify/run.sh) — the discount-scope math must be identical
+// between the preview and order-creation paths, or scoped codes 402 the card.
+module.exports.discountScope = discountScope;
+module.exports.discountBase = discountBase;

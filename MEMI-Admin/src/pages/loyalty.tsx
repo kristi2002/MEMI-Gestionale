@@ -69,7 +69,7 @@ function ConfigCard({ config, loading }: { config?: LoyaltyConfig; loading: bool
               <Checkbox checked={f.enabled} onCheckedChange={(v) => set('enabled', !!v)} />
               <span className="text-sm font-medium">Programma fedeltà attivo</span>
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="space-y-1.5">
                 <Label>Bonus iscrizione (punti)</Label>
                 <Input type="number" value={f.signupBonus} onChange={(e) => set('signupBonus', Number(e.target.value))} />
@@ -270,32 +270,34 @@ export function LoyaltyPage() {
   return (
     <div>
       <PageHeader title="Fedeltà & Punti" subtitle="Programma fedeltà, saldo punti per cliente e rettifiche manuali." />
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-1">
-          <ConfigCard config={configQ.data} loading={configQ.isLoading} />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-1">
-            <KpiCard label="Membri" value={summary?.members ?? 0} icon={Gem} tone="primary" loading={custQ.isLoading} />
-            <KpiCard label="Punti totali" value={num(summary?.total_points ?? 0).toLocaleString('it-IT')} icon={Coins} tone="info" loading={custQ.isLoading} />
-            <KpiCard label="Valore riscattabile" value={eur(redeemableValue)} icon={Wallet} tone="success" loading={custQ.isLoading || configQ.isLoading} />
-          </div>
-        </div>
-        <div className="lg:col-span-2">
-          <DataTable
-            columns={columns}
-            data={rows}
-            getRowId={(c) => String(c.id)}
-            searchValue={(c) => `${c.nome} ${c.cognome} ${c.email}`}
-            searchPlaceholder="Cerca cliente…"
-            exportName="fedelta_punti"
-            exportTitle="Classifica fedeltà"
-            exportColumns={exportColumns}
-            filters={filters}
-            tableId="loyalty"
-            isLoading={custQ.isLoading}
-            onRowClick={(c) => setSelected(c)}
-            emptyState={<EmptyState icon={Gem} title="Nessun cliente con punti" />}
-          />
-        </div>
+
+      {/* Cards on top: stat KPIs + program settings, full width */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <KpiCard label="Membri" value={summary?.members ?? 0} icon={Gem} tone="primary" loading={custQ.isLoading} />
+        <KpiCard label="Punti totali" value={num(summary?.total_points ?? 0).toLocaleString('it-IT')} icon={Coins} tone="info" loading={custQ.isLoading} />
+        <KpiCard label="Valore riscattabile" value={eur(redeemableValue)} icon={Wallet} tone="success" loading={custQ.isLoading || configQ.isLoading} />
+      </div>
+      <div className="mt-4">
+        <ConfigCard config={configQ.data} loading={configQ.isLoading} />
+      </div>
+
+      {/* Classifica clienti — full width below the cards */}
+      <div className="mt-4">
+        <DataTable
+          columns={columns}
+          data={rows}
+          getRowId={(c) => String(c.id)}
+          searchValue={(c) => `${c.nome} ${c.cognome} ${c.email}`}
+          searchPlaceholder="Cerca cliente…"
+          exportName="fedelta_punti"
+          exportTitle="Classifica fedeltà"
+          exportColumns={exportColumns}
+          filters={filters}
+          tableId="loyalty"
+          isLoading={custQ.isLoading}
+          onRowClick={(c) => setSelected(c)}
+          emptyState={<EmptyState icon={Gem} title="Nessun cliente con punti" />}
+        />
       </div>
 
       <CustomerPointsDialog customer={selected} pointValueEur={pointValueEur} onClose={() => setSelected(null)} />

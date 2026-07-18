@@ -16,6 +16,12 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_PROXY || 'http://localhost:3000',
         changeOrigin: true,
+        // The local Docker backend runs NODE_ENV=production, whose CORS allowlist
+        // rejects a dev origin. Strip the Origin header so proxied calls look
+        // same-origin (no Origin → allowed), matching how nginx serves in prod.
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq) => proxyReq.removeHeader('origin'));
+        },
       },
     },
   },

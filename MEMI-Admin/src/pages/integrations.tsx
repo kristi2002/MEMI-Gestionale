@@ -14,6 +14,11 @@ export function IntegrationsPage() {
     <div>
       <PageHeader title="Integrazioni" subtitle="Servizi collegati al gestionale." />
 
+      <p className="mb-4 rounded-md border border-dashed bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground">
+        Le credenziali di questi servizi sono gestite tramite le variabili d’ambiente del server (deploy Coolify),
+        non da questo pannello. Qui vedi lo stato di connessione in tempo reale.
+      </p>
+
       {query.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 4 }).map((_, i) => (

@@ -55,7 +55,7 @@ function optionalCustomer(req, res, next) {
  * Validates an admin JWT from the Authorization header.
  * Sets req.admin = { id, email, nome, role } on success.
  */
-function requireAdmin(req, res, next) {
+async function requireAdmin(req, res, next) {
   // Prefer the HttpOnly cookie; fall back to the Authorization header so any
   // still-active header-based session keeps working during the migration.
   const header = req.headers['authorization'] || '';
@@ -63,12 +63,28 @@ function requireAdmin(req, res, next) {
   const token  = readCookie(req, 'memi_admin_token') || bearer;
   if (!token) return res.status(401).json({ error: 'Token admin mancante' });
 
+  let payload;
   try {
-    req.admin = jwt.verify(token, process.env.JWT_ADMIN_SECRET);
-    next();
+    payload = jwt.verify(token, process.env.JWT_ADMIN_SECRET);
   } catch {
     return res.status(401).json({ error: 'Token admin non valido o scaduto' });
   }
+
+  // Re-validate against the live DB so an 8h JWT can't outlive the account: a deleted
+  // staff member loses access immediately, and role/permissions are refreshed from the
+  // row so a permission change takes effect without waiting for the token to expire.
+  try {
+    const { pool } = require('../db');
+    const [[row]] = await pool.execute(
+      'SELECT id, email, nome, role, permissions FROM admin_users WHERE id = ?', [payload.id]
+    );
+    if (!row) return res.status(401).json({ error: 'Account non più valido — accedi di nuovo' });
+    req.admin = { ...payload, id: row.id, email: row.email, nome: row.nome, role: row.role, permissions: row.permissions };
+  } catch (_) {
+    // Transient DB error: fall back to the verified token payload rather than locking the admin out.
+    req.admin = payload;
+  }
+  next();
 }
 
 /**

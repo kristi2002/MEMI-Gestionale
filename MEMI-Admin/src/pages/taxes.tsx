@@ -1,7 +1,7 @@
 import { Landmark, Globe, TriangleAlert, CheckCircle2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useTaxStats } from '@/hooks/queries';
 import { eur, num } from '@/lib/format';
 
@@ -47,6 +47,30 @@ export function TaxesPage() {
           </p>
         </CardContent>
       </Card>
+
+      {(d?.by_country?.length ?? 0) > 0 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Vendite per paese (estero, YTD)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-hidden rounded-md border">
+              <div className="flex items-center gap-3 border-b bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground">
+                <span className="flex-1">Paese</span>
+                <span className="w-20 text-right">Ordini</span>
+                <span className="w-28 text-right">Fatturato</span>
+              </div>
+              {d!.by_country!.map((c) => (
+                <div key={c.paese} className="flex items-center gap-3 border-b px-3 py-2 last:border-b-0">
+                  <span className="flex-1 font-medium capitalize">{c.paese}</span>
+                  <span className="w-20 text-right text-muted-foreground">{c.orders}</span>
+                  <span className="w-28 text-right font-semibold">{eur(c.revenue)}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

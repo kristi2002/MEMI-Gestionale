@@ -103,6 +103,7 @@ import type {
   CmsPage,
   BlogPost,
   SegmentsResponse,
+  SegmentMembersResponse,
   Popup,
   AutomationsResponse,
   Transfer,
@@ -114,6 +115,7 @@ import type {
   LifecycleData,
   StoreSettings,
   FinanceData,
+  PayoutsData,
   TaxStats,
   IntegrationsResponse,
   ReportsData,
@@ -135,13 +137,14 @@ export const api = {
   dashboard: {
     kpis: () => get<DashboardKpis>('/admin/dashboard/kpis'),
     catalogKpis: () => get<CatalogKpis>('/admin/dashboard/catalog-kpis'),
-    chart: () => get<ChartPoint[]>('/admin/dashboard/chart'),
+    chart: (days?: number) => get<ChartPoint[]>('/admin/dashboard/chart' + (days ? '?days=' + days : '')),
     recentOrders: () => get<RecentOrder[]>('/admin/dashboard/recent-orders'),
-    topProducts: () =>
+    topProducts: (days?: number) =>
       get<{ product_id: string; product_name: string; units_sold: string; revenue: string }[]>(
-        '/admin/dashboard/top-products',
+        '/admin/dashboard/top-products' + (days ? '?days=' + days : ''),
       ),
     finance: () => get<FinanceData>('/admin/dashboard/finance'),
+    payouts: () => get<PayoutsData>('/admin/dashboard/payouts'),
     taxStats: () => get<TaxStats>('/admin/dashboard/tax-stats'),
     liveview: () => get<import('@/types').LiveView>('/admin/liveview'),
   },
@@ -232,6 +235,7 @@ export const api = {
   invoices: {
     list: (params?: Query) => get<InvoicesResponse>('/admin/invoices' + qs(params)),
     delete: (id: number) => del('/admin/invoices/' + id),
+    pdfUrl: (id: number) => API_BASE + '/admin/invoices/' + id + '/pdf',
   },
   reviews: {
     list: (params?: Query) => get<ReviewsResponse>('/reviews/admin' + qs(params)),
@@ -240,6 +244,7 @@ export const api = {
   },
   newsletter: {
     list: (params?: Query) => get<NewsletterResponse>('/newsletter' + qs(params)),
+    campaigns: () => get<{ campaigns: { id: number; subject: string; recipients: number; smtp: boolean; created_at: string }[] }>('/newsletter/campaigns'),
     create: (data: unknown) => post('/newsletter', data),
     update: (id: number, data: unknown) => put('/newsletter/' + id, data),
     remove: (id: number) => del('/newsletter/' + id),
@@ -257,6 +262,7 @@ export const api = {
   },
   shipping: {
     shipments: () => get<Shipment2[]>('/shipping/shipments'),
+    updateShipment: (id: number, data: { stato?: string; eta?: string }) => put('/shipping/shipments/' + id, data),
     couriers: () => get<Courier[]>('/shipping/couriers?all=1'),
     createCourier: (data: unknown) => post('/shipping/couriers', data),
     updateCourier: (code: string, data: unknown) => put('/shipping/couriers/' + encodeURIComponent(code), data),
@@ -264,7 +270,10 @@ export const api = {
   },
   carts: {
     list: (params?: Query) => get<CartsResponse>('/admin/carts' + qs(params)),
-    recover: (id: number) => post('/admin/carts/' + id + '/recover', {}),
+    recover: (
+      id: number,
+      data?: { discount?: { tipo: 'percentuale' | 'fisso'; valore: number }; item_ids?: (string | number)[] },
+    ) => post<{ ok: boolean; sent_to: string; discount_code: string | null }>('/admin/carts/' + id + '/recover', data ?? {}),
     delete: (id: number) => del('/admin/carts/' + id),
   },
   suppliers: {
@@ -280,7 +289,7 @@ export const api = {
     delete: (id: number) => del('/admin/staff/' + id),
   },
   auditLog: {
-    list: (params?: Query) => get<AuditEntry[]>('/admin/audit-log' + qs(params)),
+    list: (params?: Query) => requestWithTotal<AuditEntry>('/admin/audit-log' + qs(params)),
   },
   expenses: {
     list: () => get<ExpensesResponse>('/admin/expenses'),
@@ -308,6 +317,7 @@ export const api = {
   },
   segments: {
     list: () => get<SegmentsResponse>('/admin/segments'),
+    customers: (id: number) => get<SegmentMembersResponse>('/admin/segments/' + id + '/customers'),
     create: (d: unknown) => post('/admin/segments', d),
     update: (id: number, d: unknown) => put('/admin/segments/' + id, d),
     delete: (id: number) => del('/admin/segments/' + id),
@@ -320,6 +330,7 @@ export const api = {
   },
   automations: {
     list: () => get<AutomationsResponse>('/admin/automations'),
+    test: (id: number) => post<{ ok: boolean; sent_to: string }>('/admin/automations/' + id + '/test', {}),
     create: (d: unknown) => post('/admin/automations', d),
     update: (id: number, d: unknown) => put('/admin/automations/' + id, d),
     delete: (id: number) => del('/admin/automations/' + id),
@@ -380,5 +391,10 @@ export const api = {
   onlineStore: { get: () => get<OnlineStoreData>('/admin/online-store') },
   social: { get: () => get<SocialData>('/admin/social') },
   pos: { get: () => get<PosData>('/admin/pos') },
-  apps: { get: () => get<AppsData>('/admin/apps') },
+  apps: {
+    get: () => get<AppsData>('/admin/apps'),
+    create: (d: unknown) => post('/admin/apps', d),
+    update: (key: string, d: unknown) => put('/admin/apps/' + encodeURIComponent(key), d),
+    remove: (key: string) => del('/admin/apps/' + encodeURIComponent(key)),
+  },
 };

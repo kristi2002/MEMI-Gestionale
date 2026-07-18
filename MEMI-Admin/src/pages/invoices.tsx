@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { FileText } from 'lucide-react';
+import { FileText, FileDown } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
 import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
+import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
 import { useInvoices, useDeleteMany } from '@/hooks/queries';
@@ -59,6 +60,26 @@ export function InvoicesPage() {
       { accessorKey: 'created_at', header: 'Data', cell: ({ getValue }) => <span className="text-muted-foreground">{date(getValue() as string)}</span> },
       { accessorKey: 'total', header: 'Totale', cell: ({ getValue }) => <span className="font-semibold">{eur(getValue() as string)}</span>, sortingFn: (a, b) => Number(a.original.total) - Number(b.original.total) },
       { accessorKey: 'stato', header: 'Stato', cell: ({ getValue }) => <StatusBadge code={getValue() as string} /> },
+      {
+        id: 'azioni',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <Button variant="ghost" size="sm" asChild>
+              <a
+                href={api.invoices.pdfUrl(row.original.id)}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`Scarica PDF ${row.original.invoice_number}`}
+              >
+                <FileDown /> PDF
+              </a>
+            </Button>
+          </div>
+        ),
+      },
     ],
     [],
   );

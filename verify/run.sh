@@ -59,6 +59,12 @@ NODE_PATH="$NP" node MEMI-Backend/test/giftcard-logic.test.cjs || FAIL=1
 sec "6b. Cancel/refund compensation simulation"
 NODE_PATH="$NP" node MEMI-Backend/test/compensation-logic.test.cjs || FAIL=1
 
+sec "6d. Per-product discount scoping (preview ≡ order-creation)"
+NODE_PATH="$NP" node MEMI-Backend/test/discount-scope.test.cjs || FAIL=1
+
+sec "6e. Schema-drift guard (migrations.js vs schema.sql)"
+NODE_PATH="$NP" node MEMI-Backend/test/schema-drift.test.cjs || FAIL=1
+
 sec "6c. Lifecycle marketing-email simulation"
 NODE_PATH="$NP" node MEMI-Backend/test/lifecycle-logic.test.cjs || FAIL=1
 

@@ -1517,7 +1517,7 @@
 
       // Validate via API
       if (window.MemiAPI) {
-        window.MemiAPI.orders.validateDiscount(code, subtotal)
+        window.MemiAPI.orders.validateDiscount(code, subtotal, buildOrderItems())
           .then(function(data) {
             appliedCode = {
               code:         data.code,
@@ -1986,9 +1986,11 @@
 
     // Build the order payload from the shipping form + cart. `payMethod` = 'carta'|'paypal'.
     // Shared by the card flow and the PayPal Buttons flow (which runs outside confirmOrder).
-    function collectOrderData(payMethod) {
-      var telEl = el('phone'), countryEl = el('country');
-      var orderItems = cartItems.map(function(item) {
+    // Map the cart to order line items. Shared by the order payload AND the discount
+    // preview, so a product-scoped code discounts the SAME product_ids the server will
+    // see at order creation (keeps checkout↔server totals in sync — no card 402).
+    function buildOrderItems() {
+      return cartItems.map(function(item) {
         var taglia = item.taglia;
         if (taglia == null) { var v = item.variant || ''; taglia = v.indexOf(' · ') >= 0 ? v.split(' · ').pop().trim() : ''; }
         var productId = item.product_id;
@@ -2007,6 +2009,11 @@
           qty:          parseInt(item.qty) || 1,
         };
       });
+    }
+
+    function collectOrderData(payMethod) {
+      var telEl = el('phone'), countryEl = el('country');
+      var orderItems = buildOrderItems();
       return {
         nome:           ((el('firstName') || {}).value || '').trim(),
         cognome:        ((el('lastName')  || {}).value || '').trim(),
@@ -2689,7 +2696,7 @@
       })();
     });
   </script>
-  <script src="api-client.js?v=8"></script>
+  <script src="api-client.js?v=9"></script>
   <script src="app.js?v=35"></script>
   <script src="checkout-autofill.js?v=1"></script></body>
 </html>

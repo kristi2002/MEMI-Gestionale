@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Zap, Power, Plus, Pencil } from 'lucide-react';
+import { Zap, Power, Plus, Pencil, Send } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
@@ -48,6 +48,15 @@ export function AutomationsPage() {
   const rows = query.data?.automations ?? [];
   const navigate = useNavigate();
 
+  async function runTest(a: Automation) {
+    try {
+      const r = await api.automations.test(a.id);
+      toast.success(`Email di prova inviata a ${r.sent_to}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Invio prova non riuscito');
+    }
+  }
+
   const columns = useMemo<ColumnDef<Automation, unknown>[]>(
     () => [
       { accessorKey: 'nome', header: 'Automazione', cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span> },
@@ -75,9 +84,14 @@ export function AutomationsPage() {
         header: '',
         enableSorting: false,
         cell: ({ row }) => (
-          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/automations/${row.original.id}/edit`); }}>
-            <Pencil /> Modifica
-          </Button>
+          <div className="flex items-center justify-end gap-1">
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); runTest(row.original); }} title="Invia una email di prova">
+              <Send /> Prova
+            </Button>
+            <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); navigate(`/automations/${row.original.id}/edit`); }}>
+              <Pencil /> Modifica
+            </Button>
+          </div>
         ),
       },
     ],

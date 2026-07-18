@@ -18,6 +18,7 @@ import { useCategories, useCollections, useAllProducts, useSaveEntity, useDelete
 import { api } from '@/lib/api';
 import type { ProductRow, Taxonomy } from '@/types';
 import type { ExportColumn } from '@/lib/export';
+import { date } from '@/lib/format';
 import { toast } from 'sonner';
 
 interface TaxonomyApi {
@@ -49,8 +50,10 @@ const exportColumns: ExportColumn<Taxonomy>[] = [
   { header: 'Nome', accessor: (r) => r.name },
   { header: 'Slug', accessor: (r) => r.slug },
   { header: 'Prodotti', accessor: (r) => r.product_count ?? 0 },
+  { header: 'Descrizione', accessor: (r) => r.description ?? '' },
   { header: 'Stato', accessor: (r) => r.stato },
   { header: 'Ordine', accessor: (r) => r.sort_order },
+  { header: 'Aggiornata', accessor: (r) => r.updated_at ?? '' },
 ];
 
 function TaxonomyManager({
@@ -104,12 +107,35 @@ function TaxonomyManager({
         },
       },
       {
+        accessorKey: 'slug',
+        header: 'Slug',
+        cell: ({ getValue }) => <span className="font-mono text-xs text-muted-foreground">{getValue() as string}</span>,
+      },
+      {
         accessorKey: 'product_count',
         header: 'Prodotti',
         cell: ({ getValue }) => <Badge variant="default">{(getValue() as number) ?? 0}</Badge>,
       },
+      {
+        accessorKey: 'description',
+        header: 'Descrizione',
+        enableSorting: false,
+        cell: ({ getValue }) => {
+          const d = (getValue() as string | null) || '';
+          return d ? (
+            <span className="block max-w-[220px] truncate text-sm text-muted-foreground" title={d}>{d}</span>
+          ) : (
+            <span className="text-xs text-muted-foreground/60">—</span>
+          );
+        },
+      },
       { accessorKey: 'sort_order', header: 'Ordine', cell: ({ getValue }) => <span className="text-muted-foreground">{getValue() as number}</span> },
       { accessorKey: 'stato', header: 'Stato', cell: ({ getValue }) => <StatusBadge code={getValue() as string} /> },
+      {
+        accessorKey: 'updated_at',
+        header: 'Aggiornata',
+        cell: ({ getValue }) => <span className="text-muted-foreground">{date(getValue() as string)}</span>,
+      },
       {
         id: 'azioni',
         header: '',

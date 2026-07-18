@@ -50,9 +50,14 @@ export function SegmentsPage() {
         id: 'actions',
         header: '',
         cell: ({ row }) => (
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/segments/${row.original.id}/edit`)}>
-            <Pencil />
-          </Button>
+          <div className="flex items-center justify-end gap-1">
+            <Button variant="ghost" size="sm" className="h-8" onClick={() => navigate(`/segments/${row.original.id}/customers`)}>
+              <Users /> Membri
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/segments/${row.original.id}/edit`)}>
+              <Pencil />
+            </Button>
+          </div>
         ),
       },
     ],

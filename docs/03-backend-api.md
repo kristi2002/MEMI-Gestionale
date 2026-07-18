@@ -260,6 +260,7 @@ in_attesa|in_preparazione|spedito|consegnato|annullato`.
 |---|---|---|---|
 | GET | `/api/admin/invoices` | Admin+perm `invoices` | List (filter, paginated) |
 | GET | `/api/admin/invoices/:id` | Admin+perm `invoices` | Detail + order items |
+| GET | `/api/admin/invoices/:id/pdf` | Admin+perm `invoices` | Receipt PDF (download; also attached to the shipping-confirmation email) |
 | POST | `/api/admin/invoices` | Admin+perm `invoices` | Create `F-YYYY-NNNN` from an order |
 | PUT/DELETE | `/api/admin/invoices/:id` | Admin+perm `invoices` | Update `stato/note/due_date` / delete |
 | GET | `/api/admin/dashboard/kpis` | Admin | Revenue/orders/AOV month-over-month (paid) |

@@ -19,6 +19,24 @@ const { sendGenericEmail, sendNewsletterWelcome } = require('../email');
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Broadcast history — a JSON list in store_settings (last 100 sends) so "what did we
+// send, to how many, when" survives (it was fire-and-forget before). No schema change.
+const CAMPAIGNS_KEY = 'newsletter_campaigns';
+async function readCampaigns() {
+  const [[row]] = await pool.execute('SELECT `value` FROM store_settings WHERE `key` = ?', [CAMPAIGNS_KEY]);
+  if (row && row.value) { try { const p = JSON.parse(row.value); if (Array.isArray(p)) return p; } catch (_) {} }
+  return [];
+}
+async function recordCampaign(entry) {
+  try {
+    const list = [entry, ...(await readCampaigns())].slice(0, 100);
+    await pool.execute(
+      'INSERT INTO store_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)',
+      [CAMPAIGNS_KEY, JSON.stringify(list)]
+    );
+  } catch (e) { console.error('recordCampaign error', e.message); }
+}
+
 /* ── POST /api/newsletter/subscribe ── (public) */
 router.post('/subscribe', async (req, res) => {
   const { email, fonte = 'footer' } = req.body;
@@ -71,6 +89,16 @@ router.get('/', requireAdmin, async (req, res) => {
     });
   } catch (err) {
     console.error('newsletter list error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── GET /api/newsletter/campaigns ── (admin) — broadcast history */
+router.get('/campaigns', requireAdmin, async (req, res) => {
+  try {
+    return res.json({ campaigns: await readCampaigns() });
+  } catch (err) {
+    console.error('newsletter campaigns error', err);
     return res.status(500).json({ error: 'Errore server' });
   }
 });
@@ -151,6 +179,8 @@ router.post('/send', requireAdmin, async (req, res) => {
     const [subs] = await pool.execute(
       'SELECT email FROM newsletter_subscribers WHERE unsubscribed = 0'
     );
+    // Record the broadcast in the history (regardless of SMTP, so a no-op send is still logged).
+    recordCampaign({ id: new Date().getTime(), subject: String(subject), recipients: subs.length, smtp: smtpConfigured, created_at: new Date().toISOString() }).catch(() => {});
     if (!smtpConfigured)
       return res.json({ ok: true, sent: 0, recipients: subs.length, smtp: false,
                         message: 'SMTP non configurato — nessuna email inviata' });

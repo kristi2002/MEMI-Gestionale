@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '@/hooks/use-auth';
 import { LoginPage } from '@/pages/login';
 import { buildRoutes } from '@/routes';
 import { ProductFormPage } from '@/pages/product-form';
+import { ProductSchedaPage } from '@/pages/product-scheda';
 import { SupplierFormPage } from '@/pages/suppliers';
 import { GiftcardFormPage } from '@/pages/giftcards';
 import { DiscountFormPage } from '@/pages/discounts';
@@ -12,8 +13,10 @@ import { ExpenseFormPage } from '@/pages/expenses';
 import { PickupFormPage } from '@/pages/pickup';
 import { TransferFormPage } from '@/pages/transfers';
 import { SegmentFormPage } from '@/pages/segments';
+import { SegmentMembersPage } from '@/pages/segment-members';
 import { ShippingZoneFormPage } from '@/pages/shipping-zones';
 import { CustomerFormPage } from '@/pages/customers';
+import { CustomerSchedaPage } from '@/pages/customer-scheda';
 import { StaffFormPage } from '@/pages/staff';
 import { ColorFormPage } from '@/pages/colors';
 import { CourierFormPage } from '@/pages/couriers';
@@ -21,7 +24,10 @@ import { AutomationFormPage } from '@/pages/automations';
 import { CategoryFormPage, CollectionFormPage } from '@/pages/taxonomy';
 import { ReturnFormPage } from '@/pages/returns';
 import { NewsletterSubscriberFormPage, NewsletterComposePage } from '@/pages/newsletter';
+import { NewsletterCampaignsPage } from '@/pages/newsletter-campaigns';
 import { LifecycleCampaignFormPage } from '@/pages/lifecycle';
+import { PurchaseOrderFormPage } from '@/pages/purchase-order-form';
+import { AppFormPage } from '@/pages/apps';
 
 function FullScreenSpinner() {
   return (
@@ -50,8 +56,13 @@ export default function App() {
         <Route element={<RequireAuth />}>
           <Route path="/products/new" element={<ProductFormPage />} />
           <Route path="/products/:id/edit" element={<ProductFormPage />} />
+          <Route path="/products/:id/scheda" element={<ProductSchedaPage />} />
           <Route path="/suppliers/new" element={<SupplierFormPage />} />
           <Route path="/suppliers/:id/edit" element={<SupplierFormPage />} />
+          <Route path="/purchase-orders/new" element={<PurchaseOrderFormPage />} />
+          <Route path="/purchase-orders/:id/edit" element={<PurchaseOrderFormPage />} />
+          <Route path="/apps/new" element={<AppFormPage />} />
+          <Route path="/apps/:key/edit" element={<AppFormPage />} />
           <Route path="/giftcards/new" element={<GiftcardFormPage />} />
           <Route path="/giftcards/:id/edit" element={<GiftcardFormPage />} />
           <Route path="/discounts/new" element={<DiscountFormPage />} />
@@ -64,10 +75,12 @@ export default function App() {
           <Route path="/transfers/:id/edit" element={<TransferFormPage />} />
           <Route path="/segments/new" element={<SegmentFormPage />} />
           <Route path="/segments/:id/edit" element={<SegmentFormPage />} />
+          <Route path="/segments/:id/customers" element={<SegmentMembersPage />} />
           <Route path="/shipping-zones/new" element={<ShippingZoneFormPage />} />
           <Route path="/shipping-zones/:id/edit" element={<ShippingZoneFormPage />} />
           <Route path="/customers/new" element={<CustomerFormPage />} />
           <Route path="/customers/:id/edit" element={<CustomerFormPage />} />
+          <Route path="/customers/:id" element={<CustomerSchedaPage />} />
           <Route path="/staff/new" element={<StaffFormPage />} />
           <Route path="/staff/:id/edit" element={<StaffFormPage />} />
           <Route path="/colors/new" element={<ColorFormPage />} />
@@ -84,6 +97,7 @@ export default function App() {
           <Route path="/newsletter/new" element={<NewsletterSubscriberFormPage />} />
           <Route path="/newsletter/:id/edit" element={<NewsletterSubscriberFormPage />} />
           <Route path="/newsletter/compose" element={<NewsletterComposePage />} />
+          <Route path="/newsletter/campaigns" element={<NewsletterCampaignsPage />} />
           <Route path="/lifecycle/:type/edit" element={<LifecycleCampaignFormPage />} />
           {routes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />

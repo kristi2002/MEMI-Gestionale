@@ -54,7 +54,7 @@ export const NAV: NavGroup[] = [
     label: 'Prodotti',
     icon: Tag,
     children: [
-      { label: 'Catalogo', to: '/products', ready: true },
+      { label: 'Prodotti', to: '/products', ready: true },
       { label: 'Magazzino', to: '/inventory', ready: true },
       { label: 'Trasferimenti', to: '/transfers' , ready: true },
       { label: 'Collezioni', to: '/collections' , ready: true },

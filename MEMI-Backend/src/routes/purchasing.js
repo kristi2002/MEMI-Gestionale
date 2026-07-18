@@ -28,6 +28,7 @@ router.post('/suppliers', requireAdmin, async (req, res) => {
   try {
     const [r] = await pool.execute('INSERT INTO suppliers (nome, email, telefono, note) VALUES (?, ?, ?, ?)',
       [String(nome).trim(), email || null, telefono || null, note || null]);
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'supplier.create', entityType: 'supplier', entityId: String(r.insertId), details: { nome: String(nome).trim() } }).catch(() => {});
     return res.status(201).json({ ok: true, id: r.insertId });
   } catch (err) { console.error('supplier create', err); return res.status(500).json({ error: 'Errore server' }); }
 });
@@ -41,13 +42,17 @@ router.put('/suppliers/:id', requireAdmin, async (req, res) => {
     vals.push(req.params.id);
     const [r] = await pool.execute(`UPDATE suppliers SET ${fields.join(', ')} WHERE id = ?`, vals);
     if (!r.affectedRows) return res.status(404).json({ error: 'Fornitore non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'supplier.update', entityType: 'supplier', entityId: String(req.params.id), details: {} }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) { console.error('supplier update', err); return res.status(500).json({ error: 'Errore server' }); }
 });
 router.delete('/suppliers/:id', requireAdmin, async (req, res) => {
-  try { const [r] = await pool.execute('DELETE FROM suppliers WHERE id = ?', [req.params.id]);
-    if (!r.affectedRows) return res.status(404).json({ error: 'Fornitore non trovato' }); return res.json({ ok: true }); }
-  catch (err) { return res.status(500).json({ error: 'Errore server' }); }
+  try {
+    const [r] = await pool.execute('DELETE FROM suppliers WHERE id = ?', [req.params.id]);
+    if (!r.affectedRows) return res.status(404).json({ error: 'Fornitore non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'supplier.delete', entityType: 'supplier', entityId: String(req.params.id), details: {} }).catch(() => {});
+    return res.json({ ok: true });
+  } catch (err) { return res.status(500).json({ error: 'Errore server' }); }
 });
 
 /* ═══════════════ PURCHASE ORDERS ═══════════════ */
@@ -105,6 +110,7 @@ router.put('/purchase-orders/:id', requireAdmin, async (req, res) => {
     vals.push(req.params.id);
     const [r] = await pool.execute(`UPDATE purchase_orders SET ${fields.join(', ')} WHERE id = ?`, vals);
     if (!r.affectedRows) return res.status(404).json({ error: 'Ordine fornitore non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'po.update', entityType: 'purchase_order', entityId: String(req.params.id), details: { stato, note } }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) { console.error('po update', err); return res.status(500).json({ error: 'Errore server' }); }
 });
@@ -116,6 +122,7 @@ router.delete('/purchase-orders/:id', requireAdmin, async (req, res) => {
     const [r] = await conn.execute('DELETE FROM purchase_orders WHERE id = ?', [req.params.id]);
     await conn.commit();
     if (!r.affectedRows) return res.status(404).json({ error: 'Ordine fornitore non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'po.delete', entityType: 'purchase_order', entityId: String(req.params.id), details: {} }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) { await conn.rollback(); return res.status(500).json({ error: 'Errore server' }); }
   finally { conn.release(); }

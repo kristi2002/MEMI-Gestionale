@@ -13,6 +13,19 @@
 const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { generateInvoicePdf } = require('../invoice-pdf');
+
+/** Load an invoice (+ order_number) and its order line items. */
+async function loadInvoiceWithItems(id) {
+  const [[invoice]] = await pool.execute(
+    `SELECT i.*, o.order_number FROM invoices i
+       LEFT JOIN orders o ON o.id = i.order_id WHERE i.id = ?`,
+    [id]
+  );
+  if (!invoice) return null;
+  const [items] = await pool.execute('SELECT * FROM order_items WHERE order_id = ?', [invoice.order_id]);
+  return { invoice, items };
+}
 
 /* ── GET /api/admin/invoices ── */
 router.get('/', requireAdmin, async (req, res) => {
@@ -46,6 +59,21 @@ router.get('/', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('invoices list error', err);
     return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── GET /api/admin/invoices/:id/pdf ── receipt PDF (download) ── */
+router.get('/:id/pdf', requireAdmin, async (req, res) => {
+  try {
+    const data = await loadInvoiceWithItems(req.params.id);
+    if (!data) return res.status(404).json({ error: 'Fattura non trovata' });
+    const pdf = await generateInvoicePdf(data.invoice, data.items);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${data.invoice.invoice_number || 'fattura'}.pdf"`);
+    return res.end(pdf);
+  } catch (err) {
+    console.error('invoice pdf error', err);
+    return res.status(500).json({ error: 'Errore generazione PDF' });
   }
 });
 

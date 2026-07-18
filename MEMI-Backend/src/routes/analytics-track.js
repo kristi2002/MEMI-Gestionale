@@ -53,11 +53,17 @@ router.get('/admin/liveview', requireAdmin, requirePermission('liveview'), async
     const [recent]    = await pool.execute(
       `SELECT path, session_id, created_at FROM page_views
         ORDER BY created_at DESC LIMIT 20`);
+    // Traffic sources — the referrer was captured on ingest but never surfaced before.
+    const [topSources] = await pool.execute(
+      `SELECT COALESCE(NULLIF(referrer, ''), 'diretto') AS sorgente, COUNT(*) AS views FROM page_views
+        WHERE created_at > NOW() - INTERVAL 30 MINUTE
+        GROUP BY sorgente ORDER BY views DESC LIMIT 8`);
     return res.json({
       online:      online.n,
       views_30m:   views30.n,
       views_today: today.n,
       top_paths:   topPaths,
+      top_sources: topSources,
       recent,
     });
   } catch (err) {

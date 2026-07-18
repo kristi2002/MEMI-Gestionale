@@ -199,9 +199,10 @@
      */
     place: function(orderData) { return post('/orders', orderData); },
 
-    /** Validate a discount code before checkout. */
-    validateDiscount: function(code, subtotal) {
-      return post('/orders/validate-discount', { code: code, subtotal: subtotal });
+    /** Validate a discount code before checkout. `items` (optional) lets the server
+     *  compute product-scoped codes on the same lines it will see at order creation. */
+    validateDiscount: function(code, subtotal, items) {
+      return post('/orders/validate-discount', { code: code, subtotal: subtotal, items: items || [] });
     },
 
     /** Customer's own order history (requires login). */

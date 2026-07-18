@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Mail, Plus, Pencil, Send, Loader2, ArrowLeft, MailX } from 'lucide-react';
+import { Mail, Plus, Pencil, Send, Loader2, ArrowLeft, MailX, History } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
@@ -74,6 +74,9 @@ export function NewsletterPage() {
         subtitle="Iscritti alla newsletter e invii."
         actions={
           <>
+            <Button variant="outline" size="sm" onClick={() => navigate('/newsletter/campaigns')}>
+              <History /> Campagne inviate
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/newsletter/compose')}>
               <Send /> Invia newsletter
             </Button>

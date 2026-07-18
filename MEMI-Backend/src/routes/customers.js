@@ -95,7 +95,7 @@ router.get('/:id', requireAdmin, async (req, res) => {
 
 /* ── PUT /api/admin/customers/:id ── */
 router.put('/:id', requireAdmin, async (req, res) => {
-  const allowed = ['nome', 'cognome', 'telefono', 'indirizzo', 'citta', 'cap', 'paese'];
+  const allowed = ['nome', 'cognome', 'email', 'telefono', 'indirizzo', 'citta', 'cap', 'paese'];
   const fields = [];
   const vals   = [];
   for (const key of allowed) {
@@ -114,6 +114,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
     logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'customer.update', entityType: 'customer', entityId: req.params.id, details: {} }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return res.status(409).json({ error: 'Email già registrata' });
     return res.status(500).json({ error: 'Errore server' });
   }
 });

@@ -64,14 +64,40 @@ router.put('/', requireAdmin, requireRole('admin'), async (req, res) => {
    Connection status for external services. Returns booleans + safe details
    only — never the secret values themselves. */
 router.get('/integrations', requireAdmin, requireRole('admin'), async (req, res) => {
+  const { paypalConfigured, paypalEnv, sumupConfigured } = require('../payment-providers');
   const stripeKey = process.env.STRIPE_SECRET_KEY || '';
+  const paypalOn  = paypalConfigured();
+  const sumupOn   = sumupConfigured();
+  const brtOn     = Boolean(process.env.BRT_USER_ID && process.env.BRT_PASSWORD);
+  const simTrack  = process.env.COURIER_TRACKING_SIMULATE === '1';
   const integrations = [
     {
       key: 'stripe', nome: 'Stripe', categoria: 'Pagamenti', icona: '💳',
       connesso: !!stripeKey,
       dettaglio: stripeKey
         ? (stripeKey.startsWith('sk_live') ? 'Modalità LIVE attiva' : 'Modalità TEST attiva')
-        : 'Chiave non configurata — checkout disattivato',
+        : 'Chiave non configurata — checkout Stripe disattivato',
+    },
+    {
+      key: 'sumup', nome: 'SumUp', categoria: 'Pagamenti', icona: '💠',
+      connesso: sumupOn,
+      dettaglio: sumupOn
+        ? ('Merchant ' + (process.env.SUMUP_MERCHANT_CODE || '—'))
+        : 'Non configurato — SUMUP_API_KEY / SUMUP_MERCHANT_CODE mancanti',
+    },
+    {
+      key: 'paypal', nome: 'PayPal', categoria: 'Pagamenti', icona: '🅿️',
+      connesso: paypalOn,
+      dettaglio: paypalOn
+        ? ('Ambiente ' + paypalEnv().toUpperCase() + (process.env.PAYPAL_WEBHOOK_ID ? ' · webhook verificato' : ' · webhook non impostato'))
+        : 'Non configurato — PAYPAL_CLIENT_ID / PAYPAL_SECRET mancanti',
+    },
+    {
+      key: 'klarna', nome: 'Klarna (Paga in 3 rate)', categoria: 'Pagamenti', icona: '📆',
+      connesso: !!stripeKey,
+      dettaglio: stripeKey
+        ? 'Via Stripe — abilita Klarna in Stripe Dashboard → Payment methods per offrirlo al checkout'
+        : 'Richiede Stripe configurato (Klarna passa da Stripe)',
     },
     {
       key: 'smtp', nome: 'Email transazionali (SMTP)', categoria: 'Notifiche', icona: '✉️',
@@ -79,6 +105,13 @@ router.get('/integrations', requireAdmin, requireRole('admin'), async (req, res)
       dettaglio: process.env.SMTP_USER
         ? ('Host: ' + (process.env.SMTP_HOST || '—'))
         : 'SMTP non configurato — le email non vengono inviate',
+    },
+    {
+      key: 'courier', nome: 'Tracking corriere (BRT)', categoria: 'Spedizioni', icona: '🚚',
+      connesso: brtOn,
+      dettaglio: simTrack
+        ? 'Modalità simulata (COURIER_TRACKING_SIMULATE=1) — tracking demo'
+        : (brtOn ? 'Credenziali BRT configurate' : 'Non configurato — tracking reale non disponibile'),
     },
     {
       key: 'uploads', nome: 'Storage immagini', categoria: 'Media', icona: '🖼️',

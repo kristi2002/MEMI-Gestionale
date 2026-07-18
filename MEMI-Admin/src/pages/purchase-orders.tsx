@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ClipboardList, PackageCheck } from 'lucide-react';
+import { ClipboardList, PackageCheck, Plus, Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import type { FilterDef } from '@/components/data-table/filters';
@@ -29,6 +30,7 @@ const exportColumns: ExportColumn<PurchaseOrder>[] = [
 export function PurchaseOrdersPage() {
   const query = usePurchaseOrders();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const del = useDeleteMany<number>((id) => api.purchaseOrders.delete(id), 'purchase-orders');
   const rows = query.data ?? [];
 
@@ -58,20 +60,31 @@ export function PurchaseOrdersPage() {
       {
         id: 'actions',
         header: '',
-        cell: ({ row }) =>
-          row.original.stato !== 'ricevuto' && row.original.stato !== 'annullato' ? (
-            <ConfirmDialog
-              title="Segnare come ricevuto?"
-              description="Lo stock dei prodotti verrà incrementato con le quantità dell'ordine."
-              confirmLabel="Ricevi"
-              onConfirm={() => receive(row.original)}
-              trigger={
-                <Button variant="ghost" size="sm" className="h-8">
-                  <PackageCheck /> Ricevi
-                </Button>
-              }
-            />
-          ) : null,
+        cell: ({ row }) => (
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8"
+              onClick={(e) => { e.stopPropagation(); navigate(`/purchase-orders/${row.original.id}/edit`); }}
+            >
+              <Pencil /> Modifica
+            </Button>
+            {row.original.stato !== 'ricevuto' && row.original.stato !== 'annullato' && (
+              <ConfirmDialog
+                title="Segnare come ricevuto?"
+                description="Lo stock dei prodotti verrà incrementato con le quantità dell'ordine."
+                confirmLabel="Ricevi"
+                onConfirm={() => receive(row.original)}
+                trigger={
+                  <Button variant="ghost" size="sm" className="h-8">
+                    <PackageCheck /> Ricevi
+                  </Button>
+                }
+              />
+            )}
+          </div>
+        ),
       },
     ],
     [],
@@ -79,7 +92,11 @@ export function PurchaseOrdersPage() {
 
   return (
     <div>
-      <PageHeader title="Ordini fornitori" subtitle="Ordini di acquisto verso i fornitori." />
+      <PageHeader
+        title="Ordini fornitori"
+        subtitle="Ordini di acquisto verso i fornitori."
+        actions={<Button size="sm" onClick={() => navigate('/purchase-orders/new')}><Plus /> Nuovo ordine</Button>}
+      />
       <DataTable
         columns={columns}
         data={rows}

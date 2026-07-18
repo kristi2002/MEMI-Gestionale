@@ -20,7 +20,7 @@ const exportColumns: ExportColumn<AuditEntry>[] = [
 
 export function AuditLogPage() {
   const query = useAuditLog();
-  const rows = query.data ?? [];
+  const rows = useMemo(() => (query.data?.pages ?? []).flatMap((p) => p.items), [query.data]);
 
   const columns = useMemo<ColumnDef<AuditEntry, unknown>[]>(
     () => [
@@ -62,6 +62,9 @@ export function AuditLogPage() {
         exportColumns={exportColumns}
         isLoading={query.isLoading}
         pageSize={50}
+        hasMore={query.hasNextPage}
+        onLoadMore={() => query.fetchNextPage()}
+        loadingMore={query.isFetchingNextPage}
         emptyState={<EmptyState icon={History} title="Nessuna attività registrata" />}
       />
     </div>

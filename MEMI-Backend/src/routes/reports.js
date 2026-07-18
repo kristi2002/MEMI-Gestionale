@@ -27,6 +27,7 @@ router.get('/', requireAdmin, async (req, res) => {
     const [byStatus] = await pool.execute(`
       SELECT order_status AS stato, COUNT(*) AS count
       FROM orders
+      WHERE YEAR(created_at) = YEAR(CURDATE())
       GROUP BY order_status
     `);
 

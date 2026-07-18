@@ -313,6 +313,13 @@ export interface Courier {
   tracking_url_template: string | null;
 }
 
+export interface CartLineItem {
+  id: string | number;
+  name: string;
+  qty: number;
+  price: number;
+  taglia: string | null;
+}
 export interface AbandonedCart {
   id: number;
   token: string;
@@ -320,7 +327,7 @@ export interface AbandonedCart {
   customer_nome: string | null;
   item_count: number;
   total: number;
-  items: unknown[];
+  items: CartLineItem[];
   updated_at: string;
   created_at: string;
   recoverable: boolean;
@@ -482,6 +489,18 @@ export interface SegmentsResponse {
   segments: Segment[];
   total_customers: number;
 }
+export interface SegmentMember {
+  id: number;
+  nome: string;
+  cognome: string | null;
+  email: string;
+  total_orders: number;
+  total_spent: string;
+}
+export interface SegmentMembersResponse {
+  segment: Segment;
+  customers: SegmentMember[];
+}
 
 export interface Popup {
   id: number;
@@ -557,6 +576,10 @@ export interface FinanceData {
     shipping_collected: number;
     paid_count: number;
     aov: number;
+    expenses_total: number;
+    expenses_month: number;
+    net_total: number;
+    net_month: number;
   };
   by_method: { method: string; count: number; total: number }[];
   recent: {
@@ -569,11 +592,32 @@ export interface FinanceData {
   }[];
 }
 
+export interface PayoutsData {
+  summary: {
+    received_total: number;
+    received_count: number;
+    received_month: number;
+    received_today: number;
+    shipping_collected: number;
+  };
+  by_method: { method: string; count: number; total: number }[];
+  payments: {
+    order_number: string;
+    customer: string;
+    total: number;
+    shipping: number;
+    method: string;
+    reference: string | null;
+    created_at: string;
+  }[];
+}
+
 export interface TaxStats {
   oss_ytd: number;
   foreign_orders: number;
   threshold: number;
   over: boolean;
+  by_country?: { paese: string; orders: number; revenue: number }[];
 }
 
 export interface Integration {
@@ -593,6 +637,7 @@ export interface LiveView {
   views_30m: number;
   views_today: number;
   top_paths: { path: string; views: number }[];
+  top_sources: { sorgente: string; views: number }[];
   recent: { path: string; session_id: string | null; created_at: string }[];
 }
 
@@ -645,7 +690,8 @@ export interface AppItem {
   categoria: string;
   icona: string;
   descrizione: string;
-  installed: boolean;
+  enabled: boolean;
+  config?: Record<string, unknown>;
 }
 export interface AppsData {
   apps: AppItem[];

@@ -11,6 +11,7 @@ export function LiveviewPage() {
   const query = useLiveview();
   const d = query.data;
   const maxViews = Math.max(1, ...(d?.top_paths ?? []).map((p) => p.views));
+  const maxSources = Math.max(1, ...(d?.top_sources ?? []).map((s) => s.views));
 
   return (
     <div>
@@ -34,7 +35,7 @@ export function LiveviewPage() {
         <KpiCard label="Visite oggi" value={int(d?.views_today ?? 0)} icon={CalendarDays} tone="info" loading={query.isLoading} />
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle>Pagine più viste</CardTitle>
@@ -50,6 +51,27 @@ export function LiveviewPage() {
                     <div className="h-full rounded-full bg-primary" style={{ width: `${(p.views / maxViews) * 100}%` }} />
                   </div>
                   <span className="w-10 text-right text-xs font-semibold">{p.views}</span>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Sorgenti (30 min)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            {(d?.top_sources?.length ?? 0) === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">Nessuna sorgente</p>
+            ) : (
+              d!.top_sources.map((s) => (
+                <div key={s.sorgente} className="flex items-center gap-3">
+                  <span className="w-40 shrink-0 truncate text-xs" title={s.sorgente}>{s.sorgente}</span>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-info" style={{ width: `${(s.views / maxSources) * 100}%` }} />
+                  </div>
+                  <span className="w-10 text-right text-xs font-semibold">{s.views}</span>
                 </div>
               ))
             )}

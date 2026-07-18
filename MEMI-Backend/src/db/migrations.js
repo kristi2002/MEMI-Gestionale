@@ -637,6 +637,8 @@ async function runMigrations(pool) {
   try {
     await ensureColumn(pool, 'admin_users', 'username', 'username VARCHAR(100) NULL UNIQUE');
     await ensureColumn(pool, 'customers', 'points', 'points INT NOT NULL DEFAULT 0');
+    // Per-product discount scoping: NULL = whole order; else discount applies only to these product_ids.
+    await ensureColumn(pool, 'discount_codes', 'product_ids', 'product_ids JSON NULL');
     // ── Area Personale: per-customer JSON blobs + language (idempotent) ──
     await ensureColumn(pool, 'customers', 'wishlist',    'wishlist JSON NULL');          // pre-existing on new schemas; guard old DBs
     await ensureColumn(pool, 'customers', 'cart',        'cart JSON NULL');              // per-customer basket, restored on login

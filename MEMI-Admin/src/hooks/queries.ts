@@ -4,12 +4,12 @@ import { toast } from 'sonner';
 import type { OrderRow, ProductRow, CustomerRow } from '@/types';
 
 /* ── Dashboard ─────────────────────────────────────────── */
-export function useDashboard() {
+export function useDashboard(days = 30) {
   const kpis = useQuery({ queryKey: ['dash', 'kpis'], queryFn: () => api.dashboard.kpis() });
   const catalog = useQuery({ queryKey: ['dash', 'catalog'], queryFn: () => api.dashboard.catalogKpis() });
-  const chart = useQuery({ queryKey: ['dash', 'chart'], queryFn: () => api.dashboard.chart() });
+  const chart = useQuery({ queryKey: ['dash', 'chart', days], queryFn: () => api.dashboard.chart(days) });
   const recent = useQuery({ queryKey: ['dash', 'recent'], queryFn: () => api.dashboard.recentOrders() });
-  const top = useQuery({ queryKey: ['dash', 'top'], queryFn: () => api.dashboard.topProducts() });
+  const top = useQuery({ queryKey: ['dash', 'top', days], queryFn: () => api.dashboard.topProducts(days) });
   return { kpis, catalog, chart, recent, top };
 }
 
@@ -124,7 +124,17 @@ export const useCouriers = () => useQuery({ queryKey: ['couriers'], queryFn: () 
 export const useCarts = () => useQuery({ queryKey: ['carts'], queryFn: () => api.carts.list() });
 export const useSuppliers = () => useQuery({ queryKey: ['suppliers'], queryFn: () => api.suppliers.list() });
 export const useStaff = () => useQuery({ queryKey: ['staff'], queryFn: () => api.staff.list() });
-export const useAuditLog = () => useQuery({ queryKey: ['audit'], queryFn: () => api.auditLog.list({ limit: 300 }) });
+export function useAuditLog() {
+  return useInfiniteQuery({
+    queryKey: ['audit'],
+    queryFn: ({ pageParam = 0 }) => api.auditLog.list({ limit: 100, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (last, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.items.length, 0);
+      return loaded < last.total ? loaded : undefined;
+    },
+  });
+}
 export const useExpenses = () => useQuery({ queryKey: ['expenses'], queryFn: () => api.expenses.list() });
 
 /** Generic "delete these ids" mutation that invalidates a query key on success. */
@@ -174,6 +184,7 @@ export const useLoyaltyCustomers = () => useQuery({ queryKey: ['loyalty', 'custo
 export const useLifecycle = () => useQuery({ queryKey: ['lifecycle'], queryFn: () => api.lifecycle.get() });
 export const useSettings = () => useQuery({ queryKey: ['settings'], queryFn: () => api.settings.get() });
 export const useFinance = () => useQuery({ queryKey: ['finance'], queryFn: () => api.dashboard.finance() });
+export const usePayouts = () => useQuery({ queryKey: ['payouts'], queryFn: () => api.dashboard.payouts() });
 export const useTaxStats = () => useQuery({ queryKey: ['tax-stats'], queryFn: () => api.dashboard.taxStats() });
 export const useIntegrations = () => useQuery({ queryKey: ['integrations'], queryFn: () => api.settings.integrations() });
 export const useLiveview = () => useQuery({ queryKey: ['liveview'], queryFn: () => api.dashboard.liveview(), refetchInterval: 15_000 });

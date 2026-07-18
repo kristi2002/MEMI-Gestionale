@@ -165,7 +165,7 @@ async function sendShippingConfirmation(order) {
   const t = getTransporter();
   if (!t) return;
 
-  const { order_number, nome, email, courier_code, tracking_number, eta, tracking_url } = order;
+  const { order_number, nome, email, courier_code, tracking_number, eta, tracking_url, attachments } = order;
   const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
 
   const etaLine = eta
@@ -208,8 +208,11 @@ async function sendShippingConfirmation(order) {
   const text = `Ciao ${nome},\n\nIl tuo ordine ${order_number} è stato spedito!\n\nTracking: ${tracking_number}\nCorriere: ${courier_code}${tracking_url ? '\nTraccia il pacco: ' + tracking_url : ''}${eta ? '\nConsegna prevista: ' + eta : ''}\n\nCordiali saluti,\nMemi Abbigliamento`;
 
   try {
-    await t.sendMail({ from, to: email, subject: `Il tuo ordine ${order_number} è in viaggio — Memi`, text, html });
-    console.log(`[email] Sent shipping confirmation ${order_number} → ${email}`);
+    await t.sendMail({
+      from, to: email, subject: `Il tuo ordine ${order_number} è in viaggio — Memi`, text, html,
+      ...(Array.isArray(attachments) && attachments.length ? { attachments } : {}),
+    });
+    console.log(`[email] Sent shipping confirmation ${order_number} → ${email}${attachments && attachments.length ? ' (+fattura)' : ''}`);
   } catch (err) {
     console.error('[email] Failed to send shipping confirmation:', err.message);
   }

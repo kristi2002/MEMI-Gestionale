@@ -175,6 +175,12 @@ if [ -n "$ADMIN_TOKEN" ]; then
     sleep 1
     INV="$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/invoices?limit=500" 2>/dev/null | grep -c "\"order_id\":$OID2")"
     [ "${INV:-0}" -gt 0 ] && ok "invoice auto-emitted on pagato" || ko "no auto-invoice for order $OID2"
+    # invoice receipt PDF (download endpoint + email attachment source)
+    IID="$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/invoices?limit=500" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const r=JSON.parse(d).invoices.find(i=>i.order_id=='"$OID2"');console.log(r?r.id:"")}catch(e){console.log("")}})')"
+    if [ -n "$IID" ]; then
+      PDFHEAD="$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/invoices/$IID/pdf" 2>/dev/null | head -c 4)"
+      [ "$PDFHEAD" = "%PDF" ] && ok "invoice PDF renders (%PDF header)" || ko "invoice PDF endpoint did not return a PDF"
+    fi
     RID="$(curl -fsS -X POST "$BASE/api/admin/resi" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
       -d "{\"order_id\":$OID2,\"motivo\":\"smoke\"}" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{console.log(JSON.parse(d).reso.id)}catch(e){console.log("")}})')"
     [ -n "$RID" ] && ok "reso created (id $RID)" || ko "reso create failed"

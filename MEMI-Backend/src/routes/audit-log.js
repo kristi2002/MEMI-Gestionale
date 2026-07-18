@@ -12,15 +12,20 @@ const { requireAdmin } = require('../middleware/auth');
 
 router.get('/', requireAdmin, async (req, res) => {
   try {
-    const safeLimit = Math.min(Math.max(parseInt(req.query.limit, 10) || 200, 1), 1000);
+    const limit  = Math.min(Math.max(parseInt(req.query.limit, 10) || 100, 1), 200);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
     const entityType = req.query.entity_type ? String(req.query.entity_type) : null;
+    const action     = req.query.action ? String(req.query.action) : null;
 
-    let sql = 'SELECT * FROM audit_log';
-    const params = [];
-    if (entityType) { sql += ' WHERE entity_type = ?'; params.push(entityType); }
-    sql += ` ORDER BY created_at DESC LIMIT ${safeLimit}`;
+    const where = [], params = [];
+    if (entityType) { where.push('entity_type = ?'); params.push(entityType); }
+    if (action)     { where.push('action = ?');      params.push(action); }
+    const whereSql = where.length ? ' WHERE ' + where.join(' AND ') : '';
 
-    const [rows] = await pool.execute(sql, params);
+    const [[{ total }]] = await pool.execute('SELECT COUNT(*) AS total FROM audit_log' + whereSql, params);
+    const [rows] = await pool.execute(
+      `SELECT * FROM audit_log${whereSql} ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`, params);
+    res.set('X-Total-Count', String(total));
     return res.json(rows);
   } catch (err) {
     console.error('audit log list error', err);

@@ -8,10 +8,15 @@ import { DataTable } from '@/components/data-table/data-table';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
 import { Button } from '@/components/ui/button';
-import { useShipments } from '@/hooks/queries';
+import { useShipments, useUpdateOne } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { date } from '@/lib/format';
 import { statusLabel } from '@/lib/status';
+
+/** Courier-lifecycle statuses an operator can set by hand. */
+const MANUAL_STATI = ['preso_in_carico', 'in_transito', 'in_consegna', 'consegnato', 'problema'];
+const STATO_SELECT =
+  'h-8 rounded-md border border-input bg-background px-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
 import type { Shipment2 } from '@/types';
 import type { ExportColumn } from '@/lib/export';
 
@@ -29,6 +34,7 @@ const exportColumns: ExportColumn<Shipment2>[] = [
 export function ShipmentsPage({ title = 'Spedizioni in corso' }: { title?: string }) {
   const query = useShipments();
   const qc = useQueryClient();
+  const update = useUpdateOne<number>((id, data) => api.shipping.updateShipment(id, data as { stato?: string; eta?: string }), 'shipments');
   const [refreshingId, setRefreshingId] = useState<number | null>(null);
   const rows = query.data ?? [];
 
@@ -62,16 +68,32 @@ export function ShipmentsPage({ title = 'Spedizioni in corso' }: { title?: strin
         header: '',
         enableSorting: false,
         cell: ({ row }) => (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => refreshFromCourier(row.original)}
-            disabled={refreshingId === row.original.id}
-            title="Aggiorna stato dal corriere"
-          >
-            {refreshingId === row.original.id ? <Loader2 className="animate-spin" /> : <RefreshCw />}
-            <span className="hidden sm:inline">Aggiorna</span>
-          </Button>
+          <div className="flex items-center justify-end gap-2">
+            <select
+              className={STATO_SELECT}
+              value={row.original.stato}
+              onChange={(e) => update.mutate({ id: row.original.id, data: { stato: e.target.value } })}
+              onClick={(e) => e.stopPropagation()}
+              title="Modifica stato manualmente"
+            >
+              {!MANUAL_STATI.includes(row.original.stato) && (
+                <option value={row.original.stato}>{statusLabel(row.original.stato)}</option>
+              )}
+              {MANUAL_STATI.map((s) => (
+                <option key={s} value={s}>{statusLabel(s)}</option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => refreshFromCourier(row.original)}
+              disabled={refreshingId === row.original.id}
+              title="Aggiorna stato dal corriere"
+            >
+              {refreshingId === row.original.id ? <Loader2 className="animate-spin" /> : <RefreshCw />}
+              <span className="hidden sm:inline">Aggiorna</span>
+            </Button>
+          </div>
         ),
       },
     ],

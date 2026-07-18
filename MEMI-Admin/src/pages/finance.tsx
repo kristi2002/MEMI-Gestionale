@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Wallet, CalendarDays, Clock, RotateCcw, Truck, TrendingUp } from 'lucide-react';
+import { Wallet, CalendarDays, Clock, RotateCcw, Truck, TrendingUp, TrendingDown, Receipt } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -45,7 +45,7 @@ export function FinancePage() {
 
   return (
     <div>
-      <PageHeader title="Finanza" subtitle="Incassi, metodi di pagamento e transazioni recenti." />
+      <PageHeader title="Finanza" subtitle="Incassi, spese, utile netto e transazioni recenti." />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard label="Fatturato totale" value={eur(s?.revenue_total ?? 0)} icon={Wallet} tone="success" loading={query.isLoading} />
@@ -58,6 +58,12 @@ export function FinancePage() {
         <KpiCard label="Rimborsato" value={eur(s?.refunded_amount ?? 0)} icon={RotateCcw} tone="danger" loading={query.isLoading} />
         <KpiCard label="Spedizioni incassate" value={eur(s?.shipping_collected ?? 0)} icon={Truck} tone="muted" loading={query.isLoading} />
         <KpiCard label="Ordini pagati" value={s?.paid_count ?? 0} icon={Wallet} tone="success" loading={query.isLoading} />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard label="Spese totali" value={eur(s?.expenses_total ?? 0)} icon={Receipt} tone="warning" loading={query.isLoading} />
+        <KpiCard label="Spese questo mese" value={eur(s?.expenses_month ?? 0)} icon={Receipt} tone="muted" loading={query.isLoading} />
+        <KpiCard label="Utile netto" value={eur(s?.net_total ?? 0)} icon={(s?.net_total ?? 0) >= 0 ? TrendingUp : TrendingDown} tone={(s?.net_total ?? 0) >= 0 ? 'success' : 'danger'} loading={query.isLoading} />
+        <KpiCard label="Utile questo mese" value={eur(s?.net_month ?? 0)} icon={(s?.net_month ?? 0) >= 0 ? TrendingUp : TrendingDown} tone={(s?.net_month ?? 0) >= 0 ? 'success' : 'danger'} loading={query.isLoading} />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">

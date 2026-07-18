@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Trash2, Tag, FileDown, Rss, Plus, Pencil } from 'lucide-react';
+import { Trash2, Tag, FileDown, Rss, Plus, Pencil, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { useDebouncedValue } from '@/lib/utils';
@@ -103,14 +103,24 @@ export function ProductsPage() {
         header: '',
         enableSorting: false,
         cell: ({ row }) => (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); navigate(`/products/${encodeURIComponent(row.original.id)}/edit`); }}
-            aria-label={`Modifica ${row.original.name}`}
-          >
-            <Pencil /> Modifica
-          </Button>
+          <div className="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); navigate(`/products/${encodeURIComponent(row.original.id)}/scheda`); }}
+              aria-label={`Apri scheda ${row.original.name}`}
+            >
+              <FileText /> Scheda
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); navigate(`/products/${encodeURIComponent(row.original.id)}/edit`); }}
+              aria-label={`Modifica ${row.original.name}`}
+            >
+              <Pencil /> Modifica
+            </Button>
+          </div>
         ),
       },
     ],
