@@ -279,6 +279,27 @@ const STATEMENTS = [
      KEY idx_poi_po (po_id)
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
+  // ── Supplier invoices (Acquisti · Fatture fornitori / fatture passive) ──────
+  // Incoming invoices from suppliers — the "Fatture" the Fatture&Spese label implied.
+  // imponibile + iva = totale (net + VAT = gross); `stato` tracks payment.
+  `CREATE TABLE IF NOT EXISTS supplier_invoices (
+     id                INT AUTO_INCREMENT PRIMARY KEY,
+     supplier_id       INT NULL,
+     numero            VARCHAR(60) NOT NULL,
+     data_fattura      DATE NULL,
+     scadenza          DATE NULL,
+     imponibile        DECIMAL(12,2) NOT NULL DEFAULT 0,
+     iva               DECIMAL(12,2) NOT NULL DEFAULT 0,
+     totale            DECIMAL(12,2) NOT NULL DEFAULT 0,
+     stato             VARCHAR(20) NOT NULL DEFAULT 'da_pagare',
+     attachment_url    VARCHAR(500) NULL,
+     note              TEXT NULL,
+     purchase_order_id INT NULL,
+     created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     KEY idx_si_supplier (supplier_id),
+     KEY idx_si_stato (stato)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
   // ── Carts (Ordini · Carrelli abbandonati) — storefront cart snapshots ───────
   `CREATE TABLE IF NOT EXISTS carts (
      id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -680,6 +701,11 @@ async function runMigrations(pool) {
     // Delivery timestamp — stamped when order_status first becomes 'consegnato';
     // powers the return window (reso can be opened within reso_window_days of delivery).
     await ensureColumn(pool, 'orders', 'delivered_at', 'delivered_at TIMESTAMP NULL');
+    // VAT/IVA on expenses — `importo` stays the gross total; the rate lets us split out
+    // imponibile (net) + IVA for Italian accounting. Default 0% is backward-compatible.
+    await ensureColumn(pool, 'store_expenses', 'iva_rate', 'iva_rate DECIMAL(5,2) NOT NULL DEFAULT 0');
+    // Optional receipt/invoice attachment (a URL under /api/uploads, set by the upload endpoint).
+    await ensureColumn(pool, 'store_expenses', 'attachment_url', 'attachment_url VARCHAR(500) NULL');
     try {
       await ensureUniqueIndex(pool, 'orders', 'uq_orders_payment_intent', 'payment_intent_id');
     } catch (e) { console.error('   ! uq_orders_payment_intent skipped:', e.message); }

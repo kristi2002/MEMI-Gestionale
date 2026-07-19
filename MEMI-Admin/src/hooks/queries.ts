@@ -4,6 +4,11 @@ import { toast } from 'sonner';
 import type { OrderRow, ProductRow, CustomerRow } from '@/types';
 
 /* ── Dashboard ─────────────────────────────────────────── */
+/** Period-aware KPIs (last N days vs the preceding N days) with a conversion metric.
+ *  Distinct from useDashboard's month-to-date `kpis` (used by the Home dashboard). */
+export const useRangeKpis = (days: number) =>
+  useQuery({ queryKey: ['dash', 'kpis', days], queryFn: () => api.dashboard.kpis(days) });
+
 export function useDashboard(days = 30) {
   const kpis = useQuery({ queryKey: ['dash', 'kpis'], queryFn: () => api.dashboard.kpis() });
   const catalog = useQuery({ queryKey: ['dash', 'catalog'], queryFn: () => api.dashboard.catalogKpis() });
@@ -123,6 +128,7 @@ export const useShipments = () => useQuery({ queryKey: ['shipments'], queryFn: (
 export const useCouriers = () => useQuery({ queryKey: ['couriers'], queryFn: () => api.shipping.couriers() });
 export const useCarts = () => useQuery({ queryKey: ['carts'], queryFn: () => api.carts.list() });
 export const useSuppliers = () => useQuery({ queryKey: ['suppliers'], queryFn: () => api.suppliers.list() });
+export const useSupplierInvoices = () => useQuery({ queryKey: ['supplier-invoices'], queryFn: () => api.supplierInvoices.list() });
 export const useStaff = () => useQuery({ queryKey: ['staff'], queryFn: () => api.staff.list() });
 export function useAuditLog() {
   return useInfiniteQuery({
@@ -183,7 +189,8 @@ export const useLoyaltyConfig = () => useQuery({ queryKey: ['loyalty', 'config']
 export const useLoyaltyCustomers = () => useQuery({ queryKey: ['loyalty', 'customers'], queryFn: () => api.loyalty.customers({ limit: 200 }) });
 export const useLifecycle = () => useQuery({ queryKey: ['lifecycle'], queryFn: () => api.lifecycle.get() });
 export const useSettings = () => useQuery({ queryKey: ['settings'], queryFn: () => api.settings.get() });
-export const useFinance = () => useQuery({ queryKey: ['finance'], queryFn: () => api.dashboard.finance() });
+export const useFinance = (days?: number) =>
+  useQuery({ queryKey: ['finance', days ?? 'all'], queryFn: () => api.dashboard.finance(days) });
 export const usePayouts = () => useQuery({ queryKey: ['payouts'], queryFn: () => api.dashboard.payouts() });
 export const useTaxStats = () => useQuery({ queryKey: ['tax-stats'], queryFn: () => api.dashboard.taxStats() });
 export const useIntegrations = () => useQuery({ queryKey: ['integrations'], queryFn: () => api.settings.integrations() });

@@ -9,7 +9,23 @@
 > a **deleted** staff account is rejected immediately (verified: `200` → `401` on delete, was valid for
 > 8h), and **role/permissions are refreshed from the DB** so a permission change also takes effect at
 > once — no schema change, with a transient-DB-error fallback to the verified token so a blip can't lock
-> admins out. **Remaining:** a granular per-view permission editor (still the 5 presets) and last-login/2FA.
+> admins out.
+>
+> **✅ Update 2026-07-19 — granular per-view permission editor FIXED & verified.** The staff form now
+> has a full **checkbox matrix** over all 46 RBAC views (grouped like the sidebar, "solo admin" badges on
+> Statistiche/Finanza/Sistema), replacing the 5-preset select. Two access modes: **"Amministratore —
+> accesso completo"** (role=admin, permissions=null) and **"Permessi specifici"** with per-view toggles.
+> Preset quick-fill buttons (Staff/Magazzino/Servizio clienti/Marketing) + **Tutto/Niente**; any manual
+> toggle flips to a **"Personalizzato"** set. Backend needed **no change** — it already stored an
+> arbitrary `permissions` array (validated by the `staffCreateSchema`/`staffUpdateSchema` Zod arrays).
+> Two safety guards added: **Home is always granted** (an empty set would collapse to the full staff
+> surface on the backend), and an admin **can't strip their own admin role** (lock-out prevention).
+> Verified live end-to-end: created a member with `["dashboard","customers"]` → stored exactly →
+> that account gets **200 on `/admin/customers`** but **403 on `/admin/discounts` and `/admin/staff`**;
+> UI "Niente" leaves exactly 1 of 46 boxes checked (Home) and shows "Personalizzato". **Remaining:**
+> last-login / active-session visibility, 2FA, and having the storefront **nav** hide sections a staff
+> member lacks permission for (today the nav only hides `adminOnly` groups by role; granular denials are
+> enforced by the API with a 403, not yet reflected in the sidebar).
 
 ---
 
@@ -29,7 +45,7 @@ Manage who can access the admin and what each person can do — create staff, as
 
 ## What's missing
 
-1. **No granular per-view permission editor** — you can only pick one of 5 presets. You can't build/adjust an arbitrary set from the UI (a stored "custom" set is display-only and can't be authored).
+1. ~~**No granular per-view permission editor**~~ **DONE (2026-07-19)** — a full 46-view checkbox matrix now authors an arbitrary permission set (see the update note above); the "Personalizzato" set is fully editable, not display-only.
 2. **No token/session revocation.** Because permissions live in an **8-hour JWT**, changing a member's profile — or even **deleting** the account — does **not** take effect until their current token expires or they re-login. A removed staffer keeps working access for up to 8h.
 3. No last-login / active-session visibility, no 2FA, no forced logout.
 

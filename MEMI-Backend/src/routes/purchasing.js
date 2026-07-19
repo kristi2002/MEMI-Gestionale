@@ -16,6 +16,7 @@ const { requireAdmin } = require('../middleware/auth');
 const { logAdminAction } = require('../audit');
 
 const PO_STATI = ['bozza', 'inviato', 'ricevuto', 'annullato'];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /* ═══════════════ SUPPLIERS ═══════════════ */
 router.get('/suppliers', requireAdmin, async (req, res) => {
@@ -25,6 +26,7 @@ router.get('/suppliers', requireAdmin, async (req, res) => {
 router.post('/suppliers', requireAdmin, async (req, res) => {
   const { nome, email, telefono, note } = req.body || {};
   if (!nome || !String(nome).trim()) return res.status(400).json({ error: 'Nome obbligatorio' });
+  if (email && !EMAIL_RE.test(String(email).trim())) return res.status(400).json({ error: 'Email non valida' });
   try {
     const [r] = await pool.execute('INSERT INTO suppliers (nome, email, telefono, note) VALUES (?, ?, ?, ?)',
       [String(nome).trim(), email || null, telefono || null, note || null]);
@@ -34,6 +36,7 @@ router.post('/suppliers', requireAdmin, async (req, res) => {
 });
 router.put('/suppliers/:id', requireAdmin, async (req, res) => {
   const { nome, email, telefono, note } = req.body || {};
+  if (email && !EMAIL_RE.test(String(email).trim())) return res.status(400).json({ error: 'Email non valida' });
   try {
     const fields = [], vals = [];
     const add = (c, v) => { if (v !== undefined) { fields.push(`${c} = ?`); vals.push(v); } };

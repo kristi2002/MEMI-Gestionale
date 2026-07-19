@@ -312,29 +312,29 @@
     .ph-fig svg{width:65%;opacity:.22;}
 
     /* Consent checkboxes: explicit styling — native unchecked boxes are nearly invisible on iOS */
-    #consentBlock input[type=checkbox]{
+    #orderTermsBlock input[type=checkbox]{
       -webkit-appearance:none;appearance:none;
       width:20px;height:20px;flex-shrink:0;margin-top:1px;
       border:1.5px solid var(--brown-mid);border-radius:4px;
       background:#fff;cursor:pointer;position:relative;
       transition:background .15s,border-color .15s;
     }
-    #consentBlock input[type=checkbox]:checked{
+    #orderTermsBlock input[type=checkbox]:checked{
       background:var(--espresso);border-color:var(--espresso);
     }
-    #consentBlock input[type=checkbox]:checked::after{
+    #orderTermsBlock input[type=checkbox]:checked::after{
       content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;
       border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
     }
 
     /* ── Privacy consent warning ─────────────────────────────────────────── */
-    #consentBlock{border:1.5px solid transparent;border-radius:var(--radius-sm);
+    #orderTermsBlock{border:1.5px solid transparent;border-radius:var(--radius-sm);
       padding:var(--space-3);transition:border-color .25s ease,background .25s ease,box-shadow .25s ease;}
-    #consentBlock.consent-error{border-color:#d9534f;background:#fdf1f0;
+    #orderTermsBlock.terms-error{border-color:#d9534f;background:#fdf1f0;
       box-shadow:0 0 0 4px rgba(217,83,79,.10);
       animation:consentShake .45s cubic-bezier(.36,.07,.19,.97) both;}
-    #consentBlock.consent-error label{color:#a63a36;}
-    #consentBlock.consent-error input#privacyConsent{outline:2px solid #d9534f;outline-offset:2px;accent-color:#d9534f;}
+    #orderTermsBlock.terms-error label{color:#a63a36;}
+    #orderTermsBlock.terms-error input#agreeTermsChk{outline:2px solid #d9534f;outline-offset:2px;accent-color:#d9534f;}
     @keyframes consentShake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}
       30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
     #privacyWarning{display:none;align-items:flex-start;gap:10px;margin-top:var(--space-2);
@@ -345,8 +345,8 @@
     #privacyWarning svg{width:18px;height:18px;flex-shrink:0;stroke:#d9534f;fill:none;stroke-width:2;margin-top:1px;}
     @keyframes consentFadeIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
     @media(max-width:479px){
-      #consentBlock{padding:var(--space-2);}
-      #consentBlock.consent-error{box-shadow:0 0 0 3px rgba(217,83,79,.08);}
+      #orderTermsBlock{padding:var(--space-2);}
+      #orderTermsBlock.terms-error{box-shadow:0 0 0 3px rgba(217,83,79,.08);}
       @keyframes consentShake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(1px)}
         30%,50%,70%{transform:translateX(-2px)}40%,60%{transform:translateX(2px)}}
       #privacyWarning{padding:10px 12px;gap:8px;font-size:var(--text-xs);border-left-width:3px;border-radius:var(--radius-sm);}
@@ -760,7 +760,7 @@
                  so it can't be disabled directly. -->
             <div id="sumupCardWrap" style="display:none;position:relative;">
               <div id="sumupCard"></div>
-              <div id="sumupConsentGate" style="display:none;position:absolute;inset:0;z-index:5;cursor:pointer;background:transparent;"></div>
+              <div id="sumupTermsGate" style="display:none;position:absolute;inset:0;z-index:5;cursor:pointer;background:transparent;"></div>
             </div>
             <p id="cardProcessorNote" style="font-size:var(--text-xs);color:var(--brown-light);margin-top:var(--space-3);">
               Pagamento crittografato &amp; elaborato da <strong style="color:var(--espresso);">Stripe</strong>. I dati della carta non passano per i nostri server.
@@ -800,9 +800,9 @@
         <!-- GDPR consent for ALL payment methods — deliberately OUTSIDE the card section,
              right under PayPal. Ticking it lifts the SumUp widget's consent gate; every pay
              action (widget, PayPal Buttons, wallet, "Rivedi e conferma") checks this box. -->
-        <div id="consentBlock" style="margin-top:var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);">
+        <div id="orderTermsBlock" style="margin-top:var(--space-4);display:flex;flex-direction:column;gap:var(--space-2);">
           <label style="display:flex;gap:8px;align-items:flex-start;font-size:var(--text-xs);color:var(--brown-mid);line-height:1.5;cursor:pointer;">
-            <input type="checkbox" id="privacyConsent" />
+            <input type="checkbox" id="agreeTermsChk" />
             <span>Ho letto la <a href="privacy.html" target="_blank" style="color:inherit;text-decoration:underline;">Privacy Policy</a> e i <a href="termini.html" target="_blank" style="color:inherit;text-decoration:underline;">Termini e condizioni</a> e autorizzo il trattamento dei miei dati per la gestione dell'ordine (Reg. UE 2016/679). *</span>
           </label>
           <div id="privacyWarning" role="alert" aria-live="assertive">
@@ -2028,7 +2028,7 @@
         gift_card_code: appliedGiftCard ? appliedGiftCard.code : undefined,
         payment_method: payMethod,
         shipping_method: shippingMethod,
-        privacy_consent:  !!((el('privacyConsent') || {}).checked) || undefined,
+        privacy_consent:  !!((el('agreeTermsChk') || {}).checked) || undefined,
         newsletter_optin: !!((el('newsletterOptin') || {}).checked) || undefined,
       };
     }
@@ -2041,29 +2041,29 @@
     // GDPR: the required privacy/termini checkbox on the payment step.
     // Checked BEFORE charging on every path (card, wallet, PayPal).
     function privacyOk() {
-      var c = el('privacyConsent');
+      var c = el('agreeTermsChk');
       return !c || c.checked;
     }
 
     // Red highlight + styled warning when the customer tries to pay without consent.
     function showPrivacyWarning() {
       if (currentStep !== 3) goToStep(3);   // the consent checkbox lives on the Pagamento step
-      var block = el('consentBlock'), warn = el('privacyWarning');
+      var block = el('orderTermsBlock'), warn = el('privacyWarning');
       if (block) {
-        block.classList.remove('consent-error');
+        block.classList.remove('terms-error');
         void block.offsetWidth; // restart the shake animation on repeated clicks
-        block.classList.add('consent-error');
+        block.classList.add('terms-error');
         try { block.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(_) { block.scrollIntoView(); }
       }
       if (warn) warn.classList.add('show');
     }
     function clearPrivacyWarning() {
-      var block = el('consentBlock'), warn = el('privacyWarning');
-      if (block) block.classList.remove('consent-error');
+      var block = el('orderTermsBlock'), warn = el('privacyWarning');
+      if (block) block.classList.remove('terms-error');
       if (warn) warn.classList.remove('show');
     }
     (function() {
-      var c = el('privacyConsent');
+      var c = el('agreeTermsChk');
       if (c) c.addEventListener('change', function() { if (c.checked) clearPrivacyWarning(); });
     })();
 
@@ -2470,7 +2470,7 @@
     // methods list, under PayPal — SAME step, always visible) is ticked. Clicking the gate
     // shakes and scrolls to that checkbox, so the widget can never look dead.
     function wireSumupConsentGate() {
-      var gate = el('sumupConsentGate'), c = el('privacyConsent');
+      var gate = el('sumupTermsGate'), c = el('agreeTermsChk');
       if (!gate) return;
       function sync() { gate.style.display = (c && c.checked) ? 'none' : 'block'; }
       gate.onclick = function() { showPrivacyWarning(); };

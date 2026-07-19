@@ -8,7 +8,35 @@
 > left-sidebar layout to **cards on top**: the 3 KPI cards (Membri / Punti totali / Valore riscattabile)
 > and the "Configurazione programma" card now span full width at the top (config fields in a 4-across
 > row), with the customers classifica table full-width below — "the rest like they are". Verified live.
-> Tiers/expiry + issued-codes view remain (nice-to-haves).
+>
+> **✅ Update 2026-07-19 — reward tiers DONE & verified (functional, not cosmetic).** Spend-based
+> **livelli fedeltà** with a points **multiplier**: a JSON array `store_settings.loyalty_tiers`
+> (`{nome, min_spent, multiplier}`) is edited in the config card (add/remove rows + "Carica preset"
+> Bronzo/Argento/Oro), each customer is tagged with their tier (a **"Livello"** badge column), and —
+> crucially — the multiplier is **wired into real points earning**: `awardPurchasePoints` (`loyalty.js`)
+> now awards `floor(total × pointsPerEuro × tierMultiplier)`, the tier derived from the customer's
+> `total_spent`. Verified in-container: a €100 purchase by a €500-spend (Argento ×1.25) customer awarded
+> **125** points, not 100; `tierFor` boundaries correct (50→Bronzo, 500→Argento, 900→Oro); empty tiers ⇒
+> ×1 (no behaviour change).
+>
+> **✅ Update 2026-07-19 (cont.) — point expiry DONE & verified.** Inactivity-based expiry: a customer
+> whose most recent points movement is older than `loyalty_expiry_months` (0 = never, the default →
+> no behaviour change) loses their balance, recorded as a **'scaduto'** ledger row (idempotent — the row
+> resets last-activity + zeroes the balance, so a re-run finds nothing). Runs **automatically daily** via
+> a new **non-SMTP-gated maintenance scheduler** (`scheduler.js:startMaintenanceScheduler`, wired in
+> `server.js`), and on demand via **`POST /api/admin/loyalty/expire`** (`{dryRun}`). The config card has a
+> "Scadenza per inattività (mesi)" field + an **"Esegui scadenza ora"** button that previews (dry-run) then
+> confirms before zeroing. Verified in-container: an inactive customer (200 pts, ledger 24 mo old) expired
+> to 0 with a `scaduto -200` row while a 1-month-active customer (150 pts) was untouched; re-run idempotent;
+> `skipped:true` when months = 0.
+>
+> **✅ Update 2026-07-19 (cont.) — issued-codes view DONE & verified.** A **"Codici riscattati"** header
+> action opens `/loyalty/redemptions` (`loyalty-redemptions.tsx`) listing the single-use discount codes
+> minted when customers convert points (the `PUNTI-` codes in `discount_codes`, surfaced via new
+> `GET /api/admin/loyalty/redemptions`): code, value, **Riscattato/Attivo** status (from
+> `utilizzi >= max_utilizzi`), issue date, KPIs (emessi / valore totale / riscattati) and export. Verified
+> live: 2 seeded codes gave summary `used:1, used_value:5.00` (only the redeemed one counted).
+> **This closes every documented `/loyalty` gap — the loyalty program is now feature-complete.**
 
 ---
 
@@ -34,8 +62,8 @@ The operator's control panel for the points economy: set the earn/burn rules, mo
 This page is the healthiest in the audit; gaps are enhancements, not holes:
 
 1. **The requested restyle (point 13).** Today the KPI + config cards (the `rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col gap-3 p-5` cards) are **not at the very top** of the page. The owner wants those cards **moved to the top**, with the rest of the layout (customers table, filters) following as-is.
-2. No reward tiers or point **expiry** concept.
-3. No admin view of **issued redemption codes** (they exist in `discount_codes` but aren't surfaced here).
+2. ~~No reward tiers or point expiry~~ **DONE (2026-07-19)** — spend-based tiers with a functional points multiplier, and inactivity-based point expiry (daily auto-run + on-demand with preview). See update notes above.
+3. ~~No admin view of **issued redemption codes**~~ **DONE (2026-07-19)** — the "Codici riscattati" page (`/loyalty/redemptions`) lists the `PUNTI-` codes with used/active status (see update note above).
 4. "Valore riscattabile" and per-row "Valore" are computed client-side rather than returned by the API (cosmetic).
 
 ## Fix outline

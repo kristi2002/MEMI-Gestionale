@@ -5,8 +5,9 @@
 **Status:** REAL ✓ (full CRUD) · **Priority:** P3
 
 > **✅ Update 2026-07-18:** supplier create/update/delete are now **audit-logged**
-> (`purchasing.js`), closing gap #1 below and the matching `/audit-log` coverage gap. A
-> per-supplier PO-history view and server-side email validation remain.
+> (`purchasing.js`), closing gap #1 below and the matching `/audit-log` coverage gap.
+> **Server-side email validation also added & verified** (invalid email on create/update → 400).
+> A per-supplier PO-history view remains.
 
 ---
 

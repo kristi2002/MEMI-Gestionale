@@ -13,22 +13,38 @@ const router           = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin, requireRole } = require('../middleware/auth');
 const { logAdminAction } = require('../audit');
+const { cleanAttachmentUrl, uploadHandler } = require('../attachments');
 
 const ALLOWED_RICORRENZA = ['una_tantum', 'mensile', 'annuale'];
 const ALLOWED_CATEGORIE  = ['piano', 'app', 'dominio', 'marketing', 'logistica', 'fornitore', 'generale',
                             'affitto', 'utenze', 'stipendi', 'merce', 'software', 'spedizioni', 'tasse'];
+// Standard Italian VAT rates. `importo` is the gross total; imponibile/IVA are derived from the rate.
+const ALLOWED_IVA = [0, 4, 5, 10, 22];
+
+// Coerce an incoming iva_rate to one of the allowed rates (default 0). Rejects nothing —
+// an unknown value simply falls back to 0 so an old client can't 400 on the new field.
+function normalizeIva(v) {
+  const n = Number(v);
+  return ALLOWED_IVA.includes(n) ? n : 0;
+}
 
 /* ── GET /api/admin/expenses ── */
 router.get('/', requireAdmin, async (req, res) => {
   try {
+    // imponibile (net) = gross / (1 + rate); iva_amount = gross − net. Derived so they can't drift.
     const [rows] = await pool.execute(
-      'SELECT * FROM store_expenses ORDER BY COALESCE(data_spesa, created_at) DESC, id DESC'
+      `SELECT *,
+              ROUND(importo / (1 + iva_rate/100), 2)              AS imponibile,
+              ROUND(importo - importo / (1 + iva_rate/100), 2)    AS iva_amount
+         FROM store_expenses
+        ORDER BY COALESCE(data_spesa, created_at) DESC, id DESC`
     );
     const [[sum]] = await pool.execute(`
       SELECT
         COALESCE(SUM(importo),0) AS total,
         COALESCE(SUM(CASE WHEN YEAR(data_spesa)=YEAR(CURDATE()) AND MONTH(data_spesa)=MONTH(CURDATE()) THEN importo ELSE 0 END),0) AS month,
-        COALESCE(SUM(CASE WHEN ricorrenza='mensile' THEN importo ELSE 0 END),0) AS monthly_recurring
+        COALESCE(SUM(CASE WHEN ricorrenza='mensile' THEN importo ELSE 0 END),0) AS monthly_recurring,
+        COALESCE(SUM(ROUND(importo - importo / (1 + iva_rate/100), 2)),0) AS iva_total
       FROM store_expenses`);
     return res.json({ expenses: rows, summary: sum });
   } catch (err) {
@@ -37,19 +53,27 @@ router.get('/', requireAdmin, async (req, res) => {
   }
 });
 
+/* ── POST /api/admin/expenses/attachment ── upload a receipt/invoice, returns { url } ── */
+router.post('/attachment', requireAdmin, uploadHandler((req, kind) => {
+  logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'expense.attachment_upload',
+    entityType: 'store_expenses', entityId: null, details: { kind } }).catch(() => {});
+}));
+
 /* ── POST /api/admin/expenses ── */
 router.post('/', requireAdmin, async (req, res) => {
-  const { descrizione, categoria = 'generale', importo = 0, ricorrenza = 'una_tantum', fornitore, data_spesa, note } = req.body || {};
+  const { descrizione, categoria = 'generale', importo = 0, ricorrenza = 'una_tantum', fornitore, data_spesa, note, iva_rate, attachment_url } = req.body || {};
   if (!descrizione || !String(descrizione).trim()) return res.status(400).json({ error: 'Descrizione obbligatoria' });
   if (!ALLOWED_RICORRENZA.includes(ricorrenza))     return res.status(400).json({ error: 'Ricorrenza non valida' });
   const cat = ALLOWED_CATEGORIE.includes(categoria) ? categoria : 'generale';
   const amt = Number(importo);
   if (!isFinite(amt) || amt < 0) return res.status(400).json({ error: 'Importo non valido' });
+  const iva = normalizeIva(iva_rate);
+  const att = cleanAttachmentUrl(attachment_url) ?? null;
   try {
     const [result] = await pool.execute(
-      `INSERT INTO store_expenses (descrizione, categoria, importo, ricorrenza, fornitore, data_spesa, note)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [String(descrizione).trim(), cat, amt, ricorrenza, fornitore || null, data_spesa || null, note || null]
+      `INSERT INTO store_expenses (descrizione, categoria, importo, ricorrenza, fornitore, data_spesa, note, iva_rate, attachment_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [String(descrizione).trim(), cat, amt, ricorrenza, fornitore || null, data_spesa || null, note || null, iva, att]
     );
     logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'expense.create',
       entityType: 'store_expenses', entityId: String(result.insertId), details: { importo: amt } }).catch(() => {});
@@ -62,7 +86,7 @@ router.post('/', requireAdmin, async (req, res) => {
 
 /* ── PUT /api/admin/expenses/:id ── */
 router.put('/:id', requireAdmin, async (req, res) => {
-  const { descrizione, categoria, importo, ricorrenza, fornitore, data_spesa, note } = req.body || {};
+  const { descrizione, categoria, importo, ricorrenza, fornitore, data_spesa, note, iva_rate, attachment_url } = req.body || {};
   if (ricorrenza !== undefined && !ALLOWED_RICORRENZA.includes(ricorrenza)) return res.status(400).json({ error: 'Ricorrenza non valida' });
   if (categoria  !== undefined && !ALLOWED_CATEGORIE.includes(categoria))   return res.status(400).json({ error: 'Categoria non valida' });
   try {
@@ -75,10 +99,14 @@ router.put('/:id', requireAdmin, async (req, res) => {
     add('fornitore', fornitore);
     add('data_spesa', data_spesa);
     add('note', note);
+    add('iva_rate', iva_rate !== undefined ? normalizeIva(iva_rate) : undefined);
+    add('attachment_url', cleanAttachmentUrl(attachment_url));
     if (!fields.length) return res.status(400).json({ error: 'Nessun campo da aggiornare' });
     vals.push(req.params.id);
     const [result] = await pool.execute(`UPDATE store_expenses SET ${fields.join(', ')} WHERE id = ?`, vals);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Spesa non trovata' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'expense.update',
+      entityType: 'store_expenses', entityId: String(req.params.id), details: {} }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     console.error('update expense error', err);

@@ -71,4 +71,49 @@ function startScheduler(pool) {
   return { tick, stop() { clearInterval(timer); clearTimeout(kickoff); } };
 }
 
-module.exports = { startScheduler };
+/**
+ * Daily maintenance runner — non-email housekeeping (currently loyalty point expiry).
+ * Deliberately NOT gated on SMTP (unlike the lifecycle scheduler): expiry is a data job,
+ * not a mail job. It's a no-op unless `loyalty_expiry_months` is configured (> 0), so by
+ * default it does nothing. Runs once per day in the small hours. Opt out with
+ * DISABLE_MAINTENANCE_SCHEDULER=1.
+ */
+function startMaintenanceScheduler(pool) {
+  if (process.env.DISABLE_MAINTENANCE_SCHEDULER === '1') {
+    console.log('[maintenance] scheduler disabled (DISABLE_MAINTENANCE_SCHEDULER=1)');
+    return null;
+  }
+  const { expireInactivePoints } = require('./loyalty');
+  let lastRunDate = null;
+  let running = false;
+
+  async function tick() {
+    if (running) return;
+    const now = new Date();
+    const dateStr = localDateStr(now);
+    if (dateStr === lastRunDate) return;   // already ran today
+    if (now.getHours() < 3) return;        // run after 03:00 local (off-peak)
+    running = true;
+    lastRunDate = dateStr;
+    try {
+      const r = await expireInactivePoints(pool, {});
+      if (r && !r.skipped && r.expired > 0) {
+        console.log(`[maintenance] points expiry (${dateStr}) — expired ${r.expired} customer(s), ${r.points} pts`);
+      }
+    } catch (e) {
+      console.error('[maintenance] daily job error:', e.message);
+      lastRunDate = null;                  // allow a retry on the next tick
+    } finally {
+      running = false;
+    }
+  }
+
+  const timer = setInterval(() => { tick().catch(() => {}); }, TICK_MS);
+  timer.unref();
+  const kickoff = setTimeout(() => { tick().catch(() => {}); }, 45 * 1000);
+  kickoff.unref();
+  console.log('[maintenance] scheduler armed — daily housekeeping after 03:00 local');
+  return { tick, stop() { clearInterval(timer); clearTimeout(kickoff); } };
+}
+
+module.exports = { startScheduler, startMaintenanceScheduler };

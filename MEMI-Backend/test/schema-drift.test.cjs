@@ -36,7 +36,7 @@ const EXTENDED = new Set([
   'loyalty_transactions', 'messages', 'page_views', 'pickup_points', 'po_items',
   'popups', 'product_categories', 'product_collections', 'product_colors',
   'product_variants', 'purchase_orders', 'stock_transfers', 'store_expenses',
-  'suppliers',
+  'suppliers', 'supplier_invoices',
 ]);
 
 let pass = 0;

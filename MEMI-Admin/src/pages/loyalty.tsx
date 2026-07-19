@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Gem, Save, Loader2, Plus, Minus, Coins, Wallet, History } from 'lucide-react';
+import { Gem, Save, Loader2, Plus, Minus, Coins, Wallet, History, TimerReset, Ticket } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
@@ -12,14 +13,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useLoyaltyConfig, useLoyaltyCustomers } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { eur, initials, num, dateTime } from '@/lib/format';
-import type { LoyaltyConfig, LoyaltyCustomer } from '@/types';
+import type { LoyaltyConfig, LoyaltyCustomer, LoyaltyTier } from '@/types';
 import type { ExportColumn } from '@/lib/export';
 import { toast } from 'sonner';
+
+// Suggested starter tiers the owner can load then tweak (spend thresholds in €, points multiplier).
+const DEFAULT_TIERS: LoyaltyTier[] = [
+  { nome: 'Bronzo', min_spent: 0, multiplier: 1 },
+  { nome: 'Argento', min_spent: 300, multiplier: 1.25 },
+  { nome: 'Oro', min_spent: 800, multiplier: 1.5 },
+];
 
 const exportColumns: ExportColumn<LoyaltyCustomer>[] = [
   { header: 'Cliente', accessor: (c) => `${c.nome} ${c.cognome}`.trim() },
@@ -27,15 +36,39 @@ const exportColumns: ExportColumn<LoyaltyCustomer>[] = [
   { header: 'Punti', accessor: (c) => c.points },
   { header: 'Ordini', accessor: (c) => c.total_orders },
   { header: 'Speso', accessor: (c) => eur(c.total_spent) },
+  { header: 'Livello', accessor: (c) => c.tier ?? '' },
 ];
 
 function ConfigCard({ config, loading }: { config?: LoyaltyConfig; loading: boolean }) {
   const qc = useQueryClient();
   const [form, setForm] = useState<LoyaltyConfig | null>(null);
   const [saving, setSaving] = useState(false);
+  const [expiring, setExpiring] = useState(false);
   useEffect(() => {
     if (config) setForm(config);
   }, [config]);
+
+  async function runExpiry() {
+    // Expiry reads the SAVED setting server-side, so require an unmodified field first.
+    if (form && form.expiryMonths !== config?.expiryMonths) {
+      toast.info('Salva prima le impostazioni di scadenza.');
+      return;
+    }
+    setExpiring(true);
+    try {
+      const preview = await api.loyalty.expire(true);
+      if (preview.skipped) { toast.info('Scadenza non attiva — imposta i mesi (> 0) e salva.'); return; }
+      if (preview.candidates === 0) { toast.info('Nessun cliente con punti da far scadere.'); return; }
+      if (!window.confirm(`${preview.candidates} clienti perderanno ${preview.points.toLocaleString('it-IT')} punti totali (inattivi da oltre ${preview.months} mesi). Procedere?`)) return;
+      const res = await api.loyalty.expire(false);
+      toast.success(`Scaduti ${res.points.toLocaleString('it-IT')} punti per ${res.expired} clienti.`);
+      qc.invalidateQueries({ queryKey: ['loyalty', 'customers'] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Operazione non riuscita');
+    } finally {
+      setExpiring(false);
+    }
+  }
 
   const f = form;
   function set<K extends keyof LoyaltyConfig>(k: K, v: LoyaltyConfig[K]) {
@@ -87,6 +120,55 @@ function ConfigCard({ config, loading }: { config?: LoyaltyConfig; loading: bool
                 <Input type="number" value={f.minRedeem} onChange={(e) => set('minRedeem', Number(e.target.value))} />
               </div>
             </div>
+
+            {/* Tiers — spend-based levels with a points multiplier */}
+            <div className="space-y-2 border-t pt-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium">Livelli fedeltà (per spesa totale)</p>
+                  <p className="text-xs text-muted-foreground">Il cliente sale al livello più alto raggiunto; il moltiplicatore aumenta i punti guadagnati sugli acquisti.</p>
+                </div>
+                {(f.tiers ?? []).length === 0 && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => set('tiers', DEFAULT_TIERS)}>Carica preset</Button>
+                )}
+              </div>
+              {(f.tiers ?? []).length > 0 && (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-[1fr_7rem_7rem_2.25rem] gap-2 text-xs text-muted-foreground">
+                    <span>Nome livello</span><span>Spesa min €</span><span>Moltiplic. ×</span><span />
+                  </div>
+                  {(f.tiers ?? []).map((t, i) => (
+                    <div key={i} className="grid grid-cols-[1fr_7rem_7rem_2.25rem] items-center gap-2">
+                      <Input value={t.nome} placeholder="Es. Oro" onChange={(e) => set('tiers', (f.tiers ?? []).map((x, idx) => idx === i ? { ...x, nome: e.target.value } : x))} />
+                      <Input type="number" min="0" value={t.min_spent} onChange={(e) => set('tiers', (f.tiers ?? []).map((x, idx) => idx === i ? { ...x, min_spent: Number(e.target.value) } : x))} />
+                      <Input type="number" min="1" step="0.05" value={t.multiplier} onChange={(e) => set('tiers', (f.tiers ?? []).map((x, idx) => idx === i ? { ...x, multiplier: Number(e.target.value) } : x))} />
+                      <Button type="button" variant="ghost" size="icon" aria-label="Rimuovi livello" onClick={() => set('tiers', (f.tiers ?? []).filter((_, idx) => idx !== i))}><Minus /></Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <Button type="button" variant="outline" size="sm" onClick={() => set('tiers', [...(f.tiers ?? []), { nome: '', min_spent: 0, multiplier: 1 }])}>
+                <Plus /> Aggiungi livello
+              </Button>
+            </div>
+
+            {/* Point expiry (inactivity) */}
+            <div className="space-y-2 border-t pt-4">
+              <p className="text-sm font-medium">Scadenza punti</p>
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1.5">
+                  <Label>Scadenza per inattività (mesi)</Label>
+                  <Input type="number" min="0" className="w-40" value={f.expiryMonths} onChange={(e) => set('expiryMonths', Number(e.target.value))} />
+                </div>
+                <Button type="button" variant="outline" disabled={expiring} onClick={runExpiry}>
+                  {expiring ? <Loader2 className="animate-spin" /> : <TimerReset />} Esegui scadenza ora
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                0 = i punti non scadono mai. I clienti senza movimenti punti da oltre questo periodo perdono il saldo (registrato a ledger). Eseguito automaticamente ogni giorno; “Esegui ora” lo lancia subito, con anteprima e conferma.
+              </p>
+            </div>
+
             <Button onClick={save} disabled={saving}>
               {saving ? <Loader2 className="animate-spin" /> : <Save />} Salva
             </Button>
@@ -208,6 +290,7 @@ function CustomerPointsDialog({ customer, pointValueEur, onClose }: { customer: 
 }
 
 export function LoyaltyPage() {
+  const navigate = useNavigate();
   const configQ = useLoyaltyConfig();
   const custQ = useLoyaltyCustomers();
   const rows = custQ.data?.customers ?? [];
@@ -254,6 +337,12 @@ export function LoyaltyPage() {
       { accessorKey: 'total_orders', header: 'Ordini' },
       { accessorKey: 'total_spent', header: 'Speso', cell: ({ getValue }) => eur(getValue() as string), sortingFn: (a, b) => num(a.original.total_spent) - num(b.original.total_spent) },
       {
+        id: 'tier', header: 'Livello', accessorFn: (c) => c.tier ?? '',
+        cell: ({ row }) => row.original.tier
+          ? <Badge variant="info">{row.original.tier}</Badge>
+          : <span className="text-muted-foreground">—</span>,
+      },
+      {
         id: 'azioni',
         header: '',
         enableSorting: false,
@@ -269,7 +358,15 @@ export function LoyaltyPage() {
 
   return (
     <div>
-      <PageHeader title="Fedeltà & Punti" subtitle="Programma fedeltà, saldo punti per cliente e rettifiche manuali." />
+      <PageHeader
+        title="Fedeltà & Punti"
+        subtitle="Programma fedeltà, saldo punti per cliente e rettifiche manuali."
+        actions={
+          <Button variant="outline" size="sm" onClick={() => navigate('/loyalty/redemptions')}>
+            <Ticket /> Codici riscattati
+          </Button>
+        }
+      />
 
       {/* Cards on top: stat KPIs + program settings, full width */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

@@ -12,10 +12,11 @@ import { api } from '@/lib/api';
 import { dateTime } from '@/lib/format';
 import type { ExportColumn } from '@/lib/export';
 
-type Campaign = { id: number; subject: string; recipients: number; smtp: boolean; created_at: string };
+type Campaign = { id: number; subject: string; audience?: string; recipients: number; smtp: boolean; created_at: string };
 
 const exportColumns: ExportColumn<Campaign>[] = [
   { header: 'Oggetto', accessor: (c) => c.subject },
+  { header: 'Pubblico', accessor: (c) => c.audience || 'Tutti gli iscritti' },
   { header: 'Destinatari', accessor: (c) => c.recipients },
   { header: 'Inviata', accessor: (c) => (c.smtp ? 'Sì' : 'No (SMTP off)') },
   { header: 'Data', accessor: (c) => dateTime(c.created_at) },
@@ -33,6 +34,15 @@ export function NewsletterCampaignsPage() {
   const columns = useMemo<ColumnDef<Campaign, unknown>[]>(
     () => [
       { accessorKey: 'subject', header: 'Oggetto', cell: ({ getValue }) => <span className="font-medium">{getValue() as string}</span> },
+      {
+        accessorKey: 'audience',
+        header: 'Pubblico',
+        cell: ({ getValue }) => {
+          const a = (getValue() as string) || 'Tutti gli iscritti';
+          const isSeg = a.startsWith('Segmento');
+          return <Badge variant={isSeg ? 'info' : 'neutral'}>{a}</Badge>;
+        },
+      },
       { accessorKey: 'recipients', header: 'Destinatari', cell: ({ getValue }) => <span>{getValue() as number}</span> },
       {
         accessorKey: 'smtp',

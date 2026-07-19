@@ -50,7 +50,7 @@ export function DashboardPage() {
   const c = catalog.data;
 
   const revenueKpis: { label: string; value: string; delta?: string; up?: boolean; icon: typeof CoinsIcon; tone: KpiTone }[] = [
-    { label: 'Fatturato (oggi)', value: k?.revenue.value ?? '…', delta: k?.revenue.delta, up: k?.revenue.up, icon: CoinsIcon, tone: 'success' },
+    { label: 'Fatturato (mese)', value: k?.revenue.value ?? '…', delta: k?.revenue.delta, up: k?.revenue.up, icon: CoinsIcon, tone: 'success' },
     { label: 'Ordini', value: k?.orders.value ?? '…', delta: k?.orders.delta, up: k?.orders.up, icon: ShoppingBag, tone: 'primary' },
     { label: 'Visitatori', value: k?.visitors.value ?? '…', delta: k?.visitors.delta, up: k?.visitors.up, icon: Eye, tone: 'info' },
     { label: 'AOV', value: k?.aov.value ?? '…', delta: k?.aov.delta, up: k?.aov.up, icon: TrendingUp, tone: 'success' },

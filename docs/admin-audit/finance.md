@@ -8,7 +8,15 @@
 > returns `expenses_total`, `expenses_month`, `net_total`, `net_month` (revenue minus `store_expenses`),
 > and the page shows a new KPI row: **Spese totali / Spese questo mese / Utile netto / Utile questo mese**
 > (green when positive, red when negative). Verified live: €89.90 revenue − €30 expenses = €59.90 net.
-> **Remaining:** still no date-range picker (windows fixed server-side).
+>
+> **✅ Update 2026-07-19 — date-range view added & verified.** A **7g/30g/90g/12 mesi** selector in the
+> header now drives a new **"Ultimi N"** card row (Fatturato / Ordini pagati / Spese / Utile netto over the
+> window) above the fixed "Riepilogo complessivo" KPIs. `GET /admin/dashboard/finance` accepts an optional
+> `?days=N` (validated) that adds a `period` block (`revenue/orders/aov/expenses/net`); **additive** — the
+> all-time/MTD/today KPIs are unchanged and `period` is `null` without the param. Verified live: `?days=7`
+> → period revenue €89.90 / net €89.90; switching to "12 mesi" refetches with `days=365`; `?days=abc`
+> falls back to 30. This closes the finance date-range gap; per-payment-method period filtering is a
+> further nice-to-have.
 
 ---
 
@@ -27,7 +35,7 @@ The finance summary: how much money came in, by when and by method, what's pendi
 ## What's missing
 
 1. **No profit / margin** — `store_expenses` (from [bills.md](bills.md)) is never subtracted from `orders` revenue, so the page shows **gross** only. There is no net-income number anywhere in the app.
-2. **No date filter** — windows (total, MTD, today) are fixed server-side.
+2. ~~**No date filter**~~ **DONE (2026-07-19)** — a 7g/30g/90g/12-mesi selector drives an "Ultimi N" period row (`?days`); the fixed total/MTD/today KPIs remain alongside it. See update note above.
 3. **Gross vs settled confusion** — "Fatturato" is order revenue, not money actually settled to the bank (that's the unbuilt payouts concept).
 
 ## Fix outline

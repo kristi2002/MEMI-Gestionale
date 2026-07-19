@@ -35,6 +35,8 @@ export interface DashboardKpis {
   orders: KpiCard;
   visitors: KpiCard;
   aov: KpiCard;
+  /** Present only on the windowed (`?days`) response — orders ÷ visitors over the period. */
+  conversion?: KpiCard;
 }
 export interface CatalogKpis {
   active_products: number;
@@ -381,10 +383,38 @@ export interface Expense {
   data_spesa: string | null;
   note: string | null;
   created_at: string;
+  /** VAT rate % (0/4/5/10/22). imponibile (net) + iva_amount are derived server-side from importo (gross). */
+  iva_rate?: string | number;
+  imponibile?: string;
+  iva_amount?: string;
+  /** Optional receipt/invoice file under /api/uploads. */
+  attachment_url?: string | null;
 }
 export interface ExpensesResponse {
   expenses: Expense[];
-  summary: { total: string; month: string; monthly_recurring: string };
+  summary: { total: string; month: string; monthly_recurring: string; iva_total?: string };
+}
+
+export interface SupplierInvoice {
+  id: number;
+  supplier_id: number | null;
+  supplier_nome: string | null;
+  numero: string;
+  data_fattura: string | null;
+  scadenza: string | null;
+  imponibile: string;
+  iva: string;
+  totale: string;
+  stato: string;              // 'da_pagare' | 'pagata'
+  attachment_url: string | null;
+  note: string | null;
+  purchase_order_id: number | null;
+  scaduta: number;            // 1 = overdue (unpaid & past due)
+  created_at: string;
+}
+export interface SupplierInvoicesResponse {
+  invoices: SupplierInvoice[];
+  summary: { total: number; total_amount: string; da_pagare_count: string; da_pagare_amount: string; scadute_amount: string; iva_total: string };
 }
 
 export interface ShippingZone {
@@ -440,12 +470,19 @@ export interface BlogPost {
   created_at: string;
 }
 
+export interface LoyaltyTier {
+  nome: string;
+  min_spent: number;
+  multiplier: number;
+}
 export interface LoyaltyConfig {
   enabled: boolean;
   signupBonus: number;
   pointsPerEuro: number;
   pointValueEur: number;
   minRedeem: number;
+  expiryMonths: number;
+  tiers: LoyaltyTier[];
 }
 export interface LoyaltyCustomer {
   id: number;
@@ -455,10 +492,26 @@ export interface LoyaltyCustomer {
   points: number;
   total_orders: number;
   total_spent: string;
+  tier?: string | null;
 }
 export interface LoyaltyCustomersResponse {
   customers: LoyaltyCustomer[];
   summary: { total_points: number | string; members: number };
+  tiers?: LoyaltyTier[];
+}
+export interface LoyaltyRedemption {
+  id: number;
+  code: string;
+  valore: string;
+  utilizzi: number;
+  max_utilizzi: number | null;
+  stato: string;
+  scadenza: string | null;
+  created_at: string;
+}
+export interface LoyaltyRedemptionsResponse {
+  redemptions: LoyaltyRedemption[];
+  summary: { total: number; total_value: string; used: number; used_value: string };
 }
 export interface LoyaltyTransaction {
   delta: number;
@@ -590,6 +643,8 @@ export interface FinanceData {
     payment_status: PaymentStatus;
     created_at: string;
   }[];
+  /** Present only when `?days` is passed — revenue/orders/expenses/net over the last N days. */
+  period?: { days: number; revenue: number; orders: number; aov: number; expenses: number; net: number } | null;
 }
 
 export interface PayoutsData {
@@ -618,6 +673,8 @@ export interface TaxStats {
   threshold: number;
   over: boolean;
   by_country?: { paese: string; orders: number; revenue: number }[];
+  /** IVA position (liquidazione) YTD: debito on sales (estimated at sales_rate) − credito on expenses (exact). */
+  iva?: { sales_rate: number; revenue_ytd: number; debito: number; credito: number; saldo: number };
 }
 
 export interface Integration {

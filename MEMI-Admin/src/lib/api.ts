@@ -41,7 +41,10 @@ async function parse<T>(res: Response): Promise<T> {
   const text = await res.text();
   const body = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    if (res.status === 401) handle401();
+    // A 401 from the initial /admin/auth/me probe just means "not logged in":
+    // the route guard already shows the plain login page for that case. Only a
+    // 401 from any OTHER endpoint is a genuine mid-session expiry worth flagging.
+    if (res.status === 401 && !res.url.endsWith("/admin/auth/me")) handle401();
     const msg = (body && (body.error || body.message)) || res.statusText || 'Errore di rete';
     throw new ApiError(msg, res.status);
   }
@@ -135,7 +138,7 @@ export const api = {
       put('/admin/auth/password', { current_password, new_password }),
   },
   dashboard: {
-    kpis: () => get<DashboardKpis>('/admin/dashboard/kpis'),
+    kpis: (days?: number) => get<DashboardKpis>('/admin/dashboard/kpis' + (days ? '?days=' + days : '')),
     catalogKpis: () => get<CatalogKpis>('/admin/dashboard/catalog-kpis'),
     chart: (days?: number) => get<ChartPoint[]>('/admin/dashboard/chart' + (days ? '?days=' + days : '')),
     recentOrders: () => get<RecentOrder[]>('/admin/dashboard/recent-orders'),
@@ -143,7 +146,7 @@ export const api = {
       get<{ product_id: string; product_name: string; units_sold: string; revenue: string }[]>(
         '/admin/dashboard/top-products' + (days ? '?days=' + days : ''),
       ),
-    finance: () => get<FinanceData>('/admin/dashboard/finance'),
+    finance: (days?: number) => get<FinanceData>('/admin/dashboard/finance' + (days ? '?days=' + days : '')),
     payouts: () => get<PayoutsData>('/admin/dashboard/payouts'),
     taxStats: () => get<TaxStats>('/admin/dashboard/tax-stats'),
     liveview: () => get<import('@/types').LiveView>('/admin/liveview'),
@@ -219,6 +222,9 @@ export const api = {
     create: (data: unknown) => post('/admin/customers', data),
     update: (id: number, data: unknown) => put('/admin/customers/' + id, data),
     delete: (id: number) => del('/admin/customers/' + id),
+    addAddress: (id: number, data: unknown) => post('/admin/customers/' + id + '/addresses', data),
+    updateAddress: (id: number, aid: number, data: unknown) => put('/admin/customers/' + id + '/addresses/' + aid, data),
+    deleteAddress: (id: number, aid: number) => del('/admin/customers/' + id + '/addresses/' + aid),
   },
   discounts: {
     list: () => get<Discount[]>('/admin/discounts'),
@@ -244,11 +250,11 @@ export const api = {
   },
   newsletter: {
     list: (params?: Query) => get<NewsletterResponse>('/newsletter' + qs(params)),
-    campaigns: () => get<{ campaigns: { id: number; subject: string; recipients: number; smtp: boolean; created_at: string }[] }>('/newsletter/campaigns'),
+    campaigns: () => get<{ campaigns: { id: number; subject: string; audience?: string; recipients: number; smtp: boolean; created_at: string }[] }>('/newsletter/campaigns'),
     create: (data: unknown) => post('/newsletter', data),
     update: (id: number, data: unknown) => put('/newsletter/' + id, data),
     remove: (id: number) => del('/newsletter/' + id),
-    send: (data: { subject: string; body: string; test_email?: string }) =>
+    send: (data: { subject: string; body: string; test_email?: string; segment_id?: number }) =>
       post<{ ok: boolean; sent?: number; recipients?: number; smtp: boolean; queued?: boolean; test?: boolean; message?: string }>(
         '/newsletter/send',
         data,
@@ -296,6 +302,22 @@ export const api = {
     create: (data: unknown) => post('/admin/expenses', data),
     update: (id: number, data: unknown) => put('/admin/expenses/' + id, data),
     delete: (id: number) => del('/admin/expenses/' + id),
+    uploadAttachment: (file: File) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return upload<{ url: string }>('/admin/expenses/attachment', fd);
+    },
+  },
+  supplierInvoices: {
+    list: () => get<import('@/types').SupplierInvoicesResponse>('/admin/supplier-invoices'),
+    create: (data: unknown) => post('/admin/supplier-invoices', data),
+    update: (id: number, data: unknown) => put('/admin/supplier-invoices/' + id, data),
+    delete: (id: number) => del('/admin/supplier-invoices/' + id),
+    uploadAttachment: (file: File) => {
+      const fd = new FormData();
+      fd.append('file', file);
+      return upload<{ url: string }>('/admin/supplier-invoices/attachment', fd);
+    },
   },
   campaigns: {
     list: () => get<Campaign[]>('/admin/campaigns'),
@@ -368,6 +390,10 @@ export const api = {
     customer: (id: number) => get<import('@/types').LoyaltyCustomerDetail>('/admin/loyalty/customers/' + id),
     adjust: (id: number, data: { delta: number; reason?: string }) =>
       post<{ ok: boolean; points: number }>('/admin/loyalty/customers/' + id + '/adjust', data),
+    expire: (dryRun: boolean) =>
+      post<{ months: number; candidates: number; points: number; expired: number; dryRun: boolean; skipped?: boolean }>(
+        '/admin/loyalty/expire', { dryRun }),
+    redemptions: () => get<import('@/types').LoyaltyRedemptionsResponse>('/admin/loyalty/redemptions'),
   },
   lifecycle: {
     get: () => get<LifecycleData>('/admin/lifecycle'),

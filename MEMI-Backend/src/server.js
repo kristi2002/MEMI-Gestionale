@@ -57,6 +57,7 @@ const cmsRoutes           = require('./routes/cms');
 const loyaltyRoutes       = require('./routes/loyalty');
 const auditLogRoutes      = require('./routes/audit-log');
 const expensesRoutes      = require('./routes/expenses');
+const supplierInvoicesRoutes = require('./routes/supplier-invoices');
 const segmentsRoutes      = require('./routes/segments');
 const transfersRoutes     = require('./routes/transfers');
 const popupsRoutes        = require('./routes/popups');
@@ -188,7 +189,12 @@ app.use('/api/uploads', express.static(UPLOADS_DIR, {
   immutable: true,
   maxAge:    '365d',
   index:     false,
-  setHeaders(res) { res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin'); },
+  setHeaders(res) {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    // Serve exactly the declared type — never let a browser MIME-sniff an uploaded file
+    // into something executable (defence-in-depth alongside the upload-time type whitelist).
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  },
 }));
 
 // ── Rate limiting ──────────────────────────────────────────────
@@ -299,6 +305,7 @@ app.use('/api/cms',               cmsRoutes);   // public /published/* routes fo
 app.use('/api/admin/loyalty',     requireAdmin, requirePermission('loyalty'), loyaltyRoutes);
 app.use('/api/admin/audit-log',   requireAdmin, requirePermission('audit-log'), auditLogRoutes);
 app.use('/api/admin/expenses',    requireAdmin, requirePermission('bills'), expensesRoutes);
+app.use('/api/admin/supplier-invoices', requireAdmin, requirePermission('bills'), supplierInvoicesRoutes);
 app.use('/api/admin/segments',    requireAdmin, requirePermission('segments'), segmentsRoutes);
 app.use('/api/admin/transfers',   requireAdmin, requirePermission('transfers'), transfersRoutes);
 app.use('/api/admin/popups',      requireAdmin, requirePermission('popups'), popupsRoutes);
@@ -365,6 +372,12 @@ async function connectWithRetry(maxAttempts = 30, delayMs = 2000) {
       require('./scheduler').startScheduler(pool);
     } catch (sErr) {
       console.error('⚠️  Lifecycle scheduler not started:', sErr.message);
+    }
+    // ── Daily maintenance (loyalty point expiry) — not SMTP-gated; no-op unless configured.
+    try {
+      require('./scheduler').startMaintenanceScheduler(pool);
+    } catch (mErr2) {
+      console.error('⚠️  Maintenance scheduler not started:', mErr2.message);
     }
     // ── SMTP readiness check (best-effort, non-blocking) ───────
     // Surfaces a broken / half-configured mail setup once at boot with a clear

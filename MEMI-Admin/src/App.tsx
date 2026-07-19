@@ -10,6 +10,7 @@ import { SupplierFormPage } from '@/pages/suppliers';
 import { GiftcardFormPage } from '@/pages/giftcards';
 import { DiscountFormPage } from '@/pages/discounts';
 import { ExpenseFormPage } from '@/pages/expenses';
+import { SupplierInvoiceFormPage } from '@/pages/supplier-invoices';
 import { PickupFormPage } from '@/pages/pickup';
 import { TransferFormPage } from '@/pages/transfers';
 import { SegmentFormPage } from '@/pages/segments';
@@ -25,6 +26,7 @@ import { CategoryFormPage, CollectionFormPage } from '@/pages/taxonomy';
 import { ReturnFormPage } from '@/pages/returns';
 import { NewsletterSubscriberFormPage, NewsletterComposePage } from '@/pages/newsletter';
 import { NewsletterCampaignsPage } from '@/pages/newsletter-campaigns';
+import { LoyaltyRedemptionsPage } from '@/pages/loyalty-redemptions';
 import { LifecycleCampaignFormPage } from '@/pages/lifecycle';
 import { PurchaseOrderFormPage } from '@/pages/purchase-order-form';
 import { AppFormPage } from '@/pages/apps';
@@ -69,6 +71,8 @@ export default function App() {
           <Route path="/discounts/:id/edit" element={<DiscountFormPage />} />
           <Route path="/bills/new" element={<ExpenseFormPage />} />
           <Route path="/bills/:id/edit" element={<ExpenseFormPage />} />
+          <Route path="/supplier-invoices/new" element={<SupplierInvoiceFormPage />} />
+          <Route path="/supplier-invoices/:id/edit" element={<SupplierInvoiceFormPage />} />
           <Route path="/pickup/new" element={<PickupFormPage />} />
           <Route path="/pickup/:id/edit" element={<PickupFormPage />} />
           <Route path="/transfers/new" element={<TransferFormPage />} />
@@ -98,6 +102,7 @@ export default function App() {
           <Route path="/newsletter/:id/edit" element={<NewsletterSubscriberFormPage />} />
           <Route path="/newsletter/compose" element={<NewsletterComposePage />} />
           <Route path="/newsletter/campaigns" element={<NewsletterCampaignsPage />} />
+          <Route path="/loyalty/redemptions" element={<LoyaltyRedemptionsPage />} />
           <Route path="/lifecycle/:type/edit" element={<LifecycleCampaignFormPage />} />
           {routes.map((r) => (
             <Route key={r.path} path={r.path} element={r.element} />

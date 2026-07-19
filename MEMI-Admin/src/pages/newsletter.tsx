@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Mail, Plus, Pencil, Send, Loader2, ArrowLeft, MailX, History } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/common/empty-state';
 import type { FieldConfig, FormValues } from '@/components/common/entity-form-fields';
 import { EntityFormPage } from '@/components/common/entity-form-page';
-import { useNewsletter, useDeleteMany, useSaveEntity } from '@/hooks/queries';
+import { useNewsletter, useDeleteMany, useSaveEntity, useSegments } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { date } from '@/lib/format';
 import type { Subscriber } from '@/types';
@@ -162,12 +162,20 @@ export function NewsletterSubscriberFormPage() {
 /** Compose & send a newsletter broadcast to all active subscribers. */
 export function NewsletterComposePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const query = useNewsletter();
+  const segQuery = useSegments();
+  const segments = segQuery.data?.segments ?? [];
   const activeCount = query.data?.total ?? 0;
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [testEmail, setTestEmail] = useState('');
+  const [audience, setAudience] = useState(() => searchParams.get('segment') || 'all');
   const [sending, setSending] = useState<'test' | 'all' | null>(null);
+
+  const isSegment = audience !== 'all';
+  const segment = isSegment ? segments.find((s) => String(s.id) === audience) : undefined;
+  const audienceLabel = segment ? `il segmento “${segment.nome}”` : `i ${activeCount} iscritti attivi`;
 
   async function send(mode: 'test' | 'all') {
     if (!subject.trim() || !body.trim()) {
@@ -178,13 +186,14 @@ export function NewsletterComposePage() {
       toast.error('Inserisci un indirizzo email per il test');
       return;
     }
-    if (mode === 'all' && !window.confirm(`Inviare la newsletter a ${activeCount} iscritti attivi?`)) return;
+    if (mode === 'all' && !window.confirm(`Inviare la newsletter a ${audienceLabel}?`)) return;
     setSending(mode);
     try {
       const res = await api.newsletter.send({
         subject: subject.trim(),
         body,
         ...(mode === 'test' ? { test_email: testEmail.trim() } : {}),
+        ...(mode === 'all' && isSegment ? { segment_id: Number(audience) } : {}),
       });
       if (res.smtp === false) {
         toast.warning(res.message || 'SMTP non configurato — nessuna email inviata');
@@ -209,6 +218,33 @@ export function NewsletterComposePage() {
       <PageHeader title="Invia newsletter" subtitle={`Scrivi un messaggio da inviare ai ${activeCount} iscritti attivi.`} />
 
       <form onSubmit={(e) => { e.preventDefault(); send('all'); }} className="max-w-3xl space-y-5">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Destinatari</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="audience">Invia a</Label>
+              <select
+                id="audience"
+                value={audience}
+                onChange={(e) => setAudience(e.target.value)}
+                className="flex h-9 w-full max-w-md rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="all">Tutti gli iscritti alla newsletter ({activeCount})</option>
+                {segments.map((s) => (
+                  <option key={s.id} value={String(s.id)}>Segmento: {s.nome}</option>
+                ))}
+              </select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isSegment
+                ? 'Il segmento raggiunge solo i clienti che hanno dato il consenso marketing (GDPR) e che soddisfano la regola del segmento.'
+                : 'Raggiunge tutti gli indirizzi attivi della newsletter.'}
+            </p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Messaggio</CardTitle>
@@ -252,7 +288,8 @@ export function NewsletterComposePage() {
 
         <div className="flex items-center gap-2">
           <Button type="submit" disabled={sending !== null}>
-            {sending === 'all' ? <Loader2 className="animate-spin" /> : <Send />} Invia a tutti ({activeCount})
+            {sending === 'all' ? <Loader2 className="animate-spin" /> : <Send />}{' '}
+            {segment ? `Invia al segmento “${segment.nome}”` : `Invia a tutti (${activeCount})`}
           </Button>
           <Button type="button" variant="outline" onClick={() => navigate('/newsletter')} disabled={sending !== null}>
             Annulla

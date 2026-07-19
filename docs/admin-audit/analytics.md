@@ -4,6 +4,30 @@
 
 **Status:** VIEW (real data, read-only) · **Priority:** P3
 
+> **✅ Update 2026-07-18 — period selector added & verified.** The time-series is no longer hard-locked
+> to 30 days: a **7g / 30g / 90g / 12 mesi** segmented selector in the header drives the chart and
+> top-products via a validated `?days` param on `/admin/dashboard/chart` + `/top-products` (default 30;
+> the Home dashboard is unaffected). Verified live: switching to "90 giorni" retitles the chart and
+> refetches; `?days=1` correctly returns fewer points. The month-over-month KPI cards intentionally
+> stay fixed-period.
+>
+> **✅ Update 2026-07-19 — chart interactivity added & verified.** `DualChart` gained a **hover tooltip**
+> (date + Fatturato + Ordini for the nearest point), a dashed **guide line**, **point markers** on both
+> series, **date axis labels** (first/middle/last point) and a **max-revenue y-label** — a transparent
+> hit-layer maps the cursor to the nearest data index (markers are HTML so they don't distort under the
+> chart's `preserveAspectRatio="none"`). Verified live: hovering shows "15 lug · Fatturato 56,00 € ·
+> Ordini 2" with two dots and the guide line.
+>
+> **✅ Update 2026-07-19 — period-aware KPIs + conversion metric + label fix.** The 4 KPI cards used to
+> ignore the period selector (they were month-to-date) **and were mislabelled "Fatturato (oggi)"** while
+> the value was actually MTD. Now `/admin/dashboard/kpis` accepts the same **`?days=N`** as the chart:
+> Analytics uses `useRangeKpis(days)` so **all KPIs reflect the selected window** (last N days vs the
+> preceding N days), the "(oggi)" mislabel is gone, and a new **"Conversione"** card (orders ÷ visitors)
+> is added — closing the last two `/analytics` gaps. The **Home** dashboard keeps its month-to-date KPIs
+> (the no-`days` branch is unchanged) and its revenue label was corrected to "Fatturato (mese)". Verified
+> live: `?days=7` → visitors 6, **conversione 50.0%** (3 ÷ 6); no-`days` (Home) → visitors 3, no
+> conversion field; `?days=abc` → falls back to 30 (200, injection-safe).
+
 ---
 
 ## What it is (current state)
@@ -25,8 +49,8 @@ The at-a-glance health screen for the store: revenue/orders/traffic/AOV trends a
 ## What's missing
 
 1. **No date-range selector** — the 30-day / month windows are hardcoded server-side; the operator can't look at "last quarter" or a custom range.
-2. **Static SVG chart** (`DualChart`, `analytics.tsx:10`) — no axis labels, no tooltips, no hover readout.
-3. **No conversion metric** — visitors and orders both exist but the visits→orders % isn't computed.
+2. ~~**Static SVG chart**~~ **DONE (2026-07-19)** — `DualChart` now has hover tooltips, a guide line, point markers, date axis labels and a y-max label (see update note above).
+3. ~~**No conversion metric**~~ **DONE (2026-07-19)** — a "Conversione" KPI (orders ÷ visitors over the selected window) is now on the page. The KPIs are also **period-aware** (`?days`) and the "(oggi)" mislabel is fixed — see the update note above.
 4. Top-products revenue uses `qty*price` and **ignores per-line discounts**, so it slightly overstates.
 
 ## Fix outline

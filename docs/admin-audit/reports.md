@@ -6,7 +6,15 @@
 
 > **✅ Update 2026-07-18 — YTD inconsistency FIXED & verified.** `orders_by_status` is now scoped to
 > the current year (`WHERE YEAR(created_at)=YEAR(CURDATE())`), consistent with the YTD KPIs on the same
-> page (was all-time). Verified live. Date-range picker, margin, and full-report export remain.
+> page (was all-time). Verified live.
+>
+> **✅ Update 2026-07-19 — full-report export added & verified.** A **"Stampa / PDF report"** header
+> action (`printFullReport`) assembles **all four sections** — Riepilogo (YTD KPIs), Fatturato mensile,
+> Ordini per stato, Categorie — into one printable / save-as-PDF document (was: only the categories
+> table exported). Verified against live data: the assembled document has 4 sections with correct row
+> counts and all titles. (The browser blocks `window.open` in the headless preview, so the popup itself
+> couldn't be screenshotted here; the code falls back to a toast when a popup is blocked, and a real
+> click-initiated popup is allowed.) Date-range picker and gross-margin remain.
 
 ---
 
@@ -31,7 +39,7 @@ The deeper analytical companion to the Panoramica: revenue by month, order-statu
 1. **No period picker** — windows are fixed (YTD summary, trailing-12-mo chart).
 2. **`orders_by_status` counts all-time orders, not YTD** — inconsistent with the YTD KPIs on the same page (minor but confusing).
 3. **No margin / cost** — expenses (`store_expenses`) aren't joined, so "redditizie" means gross revenue, not profit.
-4. **No whole-report export** — only the categories table exports; the KPIs and monthly series don't.
+4. ~~**No whole-report export**~~ **DONE (2026-07-19)** — a "Stampa / PDF report" action now packages all four sections into one printable document (see update note above).
 
 ## Fix outline
 

@@ -120,6 +120,7 @@ export const NAV: NavGroup[] = [
     adminOnly: true,
     children: [
       { label: 'Ordini fornitori', to: '/purchase-orders', adminOnly: true , ready: true },
+      { label: 'Fatture fornitori', to: '/supplier-invoices', adminOnly: true, ready: true },
       { label: 'Fornitori', to: '/suppliers', adminOnly: true, ready: true },
     ],
   },

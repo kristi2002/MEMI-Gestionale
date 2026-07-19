@@ -9,7 +9,17 @@
 > 100, no schema change), exposed via `GET /api/newsletter/campaigns`. A new **"Campagne inviate"** page
 > (`MEMI-Admin/src/pages/newsletter-campaigns.tsx`, route `/newsletter/campaigns`, linked from the
 > newsletter header) lists the history with export. Verified live: sending "Saldi Estivi -30%" recorded a
-> campaign row. **Remaining:** segment/audience targeting and an HTML-template body.
+> campaign row.
+>
+> **✅ Update 2026-07-19 — segment/audience targeting FIXED & verified.** The compose page now has a
+> **"Destinatari"** selector: send to *all* newsletter subscribers (default) **or** to a customer
+> **Segment**. `POST /api/newsletter/send` accepts an optional `segment_id`; when set it resolves
+> recipients from `customer_segments` with a **GDPR gate** — only `customers.marketing_consent = 1`
+> rows matching the segment's `min_spent`/`min_orders` rule are emailed (newsletter subscribers who
+> never consented are excluded). The chosen audience is stored on the campaign and shown as a
+> **"Pubblico"** column in the history. Verified live: a send to "Segmento: VIP verify" recorded a
+> campaign with `audience: "Segmento: VIP verify"` and correctly reached 0 recipients (the one VIP has
+> no marketing consent). **Remaining:** an HTML-template body.
 
 ---
 
@@ -32,7 +42,7 @@ A basic email-marketing tool: manage the subscriber list (with GDPR-respecting u
 ## What's missing
 
 1. **Broadcast is fire-and-forget with no persistence.** There's no `newsletter_campaigns` table and no record of past sends — no subject/body archive, no recipient count snapshot, no delivery/open/click results. Once sent, it's gone from the UI.
-2. **No segment/audience targeting.** Send goes to all active subscribers; you can't send to a Segment (see [segments.md](segments.md)) or filter by fonte/topic.
+2. ~~**No segment/audience targeting.**~~ **DONE (2026-07-19)** — the compose page can now target a customer Segment (GDPR-gated on `marketing_consent`); see the update note above. *(Still no fonte/topic filter for the plain subscriber list.)*
 3. **Plain-text only** — the body is HTML-escaped (`newsletter.js:140`); no template or rich formatting.
 4. **Admin can only toggle the unsubscribed flag** — `frequenza` / `topics` (set by the storefront, `account.js`) aren't editable here.
 5. Sending silently no-ops without SMTP (by design, but worth surfacing more prominently than a toast).

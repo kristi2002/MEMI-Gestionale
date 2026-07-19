@@ -1,18 +1,66 @@
-import { Landmark, Globe, TriangleAlert, CheckCircle2 } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Landmark, Globe, TriangleAlert, CheckCircle2, Coins, Receipt, Scale } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { useTaxStats } from '@/hooks/queries';
+import { api } from '@/lib/api';
 import { eur, num } from '@/lib/format';
+import { toast } from 'sonner';
+
+const IVA_RATES = [0, 4, 5, 10, 22];
 
 export function TaxesPage() {
   const query = useTaxStats();
+  const qc = useQueryClient();
   const d = query.data;
   const pct = d ? Math.min(100, (num(d.oss_ytd) / (d.threshold || 10000)) * 100) : 0;
+  const iva = d?.iva;
+  const saldo = iva?.saldo ?? 0;
+  const daVersare = saldo > 0.005; // >0 ⇒ owed to the tax office; ≤0 ⇒ VAT credit
+
+  // Persist the estimated sales VAT rate to store_settings, then refetch so IVA a debito recomputes.
+  const saveRate = useMutation({
+    mutationFn: (rate: string) => api.settings.update({ iva_sales_rate: rate }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['tax-stats'] }); toast.success('Aliquota IVA vendite aggiornata'); },
+    onError: (e) => toast.error(e instanceof Error ? e.message : 'Salvataggio non riuscito'),
+  });
 
   return (
     <div>
-      <PageHeader title="Tasse" subtitle="Soglia OSS UE e vendite verso l'estero." />
+      <PageHeader title="Tasse" subtitle="Liquidazione IVA e soglia OSS UE." />
+
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">IVA · liquidazione stimata (anno in corso)</h2>
+        <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          Aliquota IVA vendite
+          <select
+            className="h-8 rounded-md border border-input bg-card px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60"
+            value={String(iva?.sales_rate ?? 22)}
+            disabled={saveRate.isPending || query.isLoading}
+            onChange={(e) => saveRate.mutate(e.target.value)}
+          >
+            {IVA_RATES.map((r) => <option key={r} value={String(r)}>{r}%</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <KpiCard label="IVA a debito (vendite)" value={eur(iva?.debito ?? 0)} icon={Coins} tone="info" loading={query.isLoading} />
+        <KpiCard label="IVA a credito (spese)" value={eur(iva?.credito ?? 0)} icon={Receipt} tone="success" loading={query.isLoading} />
+        <KpiCard
+          label={daVersare ? 'IVA da versare' : 'IVA a credito (saldo)'}
+          value={eur(Math.abs(saldo))}
+          icon={Scale}
+          tone={daVersare ? 'warning' : 'success'}
+          loading={query.isLoading}
+        />
+      </div>
+      <p className="m-0 mt-2 mb-4 text-xs text-muted-foreground">
+        IVA a debito <strong>stimata</strong> sulle vendite incassate ({num(iva?.sales_rate ?? 22)}% su {eur(iva?.revenue_ytd ?? 0)}, prezzi IVA inclusa);
+        IVA a credito calcolata sulle spese registrate. Valore indicativo — la liquidazione ufficiale spetta al commercialista.
+      </p>
+
+      <h2 className="mb-2 mt-6 text-sm font-semibold uppercase tracking-wide text-muted-foreground">OSS · vendite a distanza intra-UE</h2>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <KpiCard label="Vendite UE (YTD)" value={eur(d?.oss_ytd ?? 0)} icon={Landmark} tone="primary" loading={query.isLoading} />

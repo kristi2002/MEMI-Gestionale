@@ -25,6 +25,7 @@ import { SegmentsPage } from '@/pages/segments';
 import { TransfersPage } from '@/pages/transfers';
 import { AutomationsPage } from '@/pages/automations';
 import { PurchaseOrdersPage } from '@/pages/purchase-orders';
+import { SupplierInvoicesPage } from '@/pages/supplier-invoices';
 import { LoyaltyPage } from '@/pages/loyalty';
 import { SettingsPage } from '@/pages/settings';
 import { LifecyclePage } from '@/pages/lifecycle';
@@ -69,6 +70,7 @@ const READY_PAGES: Record<string, ReactElement> = {
   '/bills': <ExpensesPage />,
   '/purchase-orders': <PurchaseOrdersPage />,
   '/suppliers': <SuppliersPage />,
+  '/supplier-invoices': <SupplierInvoicesPage />,
   '/staff': <StaffPage />,
   '/audit-log': <AuditLogPage />,
   '/settings': <SettingsPage />,

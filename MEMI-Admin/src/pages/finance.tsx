@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Wallet, CalendarDays, Clock, RotateCcw, Truck, TrendingUp, TrendingDown, Receipt } from 'lucide-react';
+import { Wallet, CalendarDays, Clock, RotateCcw, Truck, TrendingUp, TrendingDown, Receipt, ShoppingBag } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -24,12 +24,22 @@ const exportColumns: ExportColumn<Txn>[] = [
   { header: 'Data', accessor: (t) => date(t.created_at) },
 ];
 
+const PERIODS = [
+  { d: 7, l: '7 giorni' },
+  { d: 30, l: '30 giorni' },
+  { d: 90, l: '90 giorni' },
+  { d: 365, l: '12 mesi' },
+];
+
 export function FinancePage() {
-  const query = useFinance();
+  const [days, setDays] = useState(30);
+  const query = useFinance(days);
   const s = query.data?.summary;
+  const p = query.data?.period;
   const byMethod = query.data?.by_method ?? [];
   const recent = query.data?.recent ?? [];
   const methodMax = Math.max(1, ...byMethod.map((m) => num(m.total)));
+  const periodLabel = PERIODS.find((x) => x.d === days)?.l ?? `${days} giorni`;
 
   const columns = useMemo<ColumnDef<Txn, unknown>[]>(
     () => [
@@ -45,8 +55,38 @@ export function FinancePage() {
 
   return (
     <div>
-      <PageHeader title="Finanza" subtitle="Incassi, spese, utile netto e transazioni recenti." />
+      <PageHeader
+        title="Finanza"
+        subtitle="Incassi, spese, utile netto e transazioni recenti."
+        actions={
+          <div className="inline-flex rounded-md border p-0.5">
+            {PERIODS.map((x) => (
+              <button
+                key={x.d}
+                type="button"
+                onClick={() => setDays(x.d)}
+                className={
+                  'rounded px-2.5 py-1 text-xs font-medium transition-colors ' +
+                  (days === x.d ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')
+                }
+              >
+                {x.l}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
+      {/* Date-range view — follows the selector; distinct from the fixed KPIs below. */}
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Ultimi {periodLabel}</h2>
+      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <KpiCard label="Fatturato (periodo)" value={eur(p?.revenue ?? 0)} icon={Wallet} tone="success" loading={query.isLoading} />
+        <KpiCard label="Ordini pagati (periodo)" value={p?.orders ?? 0} icon={ShoppingBag} tone="primary" loading={query.isLoading} />
+        <KpiCard label="Spese (periodo)" value={eur(p?.expenses ?? 0)} icon={Receipt} tone="warning" loading={query.isLoading} />
+        <KpiCard label="Utile netto (periodo)" value={eur(p?.net ?? 0)} icon={(p?.net ?? 0) >= 0 ? TrendingUp : TrendingDown} tone={(p?.net ?? 0) >= 0 ? 'success' : 'danger'} loading={query.isLoading} />
+      </div>
+
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Riepilogo complessivo</h2>
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <KpiCard label="Fatturato totale" value={eur(s?.revenue_total ?? 0)} icon={Wallet} tone="success" loading={query.isLoading} />
         <KpiCard label="Questo mese" value={eur(s?.revenue_month ?? 0)} icon={CalendarDays} tone="primary" loading={query.isLoading} />

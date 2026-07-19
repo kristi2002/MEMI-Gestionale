@@ -37,6 +37,7 @@ router.put('/config', requireAdmin, async (req, res) => {
     pointsPerEuro: 'loyalty_points_per_euro',
     pointValueEur: 'loyalty_point_value_eur',
     minRedeem:     'loyalty_min_redeem',
+    expiryMonths:  'loyalty_expiry_months',
   };
   const allowed = Object.values(FIELD_MAP);
   const normalize = (key, value) => {
@@ -55,7 +56,15 @@ router.put('/config', requireAdmin, async (req, res) => {
       if (value === null) continue;
       entries.push([key, value]);
     }
-    if (!entries.length) return res.status(400).json({ error: 'Nessun campo valido' });
+    // Tiers are a JSON array (nome/min_spent/multiplier), sanitised via loyalty.parseTiers,
+    // stored separately from the scalar settings above.
+    let tiersSaved = false;
+    if (req.body && Array.isArray(req.body.tiers)) {
+      const tiers = loyalty.parseTiers(req.body.tiers);
+      entries.push(['loyalty_tiers', JSON.stringify(tiers)]);
+      tiersSaved = true;
+    }
+    if (!entries.length && !tiersSaved) return res.status(400).json({ error: 'Nessun campo valido' });
     for (const [key, value] of entries) {
       await pool.execute(
         'INSERT INTO store_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)',
@@ -74,6 +83,50 @@ router.put('/config', requireAdmin, async (req, res) => {
   }
 });
 
+/* ── Run points expiry (manual). Body { dryRun } — dryRun reports what WOULD expire. ── */
+router.post('/expire', requireAdmin, async (req, res) => {
+  try {
+    const dryRun = !!(req.body && (req.body.dryRun === true || req.body.dryRun === '1' || req.body.dryRun === 1));
+    const result = await loyalty.expireInactivePoints(pool, { dryRun });
+    if (!dryRun && result.expired > 0) {
+      logAdminAction({
+        adminId: req.admin.id, adminEmail: req.admin.email, action: 'loyalty.points_expire',
+        entityType: 'customers', entityId: 'batch',
+        details: { expired: result.expired, points: result.points, months: result.months },
+      }).catch(() => {});
+    }
+    return res.json(result);
+  } catch (err) {
+    console.error('loyalty expire error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── Issued redemption codes (points → discount). Minted with a 'PUNTI-' prefix by
+      POST /api/auth/loyalty/redeem; single-use, so utilizzi>=max_utilizzi ⇒ già usato. ── */
+router.get('/redemptions', requireAdmin, async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      `SELECT id, code, valore, utilizzi, max_utilizzi, stato, scadenza, created_at
+         FROM discount_codes
+        WHERE code LIKE 'PUNTI-%'
+        ORDER BY created_at DESC
+        LIMIT 500`
+    );
+    const [[summary]] = await pool.execute(
+      `SELECT COUNT(*) AS total,
+              COALESCE(SUM(valore),0) AS total_value,
+              COALESCE(SUM(CASE WHEN utilizzi >= COALESCE(max_utilizzi,1) THEN 1 ELSE 0 END),0) AS used,
+              COALESCE(SUM(CASE WHEN utilizzi >= COALESCE(max_utilizzi,1) THEN valore ELSE 0 END),0) AS used_value
+         FROM discount_codes WHERE code LIKE 'PUNTI-%'`
+    );
+    return res.json({ redemptions: rows, summary });
+  } catch (err) {
+    console.error('loyalty redemptions error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 /* ── Customers ranked by points ── */
 router.get('/customers', requireAdmin, async (req, res) => {
   try {
@@ -88,7 +141,13 @@ router.get('/customers', requireAdmin, async (req, res) => {
     const [[agg]] = await pool.query(
       'SELECT COALESCE(SUM(points),0) AS total_points, COUNT(*) AS members FROM customers'
     );
-    return res.json({ customers: rows, summary: agg });
+    // Tag each customer with their spend-based tier (if any tiers are configured).
+    const cfg = await loyalty.getConfig(pool);
+    const customers = rows.map((r) => {
+      const t = loyalty.tierFor(Number(r.total_spent) || 0, cfg.tiers);
+      return { ...r, tier: t ? t.nome : null };
+    });
+    return res.json({ customers, summary: agg, tiers: cfg.tiers });
   } catch (err) {
     console.error('loyalty customers error', err);
     return res.status(500).json({ error: 'Errore server' });

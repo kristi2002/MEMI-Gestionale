@@ -158,7 +158,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
    With test_email set, sends only to that address (dry-run).
    SMTP unset → responds ok with smtp:false and sends nothing (project convention). */
 router.post('/send', requireAdmin, async (req, res) => {
-  const { subject, body, test_email } = req.body || {};
+  const { subject, body, test_email, segment_id } = req.body || {};
   if (!subject || !body)
     return res.status(400).json({ error: 'Oggetto e messaggio sono obbligatori' });
 
@@ -176,11 +176,25 @@ router.post('/send', requireAdmin, async (req, res) => {
       return res.json({ ok: true, sent: smtpConfigured ? 1 : 0, smtp: smtpConfigured, test: true });
     }
 
-    const [subs] = await pool.execute(
-      'SELECT email FROM newsletter_subscribers WHERE unsubscribed = 0'
-    );
+    // Audience: a customer Segment (GDPR: only consented customers matching its rule),
+    // or all active newsletter subscribers.
+    let subs, audience;
+    if (segment_id) {
+      const [[seg]] = await pool.execute('SELECT * FROM customer_segments WHERE id = ?', [segment_id]);
+      if (!seg) return res.status(404).json({ error: 'Segmento non trovato' });
+      [subs] = await pool.execute(
+        `SELECT email FROM customers
+          WHERE marketing_consent = 1 AND email IS NOT NULL AND email <> ''
+            AND total_spent >= ? AND total_orders >= ?`,
+        [Number(seg.min_spent) || 0, parseInt(seg.min_orders) || 0]
+      );
+      audience = 'Segmento: ' + seg.nome;
+    } else {
+      [subs] = await pool.execute('SELECT email FROM newsletter_subscribers WHERE unsubscribed = 0');
+      audience = 'Tutti gli iscritti';
+    }
     // Record the broadcast in the history (regardless of SMTP, so a no-op send is still logged).
-    recordCampaign({ id: new Date().getTime(), subject: String(subject), recipients: subs.length, smtp: smtpConfigured, created_at: new Date().toISOString() }).catch(() => {});
+    recordCampaign({ id: new Date().getTime(), subject: String(subject), audience, recipients: subs.length, smtp: smtpConfigured, created_at: new Date().toISOString() }).catch(() => {});
     if (!smtpConfigured)
       return res.json({ ok: true, sent: 0, recipients: subs.length, smtp: false,
                         message: 'SMTP non configurato — nessuna email inviata' });

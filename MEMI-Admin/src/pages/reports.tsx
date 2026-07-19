@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { BarChart3, CoinsIcon, ShoppingBag, TrendingUp } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -8,10 +9,12 @@ import { DataTable } from '@/components/data-table/data-table';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { useReports } from '@/hooks/queries';
 import { eur, int } from '@/lib/format';
 import type { ReportsData } from '@/types';
 import type { ExportColumn } from '@/lib/export';
+import { toast } from 'sonner';
 
 type CatRow = ReportsData['top_categories'][number];
 
@@ -20,6 +23,45 @@ const catExport: ExportColumn<CatRow>[] = [
   { header: 'Fatturato', accessor: (c) => eur(c.revenue) },
   { header: 'Unità', accessor: (c) => c.units },
 ];
+
+/** Assemble every section of the report (summary + monthly + by-status + categories)
+ *  into one printable / save-as-PDF document. The per-table CSV/PDF export only covers
+ *  the categories table; this is the whole-report deliverable. */
+function printFullReport(d: ReportsData) {
+  const esc = (s: unknown) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
+  const section = (title: string, head: string[], rows: (string | number)[][]) => `
+    <h2>${esc(title)}</h2>
+    <table><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.length ? rows.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${head.length}">Nessun dato</td></tr>`}</tbody></table>`;
+
+  const today = new Date().toLocaleDateString('it-IT');
+  const html = `<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Report MEMI — ${esc(today)}</title>
+    <style>body{font-family:Inter,system-ui,sans-serif;padding:28px;color:#171B22}
+    h1{font-size:20px;margin:0 0 2px} .sub{color:#666;font-size:12px;margin:0 0 18px}
+    h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#444;margin:20px 0 8px}
+    table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:6px}
+    th,td{border:1px solid #E7E9EE;padding:6px 9px;text-align:left}
+    th{background:#EDECF6} td:last-child,th:last-child{text-align:right}
+    @media print{body{padding:0}}</style></head><body>
+    <h1>Report vendite &amp; performance</h1>
+    <p class="sub">MEMI Abbigliamento · anno in corso · generato il ${esc(today)}</p>
+    ${section('Riepilogo', ['Metrica', 'Valore'], [
+      ['Fatturato YTD', eur(d.summary.revenue_ytd)],
+      ['Ordini YTD', int(d.summary.orders_ytd)],
+      ['Valore medio ordine', eur(d.summary.aov)],
+    ])}
+    ${section('Fatturato mensile (12 mesi)', ['Mese', 'Fatturato'], d.sales_by_month.map((m) => [m.month, eur(m.revenue)]))}
+    ${section('Ordini per stato', ['Stato', 'Ordini'], d.orders_by_status.map((s) => [s.stato, int(s.count)]))}
+    ${section('Categorie più redditizie', ['Categoria', 'Unità', 'Fatturato'], d.top_categories.map((c) => [c.categoria, int(c.units), eur(c.revenue)]))}
+    </body></html>`;
+
+  const w = window.open('', '_blank');
+  if (!w) { toast.error('Popup bloccato dal browser — consenti i popup per stampare il report.'); return; }
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { try { w.print(); } catch { /* preview/headless: content is still viewable */ } }, 300);
+}
 
 function MonthlyBars({ data }: { data: ReportsData['sales_by_month'] }) {
   const max = Math.max(1, ...data.map((d) => d.revenue));
@@ -53,7 +95,15 @@ export function ReportsPage() {
 
   return (
     <div>
-      <PageHeader title="Report" subtitle="Report di vendita e performance (anno in corso)." />
+      <PageHeader
+        title="Report"
+        subtitle="Report di vendita e performance (anno in corso)."
+        actions={
+          <Button variant="outline" size="sm" disabled={!d || query.isLoading} onClick={() => d && printFullReport(d)}>
+            <Printer /> Stampa / PDF report
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <KpiCard label="Fatturato YTD" value={eur(d?.summary.revenue_ytd ?? 0)} icon={CoinsIcon} tone="success" loading={query.isLoading} />

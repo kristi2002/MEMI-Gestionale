@@ -28,6 +28,7 @@ export function EntityFormPage({
   loading,
   mainTitle = 'Dettagli',
   sideTitle = 'Impostazioni',
+  extra,
 }: {
   title: string;
   subtitle?: string;
@@ -42,6 +43,9 @@ export function EntityFormPage({
   mainTitle?: string;
   /** Title of the side rail card (shown only when some fields are `side`). */
   sideTitle?: string;
+  /** Optional custom content rendered full-width below the fields, inside the form.
+   *  Receives the live form state so it can read/write values that participate in submit. */
+  extra?: (values: FormValues, set: (name: string, v: FormValues[string]) => void) => React.ReactNode;
 }) {
   const navigate = useNavigate();
   const [values, setValues] = useState<FormValues>(initial);
@@ -114,6 +118,8 @@ export function EntityFormPage({
               </div>
             )}
           </div>
+
+          {extra && <div className="mt-6">{extra(values, set)}</div>}
 
           <div className="mt-6 flex items-center gap-2">
             <Button type="submit" disabled={busy}>

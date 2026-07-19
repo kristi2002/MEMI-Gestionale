@@ -160,4 +160,53 @@ router.post('/', requireAdmin, async (req, res) => {
   }
 });
 
+/* ═══ Customer address book (customer_addresses) — admin management ═══
+   The storefront Area Personale manages these via /api/auth/addresses; these
+   admin endpoints let staff correct a customer's saved addresses too. */
+
+/* ── POST /api/admin/customers/:id/addresses ── */
+router.post('/:id/addresses', requireAdmin, async (req, res) => {
+  const { label, indirizzo, citta, cap, paese = 'Italia', telefono, is_default } = req.body || {};
+  if (!indirizzo || !String(indirizzo).trim()) return res.status(400).json({ error: 'Indirizzo obbligatorio' });
+  if (!citta || !String(citta).trim()) return res.status(400).json({ error: 'Città obbligatoria' });
+  try {
+    if (is_default) await pool.execute('UPDATE customer_addresses SET is_default = 0 WHERE customer_id = ?', [req.params.id]);
+    const [r] = await pool.execute(
+      `INSERT INTO customer_addresses (customer_id, label, indirizzo, citta, cap, paese, telefono, is_default)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [req.params.id, label || null, String(indirizzo).trim(), String(citta).trim(), cap || null, paese, telefono || null, is_default ? 1 : 0]
+    );
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'customer.address.create', entityType: 'customer', entityId: req.params.id, details: { address_id: r.insertId } }).catch(() => {});
+    return res.status(201).json({ ok: true, id: r.insertId });
+  } catch (err) { console.error('address create', err); return res.status(500).json({ error: 'Errore server' }); }
+});
+
+/* ── PUT /api/admin/customers/:id/addresses/:aid ── */
+router.put('/:id/addresses/:aid', requireAdmin, async (req, res) => {
+  const { label, indirizzo, citta, cap, paese, telefono, is_default } = req.body || {};
+  try {
+    if (is_default) await pool.execute('UPDATE customer_addresses SET is_default = 0 WHERE customer_id = ?', [req.params.id]);
+    const fields = [], vals = [];
+    const add = (c, v) => { if (v !== undefined) { fields.push(`${c} = ?`); vals.push(v); } };
+    add('label', label); add('indirizzo', indirizzo); add('citta', citta); add('cap', cap); add('paese', paese); add('telefono', telefono);
+    if (is_default !== undefined) add('is_default', is_default ? 1 : 0);
+    if (!fields.length) return res.status(400).json({ error: 'Nessun campo da aggiornare' });
+    vals.push(req.params.aid, req.params.id);
+    const [r] = await pool.execute(`UPDATE customer_addresses SET ${fields.join(', ')} WHERE id = ? AND customer_id = ?`, vals);
+    if (!r.affectedRows) return res.status(404).json({ error: 'Indirizzo non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'customer.address.update', entityType: 'customer', entityId: req.params.id, details: { address_id: req.params.aid } }).catch(() => {});
+    return res.json({ ok: true });
+  } catch (err) { console.error('address update', err); return res.status(500).json({ error: 'Errore server' }); }
+});
+
+/* ── DELETE /api/admin/customers/:id/addresses/:aid ── */
+router.delete('/:id/addresses/:aid', requireAdmin, async (req, res) => {
+  try {
+    const [r] = await pool.execute('DELETE FROM customer_addresses WHERE id = ? AND customer_id = ?', [req.params.aid, req.params.id]);
+    if (!r.affectedRows) return res.status(404).json({ error: 'Indirizzo non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'customer.address.delete', entityType: 'customer', entityId: req.params.id, details: { address_id: req.params.aid } }).catch(() => {});
+    return res.json({ ok: true });
+  } catch (err) { console.error('address delete', err); return res.status(500).json({ error: 'Errore server' }); }
+});
+
 module.exports = router;

@@ -13,9 +13,50 @@ const router = require('express').Router();
 const { pool }                     = require('../db');
 const { requireAdmin, requireRole } = require('../middleware/auth');
 
-/* ── GET /api/admin/dashboard/kpis ── */
+const pctChange = (curr, prev) => {
+  if (!prev) return curr > 0 ? '+100%' : '0%';
+  const d = ((curr - prev) / prev) * 100;
+  return `${d >= 0 ? '+' : ''}${d.toFixed(1)}%`;
+};
+
+/* ── GET /api/admin/dashboard/kpis ──
+   No ?days → month-to-date vs previous month (Home dashboard, unchanged).
+   ?days=N  → last N days vs the preceding N days + a conversion metric (Analytics period selector). */
 router.get('/kpis', requireAdmin, async (req, res) => {
   try {
+    if (req.query.days !== undefined) {
+      // Windowed KPIs: current window = last N days, previous window = the N days before that.
+      const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);  // validated int → injection-safe
+      const [[curr]] = await pool.execute(
+        `SELECT COALESCE(SUM(total),0) AS revenue, COUNT(*) AS orders, COALESCE(AVG(total),0) AS aov
+           FROM orders WHERE payment_status='pagato' AND created_at >= DATE_SUB(NOW(), INTERVAL ${days} DAY)`);
+      const [[prev]] = await pool.execute(
+        `SELECT COALESCE(SUM(total),0) AS revenue, COUNT(*) AS orders, COALESCE(AVG(total),0) AS aov
+           FROM orders WHERE payment_status='pagato'
+             AND created_at >= DATE_SUB(NOW(), INTERVAL ${days * 2} DAY)
+             AND created_at <  DATE_SUB(NOW(), INTERVAL ${days} DAY)`);
+      let vCurr = 0, vPrev = 0;
+      try {
+        const [[a]] = await pool.execute(
+          `SELECT COUNT(DISTINCT session_id) AS n FROM page_views WHERE created_at >= DATE_SUB(NOW(), INTERVAL ${days} DAY)`);
+        vCurr = a.n || 0;
+        const [[b]] = await pool.execute(
+          `SELECT COUNT(DISTINCT session_id) AS n FROM page_views
+             WHERE created_at >= DATE_SUB(NOW(), INTERVAL ${days * 2} DAY)
+               AND created_at <  DATE_SUB(NOW(), INTERVAL ${days} DAY)`);
+        vPrev = b.n || 0;
+      } catch (_) { /* page_views may not exist yet on an older DB */ }
+      const convCurr = vCurr ? (Number(curr.orders) / vCurr) * 100 : 0;
+      const convPrev = vPrev ? (Number(prev.orders) / vPrev) * 100 : 0;
+      return res.json({
+        revenue:    { value: `€ ${Number(curr.revenue).toFixed(2)}`, delta: pctChange(Number(curr.revenue), Number(prev.revenue)), up: Number(curr.revenue) >= Number(prev.revenue) },
+        orders:     { value: `${curr.orders}`,                        delta: pctChange(Number(curr.orders), Number(prev.orders)),   up: Number(curr.orders) >= Number(prev.orders) },
+        visitors:   { value: `${vCurr}`,                              delta: pctChange(vCurr, vPrev),                                up: vCurr >= vPrev },
+        aov:        { value: `€ ${Number(curr.aov).toFixed(2)}`,      delta: pctChange(Number(curr.aov), Number(prev.aov)),         up: Number(curr.aov) >= Number(prev.aov) },
+        conversion: { value: `${convCurr.toFixed(1)}%`,               delta: pctChange(convCurr, convPrev),                          up: convCurr >= convPrev },
+      });
+    }
+
     // Current month vs previous month
     const [[curr]] = await pool.execute(`
       SELECT
@@ -51,12 +92,7 @@ router.get('/kpis', requireAdmin, async (req, res) => {
       visitorsYest = vy.n || 0;
     } catch (_) { /* page_views may not exist yet on an older DB */ }
 
-    const pctChange = (curr, prev) => {
-      if (!prev) return curr > 0 ? '+100%' : '0%';
-      const d = ((curr - prev) / prev) * 100;
-      return `${d >= 0 ? '+' : ''}${d.toFixed(1)}%`;
-    };
-
+    // pctChange is the module-level helper (defined above) — shared by both branches.
     return res.json({
       revenue:  { value: `€ ${Number(curr.revenue).toFixed(2)}`,  delta: pctChange(Number(curr.revenue), Number(prev.revenue)),  up: Number(curr.revenue) >= Number(prev.revenue) },
       orders:   { value: `${curr.orders}`,                         delta: pctChange(Number(curr.orders), Number(prev.orders)),    up: Number(curr.orders) >= Number(prev.orders) },
@@ -160,7 +196,30 @@ router.get('/finance', requireAdmin, requireRole('admin'), async (req, res) => {
       SELECT order_number, customer_nome, customer_cognome, total, payment_method, payment_status, created_at
       FROM orders ORDER BY created_at DESC LIMIT 15
     `);
+
+    // Optional date-range view: revenue/orders/expenses/net over the last N days.
+    // Additive — the fixed all-time/MTD/today KPIs above are unchanged.
+    let period = null;
+    if (req.query.days !== undefined) {
+      const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);  // validated int → injection-safe
+      const [[pr]] = await pool.execute(
+        `SELECT COALESCE(SUM(total),0) AS revenue, COUNT(*) AS orders, COALESCE(AVG(total),0) AS aov
+           FROM orders WHERE payment_status='pagato' AND created_at >= DATE_SUB(NOW(), INTERVAL ${days} DAY)`);
+      const [[pe]] = await pool.execute(
+        `SELECT COALESCE(SUM(importo),0) AS expenses
+           FROM store_expenses WHERE COALESCE(data_spesa, created_at) >= DATE_SUB(NOW(), INTERVAL ${days} DAY)`);
+      period = {
+        days,
+        revenue:  Number(pr.revenue),
+        orders:   Number(pr.orders),
+        aov:      Number(pr.aov),
+        expenses: Number(pe.expenses),
+        net:      Number(pr.revenue) - Number(pe.expenses),
+      };
+    }
+
     return res.json({
+      period,
       summary: {
         revenue_total:      Number(totals.revenue_total),
         revenue_month:      Number(mtd.revenue_month),
@@ -296,9 +355,38 @@ router.get('/tax-stats', requireAdmin, async (req, res) => {
        GROUP BY shipping_paese ORDER BY revenue DESC LIMIT 20`);
     const threshold = 10000;
     const ytd = Number(oss.ytd) || 0;
+
+    // ── IVA position (liquidazione IVA) — YTD ──
+    // IVA a debito (on sales) is *estimated* at a single store rate: Italian clothing is the 22%
+    // standard rate, configurable via store_settings.iva_sales_rate. Prices are IVA-inclusive, so
+    // IVA = gross × rate/(100+rate). IVA a credito (on expenses) is EXACT — per-row iva_rate.
+    let salesRate = 22;
+    try {
+      const [[r]] = await pool.execute("SELECT `value` AS v FROM store_settings WHERE `key` = 'iva_sales_rate'");
+      if (r && r.v != null && isFinite(Number(r.v))) salesRate = Number(r.v);
+    } catch (_) { /* store_settings key optional */ }
+    const [[rev]] = await pool.execute(
+      "SELECT COALESCE(SUM(total),0) AS v FROM orders WHERE payment_status='pagato' AND YEAR(created_at)=YEAR(CURDATE())");
+    const revenueYtd = Number(rev.v) || 0;
+    const ivaDebito = salesRate > 0 ? revenueYtd * (salesRate / (100 + salesRate)) : 0;
+    let ivaCredito = 0;
+    try {
+      const [[cr]] = await pool.execute(
+        "SELECT COALESCE(SUM(ROUND(importo - importo/(1+iva_rate/100),2)),0) AS v FROM store_expenses WHERE YEAR(COALESCE(data_spesa, created_at)) = YEAR(CURDATE())");
+      ivaCredito = Number(cr.v) || 0;
+    } catch (_) { /* iva_rate column may not exist on a pre-migration DB */ }
+    const round2 = (n) => Math.round(n * 100) / 100;
+
     return res.json({
       oss_ytd: ytd, foreign_orders: Number(oss.orders) || 0, threshold, over: ytd >= threshold,
       by_country: byCountry.map((r) => ({ paese: r.paese, orders: Number(r.orders), revenue: Number(r.revenue) })),
+      iva: {
+        sales_rate:  salesRate,
+        revenue_ytd: round2(revenueYtd),
+        debito:      round2(ivaDebito),
+        credito:     round2(ivaCredito),
+        saldo:       round2(ivaDebito - ivaCredito),
+      },
     });
   } catch (err) {
     console.error('tax-stats error', err);

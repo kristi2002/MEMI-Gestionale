@@ -10,8 +10,13 @@
 > addresses, newsletter status, wishlist/sizes — which the edit form used to discard. **Email is now
 > editable in admin** (added to the edit form + the backend `PUT` allow-list with `ER_DUP_ENTRY`→409),
 > closing the create-only asymmetry. Verified live: profile shows order #10255 + 261 points; email
-> edit round-trips 200. **Remaining:** editing the multi-address book (`customer_addresses`) from admin
-> is still read-only here.
+> edit round-trips 200.
+>
+> **✅ Update 2026-07-18 (cont.) — multi-address book editing added & verified.** The profile's "Indirizzi
+> salvati" section is now interactive: **add / delete / set-default** for `customer_addresses` via new admin
+> endpoints (`POST`/`PUT`/`DELETE /api/admin/customers/:id/addresses[/:aid]`, audit-logged). Verified live
+> (add → appears as default → delete → gone). This closes the last #12 gap — admin can now fully manage a
+> customer's saved address book, not just the flat mirror.
 
 ---
 

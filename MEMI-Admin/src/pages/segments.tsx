@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { PieChart, Plus, Pencil, Users } from 'lucide-react';
+import { PieChart, Plus, Pencil, Users, Mail } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
@@ -53,6 +53,9 @@ export function SegmentsPage() {
           <div className="flex items-center justify-end gap-1">
             <Button variant="ghost" size="sm" className="h-8" onClick={() => navigate(`/segments/${row.original.id}/customers`)}>
               <Users /> Membri
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8" onClick={() => navigate(`/newsletter/compose?segment=${row.original.id}`)}>
+              <Mail /> Newsletter
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/segments/${row.original.id}/edit`)}>
               <Pencil />

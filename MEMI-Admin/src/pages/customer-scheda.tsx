@@ -1,13 +1,16 @@
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Loader2, Pencil } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { eur, date, num } from '@/lib/format';
+import { toast } from 'sonner';
 
 type OrderLite = { order_number: string; total: number | string; payment_status: string; order_status: string; created_at: string };
 type AddressLite = { id: number; label?: string | null; indirizzo?: string | null; citta?: string | null; cap?: string | null; paese?: string | null; telefono?: string | null; is_default?: number | boolean };
@@ -63,6 +66,33 @@ export function CustomerSchedaPage() {
   const orders = c?.orders ?? [];
   const addresses = c?.addresses ?? [];
   const addressLine = [c?.indirizzo, [c?.cap, c?.citta].filter(Boolean).join(' '), c?.paese].filter(Boolean).join(', ');
+
+  const qc = useQueryClient();
+  const [showAddr, setShowAddr] = useState(false);
+  const [addr, setAddr] = useState({ label: '', indirizzo: '', citta: '', cap: '', paese: 'Italia', telefono: '' });
+  const [busy, setBusy] = useState(false);
+  const refresh = () => qc.invalidateQueries({ queryKey: ['customers', 'detail', id] });
+
+  async function addAddress() {
+    if (!addr.indirizzo.trim() || !addr.citta.trim()) { toast.error('Indirizzo e città sono obbligatori'); return; }
+    setBusy(true);
+    try {
+      await api.customers.addAddress(Number(id), addr);
+      toast.success('Indirizzo aggiunto');
+      setAddr({ label: '', indirizzo: '', citta: '', cap: '', paese: 'Italia', telefono: '' });
+      setShowAddr(false);
+      await refresh();
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Salvataggio non riuscito'); }
+    finally { setBusy(false); }
+  }
+  async function delAddress(aid: number) {
+    try { await api.customers.deleteAddress(Number(id), aid); toast.success('Indirizzo eliminato'); await refresh(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : 'Eliminazione non riuscita'); }
+  }
+  async function makeDefault(aid: number) {
+    try { await api.customers.updateAddress(Number(id), aid, { is_default: true }); await refresh(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : 'Operazione non riuscita'); }
+  }
 
   return (
     <div>
@@ -132,27 +162,58 @@ export function CustomerSchedaPage() {
             </Card>
 
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
                 <CardTitle className="text-base">Indirizzi salvati ({addresses.length})</CardTitle>
+                <Button variant="outline" size="sm" onClick={() => setShowAddr((v) => !v)}>
+                  <Plus /> Aggiungi
+                </Button>
               </CardHeader>
               <CardContent>
+                {showAddr && (
+                  <div className="mb-3 space-y-2 rounded-md border bg-muted/30 p-3">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <Input placeholder="Etichetta (es. Casa)" value={addr.label} onChange={(e) => setAddr({ ...addr, label: e.target.value })} />
+                      <Input placeholder="Telefono" value={addr.telefono} onChange={(e) => setAddr({ ...addr, telefono: e.target.value })} />
+                      <Input className="sm:col-span-2" placeholder="Indirizzo *" value={addr.indirizzo} onChange={(e) => setAddr({ ...addr, indirizzo: e.target.value })} />
+                      <Input placeholder="Città *" value={addr.citta} onChange={(e) => setAddr({ ...addr, citta: e.target.value })} />
+                      <Input placeholder="CAP" value={addr.cap} onChange={(e) => setAddr({ ...addr, cap: e.target.value })} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={addAddress} disabled={busy}>Salva indirizzo</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setShowAddr(false)} disabled={busy}>Annulla</Button>
+                    </div>
+                  </div>
+                )}
                 {addresses.length > 0 ? (
                   <div className="space-y-2">
-                    {addresses.map((a) => (
-                      <div key={a.id} className="rounded-md border px-3 py-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{a.label || 'Indirizzo'}</span>
-                          {(a.is_default === 1 || a.is_default === true) && <Badge variant="secondary">Predefinito</Badge>}
+                    {addresses.map((a) => {
+                      const isDefault = a.is_default === 1 || a.is_default === true;
+                      return (
+                        <div key={a.id} className="flex items-start justify-between gap-2 rounded-md border px-3 py-2 text-sm">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{a.label || 'Indirizzo'}</span>
+                              {isDefault && <Badge variant="secondary">Predefinito</Badge>}
+                            </div>
+                            <div className="text-muted-foreground">
+                              {[a.indirizzo, [a.cap, a.citta].filter(Boolean).join(' '), a.paese].filter(Boolean).join(', ') || '—'}
+                              {a.telefono ? ` · ${a.telefono}` : ''}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            {!isDefault && (
+                              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => makeDefault(a.id)}>Predefinito</Button>
+                            )}
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => delAddress(a.id)} aria-label="Elimina indirizzo">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="text-muted-foreground">
-                          {[a.indirizzo, [a.cap, a.citta].filter(Boolean).join(' '), a.paese].filter(Boolean).join(', ') || '—'}
-                          {a.telefono ? ` · ${a.telefono}` : ''}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Nessun indirizzo salvato nell'Area Personale.</p>
+                  !showAddr && <p className="text-sm text-muted-foreground">Nessun indirizzo salvato nell'Area Personale.</p>
                 )}
               </CardContent>
             </Card>

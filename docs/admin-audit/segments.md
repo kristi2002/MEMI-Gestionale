@@ -8,9 +8,14 @@
 > `GET /admin/segments/:id/customers` endpoint is now wired: `api.segments.customers()` +
 > a **"Membri" row action** → a members page (`MEMI-Admin/src/pages/segment-members.tsx`,
 > route `/segments/:id/customers`) listing who's in the segment, each row linking to the
-> customer profile, with CSV/PDF export. Verified live. **Remaining:** segments still have no
-> direct "email this segment" action (see [newsletter.md](newsletter.md)) and rules are still
-> `min_spent`/`min_orders` only.
+> customer profile, with CSV/PDF export. Verified live.
+>
+> **✅ Update 2026-07-19 — segments are now actionable (email a segment).** Each segment row has a
+> new **"Newsletter"** action that deep-links to the composer (`/newsletter/compose?segment=<id>`)
+> with that segment **preselected** as the audience; the send is GDPR-gated on `marketing_consent`
+> (see [newsletter.md](newsletter.md)). Verified live: the "Newsletter" action opens the composer with
+> "Segmento: VIP verify" already chosen. **Remaining:** rules are still `min_spent`/`min_orders` only
+> (no recency/category predicates); no discount-per-segment or automation link yet.
 
 ---
 
@@ -29,7 +34,7 @@ A way to define reusable customer cohorts (e.g. "VIP: spesa ≥ €300", "Ripetu
 ## What's missing
 
 1. **You can't see who is in a segment.** The backend endpoint `GET /api/admin/segments/:id/customers` exists and works (`segments.js:46-61`, returns up to 500 members) but is **orphaned** — there is **no `customers(id)` method in the API client** (`lib/api.ts:309-314`) and no UI calls it. So a segment is a number with no drill-down or export.
-2. **Segments are purely definitional — nothing downstream consumes them.** No "invia newsletter a questo segmento", "crea sconto per segmento", or link into Automazioni. They don't feed marketing anywhere.
+2. **Segments are purely definitional — nothing downstream consumes them.** ~~No "invia newsletter a questo segmento"~~ **DONE (2026-07-19)** — a segment can now target a newsletter broadcast (row "Newsletter" action → composer preselected). Still no "crea sconto per segmento" or link into Automazioni.
 3. **Rules are limited to `min_spent` + `min_orders`.** No recency (last-order date), location, product/category purchased, or tag-based rules — so real cohorts like "dormienti da 90 giorni" or "hanno comprato scarpe" can't be expressed.
 
 ## Fix outline
