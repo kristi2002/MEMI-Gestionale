@@ -65,6 +65,9 @@ NODE_PATH="$NP" node MEMI-Backend/test/order-status-email.test.cjs || FAIL=1
 sec "6g. Abandoned-cart recovery (modes + categories)"
 NODE_PATH="$NP" node MEMI-Backend/test/carts-recovery.test.cjs || FAIL=1
 
+sec "6h. Fattura PDF (render + embedded product image)"
+NODE_PATH="$NP" node MEMI-Backend/test/invoice-pdf.test.cjs || FAIL=1
+
 sec "6d. Per-product discount scoping (preview ≡ order-creation)"
 NODE_PATH="$NP" node MEMI-Backend/test/discount-scope.test.cjs || FAIL=1
 
