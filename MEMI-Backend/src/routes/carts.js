@@ -146,6 +146,124 @@ async function mintCartDiscount(tipo, valore, days = 14, productIds = null) {
 }
 
 function euro(n) { return (Number(n) || 0).toFixed(2).replace('.', ','); }
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
+ * Build the house-style recovery email (HTML + plain text).
+ *
+ * Mirrors the transactional templates in email.js: cream canvas, white card, brown
+ * header wordmark, Georgia serif headings, brown CTA button. Content adapts to the
+ * four recovery modes:
+ *   • no featured items          → lists the whole cart under "Nel tuo carrello"
+ *   • featured items / category  → lists only those under a "…ti aspettano" heading
+ *   • discount                   → adds a highlighted gift card with the code
+ *
+ * @param {{ cartItems:Array, featured:Array, category:?string,
+ *           discount:?{tipo,valore,code,scadenza,scoped,category}, total:string, link:string }} d
+ * @returns {{ html:string, text:string }}
+ */
+function buildRecoveryEmail(d) {
+  const { cartItems, featured, category, discount, total, link } = d;
+  const hasFeature   = featured.length > 0;
+  const displayItems = hasFeature ? featured : cartItems;
+
+  // Discount copy — computed once so the HTML and the text bodies stay in sync.
+  let desc = '', onScope = '';
+  if (discount) {
+    desc = discount.tipo === 'percentuale' ? `${discount.valore}% di sconto` : `€ ${euro(discount.valore)} di sconto`;
+    onScope = discount.category
+      ? ` su tutta la categoria ${discount.category}`
+      : (discount.scoped ? ' sugli articoli qui sopra' : '');
+  }
+
+  const listHeading = hasFeature
+    ? (category ? `Dalla categoria <strong>${esc(category)}</strong> ti aspettano:` : 'In particolare ti aspettano:')
+    : 'Nel tuo carrello:';
+
+  const itemRows = displayItems.map((it) => {
+    const bits = [];
+    if (it.taglia) bits.push('Taglia ' + esc(it.taglia));
+    if ((Number(it.qty) || 1) > 1) bits.push('Quantità ' + (Number(it.qty) || 1));
+    const meta = bits.length ? `<div style="font-size:12px;color:#a89090;margin-top:2px;">${bits.join(' · ')}</div>` : '';
+    return `
+      <tr>
+        <td style="padding:12px 0;border-bottom:1px solid #efe7e0;">
+          <div style="font-size:14px;color:#3B2B2B;font-weight:600;">${esc(it.name || 'Prodotto')}</div>${meta}
+        </td>
+        <td style="padding:12px 0;border-bottom:1px solid #efe7e0;text-align:right;font-size:14px;color:#3B2B2B;white-space:nowrap;vertical-align:top;">€ ${euro(it.price)}</td>
+      </tr>`;
+  }).join('');
+
+  const itemsCard = `
+    <div style="background:#faf7f4;border-radius:10px;padding:8px 20px 4px;margin:0 0 24px;">
+      <p style="font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:#a89090;margin:12px 0 4px;">${listHeading}</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+        ${itemRows}
+        <tr>
+          <td style="padding:14px 0 8px;font-size:13px;color:#7a6060;">Totale carrello</td>
+          <td style="padding:14px 0 8px;text-align:right;font-size:16px;font-weight:700;color:#3B2B2B;">€ ${total}</td>
+        </tr>
+      </table>
+    </div>`;
+
+  const discountCard = discount ? `
+    <div style="background:#fbf3ef;border:1px dashed #d8b3a6;border-radius:10px;padding:20px 22px;margin:0 0 26px;text-align:center;">
+      <p style="font-size:13px;color:#8a5a4a;margin:0 0 6px;">🎁 Solo per te — <strong>${esc(desc)}${esc(onScope)}</strong></p>
+      <div style="display:inline-block;background:#fff;border:1px solid #e6d3ca;border-radius:8px;padding:10px 22px;margin:6px 0 8px;">
+        <span style="font-family:'Courier New',monospace;font-size:20px;font-weight:700;letter-spacing:3px;color:#3B2B2B;">${esc(discount.code)}</span>
+      </div>
+      <p style="font-size:12px;color:#a89090;margin:6px 0 0;">Valido fino al ${esc(discount.scadenza)}</p>
+    </div>` : '';
+
+  const title = discount ? 'Un regalo per il tuo carrello' : 'Hai dimenticato qualcosa?';
+  const lead  = discount
+    ? 'Abbiamo tenuto da parte i capi del tuo carrello — e questa volta con un piccolo pensiero per te.'
+    : 'Alcuni capi sono ancora nel tuo carrello. Li abbiamo messi da parte, sono qui quando vuoi.';
+
+  const html = `
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title></head>
+<body style="margin:0;padding:0;background:#faf7f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#3B2B2B;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.06);">
+    <div style="background:#3B2B2B;padding:32px 40px;text-align:center;">
+      <h1 style="color:#fff;font-size:28px;font-weight:300;letter-spacing:.12em;margin:0;">Memi<span style="color:#c9897a;">.</span></h1>
+    </div>
+    <div style="padding:36px 40px;">
+      <p style="font-size:22px;font-weight:300;font-family:Georgia,serif;margin:0 0 12px;">${esc(title)}</p>
+      <p style="color:#7a6060;font-size:15px;line-height:1.7;margin:0 0 24px;">Ciao 👋 ${esc(lead)}</p>
+      ${itemsCard}
+      ${discountCard}
+      <div style="text-align:center;margin:4px 0 8px;">
+        <a href="${esc(link)}" style="display:inline-block;padding:15px 40px;background:#3B2B2B;color:#fff;text-decoration:none;font-size:13px;letter-spacing:.1em;text-transform:uppercase;border-radius:6px;">Riprendi il tuo carrello</a>
+      </div>
+      <p style="color:#a89090;font-size:12px;line-height:1.6;text-align:center;margin:18px 0 0;">Spedizione gratuita da € 100 · Reso facile entro 30 giorni</p>
+    </div>
+    <div style="background:#faf7f4;padding:20px 40px;text-align:center;font-size:12px;color:#a89090;">
+      © 2026 Memi Abbigliamento · Milano, Italia
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const textLines = [
+    `Ciao!`, '',
+    discount ? title + '.' : 'Hai ancora degli articoli nel carrello.',
+    `Totale carrello: € ${total}`, '',
+  ];
+  for (const it of displayItems) {
+    textLines.push(`- ${it.name || 'Prodotto'}${it.taglia ? ' (Taglia ' + it.taglia + ')' : ''} — € ${euro(it.price)}`);
+  }
+  if (discount) {
+    textLines.push('', `Codice sconto: ${discount.code} — ${desc}${onScope}, valido fino al ${discount.scadenza}.`);
+  }
+  textLines.push('', `Riprendi il tuo carrello: ${link}`, '', 'Memi Abbigliamento');
+
+  return { html, text: textLines.join('\n') };
+}
 
 /* ── POST /api/admin/carts/:id/recover ──
  * Body (all optional — plain whole-cart reminder when omitted):
@@ -209,32 +327,16 @@ router.post('/:id/recover', requireAdmin, async (req, res) => {
 
     const shop = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
     const link = shop ? (shop + '/cart') : '/cart';
-    const total = euro(cart.total);
 
-    // Build the email body.
-    let html = `<p>Ciao! 👋</p><p>Hai ancora degli articoli nel carrello (totale € ${total}).</p>`;
-    if (featured.length) {
-      const rows = featured.map((it) =>
-        `<li><strong>${(it.name || 'Prodotto')}</strong>${it.taglia ? ' — Taglia ' + it.taglia : ''} — € ${euro(it.price)}</li>`
-      ).join('');
-      const intro = category ? `Dalla categoria <strong>${category}</strong> ti aspettano:` : 'In particolare ti aspettano:';
-      html += `<p>${intro}</p><ul>${rows}</ul>`;
-    }
-    if (discount) {
-      const desc = discount.tipo === 'percentuale' ? `${discount.valore}% di sconto` : `€ ${euro(discount.valore)} di sconto`;
-      const onScope = discount.category
-        ? ` su tutta la categoria ${discount.category}`
-        : (discount.scoped ? ' sugli articoli qui sopra' : '');
-      html += `<p style="font-size:16px">🎁 Solo per te: <strong>${desc}${onScope}</strong> con il codice ` +
-              `<strong style="letter-spacing:1px">${discount.code}</strong> (valido fino al ${discount.scadenza}).</p>`;
-    }
-    html += `<p><a href="${link}">Riprendi il tuo carrello</a></p>`;
+    const { html, text } = buildRecoveryEmail({
+      cartItems, featured, category, discount, total: euro(cart.total), link,
+    });
 
     const subject = discount
       ? 'Un regalo per il tuo carrello 🎁 — Memi'
       : 'Hai lasciato qualcosa nel carrello — Memi';
 
-    await sendGenericEmail({ to: cart.email, subject, html });
+    await sendGenericEmail({ to: cart.email, subject, html, text });
     await pool.execute("UPDATE carts SET status = 'recuperato', recovered_at = NOW() WHERE id = ?", [req.params.id]);
     logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'cart.recover',
       entityType: 'carts', entityId: String(req.params.id),
