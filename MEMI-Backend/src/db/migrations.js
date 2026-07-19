@@ -678,6 +678,19 @@ async function runMigrations(pool) {
     await ensureColumn(pool, 'orders',    'privacy_consent_at',   'privacy_consent_at DATETIME NULL');
     // ── Lifecycle emails: optional date of birth powers the birthday campaign ──
     await ensureColumn(pool, 'customers', 'birthday', 'birthday DATE NULL');
+
+    // ── Indirizzo di fatturazione: single default billing profile (Area Personale · Fatturazione).
+    //    Mirrors the shipping address but adds Italian business/tax fields (P.IVA, CF, SDI, PEC). ──
+    await ensureColumn(pool, 'customers', 'fatt_nome',      'fatt_nome VARCHAR(255) NULL');
+    await ensureColumn(pool, 'customers', 'fatt_indirizzo', 'fatt_indirizzo VARCHAR(255) NULL');
+    await ensureColumn(pool, 'customers', 'fatt_citta',     'fatt_citta VARCHAR(100) NULL');
+    await ensureColumn(pool, 'customers', 'fatt_cap',       'fatt_cap VARCHAR(10) NULL');
+    await ensureColumn(pool, 'customers', 'fatt_provincia', 'fatt_provincia VARCHAR(4) NULL');
+    await ensureColumn(pool, 'customers', 'fatt_paese',     "fatt_paese VARCHAR(100) NULL DEFAULT 'Italia'");
+    await ensureColumn(pool, 'customers', 'fatt_piva',      'fatt_piva VARCHAR(20) NULL');
+    await ensureColumn(pool, 'customers', 'fatt_cf',        'fatt_cf VARCHAR(20) NULL');
+    await ensureColumn(pool, 'customers', 'fatt_sdi',       'fatt_sdi VARCHAR(10) NULL');
+    await ensureColumn(pool, 'customers', 'fatt_pec',       'fatt_pec VARCHAR(255) NULL');
     // ── Newsletter: richer per-subscriber settings + link to a customer ──
     await ensureColumn(pool, 'newsletter_subscribers', 'customer_id', 'customer_id INT NULL');
     await ensureColumn(pool, 'newsletter_subscribers', 'frequenza',   "frequenza VARCHAR(20) NULL");
@@ -698,6 +711,19 @@ async function runMigrations(pool) {
     // Gift-card redemption at checkout (Phase 3 of docs/PRODUCTION-ROADMAP.md).
     await ensureColumn(pool, 'orders', 'gift_card_code', 'gift_card_code VARCHAR(40) NULL');
     await ensureColumn(pool, 'orders', 'gift_card_amount', 'gift_card_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00');
+
+    // ── Order-level billing snapshot (fatturazione). same_as_shipping=1 → invoice uses shipping. ──
+    await ensureColumn(pool, 'orders', 'billing_same_as_shipping', 'billing_same_as_shipping TINYINT(1) NOT NULL DEFAULT 1');
+    await ensureColumn(pool, 'orders', 'billing_nome',      'billing_nome VARCHAR(255) NULL');
+    await ensureColumn(pool, 'orders', 'billing_address',   'billing_address VARCHAR(255) NULL');
+    await ensureColumn(pool, 'orders', 'billing_citta',     'billing_citta VARCHAR(100) NULL');
+    await ensureColumn(pool, 'orders', 'billing_cap',       'billing_cap VARCHAR(10) NULL');
+    await ensureColumn(pool, 'orders', 'billing_provincia', 'billing_provincia VARCHAR(4) NULL');
+    await ensureColumn(pool, 'orders', 'billing_paese',     'billing_paese VARCHAR(100) NULL');
+    await ensureColumn(pool, 'orders', 'billing_piva',      'billing_piva VARCHAR(20) NULL');
+    await ensureColumn(pool, 'orders', 'billing_cf',        'billing_cf VARCHAR(20) NULL');
+    await ensureColumn(pool, 'orders', 'billing_sdi',       'billing_sdi VARCHAR(10) NULL');
+    await ensureColumn(pool, 'orders', 'billing_pec',       'billing_pec VARCHAR(255) NULL');
     // Delivery timestamp — stamped when order_status first becomes 'consegnato';
     // powers the return window (reso can be opened within reso_window_days of delivery).
     await ensureColumn(pool, 'orders', 'delivered_at', 'delivered_at TIMESTAMP NULL');

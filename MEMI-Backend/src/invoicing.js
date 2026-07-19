@@ -38,7 +38,16 @@ async function ensureInvoiceForOrder(db, orderId) {
     const rate       = 22;
     const imponibile = +(grossTotal / (1 + rate / 100)).toFixed(2);
     const tax_amount = +(grossTotal - imponibile).toFixed(2);
-    const indirizzo  = `${order.shipping_address}, ${order.shipping_citta} ${order.shipping_cap}, ${order.shipping_paese}`;
+    // Bill to the billing snapshot when the order used a separate one, else the shipping address.
+    const useBilling = order.billing_same_as_shipping === 0 && order.billing_address;
+    const bAddr = useBilling
+      ? { a: order.billing_address, c: order.billing_citta, cap: order.billing_cap, prov: order.billing_provincia, p: order.billing_paese }
+      : { a: order.shipping_address, c: order.shipping_citta, cap: order.shipping_cap, prov: null, p: order.shipping_paese };
+    const provPart   = bAddr.prov ? ` (${bAddr.prov})` : '';
+    const namePrefix = (useBilling && order.billing_nome) ? `${order.billing_nome} — ` : '';
+    const indirizzo  = `${namePrefix}${bAddr.a}, ${bAddr.c}${provPart} ${bAddr.cap}, ${bAddr.p}`;
+    const inv_piva   = order.billing_piva || null;
+    const inv_cf     = order.billing_cf || null;
 
     for (let attempt = 0; attempt < 2; attempt++) {
       const year = new Date().getFullYear();
@@ -52,10 +61,10 @@ async function ensureInvoiceForOrder(db, orderId) {
         await db.execute(
           `INSERT INTO invoices
              (invoice_number, order_id, customer_nome, customer_cognome, customer_email,
-              indirizzo, subtotal, tax_rate, tax_amount, total, stato, note)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'emessa', ?)`,
+              customer_cf, customer_piva, indirizzo, subtotal, tax_rate, tax_amount, total, stato, note)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'emessa', ?)`,
           [invoice_number, orderId, order.customer_nome, order.customer_cognome,
-           order.customer_email, indirizzo, imponibile, rate, tax_amount, grossTotal,
+           order.customer_email, inv_cf, inv_piva, indirizzo, imponibile, rate, tax_amount, grossTotal,
            'Emessa automaticamente al pagamento']
         );
         return invoice_number;

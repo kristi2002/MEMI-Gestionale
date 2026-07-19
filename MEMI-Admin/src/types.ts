@@ -321,6 +321,7 @@ export interface CartLineItem {
   qty: number;
   price: number;
   taglia: string | null;
+  categoria?: string | null; // cart line
 }
 export interface AbandonedCart {
   id: number;
@@ -338,6 +339,11 @@ export interface CartsResponse {
   carts: AbandonedCart[];
   summary: { count: number; potential_value: number; recoverable: number };
   threshold_minutes: number;
+}
+export interface CartCategory {
+  categoria: string;
+  cart_items: number;
+  catalog_products: number;
 }
 
 export interface Supplier {

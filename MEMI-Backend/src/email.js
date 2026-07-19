@@ -575,4 +575,96 @@ async function sendNewsletterWelcome(email) {
   }
 }
 
-module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification, sendReturnRequestReceived, sendOrderCancellation, sendGenericEmail, sendNewsletterWelcome, isEmailConfigured, verifyEmailTransport };
+/**
+ * Notify the customer that their order changed state (admin action or a courier
+ * update). One email per meaningful transition, always worded for the NEW status
+ * so the customer's latest message is up to date — this is what stops a delivered
+ * order from leaving "il tuo pacco è in viaggio" as the last email they received.
+ *
+ * Handled statuses: in_preparazione, spedito, consegnato. Returns silently for any
+ * other value: 'in_attesa' has no meaningful customer-facing message, and
+ * 'annullato' has its own dedicated sendOrderCancellation email — so callers can
+ * pass any status without risking a double-send.
+ *
+ * Best-effort: no-op without SMTP, never throws to the caller.
+ * @param {{ order_number, nome, email, status, tracking_number?, courier_code? }} data
+ */
+async function sendOrderStatusUpdate(data) {
+  const t = getTransporter();
+  if (!t) return;
+  const { order_number, nome, email, status, tracking_number, courier_code } = data || {};
+  if (!email) return;
+
+  const COPY = {
+    in_preparazione: {
+      subject: `Il tuo ordine ${order_number} è in preparazione — Memi`,
+      title:   'Stiamo preparando il tuo ordine',
+      lead:    `il tuo ordine <strong>${order_number}</strong> è in preparazione. Lo affideremo al corriere a breve e riceverai il numero di tracciamento non appena parte.`,
+      textLead:`il tuo ordine ${order_number} è in preparazione. Lo spediremo a breve.`,
+      badge:   'In preparazione', badgeBg: '#faf7f4', badgeFg: '#a89090',
+    },
+    spedito: {
+      subject: `Il tuo ordine ${order_number} è in viaggio — Memi`,
+      title:   'Il tuo ordine è in viaggio',
+      lead:    `il tuo ordine <strong>${order_number}</strong> è stato spedito ed è in viaggio verso di te.`,
+      textLead:`il tuo ordine ${order_number} è stato spedito ed è in viaggio.`,
+      badge:   'Spedito', badgeBg: '#ecf8f0', badgeFg: '#2d7a4f',
+    },
+    consegnato: {
+      subject: `Il tuo ordine ${order_number} è stato consegnato — Memi`,
+      title:   'Il tuo ordine è stato consegnato',
+      lead:    `il tuo ordine <strong>${order_number}</strong> è stato consegnato. Speriamo che sia tutto di tuo gradimento — grazie per aver scelto Memi.`,
+      textLead:`il tuo ordine ${order_number} è stato consegnato. Grazie per aver scelto Memi!`,
+      badge:   'Consegnato ✓', badgeBg: '#ecf8f0', badgeFg: '#2d7a4f',
+    },
+  };
+
+  const c = COPY[status];
+  if (!c) return; // in_attesa / annullato / unknown → no transactional status email here
+
+  const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
+
+  // Tracking recap — shown for shipped/delivered when a code exists on the order.
+  const trackingBlock = (status !== 'in_preparazione' && tracking_number)
+    ? `<div style="background:#faf7f4;border-radius:8px;padding:16px 20px;margin:0 0 8px;">
+        <p style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#a89090;margin:0 0 4px;">Tracciamento</p>
+        <p style="font-size:16px;font-family:'Courier New',monospace;font-weight:600;margin:0 0 4px;color:#3B2B2B;">${tracking_number}</p>
+        ${courier_code ? `<p style="font-size:12px;color:#888;margin:0;">Corriere: ${courier_code}</p>` : ''}
+      </div>`
+    : '';
+
+  const html = `
+<!DOCTYPE html>
+<html lang="it">
+<head><meta charset="UTF-8"><title>${c.title}</title></head>
+<body style="margin:0;padding:0;background:#faf7f4;font-family:'Helvetica Neue',Arial,sans-serif;color:#3B2B2B;">
+  <div style="max-width:560px;margin:40px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,.06);">
+    <div style="background:#3B2B2B;padding:32px 40px;text-align:center;">
+      <h1 style="color:#fff;font-size:28px;font-weight:300;letter-spacing:.12em;margin:0;">Memi<span style="color:#c9897a;">.</span></h1>
+    </div>
+    <div style="padding:36px 40px;">
+      <p style="font-size:20px;font-weight:300;font-family:Georgia,serif;margin:0 0 8px;">${c.title}</p>
+      <p style="color:#7a6060;margin:0 0 24px;">Ciao ${nome || ''}, ${c.lead}</p>
+      <div style="text-align:center;margin:0 0 24px;">
+        <span style="display:inline-block;background:${c.badgeBg};color:${c.badgeFg};font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:8px 18px;border-radius:999px;">${c.badge}</span>
+      </div>
+      ${trackingBlock}
+    </div>
+    <div style="background:#faf7f4;padding:20px 40px;text-align:center;font-size:12px;color:#a89090;">
+      © 2026 Memi Abbigliamento · Milano, Italia
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `Ciao ${nome || ''},\n\n${c.textLead}${(status !== 'in_preparazione' && tracking_number) ? `\n\nTracking: ${tracking_number}${courier_code ? ' (' + courier_code + ')' : ''}` : ''}\n\nCordiali saluti,\nMemi Abbigliamento`;
+
+  try {
+    await t.sendMail({ from, to: email, subject: c.subject, text, html });
+    console.log(`[email] Sent status update (${status}) ${order_number} → ${email}`);
+  } catch (err) {
+    console.error('[email] Failed to send status update:', err.message);
+  }
+}
+
+module.exports = { sendOrderConfirmation, sendShippingConfirmation, sendWelcomeEmail, sendPasswordReset, sendGiftCardDelivery, sendRefundNotification, sendReturnRequestReceived, sendOrderCancellation, sendOrderStatusUpdate, sendGenericEmail, sendNewsletterWelcome, isEmailConfigured, verifyEmailTransport };

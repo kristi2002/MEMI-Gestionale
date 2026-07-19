@@ -76,6 +76,20 @@ const createOrderSchema = z.object({
   // replaces req.body with the zod-parsed object (unknown keys stripped), so without this
   // field orders.js never saw the id and every SumUp order 402'd AFTER the customer paid.
   sumup_checkout_id: z.string().trim().max(64).optional().nullable(),
+  // ── Indirizzo di fatturazione (billing). MUST be declared here: validateBody strips
+  //    undeclared keys, so an omitted field would silently never reach orders.js. ──
+  billing_same_as_shipping: z.coerce.boolean().optional(),
+  save_billing:             z.coerce.boolean().optional(),
+  billing_nome:      z.string().trim().max(255).optional().nullable(),
+  billing_indirizzo: z.string().trim().max(255).optional().nullable(),
+  billing_citta:     z.string().trim().max(120).optional().nullable(),
+  billing_cap:       z.string().trim().max(20).optional().nullable(),
+  billing_provincia: z.string().trim().max(4).optional().nullable(),
+  billing_paese:     z.string().trim().max(80).optional().nullable(),
+  billing_piva:      z.string().trim().max(20).optional().nullable(),
+  billing_cf:        z.string().trim().max(20).optional().nullable(),
+  billing_sdi:       z.string().trim().max(10).optional().nullable(),
+  billing_pec:       z.string().trim().max(255).optional().nullable(),
   // GDPR consents from the checkout page (privacy required client-side; newsletter optional)
   privacy_consent:  z.coerce.boolean().optional(),
   newsletter_optin: z.coerce.boolean().optional(),

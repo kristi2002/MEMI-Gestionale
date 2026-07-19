@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ShoppingCart, Send, Loader2, BadgePercent } from 'lucide-react';
+import { ShoppingCart, Send, Loader2, BadgePercent, Package, Bell, Tag } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
@@ -27,6 +28,7 @@ import { toast } from 'sonner';
 const exportColumns: ExportColumn<AbandonedCart>[] = [
   { header: 'Cliente', accessor: (c) => c.customer_nome || 'Ospite' },
   { header: 'Email', accessor: (c) => c.email || '' },
+  { header: 'Prodotti', accessor: (c) => c.items?.length ?? 0 },
   { header: 'Articoli', accessor: (c) => c.item_count },
   { header: 'Totale', accessor: (c) => eur(c.total) },
   { header: 'Recuperabile', accessor: (c) => (c.recoverable ? 'Sì' : 'No') },
@@ -53,13 +55,14 @@ export function AbandonedCartsPage() {
         ),
       },
       {
-        accessorKey: 'item_count',
-        header: 'Articoli',
-        cell: ({ row, getValue }) => {
+        id: 'prodotti',
+        header: 'Prodotti',
+        accessorFn: (c) => c.items?.length ?? 0,
+        cell: ({ row }) => {
           const cart = row.original;
-          const n = getValue() as number;
-          const label = `${n} art.`;
-          if (!cart.items?.length) return <span className="text-muted-foreground">{label}</span>;
+          const nProd = cart.items?.length ?? 0;
+          const nArt = cart.item_count;
+          if (!nProd) return <span className="text-muted-foreground">{nArt} art.</span>;
           return (
             <button
               type="button"
@@ -67,10 +70,12 @@ export function AbandonedCartsPage() {
                 e.stopPropagation();
                 setDetail(cart);
               }}
-              className="rounded-md px-2 py-0.5 font-medium text-primary underline-offset-2 hover:bg-primary/10 hover:underline focus:outline-none focus:ring-2 focus:ring-ring"
-              title="Vedi i prodotti nel carrello"
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 font-medium text-primary underline-offset-2 hover:bg-primary/10 hover:underline focus:outline-none focus:ring-2 focus:ring-ring"
+              title="Vedi i prodotti e invia un promemoria"
             >
-              {label}
+              <Package className="h-3.5 w-3.5" />
+              {nProd} {nProd === 1 ? 'prodotto' : 'prodotti'}
+              {nArt !== nProd ? <span className="text-xs font-normal text-muted-foreground">· {nArt} art.</span> : null}
             </button>
           );
         },
@@ -123,18 +128,28 @@ export function AbandonedCartsPage() {
       />
 
       {detail && (
-        <CartReminderDialog cart={detail} onClose={() => setDetail(null)} onSent={() => query.refetch()} />
+        <CartRecoveryDialog cart={detail} onClose={() => setDetail(null)} onSent={() => query.refetch()} />
       )}
     </div>
   );
 }
 
+type Mode = 'reminder' | 'items' | 'discount_items' | 'discount_category';
+
+const MODES: { key: Mode; icon: typeof Bell; label: string; hint: string }[] = [
+  { key: 'reminder', icon: Bell, label: 'Promemoria carrello', hint: 'Ricorda l’intero carrello' },
+  { key: 'items', icon: Package, label: 'Promemoria prodotti', hint: 'Solo i prodotti scelti' },
+  { key: 'discount_items', icon: BadgePercent, label: 'Sconto sui prodotti', hint: 'Codice sui prodotti scelti' },
+  { key: 'discount_category', icon: Tag, label: 'Sconto categoria', hint: 'Codice su una categoria' },
+];
+
 /**
- * Cart detail modal (#1): lists the abandoned products and lets the admin send a
- * promemoria — either a plain reminder, or one carrying a freshly-minted discount
- * code featuring specific selected items. Clicking outside closes it (Radix default).
+ * Cart recovery modal: lists the abandoned products and lets the admin send one of
+ * four things — a plain whole-cart reminder, a reminder featuring only the chosen
+ * products, a discount code scoped to the chosen products, or a discount code scoped
+ * to a whole category present in the cart. Clicking outside closes it (Radix default).
  */
-function CartReminderDialog({
+function CartRecoveryDialog({
   cart,
   onClose,
   onSent,
@@ -144,12 +159,23 @@ function CartReminderDialog({
   onSent: () => void;
 }) {
   const items: CartLineItem[] = cart.items ?? [];
-  const [withDiscount, setWithDiscount] = useState(false);
+  const [mode, setMode] = useState<Mode>('reminder');
   const [tipo, setTipo] = useState<'percentuale' | 'fisso'>('percentuale');
   const [valore, setValore] = useState('10');
-  // Featured items for the discount — default all selected.
   const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map((it) => String(it.id))));
+  const [category, setCategory] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const picksItems = mode === 'items' || mode === 'discount_items';
+  const needsDiscount = mode === 'discount_items' || mode === 'discount_category';
+
+  // Categories present in this cart — fetched lazily only when the category mode is on.
+  const catQ = useQuery({
+    queryKey: ['cart-categories', cart.id],
+    queryFn: () => api.carts.categories(cart.id),
+    enabled: mode === 'discount_category',
+  });
+  const categories = catQ.data?.categories ?? [];
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -159,26 +185,39 @@ function CartReminderDialog({
       return next;
     });
   }
+  const allSelected = selected.size === items.length && items.length > 0;
 
   async function send() {
     if (!cart.recoverable) {
       toast.error('Questo carrello non ha un’email per il recupero');
       return;
     }
+    if (picksItems && selected.size === 0) {
+      toast.error('Seleziona almeno un prodotto');
+      return;
+    }
+    if (mode === 'discount_category' && !category) {
+      toast.error('Scegli una categoria');
+      return;
+    }
     const val = Number(valore);
-    if (withDiscount && (!(val > 0) || (tipo === 'percentuale' && val > 100))) {
+    if (needsDiscount && (!(val > 0) || (tipo === 'percentuale' && val > 100))) {
       toast.error('Inserisci un valore sconto valido');
       return;
     }
+
+    let payload: Parameters<typeof api.carts.recover>[1];
+    if (mode === 'reminder') payload = undefined;
+    else if (mode === 'items') payload = { item_ids: [...selected] };
+    else if (mode === 'discount_items') payload = { discount: { tipo, valore: val }, item_ids: [...selected] };
+    else payload = { discount: { tipo, valore: val }, category };
+
     setBusy(true);
     try {
-      const payload = withDiscount
-        ? { discount: { tipo, valore: val }, item_ids: [...selected] }
-        : undefined;
       const r = await api.carts.recover(cart.id, payload);
       toast.success(
         r.discount_code
-          ? `Promemoria con codice ${r.discount_code} inviato a ${r.sent_to}`
+          ? `Inviato a ${r.sent_to} · codice ${r.discount_code}`
           : `Promemoria inviato a ${r.sent_to}`,
       );
       onSent();
@@ -190,25 +229,50 @@ function CartReminderDialog({
     }
   }
 
+  const sendLabel =
+    mode === 'reminder'
+      ? 'Invia promemoria'
+      : mode === 'items'
+        ? 'Invia promemoria prodotti'
+        : 'Invia con sconto';
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-muted-foreground" />
-            Carrello di {cart.customer_nome || 'Ospite anonimo'}
+            Recupera il carrello di {cart.customer_nome || 'Ospite anonimo'}
           </DialogTitle>
           <DialogDescription>
-            {cart.email || 'Nessuna email'} · {cart.item_count} articoli · ultima attività {ago(cart.updated_at)}
+            {cart.email || 'Nessuna email'} · {items.length} prodotti · {cart.item_count} articoli · ultima attività {ago(cart.updated_at)}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="divide-y rounded-lg border">
+        {/* Product list */}
+        <div className="max-h-64 divide-y overflow-y-auto rounded-lg border">
+          {picksItems && (
+            <div className="flex items-center justify-between bg-muted/40 px-3 py-1.5 text-xs">
+              <span className="text-muted-foreground">{selected.size} di {items.length} selezionati</span>
+              <button
+                type="button"
+                className="font-medium text-primary hover:underline"
+                onClick={() => setSelected(allSelected ? new Set() : new Set(items.map((it) => String(it.id))))}
+              >
+                {allSelected ? 'Deseleziona tutti' : 'Seleziona tutti'}
+              </button>
+            </div>
+          )}
           {items.map((it, i) => {
             const id = String(it.id);
+            const covered = mode === 'discount_category' && !!category && it.categoria === category;
+            const dimmed = mode === 'discount_category' && !!category && it.categoria !== category;
             return (
-              <label key={`${id}-${i}`} className="flex cursor-pointer items-center gap-3 p-3 hover:bg-muted/40">
-                {withDiscount && (
+              <label
+                key={`${id}-${i}`}
+                className={`flex items-center gap-3 p-3 ${picksItems ? 'cursor-pointer hover:bg-muted/40' : ''} ${dimmed ? 'opacity-40' : ''}`}
+              >
+                {picksItems && (
                   <input
                     type="checkbox"
                     checked={selected.has(id)}
@@ -221,7 +285,14 @@ function CartReminderDialog({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate font-medium">{it.name || 'Prodotto'}</div>
-                  {it.taglia ? <div className="text-xs text-muted-foreground">Taglia: {it.taglia}</div> : null}
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                    {it.categoria ? (
+                      <span className={`rounded px-1.5 py-0.5 ${covered ? 'bg-primary/15 font-medium text-primary' : 'bg-muted'}`}>
+                        {it.categoria}
+                      </span>
+                    ) : null}
+                    {it.taglia ? <span>Taglia: {it.taglia}</span> : null}
+                  </div>
                 </div>
                 <div className="flex-none text-right text-sm">
                   <div className="font-semibold">{eur(it.price * it.qty)}</div>
@@ -237,48 +308,86 @@ function CartReminderDialog({
           <span className="text-base font-semibold">{eur(cart.total)}</span>
         </div>
 
-        {/* Promemoria options */}
-        <div className="rounded-lg border bg-muted/30 p-3">
-          <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
-              checked={withDiscount}
-              onChange={(e) => setWithDiscount(e.target.checked)}
-              className="h-4 w-4 accent-[hsl(var(--primary))]"
-            />
-            <BadgePercent className="h-4 w-4 text-muted-foreground" />
-            Aggiungi uno sconto per gli articoli selezionati
-          </label>
-          {withDiscount && (
-            <div className="mt-3 flex flex-wrap items-end gap-3">
-              <div className="space-y-1">
-                <span className="text-xs text-muted-foreground">Tipo</span>
-                <select
-                  value={tipo}
-                  onChange={(e) => setTipo(e.target.value as 'percentuale' | 'fisso')}
-                  className="flex h-9 w-36 rounded-md border border-input bg-background px-2 text-sm"
-                >
-                  <option value="percentuale">Percentuale (%)</option>
-                  <option value="fisso">Fisso (€)</option>
-                </select>
-              </div>
-              <div className="space-y-1">
-                <span className="text-xs text-muted-foreground">Valore</span>
-                <Input
-                  type="number"
-                  min={1}
-                  value={valore}
-                  onChange={(e) => setValore(e.target.value)}
-                  className="h-9 w-28"
-                />
-              </div>
-              <p className="flex-1 text-xs text-muted-foreground">
-                Verrà generato un codice sconto monouso (valido 14 giorni), incluso nell’email e valido
-                <strong> solo per gli articoli selezionati</strong> al checkout.
-              </p>
-            </div>
-          )}
+        {/* Mode selector */}
+        <div className="grid grid-cols-2 gap-2">
+          {MODES.map((m) => {
+            const Icon = m.icon;
+            const active = mode === m.key;
+            return (
+              <button
+                key={m.key}
+                type="button"
+                onClick={() => setMode(m.key)}
+                className={`flex items-start gap-2 rounded-lg border p-2.5 text-left transition-colors ${
+                  active ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/40'
+                }`}
+              >
+                <Icon className={`mt-0.5 h-4 w-4 flex-none ${active ? 'text-primary' : 'text-muted-foreground'}`} />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium leading-tight">{m.label}</span>
+                  <span className="block text-xs text-muted-foreground">{m.hint}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
+
+        {/* Category picker (category-discount mode) */}
+        {mode === 'discount_category' && (
+          <div className="space-y-1.5">
+            <span className="text-xs text-muted-foreground">Categoria del carrello</span>
+            {catQ.isLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Carico le categorie…
+              </div>
+            ) : categories.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nessuna categoria riconosciuta per i prodotti di questo carrello.</p>
+            ) : (
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+              >
+                <option value="">Scegli una categoria…</option>
+                {categories.map((c) => (
+                  <option key={c.categoria} value={c.categoria}>
+                    {c.categoria} — {c.cart_items} nel carrello · sconto su {c.catalog_products} prodotti
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+
+        {/* Discount fields (discount modes) */}
+        {needsDiscount && (
+          <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/30 p-3">
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Tipo</span>
+              <select
+                value={tipo}
+                onChange={(e) => setTipo(e.target.value as 'percentuale' | 'fisso')}
+                className="flex h-9 w-36 rounded-md border border-input bg-background px-2 text-sm"
+              >
+                <option value="percentuale">Percentuale (%)</option>
+                <option value="fisso">Fisso (€)</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Valore</span>
+              <Input type="number" min={1} value={valore} onChange={(e) => setValore(e.target.value)} className="h-9 w-28" />
+            </div>
+            <p className="flex-1 text-xs text-muted-foreground">
+              Codice sconto monouso (valido 14 giorni), incluso nell’email e valido{' '}
+              <strong>
+                {mode === 'discount_category'
+                  ? 'solo per i prodotti della categoria scelta'
+                  : 'solo per i prodotti selezionati'}
+              </strong>{' '}
+              al checkout.
+            </p>
+          </div>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={busy}>
@@ -286,7 +395,7 @@ function CartReminderDialog({
           </Button>
           <Button onClick={send} disabled={busy || !cart.recoverable}>
             {busy ? <Loader2 className="animate-spin" /> : <Send />}
-            {withDiscount ? 'Invia promemoria con sconto' : 'Invia promemoria'}
+            {sendLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

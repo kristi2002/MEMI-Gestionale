@@ -136,6 +136,8 @@ router.get('/me', requireCustomer, async (req, res) => {
   try {
     const [[user]] = await pool.execute(
       `SELECT id, email, nome, cognome, telefono, indirizzo, citta, cap, paese,
+              fatt_nome, fatt_indirizzo, fatt_citta, fatt_cap, fatt_provincia, fatt_paese,
+              fatt_piva, fatt_cf, fatt_sdi, fatt_pec,
               wishlist, sizes, preferences, lang, birthday,
               total_orders, total_spent, COALESCE(points,0) AS points, created_at
        FROM customers WHERE id = ?`,
@@ -212,12 +214,15 @@ router.post('/loyalty/redeem', requireCustomer, async (req, res) => {
 /* ── PUT /api/auth/me ── */
 router.put('/me', requireCustomer, async (req, res) => {
   const { nome, cognome, telefono, indirizzo, citta, cap, paese, password, email, lang, birthday } = req.body;
+  // Indirizzo di fatturazione (single default billing profile). All optional strings; '' clears.
+  const { fatt_nome, fatt_indirizzo, fatt_citta, fatt_cap, fatt_provincia, fatt_paese, fatt_piva, fatt_cf, fatt_sdi, fatt_pec } = req.body;
   const { wishlist, sizes, preferences } = req.body;
   // Validate optional date of birth up front so a malformed value is a 400, never a 500.
   if (birthday !== undefined && birthday !== null && birthday !== '' && !/^\d{4}-\d{2}-\d{2}$/.test(birthday))
     return res.status(400).json({ error: 'Data di nascita non valida (usa YYYY-MM-DD)' });
   // Reject explicitly non-string values up front (e.g. email:null) → 400, never a 500
-  for (const [k, v] of Object.entries({ nome, cognome, telefono, indirizzo, citta, cap, paese, password, email, lang })) {
+  for (const [k, v] of Object.entries({ nome, cognome, telefono, indirizzo, citta, cap, paese, password, email, lang,
+        fatt_nome, fatt_indirizzo, fatt_citta, fatt_cap, fatt_provincia, fatt_paese, fatt_piva, fatt_cf, fatt_sdi, fatt_pec })) {
     if (v !== undefined && v !== null && typeof v !== 'string')
       return res.status(400).json({ error: `Campo non valido: ${k}` });
   }
@@ -241,6 +246,17 @@ router.put('/me', requireCustomer, async (req, res) => {
     add('citta',     citta);
     add('cap',       cap);
     add('paese',     paese);
+    // Billing profile fields (fatturazione)
+    add('fatt_nome',      fatt_nome);
+    add('fatt_indirizzo', fatt_indirizzo);
+    add('fatt_citta',     fatt_citta);
+    add('fatt_cap',       fatt_cap);
+    add('fatt_provincia', fatt_provincia);
+    add('fatt_paese',     fatt_paese);
+    add('fatt_piva',      fatt_piva);
+    add('fatt_cf',        fatt_cf);
+    add('fatt_sdi',       fatt_sdi);
+    add('fatt_pec',       fatt_pec);
     add('lang',      lang);
     // birthday: '' clears it (add() maps '' → NULL); a valid YYYY-MM-DD sets it.
     if (birthday !== undefined) { fields.push('birthday = ?'); vals.push(birthday === '' || birthday === null ? null : birthday); }

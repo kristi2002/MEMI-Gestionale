@@ -18,7 +18,7 @@
 const router = require('express').Router();
 const { pool }                           = require('../db');
 const { requireCustomer, requireAdmin, requirePermission, optionalCustomer } = require('../middleware/auth');
-const { sendOrderConfirmation, sendShippingConfirmation, sendOrderCancellation } = require('../email');
+const { sendOrderConfirmation, sendShippingConfirmation, sendOrderCancellation, sendOrderStatusUpdate } = require('../email');
 const { awardPurchasePoints } = require('../loyalty');
 const { compensateOrder } = require('../order-compensation');
 const { issueProviderRefund, canRefund } = require('../refunds');
@@ -126,6 +126,27 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
 
   if (!nome || !cognome || !email || !indirizzo || !citta || !cap)
     return res.status(400).json({ error: 'Dati di spedizione incompleti' });
+
+  // ── Indirizzo di fatturazione (billing) ─────────────────────────────────
+  // Default: bill to the shipping address. If a different one was entered, snapshot
+  // those fields; tax identifiers (P.IVA/CF/SDI/PEC) are always captured when present.
+  const billingSame = req.body.billing_same_as_shipping === undefined ? true : !!req.body.billing_same_as_shipping;
+  const bClean = (v) => { const t = (v == null ? '' : String(v)).trim(); return t === '' ? null : t; };
+  const billing = {
+    same:      billingSame ? 1 : 0,
+    nome:      billingSame ? `${nome} ${cognome}`.trim() : bClean(req.body.billing_nome),
+    address:   billingSame ? indirizzo : bClean(req.body.billing_indirizzo),
+    citta:     billingSame ? citta : bClean(req.body.billing_citta),
+    cap:       billingSame ? cap : bClean(req.body.billing_cap),
+    provincia: billingSame ? null : bClean(req.body.billing_provincia),
+    paese:     billingSame ? paese : (bClean(req.body.billing_paese) || 'Italia'),
+    piva:      bClean(req.body.billing_piva),
+    cf:        bClean(req.body.billing_cf),
+    sdi:       bClean(req.body.billing_sdi),
+    pec:       bClean(req.body.billing_pec),
+  };
+  if (!billingSame && (!billing.address || !billing.citta || !billing.cap))
+    return res.status(400).json({ error: 'Dati di fatturazione incompleti' });
   if (!Array.isArray(items) || !items.length)
     return res.status(400).json({ error: 'Il carrello è vuoto' });
   if (!PAYMENT_METHODS.includes(payment_method))
@@ -355,15 +376,20 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
            (order_number, customer_id, customer_nome, customer_cognome, customer_email,
             customer_telefono, shipping_address, shipping_citta, shipping_cap, shipping_paese,
             subtotal, shipping_cost, discount_amount, total, discount_code, gift_card_code,
-            gift_card_amount, payment_method, payment_status, payment_intent_id, privacy_consent_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            gift_card_amount, payment_method, payment_status, payment_intent_id, privacy_consent_at,
+            billing_same_as_shipping, billing_nome, billing_address, billing_citta, billing_cap,
+            billing_provincia, billing_paese, billing_piva, billing_cf, billing_sdi, billing_pec)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                 ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [orderNumber, customerId, nome, cognome, email, telefono || null,
          indirizzo, citta, cap, paese,
          subtotal, shippingCost, discountAmount, total,
          discountCode ? discountCode.code : null, giftCard ? giftCard.code : null,
          giftCardAmount, payment_method,
          paymentStatus, paymentRef,
-         req.body.privacy_consent ? new Date() : null]
+         req.body.privacy_consent ? new Date() : null,
+         billing.same, billing.nome, billing.address, billing.citta, billing.cap,
+         billing.provincia, billing.paese, billing.piva, billing.cf, billing.sdi, billing.pec]
       );
       const orderId = result.insertId;
 
@@ -429,6 +455,15 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
       }
 
       // Fiscal document must follow the payment (fire-and-forget; never blocks the order)
+      // Persist the billing address to the customer profile when asked (best-effort, non-fatal).
+      if (customerId && req.body.save_billing && !billingSame) {
+        pool.execute(
+          `UPDATE customers SET fatt_nome=?, fatt_indirizzo=?, fatt_citta=?, fatt_cap=?, fatt_provincia=?,
+                 fatt_paese=?, fatt_piva=?, fatt_cf=?, fatt_sdi=?, fatt_pec=? WHERE id=?`,
+          [billing.nome, billing.address, billing.citta, billing.cap, billing.provincia,
+           billing.paese, billing.piva, billing.cf, billing.sdi, billing.pec, customerId]
+        ).catch(() => {});
+      }
       if (paymentStatus === 'pagato') ensureInvoiceForOrder(pool, orderId).catch(() => {});
 
       sendOrderConfirmation({
@@ -838,6 +873,15 @@ router.put('/admin/:id/status', requireAdmin, requirePermission('orders'), async
         order_number: order.order_number, nome: order.customer_nome, email: order.customer_email,
         refunded: refundInfo.markRefunded, amount: refundInfo.markRefunded ? (Number(order.total) || 0) : 0,
       }).catch(() => {});
+    } else if (order_status && order_status !== order.order_status) {
+      // Every real order-status transition emails the customer a message worded for
+      // the NEW status. `order` is the pre-update locked row, so order.order_status is
+      // the OLD status. Cancellations are handled above; in_attesa is a silent no-op
+      // inside sendOrderStatusUpdate, so passing any status here is safe.
+      sendOrderStatusUpdate({
+        order_number: order.order_number, nome: order.customer_nome, email: order.customer_email,
+        status: order_status, tracking_number: order.tracking_number, courier_code: order.courier_code,
+      }).catch(() => {});
     }
 
     logAdminAction({
@@ -981,7 +1025,7 @@ router.post('/admin/:id/send-tracking', requireAdmin, requirePermission('orders'
 router.post('/admin/:id/refresh-tracking', requireAdmin, requirePermission('orders'), async (req, res) => {
   try {
     const [[o]] = await pool.execute(
-      'SELECT id, order_number, courier_code, tracking_number, order_status FROM orders WHERE id = ?',
+      'SELECT id, order_number, customer_nome, customer_email, courier_code, tracking_number, order_status FROM orders WHERE id = ?',
       [req.params.id]
     );
     if (!o) return res.status(404).json({ error: 'Ordine non trovato' });
@@ -1019,6 +1063,15 @@ router.post('/admin/:id/refresh-tracking', requireAdmin, requirePermission('orde
       entityType: 'order', entityId: req.params.id,
       details: { tracking_number: o.tracking_number, status, simulated: !!result.simulated },
     }).catch(() => {});
+
+    // Courier reported delivery → send the same transactional "consegnato" email the
+    // manual "Segna consegnato" action sends, so the customer isn't left on "in viaggio".
+    if (orderPromoted) {
+      sendOrderStatusUpdate({
+        order_number: o.order_number, nome: o.customer_nome, email: o.customer_email,
+        status: 'consegnato', tracking_number: o.tracking_number, courier_code: o.courier_code,
+      }).catch(() => {});
+    }
 
     return res.json({
       ok: true,

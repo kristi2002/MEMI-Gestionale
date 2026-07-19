@@ -657,13 +657,79 @@
           <!-- RIGHT: Indirizzo di fatturazione -->
           <div class="address-col">
             <h3 class="field-group-title">Indirizzo di fatturazione</h3>
-            <div class="billing-card">
-              <p class="billing-card-state">Coincide con l'indirizzo di consegna</p>
-              <button type="button" class="billing-edit" onclick="toggleBillingNote()">Modifica</button>
+
+            <label class="billing-same-row" style="display:flex;align-items:center;gap:8px;font-size:var(--text-sm);color:var(--brown-mid);cursor:pointer;margin-bottom:var(--space-3);">
+              <input type="checkbox" id="billingSameChk" checked onchange="toggleBillingFields()" />
+              Uguale all'indirizzo di consegna
+            </label>
+
+            <div id="billingFields" style="display:none;">
+              <div class="field-row">
+                <div class="field">
+                  <label for="billNome">Ragione sociale / Nome e cognome</label>
+                  <input type="text" id="billNome" placeholder="Mario Rossi / Azienda S.r.l." autocomplete="organization" />
+                </div>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="billAddress">Indirizzo</label>
+                  <input type="text" id="billAddress" placeholder="Via Roma, 12" autocomplete="billing street-address" />
+                </div>
+              </div>
+              <div class="field-row two-col">
+                <div class="field">
+                  <label for="billCity">Città</label>
+                  <input type="text" id="billCity" placeholder="Milano" autocomplete="billing address-level2" />
+                </div>
+                <div class="field">
+                  <label for="billCap">CAP</label>
+                  <input type="text" id="billCap" placeholder="20121" autocomplete="billing postal-code" inputmode="numeric" />
+                </div>
+              </div>
+              <div class="field-row two-col">
+                <div class="field">
+                  <label for="billProvince">Provincia</label>
+                  <input type="text" id="billProvince" placeholder="MI" maxlength="2" />
+                </div>
+                <div class="field">
+                  <label for="billCountry">Paese</label>
+                  <select id="billCountry" autocomplete="billing country">
+                    <option value="IT" selected>Italia</option>
+                    <option value="DE">Germania</option>
+                    <option value="FR">Francia</option>
+                    <option value="ES">Spagna</option>
+                    <option value="NL">Paesi Bassi</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field-row two-col">
+                <div class="field">
+                  <label for="billPiva">Partita IVA <span style="color:var(--brown-light);font-weight:400;">(facolt.)</span></label>
+                  <input type="text" id="billPiva" placeholder="IT01234567890" inputmode="numeric" />
+                </div>
+                <div class="field">
+                  <label for="billCf">Codice Fiscale <span style="color:var(--brown-light);font-weight:400;">(facolt.)</span></label>
+                  <input type="text" id="billCf" placeholder="RSSMRA80A01F205X" maxlength="16" style="text-transform:uppercase;" />
+                </div>
+              </div>
+              <div class="field-row two-col">
+                <div class="field">
+                  <label for="billSdi">Codice SDI <span style="color:var(--brown-light);font-weight:400;">(facolt.)</span></label>
+                  <input type="text" id="billSdi" placeholder="0000000" maxlength="7" style="text-transform:uppercase;" />
+                </div>
+                <div class="field">
+                  <label for="billPec">PEC <span style="color:var(--brown-light);font-weight:400;">(facolt.)</span></label>
+                  <input type="email" id="billPec" placeholder="nome@pec.it" autocomplete="off" />
+                </div>
+              </div>
+              <label id="saveBillingRow" style="display:none;align-items:center;gap:8px;font-size:var(--text-xs);color:var(--brown-mid);cursor:pointer;margin-top:var(--space-1);">
+                <input type="checkbox" id="saveBillingChk" />
+                Salva questi dati di fatturazione per i prossimi ordini
+              </label>
             </div>
-            <p class="billing-note" id="billingNote" style="display:none;">
-              La fattura viene emessa sull'indirizzo di consegna inserito qui sopra. Per una fatturazione diversa (es. azienda), scrivici a
-              <a href="mailto:info@memi.testdemo.it" style="text-decoration:underline;">info@memi.testdemo.it</a> dopo l'ordine.
+
+            <p class="billing-note" style="margin-top:var(--space-3);">
+              P.IVA / Codice Fiscale / SDI / PEC sono facoltativi e servono per la fatturazione aziendale.
             </p>
           </div>
 
@@ -1231,6 +1297,17 @@
       if (emailEl && emailEl.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value)) {
         emailEl.style.borderColor = 'var(--blush-dark)'; valid = false;
       }
+      // Billing: when a separate billing address is requested, its address fields are required.
+      var bSameChk = el('billingSameChk');
+      if (bSameChk && !bSameChk.checked) {
+        ['billAddress', 'billCity', 'billCap'].forEach(function(id) {
+          var fld = el(id);
+          if (!fld || !fld.value.trim()) {
+            if (fld) { fld.style.borderColor = 'var(--blush-dark)'; fld.style.boxShadow = '0 0 0 3px var(--blush-light)'; }
+            valid = false;
+          } else { fld.style.borderColor = ''; fld.style.boxShadow = ''; }
+        });
+      }
       if (el('step1Error')) el('step1Error').style.display = valid ? 'none' : 'flex';
       return valid;
     }
@@ -1279,6 +1356,8 @@
       if (inEl)  inEl.style.display  = loggedIn ? 'block' : 'none';
       if (outEl) outEl.style.display = loggedIn ? 'none'  : 'block';
       if (saveRow) saveRow.style.display = loggedIn ? 'flex' : 'none';
+      var saveBillRow = el('saveBillingRow');
+      if (saveBillRow) saveBillRow.style.display = loggedIn ? 'flex' : 'none';
 
       // "Dati personali" is read-only and sourced from the account once logged in —
       // there is no account to read from for a guest, so their fields stay editable.
@@ -1298,6 +1377,14 @@
           if (el('lastName')  && !el('lastName').value)  el('lastName').value  = u.cognome || '';
           if (el('email')     && !el('email').value)     el('email').value    = u.email || '';
           if (el('phone')     && !el('phone').value && u.telefono) el('phone').value = u.telefono;
+          // Prefill the (hidden) billing form from the saved billing profile, so unchecking
+          // "Uguale all'indirizzo di consegna" reveals the customer's data ready to go.
+          var setB = function(id, v){ var e = el(id); if (e && !e.value && v) e.value = v; };
+          setB('billNome', u.fatt_nome); setB('billAddress', u.fatt_indirizzo);
+          setB('billCity', u.fatt_citta); setB('billCap', u.fatt_cap);
+          setB('billProvince', u.fatt_provincia);
+          setB('billPiva', u.fatt_piva); setB('billCf', u.fatt_cf);
+          setB('billSdi', u.fatt_sdi); setB('billPec', u.fatt_pec);
           var txt = el('personalReadonlyText');
           if (txt) {
             txt.innerHTML = '<strong style="color:var(--espresso);">' + fullName + '</strong><br>' +
@@ -1445,12 +1532,13 @@
       });
     }
 
-    // ── Billing (informational — the order model has one address; billing always
-    // mirrors delivery) ──────────────────────────────────────────────────────────
-    function toggleBillingNote() {
-      var note = el('billingNote');
-      if (!note) return;
-      note.style.display = note.style.display === 'none' ? 'block' : 'none';
+    // ── Billing: reveal/hide the separate billing-address form. When hidden (the
+    // default), the order bills to the delivery address (billing_same_as_shipping). ──
+    function toggleBillingFields() {
+      var chk = el('billingSameChk'), box = el('billingFields');
+      if (!box) return;
+      var same = chk ? chk.checked : true;
+      box.style.display = same ? 'none' : 'block';
     }
 
     // ── Confermare (step 4) — read-only recap of what's about to be charged ─────
@@ -2014,6 +2102,10 @@
     function collectOrderData(payMethod) {
       var telEl = el('phone'), countryEl = el('country');
       var orderItems = buildOrderItems();
+      var bVal = function(id){ var e = el(id); return e ? String(e.value||'').trim() : ''; };
+      var bSame = el('billingSameChk') ? el('billingSameChk').checked : true;
+      var bCountryEl = el('billCountry');
+      var bPaese = bCountryEl ? bCountryEl.options[bCountryEl.selectedIndex].text : 'Italia';
       return {
         nome:           ((el('firstName') || {}).value || '').trim(),
         cognome:        ((el('lastName')  || {}).value || '').trim(),
@@ -2030,6 +2122,18 @@
         shipping_method: shippingMethod,
         privacy_consent:  !!((el('agreeTermsChk') || {}).checked) || undefined,
         newsletter_optin: !!((el('newsletterOptin') || {}).checked) || undefined,
+        billing_same_as_shipping: bSame,
+        billing_nome:      bSame ? undefined : (bVal('billNome')    || undefined),
+        billing_indirizzo: bSame ? undefined : (bVal('billAddress') || undefined),
+        billing_citta:     bSame ? undefined : (bVal('billCity')    || undefined),
+        billing_cap:       bSame ? undefined : (bVal('billCap')     || undefined),
+        billing_provincia: bSame ? undefined : (bVal('billProvince')|| undefined),
+        billing_paese:     bSame ? undefined : bPaese,
+        billing_piva:      bSame ? undefined : (bVal('billPiva')    || undefined),
+        billing_cf:        bSame ? undefined : (bVal('billCf')      || undefined),
+        billing_sdi:       bSame ? undefined : (bVal('billSdi')     || undefined),
+        billing_pec:       bSame ? undefined : (bVal('billPec')     || undefined),
+        save_billing:      (!bSame && el('saveBillingChk') && el('saveBillingChk').checked) || undefined,
       };
     }
 

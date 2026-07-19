@@ -44,7 +44,7 @@ let stripeBehavior = null;
 const origLoad = Module._load;
 Module._load = function (request) {
   if (request === '../db')      return { pool: mockPool, testConnection: async () => {} };
-  if (request === '../email')   return { sendOrderConfirmation: async()=>{}, sendShippingConfirmation: async()=>{} };
+  if (request === '../email')   return { sendOrderConfirmation: async()=>{}, sendShippingConfirmation: async()=>{}, sendOrderStatusUpdate: async()=>{} };
   if (request === '../loyalty') return { awardPurchasePoints: async()=>{} };
   // audit.js requires db as './db' (relative to src/, not src/routes/) — a different
   // string than the '../db' intercepted above, so without this it would fall through

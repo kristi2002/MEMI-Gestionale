@@ -3,9 +3,10 @@
 /**
  * /api/admin/carts — abandoned carts (Ordini · Carrelli abbandonati), admin only.
  *
- * GET    /api/admin/carts?minutes=30   Abandoned carts + summary
- * DELETE /api/admin/carts/:id          Remove a cart record
- * POST   /api/admin/carts/:id/recover  Send a recovery email (if the cart has one)
+ * GET    /api/admin/carts?minutes=30      Abandoned carts + summary
+ * GET    /api/admin/carts/:id/categories  Categories present in a cart (for category discounts)
+ * DELETE /api/admin/carts/:id             Remove a cart record
+ * POST   /api/admin/carts/:id/recover     Send a recovery email (reminder / featured items / discount)
  */
 
 const router           = require('express').Router();
@@ -33,10 +34,23 @@ router.get('/', requireAdmin, async (req, res) => {
          AND c.updated_at < NOW() - INTERVAL ? MINUTE
        ORDER BY c.updated_at DESC
        LIMIT 300`, [minutes]);
-    const carts = rows.map(r => ({
+
+    // Resolve each product's category once (one batched query) so every cart item can
+    // carry its `categoria` inline — the recovery modal uses it to show borse vs cinture
+    // at a glance and to preview which items a category discount would cover.
+    const parsed = rows.map((r) => ({ row: r, items: parseItems(r.items) }));
+    const allIds = [...new Set(parsed.flatMap((p) => p.items.map((it) => String(it && it.id)).filter((x) => x && x !== 'undefined')))];
+    let catOf = new Map();
+    if (allIds.length) {
+      const [prodRows] = await pool.query('SELECT id, categoria FROM products WHERE id IN (?)', [allIds]);
+      catOf = new Map(prodRows.map((r) => [String(r.id), r.categoria]));
+    }
+
+    const carts = parsed.map(({ row: r, items }) => ({
       id: r.id, token: r.token, email: r.email, customer_nome: r.customer_nome || null,
       item_count: r.item_count, total: Number(r.total) || 0,
-      items: parseItems(r.items), updated_at: r.updated_at, created_at: r.created_at,
+      items: items.map((it) => ({ ...it, categoria: (it && catOf.get(String(it.id))) || null })),
+      updated_at: r.updated_at, created_at: r.created_at,
       recoverable: !!r.email,
     }));
     const summary = {
@@ -47,6 +61,52 @@ router.get('/', requireAdmin, async (req, res) => {
     return res.json({ carts, summary, threshold_minutes: minutes });
   } catch (err) {
     console.error('carts list error', err);
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── GET /api/admin/carts/:id/categories ──
+ * The categories present among this cart's products — powers the "discount on a whole
+ * category" option in the recovery modal. Each entry:
+ *   { categoria, cart_items, catalog_products }
+ *   cart_items       = how many of THIS cart's line items fall in the category
+ *   catalog_products = how many live products the resulting discount would cover
+ * (that is the size of the product-id snapshot the code is scoped to). */
+router.get('/:id/categories', requireAdmin, async (req, res) => {
+  try {
+    const [[cart]] = await pool.execute('SELECT items FROM carts WHERE id = ?', [req.params.id]);
+    if (!cart) return res.status(404).json({ error: 'Carrello non trovato' });
+
+    const items = parseItems(cart.items);
+    const ids = [...new Set(items.map((it) => String(it && it.id)).filter((x) => x && x !== 'undefined'))];
+    if (!ids.length) return res.json({ categories: [] });
+
+    // product id → categoria for the cart's products
+    const [prodRows] = await pool.query('SELECT id, categoria FROM products WHERE id IN (?)', [ids]);
+    const catOf = new Map(prodRows.map((r) => [String(r.id), r.categoria]));
+
+    // count this cart's line items per category
+    const cartCount = {};
+    for (const it of items) {
+      const cat = catOf.get(String(it && it.id));
+      if (cat) cartCount[cat] = (cartCount[cat] || 0) + 1;
+    }
+    const cats = Object.keys(cartCount);
+    if (!cats.length) return res.json({ categories: [] });
+
+    // catalog size per category = the discount scope the code will cover
+    const [countRows] = await pool.query(
+      "SELECT categoria, COUNT(*) AS n FROM products WHERE categoria IN (?) AND status <> 'bozza' GROUP BY categoria",
+      [cats]
+    );
+    const catalogOf = new Map(countRows.map((r) => [r.categoria, Number(r.n)]));
+
+    const categories = cats
+      .map((c) => ({ categoria: c, cart_items: cartCount[c], catalog_products: catalogOf.get(c) || 0 }))
+      .sort((a, b) => b.cart_items - a.cart_items || String(a.categoria).localeCompare(String(b.categoria)));
+    return res.json({ categories });
+  } catch (err) {
+    console.error('cart categories error', err);
     return res.status(500).json({ error: 'Errore server' });
   }
 });
@@ -88,10 +148,16 @@ async function mintCartDiscount(tipo, valore, days = 14, productIds = null) {
 function euro(n) { return (Number(n) || 0).toFixed(2).replace('.', ','); }
 
 /* ── POST /api/admin/carts/:id/recover ──
- * Body (all optional — plain reminder when omitted):
- *   discount   { tipo:'percentuale'|'fisso', valore:number }  → mints a code, featured in the email
- *   item_ids   string[]  → cart item ids to feature as the incentive
- */
+ * Body (all optional — plain whole-cart reminder when omitted):
+ *   item_ids   string[]                                   cart item ids to feature in the email
+ *   category   string                                     scope a discount to a whole category
+ *   discount   { tipo:'percentuale'|'fisso', valore }     mints a single-use code
+ *
+ * Four modes the admin UI drives:
+ *   1. {}                              → plain whole-cart reminder
+ *   2. { item_ids }                    → reminder featuring only those products (no discount)
+ *   3. { item_ids, discount }          → discount scoped to those products
+ *   4. { category, discount }          → discount scoped to every live product in the category */
 router.post('/:id/recover', requireAdmin, async (req, res) => {
   try {
     const [[cart]] = await pool.execute(
@@ -102,10 +168,27 @@ router.post('/:id/recover', requireAdmin, async (req, res) => {
 
     const b = req.body || {};
     const cartItems = parseItems(cart.items);
-    const wantIds = Array.isArray(b.item_ids) ? b.item_ids.map(String) : [];
-    const featured = wantIds.length
-      ? cartItems.filter((it) => wantIds.includes(String(it && it.id)))
-      : [];
+    const category = (typeof b.category === 'string' && b.category.trim()) ? b.category.trim() : null;
+
+    // Resolve which cart items to feature in the email, and which product ids a
+    // discount (if any) is scoped to.
+    let featured = [];
+    let scopeIds = null; // null → whole-order discount
+    if (category) {
+      // Category mode: snapshot every live product in the category as the discount
+      // scope, and feature the cart items that belong to it.
+      const [catProds] = await pool.execute(
+        "SELECT id FROM products WHERE categoria = ? AND status <> 'bozza'", [category]
+      );
+      scopeIds = catProds.map((r) => String(r.id));
+      if (!scopeIds.length) return res.status(400).json({ error: 'Nessun prodotto disponibile in questa categoria' });
+      const inCat = new Set(scopeIds);
+      featured = cartItems.filter((it) => inCat.has(String(it && it.id)));
+    } else {
+      // Item mode: feature the explicitly chosen cart items (with or without a discount).
+      const wantIds = Array.isArray(b.item_ids) ? b.item_ids.map(String) : [];
+      featured = wantIds.length ? cartItems.filter((it) => wantIds.includes(String(it && it.id))) : [];
+    }
 
     // Optional discount: validate + mint a single-use code.
     let discount = null;
@@ -115,13 +198,13 @@ router.post('/:id/recover', requireAdmin, async (req, res) => {
       if (!(valore > 0) || (tipo === 'percentuale' && valore > 100)) {
         return res.status(400).json({ error: 'Valore sconto non valido' });
       }
-      // Scope the code to the featured items when the admin selected specific ones;
-      // otherwise it's a whole-order code.
-      const scopeIds = featured.length ? featured.map((it) => it.id) : null;
-      discount = await mintCartDiscount(tipo, valore, 14, scopeIds);
+      // Scope: the category snapshot, else the featured item ids, else whole order.
+      const codeScope = category ? scopeIds : (featured.length ? featured.map((it) => it.id) : null);
+      discount = await mintCartDiscount(tipo, valore, 14, codeScope);
       if (!discount) return res.status(500).json({ error: 'Impossibile generare il codice sconto' });
       discount.tipo = tipo;
       discount.valore = valore;
+      discount.category = category;
     }
 
     const shop = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
@@ -134,12 +217,15 @@ router.post('/:id/recover', requireAdmin, async (req, res) => {
       const rows = featured.map((it) =>
         `<li><strong>${(it.name || 'Prodotto')}</strong>${it.taglia ? ' — Taglia ' + it.taglia : ''} — € ${euro(it.price)}</li>`
       ).join('');
-      html += `<p>In particolare ti aspettano:</p><ul>${rows}</ul>`;
+      const intro = category ? `Dalla categoria <strong>${category}</strong> ti aspettano:` : 'In particolare ti aspettano:';
+      html += `<p>${intro}</p><ul>${rows}</ul>`;
     }
     if (discount) {
       const desc = discount.tipo === 'percentuale' ? `${discount.valore}% di sconto` : `€ ${euro(discount.valore)} di sconto`;
-      const onItems = discount.scoped ? ' sugli articoli qui sopra' : '';
-      html += `<p style="font-size:16px">🎁 Solo per te: <strong>${desc}${onItems}</strong> con il codice ` +
+      const onScope = discount.category
+        ? ` su tutta la categoria ${discount.category}`
+        : (discount.scoped ? ' sugli articoli qui sopra' : '');
+      html += `<p style="font-size:16px">🎁 Solo per te: <strong>${desc}${onScope}</strong> con il codice ` +
               `<strong style="letter-spacing:1px">${discount.code}</strong> (valido fino al ${discount.scadenza}).</p>`;
     }
     html += `<p><a href="${link}">Riprendi il tuo carrello</a></p>`;
@@ -152,7 +238,7 @@ router.post('/:id/recover', requireAdmin, async (req, res) => {
     await pool.execute("UPDATE carts SET status = 'recuperato', recovered_at = NOW() WHERE id = ?", [req.params.id]);
     logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'cart.recover',
       entityType: 'carts', entityId: String(req.params.id),
-      details: { email: cart.email, discount_code: discount ? discount.code : null, featured: featured.length } }).catch(() => {});
+      details: { email: cart.email, discount_code: discount ? discount.code : null, featured: featured.length, category } }).catch(() => {});
     return res.json({ ok: true, sent_to: cart.email, discount_code: discount ? discount.code : null });
   } catch (err) {
     console.error('cart recover error', err);

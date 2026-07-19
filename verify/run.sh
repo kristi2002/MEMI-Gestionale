@@ -59,6 +59,12 @@ NODE_PATH="$NP" node MEMI-Backend/test/giftcard-logic.test.cjs || FAIL=1
 sec "6b. Cancel/refund compensation simulation"
 NODE_PATH="$NP" node MEMI-Backend/test/compensation-logic.test.cjs || FAIL=1
 
+sec "6f. Order-status transactional email"
+NODE_PATH="$NP" node MEMI-Backend/test/order-status-email.test.cjs || FAIL=1
+
+sec "6g. Abandoned-cart recovery (modes + categories)"
+NODE_PATH="$NP" node MEMI-Backend/test/carts-recovery.test.cjs || FAIL=1
+
 sec "6d. Per-product discount scoping (preview ≡ order-creation)"
 NODE_PATH="$NP" node MEMI-Backend/test/discount-scope.test.cjs || FAIL=1
 

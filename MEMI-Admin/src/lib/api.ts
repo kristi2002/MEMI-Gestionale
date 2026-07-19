@@ -276,9 +276,15 @@ export const api = {
   },
   carts: {
     list: (params?: Query) => get<CartsResponse>('/admin/carts' + qs(params)),
+    categories: (id: number) =>
+      get<{ categories: import('@/types').CartCategory[] }>('/admin/carts/' + id + '/categories'),
     recover: (
       id: number,
-      data?: { discount?: { tipo: 'percentuale' | 'fisso'; valore: number }; item_ids?: (string | number)[] },
+      data?: {
+        discount?: { tipo: 'percentuale' | 'fisso'; valore: number };
+        item_ids?: (string | number)[];
+        category?: string;
+      },
     ) => post<{ ok: boolean; sent_to: string; discount_code: string | null }>('/admin/carts/' + id + '/recover', data ?? {}),
     delete: (id: number) => del('/admin/carts/' + id),
   },

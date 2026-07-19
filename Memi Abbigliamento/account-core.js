@@ -17,7 +17,7 @@
       'crumb.home':'Home','crumb.area':'Area personale',
       'sec.account':'Il mio account','sec.orders':'Ordini & resi',
       'sec.loyalty':'Fedeltà & desideri','sec.support':'Assistenza',
-      'nav.overview':'Panoramica','nav.profilo':'I miei dati','nav.indirizzi':'Indirizzi',
+      'nav.overview':'Panoramica','nav.profilo':'I miei dati','nav.indirizzi':'Indirizzi','nav.fatturazione':'Fatturazione',
       'nav.taglie':'Le mie taglie','nav.preferenze':'Le mie preferenze',
       'nav.ordini':'I miei ordini','nav.reso':'Effettua un reso',
       'nav.loyalty':'Punti fedeltà','nav.carta':'Carta fedeltà','nav.wishlist':'Lista desideri',
@@ -26,6 +26,7 @@
       'head.overview.p':'Ecco un riepilogo della tua area personale.',
       'head.profilo.t':'I miei <em>dati</em>','head.profilo.p':'I tuoi dati personali e di accesso.',
       'head.indirizzi.t':'I miei <em>indirizzi</em>','head.indirizzi.p':'Gestisci i tuoi indirizzi di spedizione.',
+      'head.fatturazione.t':'Indirizzo di <em>fatturazione</em>','head.fatturazione.p':'I dati usati per emettere le tue fatture.',
       'head.taglie.t':'Le mie <em>taglie</em>','head.taglie.p':'Salva le tue taglie per trovare subito la vestibilità giusta.',
       'head.preferenze.t':'Le mie <em>preferenze</em>','head.preferenze.p':'Personalizza la tua esperienza Memi.',
       'head.ordini.t':'I miei <em>ordini</em>','head.ordini.p':'Consulta lo stato e i dettagli dei tuoi ordini.',
@@ -80,7 +81,7 @@
       'crumb.home':'Home','crumb.area':'My account',
       'sec.account':'My account','sec.orders':'Orders & returns',
       'sec.loyalty':'Loyalty & wishlist','sec.support':'Support',
-      'nav.overview':'Overview','nav.profilo':'My details','nav.indirizzi':'Addresses',
+      'nav.overview':'Overview','nav.profilo':'My details','nav.indirizzi':'Addresses','nav.fatturazione':'Billing',
       'nav.taglie':'My sizes','nav.preferenze':'My preferences',
       'nav.ordini':'My orders','nav.reso':'Start a return',
       'nav.loyalty':'Loyalty points','nav.carta':'Loyalty card','nav.wishlist':'Wishlist',
@@ -89,6 +90,7 @@
       'head.overview.p':'Here is an overview of your account.',
       'head.profilo.t':'My <em>details</em>','head.profilo.p':'Your personal and login details.',
       'head.indirizzi.t':'My <em>addresses</em>','head.indirizzi.p':'Manage your shipping addresses.',
+      'head.fatturazione.t':'Billing <em>address</em>','head.fatturazione.p':'The details used to issue your invoices.',
       'head.taglie.t':'My <em>sizes</em>','head.taglie.p':'Save your sizes to find the right fit faster.',
       'head.preferenze.t':'My <em>preferences</em>','head.preferenze.p':'Personalise your Memi experience.',
       'head.ordini.t':'My <em>orders</em>','head.ordini.p':'Check the status and details of your orders.',
@@ -544,6 +546,32 @@
         '</form></div>';
   }
 
+  /* ══════════════════ FATTURAZIONE ══════════════════ */
+  function renderFatturazione(user){
+    function v(x){ return esc(x||''); }
+    var oneField = function(id, label, val, extra){
+      return '<div class="field-full"><label class="field-label">' + label + '</label>' +
+        '<input class="field-input" id="' + id + '" value="' + v(val) + '" ' + (extra||'') + ' /></div>';
+    };
+    var halfField = function(id, label, val, extra){
+      return '<div><label class="field-label">' + label + '</label>' +
+        '<input class="field-input" id="' + id + '" value="' + v(val) + '" ' + (extra||'') + ' /></div>';
+    };
+    return '<form class="profile-form" id="fatturaForm">' +
+        oneField('fbNome', 'Ragione sociale / Nome e cognome', user.fatt_nome) +
+        oneField('fbIndirizzo', 'Indirizzo', user.fatt_indirizzo) +
+        halfField('fbCitta', 'Città', user.fatt_citta) +
+        halfField('fbCap', 'CAP', user.fatt_cap, 'inputmode="numeric"') +
+        halfField('fbProvincia', 'Provincia', user.fatt_provincia, 'maxlength="2"') +
+        halfField('fbPaese', 'Paese', user.fatt_paese || 'Italia') +
+        halfField('fbPiva', 'Partita IVA', user.fatt_piva) +
+        halfField('fbCf', 'Codice Fiscale', user.fatt_cf, 'maxlength="16" style="text-transform:uppercase"') +
+        halfField('fbSdi', 'Codice SDI', user.fatt_sdi, 'maxlength="7" style="text-transform:uppercase"') +
+        halfField('fbPec', 'PEC', user.fatt_pec, 'type="email"') +
+        '<div class="profile-form-footer"><button type="submit" class="btn-primary-solid">' + t('btn.save') + '</button>' +
+          '<span id="fatturaMsg" class="ap-msg"></span></div>' +
+      '</form>';
+  }
   /* ══════════════════ ADDRESSES ══════════════════ */
   function loadAddresses(user){
     var a = lget('memi_addresses', null);
@@ -749,10 +777,11 @@
     carta:'<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
     wishlist:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
     newsletter:'<path d="M4 4h16v16H4z"/><polyline points="22 6 12 13 2 6"/>',
+    fatturazione:'<path d="M4 2h11l5 5v15H4z"/><polyline points="15 2 15 7 20 7"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/>',
     aiuto:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
   };
   var NAV_SECTIONS = [
-    { title:'sec.account', items:['overview','profilo','indirizzi','taglie','preferenze'] },
+    { title:'sec.account', items:['overview','profilo','indirizzi','fatturazione','taglie','preferenze'] },
     { title:'sec.orders',  items:['ordini','reso'] },
     { title:'sec.loyalty', items:['loyalty','carta','wishlist'] },
     { title:'sec.support', items:['newsletter','aiuto'] }
@@ -782,6 +811,7 @@
       overview:['<h1>' + greeting() + ', <em>' + esc((loadedUser&&(loadedUser.nome||loadedUser.name))||'') + '</em></h1>', t('head.overview.p')],
       profilo:['<h1>' + t('head.profilo.t') + '</h1>', t('head.profilo.p')],
       indirizzi:['<h1>' + t('head.indirizzi.t') + '</h1>', t('head.indirizzi.p')],
+      fatturazione:['<h1>' + t('head.fatturazione.t') + '</h1>', t('head.fatturazione.p')],
       taglie:['<h1>' + t('head.taglie.t') + '</h1>', t('head.taglie.p')],
       preferenze:['<h1>' + t('head.preferenze.t') + '</h1>', t('head.preferenze.p')],
       ordini:['<h1>' + t('head.ordini.t') + '</h1>', t('head.ordini.p')],
@@ -803,6 +833,7 @@
       case 'overview':   return renderOverview(u, o, points);
       case 'profilo':    return renderProfile(u);
       case 'indirizzi':  return renderAddresses(u);
+      case 'fatturazione': return renderFatturazione(u);
       case 'taglie':     return renderSizes();
       case 'preferenze': return renderPrefs();
       case 'ordini':     return renderOrdersPanel(o);
@@ -1178,6 +1209,23 @@
       }).catch(function(err){ msgEl.className='ap-msg err'; msgEl.textContent=(err&&err.error)||t('msg.err'); }).finally(function(){ btn.disabled=false; });
     });
 
+    var ff = el('fatturaForm');
+    if (ff) ff.addEventListener('submit', function(e){
+      e.preventDefault();
+      var msgEl = el('fatturaMsg'), btn = ff.querySelector('[type=submit]');
+      btn.disabled = true;
+      var gv = function(id){ var x = el(id); return x ? x.value.trim() : ''; };
+      var payload = {
+        fatt_nome:gv('fbNome'), fatt_indirizzo:gv('fbIndirizzo'), fatt_citta:gv('fbCitta'),
+        fatt_cap:gv('fbCap'), fatt_provincia:gv('fbProvincia'), fatt_paese:gv('fbPaese'),
+        fatt_piva:gv('fbPiva'), fatt_cf:gv('fbCf'), fatt_sdi:gv('fbSdi'), fatt_pec:gv('fbPec')
+      };
+      window.MemiAPI.auth.updateMe(payload).then(function(){
+        Object.keys(payload).forEach(function(k){ loadedUser[k] = payload[k]; });
+        msgEl.className='ap-msg ok'; msgEl.textContent=t('msg.saved');
+      }).catch(function(err){ msgEl.className='ap-msg err'; msgEl.textContent=(err&&err.error)||t('msg.err'); })
+      .finally(function(){ btn.disabled=false; });
+    });
     var af = el('apPanel') && el('apPanel').querySelector('.addr-form');
     if (af) { af.addEventListener('submit', function(e){ e.preventDefault(); saveAddress(af); }); wireAddrAutocomplete(af); }
 
