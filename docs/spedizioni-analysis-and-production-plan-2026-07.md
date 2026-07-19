@@ -130,11 +130,13 @@ Implementato (client + server ora concordano su ogni caso):
 
 > **Nota deploy**: backend (`shipping-rates.js`, `orders.js`) live al prossimo `docker compose up --build`; storefront (`checkout.html`) idem. Prima del go-live: **un ordine carta reale** IT standard nella fascia €79–99,99 e uno UE, per confermare l'assenza di 402.
 
-### Fase 3 — Punti di ritiro collegati al checkout (storefront + ordine)
-1. **Endpoint pubblico** `GET /api/shipping/pickup-points` (solo `attivo=1`). *(Back `shipping.js`.)*
-2. **UI storefront**: quando il cliente sceglie "Ritiro", mostrare la lista dei punti attivi (con indirizzo/orari) e obbligare la selezione. *(File `checkout.html` + `api-client.js`.)*
-3. **Persistenza ordine**: colonna `orders.pickup_point_id` (via `migrations.js`, additiva); salvarla in `POST /orders`; mostrarla nel dettaglio ordine admin e nell'email di conferma/spedizione.
-4. **(Opz.) Arricchire `pickup_points`**: `citta`, `cap`, `telefono`, `lat`/`lng` (additive) per mappa e filtri.
+### ✅ Fase 3 — Punti di ritiro collegati al checkout (fatto 2026-07-19)
+1. **Endpoint pubblico** `GET /api/shipping/pickup-points` (solo `attivo=1`, colonne pubbliche) in `shipping.js`.
+2. **UI storefront** (`checkout.html`): scegliendo "Ritiro" appare un selettore dei punti attivi (nome + indirizzo + orari); il punto scelto viene inviato come `pickup_point_id`. Se non ci sono punti configurati, si comporta come prima (ritiro generico). L'indirizzo hardcoded "Via Mazzini 8" è stato rimosso.
+3. **Persistenza ordine**: colonna additiva `orders.pickup_point_id` (via `migrations.js`); `pickup_point_id` aggiunto a `createOrderSchema` (altrimenti Zod lo scarta) e salvato in `POST /orders` (solo se `ritiro`); il dettaglio ordine admin (`GET /orders/admin/:id`) fa il join e ritorna `pickup_point`; il dialog ordine React mostra un banner "Ritiro in negozio: …".
+4. **Verifica live** (stack locale, backend riavviato — migrazione applicata a boot: `+ column orders.pickup_point_id`): endpoint pubblico ritorna solo i punti attivi; il selettore storefront carica 2 punti, appare su "Ritiro", il payload porta `pickup_point_id`; il dettaglio admin ritorna il `pickup_point` completo. `bash verify/run.sh` verde.
+
+**Follow-up opzionali**: obbligare la selezione lato UI (oggi il primo punto è preselezionato); arricchire `pickup_points` con `citta`/`cap`/`telefono`/`lat`/`lng`; includere il punto di ritiro nell'email di conferma; dare agli ordini `ritiro` un flusso dedicato nel dialog (oggi mostra "assegna corriere", non pertinente).
 
 ### Fase 4 — Tracking multi-corriere (integrazioni)
 1. **Aggiungere adapter** (GLS, Poste, DHL, InPost) o **un aggregatore** (AfterShip/TrackingMore/Ship24) con un adapter generico in `courier-tracking.js`.

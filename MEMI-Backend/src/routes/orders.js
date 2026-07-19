@@ -394,6 +394,12 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
       );
       const orderId = result.insertId;
 
+      // Record the chosen pickup point for in-store collection (ritiro only).
+      if (shipping_method === 'ritiro' && req.body.pickup_point_id) {
+        await conn.execute('UPDATE orders SET pickup_point_id = ? WHERE id = ?',
+          [Number(req.body.pickup_point_id) || null, orderId]);
+      }
+
       for (const item of resolved) {
         await conn.execute(
           `INSERT INTO order_items (order_id, product_id, product_name, taglia, colore, price, qty)
@@ -793,7 +799,14 @@ router.get('/admin/:id', requireAdmin, requirePermission('orders'), async (req, 
 
     const [items] = await pool.execute('SELECT * FROM order_items WHERE order_id = ?', [order.id]);
     const [[shipment]] = await pool.execute('SELECT * FROM shipments WHERE order_id = ?', [order.id]);
-    return res.json({ ...order, items, shipment: shipment || null });
+    let pickup_point = null;
+    if (order.pickup_point_id) {
+      const [[pp]] = await pool.execute(
+        'SELECT id, nome, indirizzo, corriere, orari FROM pickup_points WHERE id = ?', [order.pickup_point_id]
+      );
+      pickup_point = pp || null;
+    }
+    return res.json({ ...order, items, shipment: shipment || null, pickup_point });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });
   }

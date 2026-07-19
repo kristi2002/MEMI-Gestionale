@@ -68,6 +68,8 @@ const createOrderSchema = z.object({
   // Loose string (not an enum) on purpose: an unknown value normalizes to 'standard'
   // rather than 400-ing a customer whose page predates a new method.
   shipping_method: z.string().trim().max(20).optional().nullable(),
+  // Selected pickup point (only meaningful when shipping_method='ritiro').
+  pickup_point_id: z.coerce.number().int().positive().optional().nullable(),
   payment_intent_id: z.string().trim().max(255).optional().nullable(),
   // Generic transaction reference for non-Stripe providers (PayPal order id).
   // Stored in orders.payment_intent_id (UNIQUE → cross-provider replay protection).

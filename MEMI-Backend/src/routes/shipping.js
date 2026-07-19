@@ -202,6 +202,18 @@ router.post('/shipments', requireAdmin, requirePermission('shipments'), async (r
   }
 });
 
+/* ── GET /api/shipping/pickup-points ── (public) — active pickup points for checkout ── */
+router.get('/pickup-points', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT id, nome, indirizzo, corriere, orari FROM pickup_points WHERE attivo = 1 ORDER BY nome'
+    );
+    return res.json(rows);
+  } catch (err) {
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 /* ── Pickup points (admin) ── */
 router.get('/pickup', requireAdmin, requirePermission('pickup'), async (req, res) => {
   try {

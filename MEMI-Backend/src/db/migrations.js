@@ -727,6 +727,9 @@ async function runMigrations(pool) {
     // Delivery timestamp — stamped when order_status first becomes 'consegnato';
     // powers the return window (reso can be opened within reso_window_days of delivery).
     await ensureColumn(pool, 'orders', 'delivered_at', 'delivered_at TIMESTAMP NULL');
+    // Pickup point chosen at checkout when shipping_method='ritiro' (FK-free: pickup_points
+    // rows may be deleted; the id is kept for the record and joined best-effort in order detail).
+    await ensureColumn(pool, 'orders', 'pickup_point_id', 'pickup_point_id INT NULL');
     // VAT/IVA on expenses — `importo` stays the gross total; the rate lets us split out
     // imponibile (net) + IVA for Italian accounting. Default 0% is backward-compatible.
     await ensureColumn(pool, 'store_expenses', 'iva_rate', 'iva_rate DECIMAL(5,2) NOT NULL DEFAULT 0');

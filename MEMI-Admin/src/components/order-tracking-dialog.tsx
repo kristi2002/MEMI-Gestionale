@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { Loader2, Truck, MapPin, CheckCircle2, Ban, RefreshCw, Mail, PackageCheck } from 'lucide-react';
 import {
   Dialog,
@@ -53,6 +53,19 @@ export function OrderTrackingDialog({ order, trigger }: { order: OrderRow; trigg
 
   // shipped-phase tracking events
   const [events, setEvents] = useState<TrackEvent[] | null>(null);
+
+  // Full detail (lazy — only when the dialog opens) surfaces the chosen pickup point.
+  const detailQ = useQuery({ queryKey: ['order-detail', order.id], queryFn: () => api.orders.get(order.id), enabled: open });
+  const pickup = detailQ.data?.pickup_point ?? null;
+  const pickupBanner = pickup ? (
+    <div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
+      <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+      <div>
+        <div className="font-medium">Ritiro in negozio: {pickup.nome}</div>
+        <div className="text-xs text-muted-foreground">{pickup.indirizzo}{pickup.orari ? ` · ${pickup.orari}` : ''}</div>
+      </div>
+    </div>
+  ) : null;
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['orders'] });
@@ -151,6 +164,7 @@ export function OrderTrackingDialog({ order, trigger }: { order: OrderRow; trigg
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
+                {pickupBanner}
                 <div className="space-y-1.5">
                   <Label htmlFor="track-courier">Corriere</Label>
                   <select
@@ -198,6 +212,7 @@ export function OrderTrackingDialog({ order, trigger }: { order: OrderRow; trigg
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
+                {pickupBanner}
                 {shipInfo}
                 {events && (
                   <div className="rounded-md border">
@@ -242,7 +257,7 @@ export function OrderTrackingDialog({ order, trigger }: { order: OrderRow; trigg
                   Consegna completata. Puoi reinviare al cliente l'email di conferma con il tracking.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-3">{shipInfo}</div>
+              <div className="space-y-3">{pickupBanner}{shipInfo}</div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Chiudi</Button>
                 <Button variant="secondary" onClick={resendEmail} disabled={busy}>
@@ -263,7 +278,7 @@ export function OrderTrackingDialog({ order, trigger }: { order: OrderRow; trigg
                   Questo ordine è stato annullato. Stock, gift card e punti fedeltà sono stati ripristinati dal backend. Nessuna spedizione è possibile.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-3">{shipInfo}</div>
+              <div className="space-y-3">{pickupBanner}{shipInfo}</div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setOpen(false)}>Chiudi</Button>
               </DialogFooter>

@@ -117,9 +117,17 @@ export interface Shipment {
   created_at: string;
   updated_at: string;
 }
+export interface OrderPickupPoint {
+  id: number;
+  nome: string;
+  indirizzo: string;
+  corriere: string | null;
+  orari: string | null;
+}
 export interface OrderDetail extends OrderRow {
   items: OrderItem[];
   shipment: Shipment | null;
+  pickup_point?: OrderPickupPoint | null;
 }
 
 export interface ProductImage {

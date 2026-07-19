@@ -760,10 +760,16 @@
             <input type="radio" name="shipping" />
             <div class="shipping-info">
               <p class="shipping-name">Ritiro in negozio</p>
-              <p class="shipping-desc">Disponibile entro 24h • Via Mazzini 8, Milano</p>
+              <p class="shipping-desc" id="ritiroDesc">Disponibile entro 24h • Ritira gratis in sede</p>
             </div>
             <span class="shipping-price" style="color:var(--sage-dark);">Gratis</span>
           </label>
+        </div>
+
+        <div id="pickupPointsWrap" style="display:none;margin-top:var(--space-3);">
+          <label for="pickupPointSelect" style="display:block;margin-bottom:6px;font-size:var(--text-sm);font-weight:600;color:var(--espresso);">Punto di ritiro</label>
+          <select id="pickupPointSelect" style="width:100%;padding:12px;border:1px solid var(--beige-dark);border-radius:8px;background:#fff;font-size:var(--text-sm);color:var(--espresso);"></select>
+          <p id="pickupPointDetails" style="margin-top:8px;font-size:var(--text-xs);color:var(--brown-mid);"></p>
         </div>
 
         <div class="form-actions">
@@ -1176,6 +1182,43 @@
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) { if (Array.isArray(data)) { SHIPPING_ZONES = data; updateTotals(); } })
         .catch(function () { /* offline → built-in rates; server still authoritative on submit */ });
+    }
+
+    // ── Pickup points (in-store collection) ─────────────────────────────────────
+    var PICKUP_POINTS = [];
+    var selectedPickupId = null;
+    function fetchPickupPoints() {
+      var apiBase = (window.MemiAPI && window.MemiAPI._base) || '/api';
+      return fetch(apiBase + '/shipping/pickup-points')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) { if (Array.isArray(data)) { PICKUP_POINTS = data; renderPickupSelect(); updatePickupVisibility(); } })
+        .catch(function () { /* none configured → generic in-store pickup, pickup_point_id stays null */ });
+    }
+    function renderPickupSelect() {
+      var sel = el('pickupPointSelect');
+      if (!sel) return;
+      sel.innerHTML = '';
+      if (!PICKUP_POINTS.length) { selectedPickupId = null; return; }
+      PICKUP_POINTS.forEach(function (p) {
+        var o = document.createElement('option');
+        o.value = String(p.id);
+        o.textContent = p.nome + ' — ' + p.indirizzo;
+        sel.appendChild(o);
+      });
+      selectedPickupId = PICKUP_POINTS[0].id;
+      renderPickupDetails();
+      var ritDesc = el('ritiroDesc');
+      if (ritDesc) ritDesc.textContent = 'Gratis • ' + PICKUP_POINTS.length + (PICKUP_POINTS.length === 1 ? ' punto disponibile' : ' punti disponibili');
+    }
+    function renderPickupDetails() {
+      var d = el('pickupPointDetails');
+      if (!d) return;
+      var p = PICKUP_POINTS.filter(function (x) { return x.id === selectedPickupId; })[0];
+      d.textContent = (p && p.orari) ? ('Orari: ' + p.orari) : '';
+    }
+    function updatePickupVisibility() {
+      var wrap = el('pickupPointsWrap');
+      if (wrap) wrap.style.display = (shippingMethod === 'ritiro' && PICKUP_POINTS.length) ? 'block' : 'none';
     }
 
     /* Single source of truth for every money figure on this page. updateTotals() (what the
@@ -1663,6 +1706,7 @@
           opt.querySelector('input').checked = true;
           shippingMethod = opt.getAttribute('data-method') || 'standard';
           updateTotals();
+          updatePickupVisibility();
         });
       });
     }
@@ -2201,6 +2245,7 @@
         gift_card_code: appliedGiftCard ? appliedGiftCard.code : undefined,
         payment_method: payMethod,
         shipping_method: shippingMethod,
+        pickup_point_id: (shippingMethod === 'ritiro' ? selectedPickupId : null) || undefined,
         privacy_consent:  !!((el('agreeTermsChk') || {}).checked) || undefined,
         newsletter_optin: !!((el('newsletterOptin') || {}).checked) || undefined,
         billing_same_as_shipping: bSame,
@@ -2840,6 +2885,9 @@
       fetchShippingZones();    // load Zone & Tariffe → per-country shipping (server stays authoritative)
       var countrySel = el('country');
       if (countrySel) countrySel.addEventListener('change', function () { updateTotals(); });
+      fetchPickupPoints();     // load active pickup points for the "Ritiro" option
+      var pickupSel = el('pickupPointSelect');
+      if (pickupSel) pickupSel.addEventListener('change', function () { selectedPickupId = Number(pickupSel.value) || null; renderPickupDetails(); });
       wireInputValidation();
       prefillFromAccount();
       paintAccountState();
