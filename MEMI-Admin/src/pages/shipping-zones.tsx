@@ -17,11 +17,17 @@ import type { ExportColumn } from '@/lib/export';
 import { toast } from 'sonner';
 
 const fields: FieldConfig[] = [
-  { name: 'nome', label: 'Nome zona', required: true, placeholder: 'Italia, Europa…' },
-  { name: 'metodo', label: 'Metodo', placeholder: 'standard / express' },
-  { name: 'paesi', label: 'Paesi (codici ISO, separati da virgola)', wide: true, placeholder: 'IT, FR, DE' },
-  { name: 'prezzo', label: 'Prezzo (€)', type: 'number', required: true, side: true },
-  { name: 'spedizione_gratuita_da', label: 'Spedizione gratuita da (€)', type: 'number', side: true, help: 'Vuoto = mai gratuita' },
+  { name: 'nome', label: 'Nome zona', required: true, placeholder: 'es. Italia — Standard' },
+  {
+    name: 'paesi', label: 'Paesi', wide: true, placeholder: 'Italia   ·   FR, DE, ES   ·   Resto del mondo',
+    help: 'Codici ISO (IT, FR, DE) o nomi paese, separati da virgola. Usa «Resto del mondo» per la zona jolly. Vince la prima zona che corrisponde (per id); i nomi di regione (es. Sicilia) non corrispondono al paese.',
+  },
+  {
+    name: 'metodo', label: 'Metodo', placeholder: 'Standard 3-5gg / Express 24h',
+    help: 'Deve contenere «Express» per applicarsi alle spedizioni express; ogni altro valore è trattato come Standard.',
+  },
+  { name: 'prezzo', label: 'Prezzo (€)', type: 'number', required: true, side: true, help: 'Costo applicato al checkout per questa zona + metodo.' },
+  { name: 'spedizione_gratuita_da', label: 'Spedizione gratuita da (€)', type: 'number', side: true, help: 'Vuoto = mai gratuita.' },
 ];
 
 const exportColumns: ExportColumn<ShippingZone>[] = [

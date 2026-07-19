@@ -753,7 +753,7 @@
               <p class="shipping-name">Express — 1 giorno lavorativo</p>
               <p class="shipping-desc">Consegna il giorno successivo entro le 13:00</p>
             </div>
-            <span class="shipping-price">€8,90</span>
+            <span class="shipping-price" id="expressShippingPrice">€8,90</span>
           </label>
 
           <label class="shipping-option" data-method="ritiro">
@@ -1091,16 +1091,91 @@
     var appliedGiftCard = null;   // { code, balance } — amount actually applied is capped live in updateTotals()
     var shippingMethod  = 'standard';   // standard | express | ritiro
 
-    // Mirrors MEMI-Backend/src/shipping-rates.js. The server ALWAYS recomputes the price and
-    // rejects a mismatched payment (402), so these values exist only to show the customer the
-    // right number - keep them in sync with the backend.
+    /* ==SHIPPING-CORE-START==  Mirror of MEMI-Backend/src/shipping-rates.js.
+       The storefront MUST charge the shipping the server will recompute, or POST /api/orders
+       rejects the order (402 "Importo del pagamento non corrisponde"). verify/shipping-parity.cjs
+       extracts everything between these markers and diffs it against the server module across a
+       full country × method × goods matrix — keep the two identical and run bash verify/run.sh. */
     var FREE_SHIPPING_THRESHOLD = 100;
     var SHIPPING_RATES = { standard: 5.90, express: 8.90, ritiro: 0 };
+    var COUNTRY_CODES = { 'italia': 'IT', 'germania': 'DE', 'francia': 'FR', 'spagna': 'ES', 'paesi bassi': 'NL' };
 
+    function normalizeMethod(method) {
+      var k = String(method == null ? '' : method).trim().toLowerCase();
+      return Object.prototype.hasOwnProperty.call(SHIPPING_RATES, k) ? k : 'standard';
+    }
+    function zoneMethod(metodo) {
+      var s = String(metodo == null ? '' : metodo).toLowerCase();
+      if (/express|expr|24\s*h|corriere espresso/.test(s)) return 'express';
+      if (/ritiro|pickup|negozio/.test(s)) return 'ritiro';
+      return 'standard';
+    }
+    function isCatchAll(paesi) {
+      var s = String(paesi == null ? '' : paesi).trim().toLowerCase();
+      if (s === '') return true;
+      return /resto del mondo|\bworld\b|\bmondo\b|\brow\b|^\*$/.test(s);
+    }
+    function zoneTokens(paesi) {
+      return String(paesi == null ? '' : paesi).split(',').map(function (t) { return t.trim().toUpperCase(); }).filter(Boolean);
+    }
+    function codeFor(countryName) {
+      return COUNTRY_CODES[String(countryName == null ? '' : countryName).trim().toLowerCase()] || '';
+    }
+    function zoneMatchesCountry(zone, nameUpper, codeUpper) {
+      var tokens = zoneTokens(zone.paesi);
+      return (!!codeUpper && tokens.indexOf(codeUpper) !== -1) || (!!nameUpper && tokens.indexOf(nameUpper) !== -1);
+    }
+    function matchZone(zones, countryName, method) {
+      if (!Array.isArray(zones) || zones.length === 0) return null;
+      var m = normalizeMethod(method);
+      if (m === 'ritiro') return null;
+      var nameUpper = String(countryName == null ? '' : countryName).trim().toUpperCase();
+      var codeUpper = codeFor(countryName);
+      var countryHasSpecificZone = zones.some(function (z) { return !isCatchAll(z.paesi) && zoneMatchesCountry(z, nameUpper, codeUpper); });
+      var specific = null, catchAll = null;
+      for (var i = 0; i < zones.length; i++) {
+        var z = zones[i];
+        if (zoneMethod(z.metodo) !== m) continue;
+        if (!isCatchAll(z.paesi) && zoneMatchesCountry(z, nameUpper, codeUpper)) {
+          if (!specific || Number(z.id) < Number(specific.id)) specific = z;
+        } else if (isCatchAll(z.paesi) && !countryHasSpecificZone) {
+          if (!catchAll || Number(z.id) < Number(catchAll.id)) catchAll = z;
+        }
+      }
+      return specific || catchAll || null;
+    }
+    function resolveShippingCost(method, goodsTotal, zone) {
+      var m = normalizeMethod(method);
+      if (m === 'ritiro') return 0;
+      var base = SHIPPING_RATES[m];
+      var threshold = m === 'standard' ? FREE_SHIPPING_THRESHOLD : null;
+      if (zone) {
+        if (zone.prezzo != null && isFinite(Number(zone.prezzo))) base = Number(zone.prezzo);
+        threshold = zone.spedizione_gratuita_da == null ? null : Number(zone.spedizione_gratuita_da);
+        if (threshold != null && !isFinite(threshold)) threshold = null;
+      }
+      var goods = Number(goodsTotal);
+      var free = threshold != null && isFinite(goods) && goods >= threshold;
+      return free ? 0 : Math.round(Number(base) * 100) / 100;
+    }
+    /* ==SHIPPING-CORE-END== */
+
+    // Zones fetched from GET /api/shipping/zones on load (empty → built-in rates apply).
+    var SHIPPING_ZONES = [];
+    function currentCountryName() {
+      var cEl = el('country');
+      return (cEl && cEl.options[cEl.selectedIndex]) ? cEl.options[cEl.selectedIndex].text : 'Italia';
+    }
+    // Single entry point for the customer-facing shipping figure AND the amount charged.
     function shippingFor(method, goodsTotal) {
-      if (method === 'ritiro')  return 0;
-      if (method === 'express') return SHIPPING_RATES.express;
-      return goodsTotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_RATES.standard;
+      return resolveShippingCost(method, goodsTotal, matchZone(SHIPPING_ZONES, currentCountryName(), method));
+    }
+    function fetchShippingZones() {
+      var apiBase = (window.MemiAPI && window.MemiAPI._base) || '/api';
+      return fetch(apiBase + '/shipping/zones')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) { if (Array.isArray(data)) { SHIPPING_ZONES = data; updateTotals(); } })
+        .catch(function () { /* offline → built-in rates; server still authoritative on submit */ });
     }
 
     /* Single source of truth for every money figure on this page. updateTotals() (what the
@@ -1200,6 +1275,12 @@
         var stdCost = shippingFor('standard', t.goods);
         stdPriceEl.textContent = stdCost === 0 ? 'Gratis' : formatPrice(stdCost);
         stdPriceEl.style.color = stdCost === 0 ? 'var(--sage-dark)' : 'var(--espresso)';
+      }
+      // Express can be zone-priced too (e.g. Italia €12,90) — keep its label honest per country.
+      var expPriceEl = el('expressShippingPrice');
+      if (expPriceEl) {
+        var expCost = shippingFor('express', t.goods);
+        expPriceEl.textContent = expCost === 0 ? 'Gratis' : formatPrice(expCost);
       }
 
       if (el('subtotalEl'))      el('subtotalEl').textContent      = formatPrice(subtotal);
@@ -2756,6 +2837,9 @@
       loadCart();
       loadCheckoutCatalog();   // fetch product thumbnails, then re-render the order summary
       wireShippingOptions();
+      fetchShippingZones();    // load Zone & Tariffe → per-country shipping (server stays authoritative)
+      var countrySel = el('country');
+      if (countrySel) countrySel.addEventListener('change', function () { updateTotals(); });
       wireInputValidation();
       prefillFromAccount();
       paintAccountState();

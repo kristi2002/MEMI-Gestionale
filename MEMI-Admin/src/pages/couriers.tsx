@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 const exportColumns: ExportColumn<Courier>[] = [
   { header: 'Codice', accessor: (c) => c.code },
   { header: 'Nome', accessor: (c) => c.nome },
-  { header: 'Tariffa', accessor: (c) => eur(c.rate) },
+  { header: 'Costo interno', accessor: (c) => eur(c.rate) },
   { header: 'Attivo', accessor: (c) => (c.attivo ? 'Sì' : 'No') },
   { header: 'Tracking URL', accessor: (c) => c.tracking_url_template || '' },
 ];
@@ -29,8 +29,8 @@ function courierFields(editing: boolean): FieldConfig[] {
   const base: FieldConfig[] = [
     { name: 'nome', label: 'Nome', required: true, placeholder: 'es. BRT Corriere Espresso' },
     { name: 'slug', label: 'Sigla', placeholder: 'BRT', help: 'Etichetta breve mostrata come badge.' },
-    { name: 'tracking_url_template', label: 'URL tracking', wide: true, placeholder: 'https://…?n={tracking}', help: '{tracking} viene sostituito col numero di spedizione.' },
-    { name: 'rate', label: 'Tariffa €', type: 'number', side: true, help: 'Costo base di spedizione.' },
+    { name: 'tracking_url_template', label: 'URL tracking', wide: true, placeholder: 'https://…?n={tracking}', help: 'Deve iniziare con http(s):// — {tracking} viene sostituito col numero di spedizione.' },
+    { name: 'rate', label: 'Costo indicativo €', type: 'number', side: true, help: 'Solo riferimento interno. Il prezzo al checkout è definito in Zone & Tariffe / per metodo, non da questo campo.' },
     { name: 'attivo', label: 'Attivo', type: 'checkbox', side: true },
   ];
   if (editing) return base;
@@ -54,7 +54,7 @@ export function CouriersPage() {
           <span className="font-medium">{row.original.nome}</span>
         </div>
       ) },
-      { accessorKey: 'rate', header: 'Tariffa', cell: ({ getValue }) => <span className="font-semibold">{eur(getValue() as string)}</span>, sortingFn: (a, b) => Number(a.original.rate) - Number(b.original.rate) },
+      { accessorKey: 'rate', header: 'Costo interno', cell: ({ getValue }) => <span className="font-semibold">{eur(getValue() as string)}</span>, sortingFn: (a, b) => Number(a.original.rate) - Number(b.original.rate) },
       { accessorKey: 'tracking_url_template', header: 'Tracking URL', cell: ({ getValue }) => <span className="line-clamp-1 max-w-[280px] text-xs text-muted-foreground">{(getValue() as string) || '—'}</span> },
       { accessorKey: 'attivo', header: 'Stato', cell: ({ getValue }) => (getValue() ? <Badge variant="success">Attivo</Badge> : <Badge variant="neutral">Disattivo</Badge>) },
       {
@@ -68,12 +68,17 @@ export function CouriersPage() {
             </Button>
             <ConfirmDialog
               title={`Eliminare "${row.original.nome}"?`}
-              description="Il corriere verrà rimosso. Le spedizioni già create non sono toccate."
+              description="Se il corriere è già usato da spedizioni o ordini l'eliminazione viene bloccata: in quel caso disattivalo."
               confirmLabel="Elimina"
               destructive
               onConfirm={async () => {
-                await deleteMut.mutateAsync([row.original.code]);
-                toast.success('Corriere eliminato');
+                try {
+                  await api.shipping.deleteCourier(row.original.code);
+                  toast.success('Corriere eliminato');
+                  query.refetch();
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : 'Eliminazione non riuscita');
+                }
               }}
               trigger={
                 <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" aria-label="Elimina">
@@ -118,8 +123,10 @@ export function CouriersPage() {
               confirmLabel="Elimina"
               destructive
               onConfirm={async () => {
-                await deleteMut.mutateAsync(codes);
-                toast.success(`${codes.length} corrieri eliminati`);
+                const results = await deleteMut.mutateAsync(codes);
+                const failed = Array.isArray(results) ? results.filter((r) => r.status === 'rejected').length : 0;
+                if (failed > 0) toast.error(`${failed} corriere/i in uso non eliminati · ${codes.length - failed} eliminati.`);
+                else toast.success(`${codes.length} corrieri eliminati`);
                 clear();
               }}
               trigger={
@@ -162,6 +169,11 @@ export function CourierFormPage() {
       loading={editing && !row && query.isLoading}
       submitLabel={editing ? 'Salva modifiche' : 'Crea corriere'}
       onSubmit={async (v) => {
+        const tpl = String(v.tracking_url_template ?? '').trim();
+        if (tpl && !/^https?:\/\/.+/i.test(tpl))
+          throw new Error('URL tracking non valido: deve iniziare con http:// o https://');
+        if (tpl && !tpl.includes('{tracking}'))
+          toast.warning('L’URL non contiene {tracking}: il link non punterà alla spedizione specifica.');
         const data: Record<string, unknown> = {
           nome: v.nome, slug: v.slug || null, rate: v.rate || 0,
           tracking_url_template: v.tracking_url_template || null, attivo: v.attivo ? 1 : 0,

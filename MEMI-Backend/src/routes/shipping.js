@@ -19,12 +19,20 @@
 const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin, requirePermission } = require('../middleware/auth');
-const { sendShippingConfirmation } = require('../email');
+const { sendShippingConfirmation, sendOrderStatusUpdate } = require('../email');
 
 // Build a courier deep-link from its template ({tracking} → the number).
 function buildTrackingUrl(template, trackingNumber) {
   if (!template || !trackingNumber) return null;
   return template.replace(/\{tracking\}/gi, encodeURIComponent(trackingNumber));
+}
+
+// Validate a courier tracking-URL template on write. Empty is allowed (courier
+// simply has no live deep-link). A non-empty template must be an http(s) URL;
+// the {tracking} placeholder is recommended (the client warns if it's missing).
+function validTrackingTemplate(t) {
+  if (t == null || t === '') return true;
+  return /^https?:\/\/.+/i.test(String(t));
 }
 
 /* ── GET /api/shipping/zones ── */
@@ -96,6 +104,8 @@ router.post('/couriers', requireAdmin, requirePermission('couriers'), async (req
   code = String(code).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 20);
   if (!code) return res.status(400).json({ error: 'Codice non valido' });
   slug = (slug ? String(slug) : code).toUpperCase().slice(0, 10);
+  if (!validTrackingTemplate(tracking_url_template))
+    return res.status(400).json({ error: 'URL tracking non valido: deve iniziare con http:// o https://' });
   try {
     await pool.execute(
       'INSERT INTO couriers (code, nome, slug, rate, attivo, tracking_url_template) VALUES (?, ?, ?, ?, ?, ?)',
@@ -109,10 +119,25 @@ router.post('/couriers', requireAdmin, requirePermission('couriers'), async (req
   }
 });
 
-/* ── DELETE /api/shipping/couriers/:code ── (admin) ── */
+/* ── DELETE /api/shipping/couriers/:code ── (admin) ──
+   Guard: refuse to delete a courier still referenced by shipments/orders — a hard
+   delete would orphan those rows' courier_code (VARCHAR, no FK) and silently break
+   their tracking links. The admin should deactivate (attivo=0) instead. */
 router.delete('/couriers/:code', requireAdmin, requirePermission('couriers'), async (req, res) => {
   try {
-    const [result] = await pool.execute('DELETE FROM couriers WHERE code = ?', [req.params.code]);
+    const code = req.params.code;
+    const [[refs]] = await pool.execute(
+      `SELECT (SELECT COUNT(*) FROM shipments WHERE courier_code = ?) AS shipments,
+              (SELECT COUNT(*) FROM orders    WHERE courier_code = ?) AS orders`,
+      [code, code]
+    );
+    const inUse = Number(refs.shipments) + Number(refs.orders);
+    if (inUse > 0) {
+      return res.status(409).json({
+        error: `Corriere in uso da ${inUse} spedizioni/ordini. Disattivalo invece di eliminarlo.`,
+      });
+    }
+    const [result] = await pool.execute('DELETE FROM couriers WHERE code = ?', [code]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Corriere non trovato' });
     return res.json({ ok: true });
   } catch (err) {
@@ -235,6 +260,8 @@ router.delete('/pickup/:id', requireAdmin, requirePermission('pickup'), async (r
 /* ── PUT /api/shipping/couriers/:code ── (admin) ── */
 router.put('/couriers/:code', requireAdmin, requirePermission('couriers'), async (req, res) => {
   const { attivo, rate, nome, tracking_url_template } = req.body;
+  if (tracking_url_template !== undefined && !validTrackingTemplate(tracking_url_template))
+    return res.status(400).json({ error: 'URL tracking non valido: deve iniziare con http:// o https://' });
   try {
     const fields = [];
     const vals   = [];
@@ -285,14 +312,35 @@ router.put('/shipments/:id', requireAdmin, requirePermission('shipments'), async
     }
 
     // Mirror status to order if delivered — inside the same transaction
+    let deliveredOrder = null;
     if (stato === 'consegnato') {
       const [[shipment]] = await conn.execute('SELECT order_id FROM shipments WHERE id = ?', [req.params.id]);
-      if (shipment) await conn.execute(
-        "UPDATE orders SET order_status = 'consegnato' WHERE id = ?",
-        [shipment.order_id]
-      );
+      if (shipment) {
+        await conn.execute(
+          "UPDATE orders SET order_status = 'consegnato' WHERE id = ?",
+          [shipment.order_id]
+        );
+        const [[o]] = await conn.execute(
+          'SELECT order_number, customer_nome, customer_email, tracking_number, courier_code FROM orders WHERE id = ?',
+          [shipment.order_id]
+        );
+        deliveredOrder = o || null;
+      }
     }
     await conn.commit();
+
+    // Best-effort delivery email — parity with the refresh-from-courier path, which
+    // already notifies on 'consegnato'. No-op without SMTP; never fails the request.
+    if (deliveredOrder && deliveredOrder.customer_email) {
+      sendOrderStatusUpdate({
+        order_number:    deliveredOrder.order_number,
+        nome:            deliveredOrder.customer_nome,
+        email:           deliveredOrder.customer_email,
+        status:          'consegnato',
+        tracking_number: deliveredOrder.tracking_number,
+        courier_code:    deliveredOrder.courier_code,
+      }).catch(() => {});
+    }
     return res.json({ ok: true });
   } catch (err) {
     await conn.rollback();

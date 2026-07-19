@@ -27,7 +27,7 @@ const { validateBody, createOrderSchema } = require('../validation');
 const { logAdminAction } = require('../audit');
 const { fetchTrackingStatus, INTERNAL_STATUSES } = require('../courier-tracking');
 const providers = require('../payment-providers');
-const { resolveShipping } = require('../shipping-rates');   // PayPal (config-gated)
+const { resolveShipping, matchZone } = require('../shipping-rates');
 
 /* ── enum whitelists (mirror schema.sql ENUM definitions) ── */
 const PAYMENT_STATUSES = ['in_attesa', 'pagato', 'rimborsato', 'fallito'];
@@ -238,13 +238,14 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
        rates in src/shipping-rates.js), so a tampered client amount can't lower the total.
        Standard is free over the threshold; express is a paid upgrade; ritiro is free. */
     const goodsTotal = Math.round(Math.max(0, subtotal - discountAmount) * 100) / 100;
+    // Match the destination country + method against configured zones (Spedizioni → Zone &
+    // Tariffe); an empty/absent table falls back to the built-in rates. matchZone + resolveShipping
+    // are mirrored in Memi Abbigliamento/checkout.html so the amount the browser charged agrees
+    // with this server total (verify/shipping-parity.cjs diffs the two — keep them in sync).
     let shippingZone = null;
     try {
-      const [[z]] = await pool.execute(
-        'SELECT prezzo, spedizione_gratuita_da FROM shipping_zones WHERE paesi LIKE ? ORDER BY id LIMIT 1',
-        [`%${paese || 'Italia'}%`]
-      );
-      shippingZone = z || null;
+      const [zones] = await pool.execute('SELECT id, paesi, metodo, prezzo, spedizione_gratuita_da FROM shipping_zones');
+      shippingZone = matchZone(zones, paese || 'Italia', shipping_method);
     } catch (_) {
       shippingZone = null;   // table absent/empty → built-in rates
     }
