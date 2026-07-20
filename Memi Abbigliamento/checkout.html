@@ -479,13 +479,13 @@
       <!-- Step 3 -->
       <button class="step" id="stepBtn3" onclick="goToStep(3)">
         <span class="step-num" id="stepNum3">3</span>
-        <span class="step-label">Pagamento</span>
+        <span class="step-label">Riepilogo</span>
       </button>
       <div class="step-divider"></div>
       <!-- Step 4 -->
       <button class="step" id="stepBtn4" onclick="goToStep(4)">
         <span class="step-num" id="stepNum4">4</span>
-        <span class="step-label">Confermare</span>
+        <span class="step-label">Pagamento</span>
       </button>
       <div class="step-divider"></div>
       <!-- Step 5 -->
@@ -778,7 +778,7 @@
             Torna indietro
           </button>
           <button class="btn-next" onclick="continueToPayment()">
-            Continua con il pagamento
+            Rivedi il tuo ordine
             <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
@@ -790,8 +790,9 @@
         </div>
       </div>
 
-      <!-- STEP 3: Pagamento -->
-      <div class="form-panel step-panel" id="panel3">
+      <!-- FLOW STEP 4: Pagamento — pick method + pay (the final action). Physically the first of
+           the two payment-area panels in the DOM, but shown at step 4; only .active is visible. -->
+      <div class="form-panel step-panel" id="panel4">
         <h2 class="panel-title">Pagamento</h2>
 
         <!-- Payment methods — stacked list (Zalando-style). Every entry here is wired to a
@@ -893,13 +894,13 @@
         </div>
 
         <div class="form-actions">
-          <button class="btn-back" onclick="goToStep(2)">
+          <button class="btn-back" onclick="goToStep(3)">
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-            Torna all'indirizzo
+            Torna al riepilogo
           </button>
-          <button class="btn-next" onclick="continueToConfirm()">
-            Rivedi e conferma
-            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          <button class="btn-next" style="background:var(--blush-dark);" onclick="confirmOrder()">
+            Paga ora
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
           </button>
         </div>
         <div id="paymentError3" style="display:none;align-items:center;gap:var(--space-2);margin-top:var(--space-3);
@@ -907,9 +908,10 @@
             font-size:var(--text-sm);color:var(--blush-dark);"></div>
       </div>
 
-      <!-- STEP 4: Confermare -->
-      <div class="form-panel step-panel" id="panel4">
-        <h2 class="panel-title">Conferma il tuo ordine</h2>
+      <!-- FLOW STEP 3: Riepilogo — review address / fatturazione / spedizione, edit-back, then
+           proceed to payment. Physically the second of the two in the DOM, but shown at step 3. -->
+      <div class="form-panel step-panel" id="panel3">
+        <h2 class="panel-title">Riepilogo ordine</h2>
 
         <div class="review-block">
           <div class="review-row">
@@ -921,17 +923,17 @@
           </div>
           <div class="review-row">
             <div>
-              <p class="review-label">Metodo di spedizione</p>
-              <p class="review-value" id="reviewShipping">—</p>
+              <p class="review-label">Indirizzo di fatturazione</p>
+              <p class="review-value" id="reviewBilling">—</p>
             </div>
             <button class="review-edit" onclick="goToStep(2)">Modifica</button>
           </div>
           <div class="review-row">
             <div>
-              <p class="review-label">Metodo di pagamento</p>
-              <p class="review-value" id="reviewPayment">—</p>
+              <p class="review-label">Metodo di spedizione</p>
+              <p class="review-value" id="reviewShipping">—</p>
             </div>
-            <button class="review-edit" onclick="goToStep(3)">Modifica</button>
+            <button class="review-edit" onclick="goToStep(2)">Modifica</button>
           </div>
         </div>
 
@@ -941,20 +943,14 @@
         </div>
 
 
-        <!-- Providers that own their pay control (PayPal Buttons, Apple/Google Pay) get
-             that control moved here so payment always completes on this final step.
-             Stripe card / Klarna / local dev use the generic button below. (SumUp card
-             pays in-page on the Pagamento step and never reaches this area.) -->
-        <div id="providerPayArea" style="display:none;margin-top:var(--space-4);"></div>
-
         <div class="form-actions">
-          <button class="btn-back" onclick="goToStep(3)">
+          <button class="btn-back" onclick="goToStep(2)">
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-            Torna al pagamento
+            Torna all'indirizzo
           </button>
-          <button class="btn-next" style="background:var(--blush-dark);" onclick="confirmOrder()">
-            Conferma e paga
-            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          <button class="btn-next" onclick="goToStep(4)">
+            Procedi al pagamento
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
         <div id="paymentError" style="display:none;align-items:center;gap:var(--space-2);margin-top:var(--space-3);
@@ -1366,8 +1362,7 @@
       if (n === 5 && !opts.internal) return;      // step 5 is a result screen, not a destination
       if (n > currentStep + 1) return;             // the stepper never skips ahead more than one step
       if (n > currentStep && currentStep === 2 && !validateAddressStep()) return;
-      if (n > currentStep && currentStep === 3 && !validatePaymentStep()) return;
-      if (n === 4) updateReviewSummary();
+      if (n === 3) updateReviewSummary();   // Riepilogo (review) is now step 3, before payment
 
       document.querySelectorAll('.step-panel').forEach(function(p) { p.classList.remove('active'); });
       el('panel' + n).classList.add('active');
@@ -1390,9 +1385,10 @@
       }
       currentStep = n;
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      // Mount the card UI when reaching the payment step — SumUp widget when the server
-      // has SumUp credentials, Stripe Elements otherwise.
-      if (n === 3) {
+      // Mount the card UI when reaching the Pagamento step (now step 4, the final action) —
+      // SumUp widget when the server has SumUp credentials, Stripe Elements otherwise. The
+      // provider pay controls (PayPal/wallet) live inline in the method list, so no move needed.
+      if (n === 4) {
         restorePaymentWidgets();
         setTimeout(function() {
           if (sumupAvailable()) { if (activePayMethod === 'carta') prepareSumupPaymentStep(); }
@@ -1401,7 +1397,6 @@
         }, 80);
         if (window.__walletIntent) setTimeout(revealWalletIntent, 750);
       }
-      if (n === 4) setTimeout(setupConfirmPayment, 60);
     }
 
     // ── Validation ────────────────────────────────────────────────────────────
@@ -1689,6 +1684,19 @@
         var t = computeTotals();
         var priceTxt = shippingMethod === 'ritiro' ? 'Gratis' : (t.shipping === 0 ? 'Gratis' : formatPrice(t.shipping));
         shipEl.textContent = (labels[shippingMethod] || labels.standard) + ' · ' + priceTxt;
+      }
+
+      var billEl = el('reviewBilling');
+      if (billEl) {
+        var bSame = el('billingSameChk') ? el('billingSameChk').checked : true;
+        if (bSame) {
+          billEl.textContent = 'Uguale all\'indirizzo di consegna';
+        } else {
+          var bAddr = ((el('billAddress') || {}).value || '').trim();
+          var bCity = ((el('billCity')    || {}).value || '').trim();
+          var bCap  = ((el('billCap')     || {}).value || '').trim();
+          billEl.textContent = [bAddr, [bCap, bCity].filter(Boolean).join(' ')].filter(Boolean).join(', ') || '—';
+        }
       }
 
       var payEl = el('reviewPayment');
@@ -1993,11 +2001,11 @@
           orderData.payment_intent_id = pi.id;
           try { sessionStorage.removeItem('memi_pending_order'); } catch (_) {}
           currentStep = 4;
-          submitOrder(orderData, function(msg) { currentStep = 2; goToStep(3); showPaymentError(msg); });
+          submitOrder(orderData, function(msg) { currentStep = 3; goToStep(4); showPaymentError(msg); });
         } else if (pi.status !== 'succeeded' && pi.status !== 'processing') {
           try { sessionStorage.removeItem('memi_pending_order'); } catch (_) {}
-          currentStep = 2;
-          goToStep(3);
+          currentStep = 3;
+          goToStep(4);
           showPaymentError('Il pagamento Klarna non è stato completato (' + pi.status + ').');
         }
       });
@@ -2198,7 +2206,7 @@
     // Payment errors surface on whichever step the customer is on: #paymentError3 lives on
     // the Pagamento step (where the SumUp widget pays), #paymentError on the Conferma step.
     function showPaymentError(msg) {
-      var errEl = (currentStep === 3 && el('paymentError3')) || el('paymentError');
+      var errEl = (currentStep === 4 && el('paymentError3')) || el('paymentError');
       if (errEl) { errEl.textContent = msg; errEl.style.display = 'flex'; } else if (msg) alert(msg);
     }
 
@@ -2282,7 +2290,7 @@
 
     // Red highlight + styled warning when the customer tries to pay without consent.
     function showPrivacyWarning() {
-      if (currentStep !== 3) goToStep(3);   // the consent checkbox lives on the Pagamento step
+      if (currentStep !== 4) goToStep(4);   // the consent checkbox lives on the Pagamento step
       var block = el('orderTermsBlock'), warn = el('privacyWarning');
       if (block) {
         block.classList.remove('terms-error');
@@ -2483,7 +2491,7 @@
       if (fastBadge) fastBadge.style.display = prov.paypal ? '' : 'none';
       // SumUp replaces Stripe Elements on the card tab. If the customer is already on the
       // payment step when the config arrives, mount immediately; otherwise goToStep(3) does it.
-      if (prov.sumup && currentStep === 3 && activePayMethod === 'carta') prepareSumupPaymentStep();
+      if (prov.sumup && currentStep === 4 && activePayMethod === 'carta') prepareSumupPaymentStep();
     }
     function markProviderTab(panelId, available) {
       if (available) return;
@@ -2664,7 +2672,7 @@
     // mounted widget already matches). A total of €0 (fully covered) drops the widget and
     // restores the generic "Rivedi e conferma" path — the zero-total branch places the order.
     function refreshSumupCheckout() {
-      if (!sumupAvailable() || currentStep !== 3 || activePayMethod !== 'carta') return;
+      if (!sumupAvailable() || currentStep !== 4 || activePayMethod !== 'carta') return;
       if (currentAmountCents() === 0) {
         if (sumupWidget && sumupWidget.unmount) { try { sumupWidget.unmount(); } catch (_) {} }
         sumupWidget = null; sumupCheckoutId = null; sumupCheckoutAmount = null; window.__sumupMounted = false;
@@ -2692,7 +2700,7 @@
       if (!raw) {
         // Staged order lost (different tab / storage cleared). If the charge DID complete,
         // support can find it in the SumUp dashboard from this checkout id.
-        goToStep(3);
+        currentStep = 3; goToStep(4);
         showPaymentError('Non è stato possibile finalizzare l\'ordine dopo il pagamento. Se il pagamento è andato a buon fine, contattaci citando il codice ' + checkoutId + '.');
         return;
       }
@@ -2702,7 +2710,7 @@
       orderData.sumup_checkout_id = checkoutId;
       currentStep = 4;
       submitOrder(orderData, function(msg) {
-        goToStep(3);
+        currentStep = 3; goToStep(4);
         showPaymentError(msg || 'Pagamento non completato. Riprova.');
       });
     }
@@ -2810,7 +2818,8 @@
       // the address step first, then jump straight to Pagamento if it's complete.
       setTimeout(function () {
         goToStep(2);
-        if (validateAddressStep()) goToStep(3);
+        // Express = skip straight to paying: advance through Riepilogo (3) to Pagamento (4).
+        if (validateAddressStep()) { goToStep(3); goToStep(4); }
       }, 400);
     }
 
