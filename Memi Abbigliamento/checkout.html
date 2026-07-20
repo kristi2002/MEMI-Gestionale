@@ -845,7 +845,7 @@
                usable on THIS device (Apple Pay → Safari, Google Pay → Chrome), so only the
                wallet that actually works appears, correctly branded. The single
                #paymentRequestButton is moved into whichever wallet tab is active. -->
-          <label class="pay-method" data-method="apple" id="appleTab" style="display:none;">
+          <label class="pay-method" data-method="apple" id="appleTab">
             <input type="radio" name="payMethod" value="apple" onchange="selectPayMethod('apple')">
             <span class="pay-method-label">Apple Pay</span>
             <span class="pay-method-icon">
@@ -854,6 +854,9 @@
           </label>
           <div class="pay-method-body" id="applePanel" style="display:none;">
             <div id="paymentRequestButton"></div>
+            <p id="appleUnavailableNote" style="display:none;font-size:var(--text-xs);color:var(--brown-mid);line-height:var(--leading-normal);">
+              Apple Pay funziona solo con <strong>Safari</strong> su iPhone, iPad o Mac (con una carta in Apple Wallet). Apri questo sito con Safari su un dispositivo Apple per pagare con Apple Pay, oppure scegli un altro metodo qui sopra.
+            </p>
           </div>
 
           <label class="pay-method" data-method="gpay" id="gpayTab" style="display:none;">
@@ -2082,6 +2085,17 @@
       var prb = el('paymentRequestButton'), panel = el(walletPanelId(method));
       if (prb && panel && prb.parentNode !== panel) panel.appendChild(prb);
     }
+    // Apple Pay is ALWAYS shown as a row (owner's choice), but it only works in Safari on Apple
+    // devices. walletReady is set on the tab only when canMakePayment() confirms Apple Pay is
+    // usable here — otherwise the row shows an explanatory note instead of a dead pay button.
+    function appleAvailable() {
+      var t = el('appleTab');
+      return !!(t && t.dataset && t.dataset.walletReady === '1');
+    }
+    function syncAppleUnavailableNote() {
+      var note = el('appleUnavailableNote');
+      if (note) note.style.display = appleAvailable() ? 'none' : 'block';
+    }
 
     function initPaymentRequestButton(elements) {
       walletDebug('wallet init — Stripe.js: ' + !!window.Stripe + ' · key: ' + (getStripePK() ? 'ok' : 'MISSING') + ' · total cents: ' + currentAmountCents() + ' · secure context: ' + window.isSecureContext);
@@ -2110,15 +2124,17 @@
           style: { paymentRequestButton: { type: 'buy', theme: 'dark', height: '46px' } },
         });
         prButton.mount('#paymentRequestButton');
-        // Reveal a separate, correctly-branded row for each wallet the device supports
-        // (Apple Pay in Safari, Google Pay in Chrome) — only the usable one(s) appear.
+        // Mark each wallet the device actually supports as usable (Apple Pay in Safari, Google
+        // Pay in Chrome). The Apple Pay row is always shown (see HTML); Google Pay appears only
+        // when usable. walletReady on the tab drives whether the pay button or a note is shown.
         var showApple = !!(result && result.applePay);
         var showGpay  = !!(result && result.googlePay);
-        if (!showApple && !showGpay) showApple = true;   // older Stripe: no per-wallet flags → default to the Apple row
+        if (!showApple && !showGpay) showApple = true;   // older Stripe: no per-wallet flags → assume Apple row
         if (showApple) revealWalletTab('apple');
         if (showGpay)  revealWalletTab('gpay');
         // Park the shared button in the first available wallet's panel.
         moveWalletButton(showGpay && !showApple ? 'gpay' : 'apple');
+        syncAppleUnavailableNote();   // if the buyer is already on the Apple Pay row, refresh its note
       });
     }
 
@@ -2194,6 +2210,7 @@
       if (method === 'klarna') ensureKlarnaElement();
       // Wallet rows share one Payment Request Button — move it into the selected wallet's panel.
       if (method === 'apple' || method === 'gpay') moveWalletButton(method);
+      if (method === 'apple') syncAppleUnavailableNote();
 
       // SumUp card pays in-widget on THIS step: mount it and hide "Rivedi e conferma".
       // Every other method reviews on the Conferma step, so restore that button.
@@ -2523,7 +2540,11 @@
         });
       } else if (activePayMethod === 'apple' || activePayMethod === 'gpay') {
         setLoading(false);
-        showPaymentError('Usa il pulsante Apple Pay / Google Pay qui sopra per completare il pagamento.');
+        if (activePayMethod === 'apple' && !appleAvailable()) {
+          showPaymentError('Apple Pay è disponibile solo su Safari (iPhone, iPad o Mac con Apple Wallet). Apri il sito con Safari su un dispositivo Apple, oppure scegli un altro metodo di pagamento.');
+        } else {
+          showPaymentError('Usa il pulsante Apple Pay / Google Pay qui sopra per completare il pagamento.');
+        }
       } else {
         // PayPal — driven by GET /api/payments/config availability.
         var available = window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers.paypal;
