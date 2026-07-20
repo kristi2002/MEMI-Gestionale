@@ -840,9 +840,14 @@
             </p>
           </div>
 
+          <!-- Apple Pay and Google Pay are two SEPARATE rows but ONE Stripe Payment Request
+               Button. Each tab is revealed only when canMakePayment() reports that wallet is
+               usable on THIS device (Apple Pay → Safari, Google Pay → Chrome), so only the
+               wallet that actually works appears, correctly branded. The single
+               #paymentRequestButton is moved into whichever wallet tab is active. -->
           <label class="pay-method" data-method="apple" id="appleTab" style="display:none;">
             <input type="radio" name="payMethod" value="apple" onchange="selectPayMethod('apple')">
-            <span class="pay-method-label" id="appleTabLabel">Apple Pay</span>
+            <span class="pay-method-label">Apple Pay</span>
             <span class="pay-method-icon">
               <svg viewBox="0 0 24 24" style="width:26px;height:26px;fill:#000;"><path d="M16.36 1.43c0 1.14-.47 2.16-1.24 2.9-.83.8-2 .19-1.24-.24C13.9 3.5 14.36 2.3 14.36 1.14c0-.15-.01-.3-.03-.14C15.44.2 16.36-.02 16.36 1.43zM19.7 17.1c-.35.8-.77 1.55-1.26 2.24-.67.94-1.22 1.6-1.65 1.96-.66.6-1.37.9-2.13.92-.55.01-1.2-.15-1.97-.48-.77-.33-1.48-.49-2.12-.49-.67 0-1.4.16-2.18.49-.79.33-1.42.5-1.9.51-.72.03-1.45-.28-2.18-.94-.46-.4-1.04-1.09-1.74-2.08-.75-1.06-1.37-2.3-1.85-3.71-.52-1.53-.78-3.02-.78-4.45 0-1.64.35-3.05 1.06-4.24.56-.95 1.3-1.7 2.23-2.25.93-.55 1.93-.83 3.02-.85.58 0 1.35.18 2.3.53.95.35 1.56.53 1.82.53.2 0 .87-.21 2.02-.62 1.09-.38 2-.54 2.75-.48 2.03.16 3.55.96 4.57 2.4-1.82 1.1-2.72 2.64-2.7 4.62.01 1.54.56 2.83 1.65 3.85.49.47 1.04.83 1.65 1.09-.13.39-.27.76-.43 1.13z"/></svg>
             </span>
@@ -850,6 +855,15 @@
           <div class="pay-method-body" id="applePanel" style="display:none;">
             <div id="paymentRequestButton"></div>
           </div>
+
+          <label class="pay-method" data-method="gpay" id="gpayTab" style="display:none;">
+            <input type="radio" name="payMethod" value="gpay" onchange="selectPayMethod('gpay')">
+            <span class="pay-method-label">Google Pay</span>
+            <span class="pay-method-icon">
+              <svg viewBox="0 0 48 48" style="width:24px;height:24px;" aria-hidden="true"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"/><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg>
+            </span>
+          </label>
+          <div class="pay-method-body" id="gpayPanel" style="display:none;"></div>
 
           <label class="pay-method" data-method="paypal" id="paypalTab">
             <input type="radio" name="payMethod" value="paypal" onchange="selectPayMethod('paypal')">
@@ -1437,7 +1451,7 @@
     function validatePaymentStep() {
       // GDPR first: the consent checkbox lives on this step now — nobody advances (or pays) without it.
       if (!privacyOk()) { showPrivacyWarning(); return false; }
-      if (activePayMethod === 'paypal' || activePayMethod === 'apple' || activePayMethod === 'klarna') return true;
+      if (activePayMethod === 'paypal' || activePayMethod === 'apple' || activePayMethod === 'gpay' || activePayMethod === 'klarna') return true;
       if (window.__sumupMounted) return true;         // SumUp
       if (stripeInstance && stripeCardEl && !stripeCardComplete) {
         var errEl = el('stripeCardError');
@@ -1701,7 +1715,7 @@
 
       var payEl = el('reviewPayment');
       if (payEl) {
-        var labelsPay = { carta: 'Carta di credito/debito', klarna: 'Klarna — Paga in 3 rate', apple: 'Apple Pay / Google Pay', paypal: 'PayPal' };
+        var labelsPay = { carta: 'Carta di credito/debito', klarna: 'Klarna — Paga in 3 rate', apple: 'Apple Pay', gpay: 'Google Pay', paypal: 'PayPal' };
         payEl.textContent = labelsPay[activePayMethod] || 'Carta di credito/debito';
       }
     }
@@ -2056,6 +2070,19 @@
       box.textContent += msg + '\n';
     }
 
+    // Apple Pay and Google Pay are two separate rows sharing ONE Stripe Payment Request Button
+    // element. These helpers reveal the correct row per device and keep the single button in
+    // whichever wallet panel is currently shown.
+    function walletPanelId(method) { return method === 'gpay' ? 'gpayPanel' : 'applePanel'; }
+    function revealWalletTab(method) {
+      var tab = el(method === 'gpay' ? 'gpayTab' : 'appleTab');
+      if (tab) { tab.dataset.walletReady = '1'; tab.style.display = 'flex'; }
+    }
+    function moveWalletButton(method) {
+      var prb = el('paymentRequestButton'), panel = el(walletPanelId(method));
+      if (prb && panel && prb.parentNode !== panel) panel.appendChild(prb);
+    }
+
     function initPaymentRequestButton(elements) {
       walletDebug('wallet init — Stripe.js: ' + !!window.Stripe + ' · key: ' + (getStripePK() ? 'ok' : 'MISSING') + ' · total cents: ' + currentAmountCents() + ' · secure context: ' + window.isSecureContext);
       if (walletPaymentRequest || !stripeInstance) { walletDebug('stopped: ' + (walletPaymentRequest ? 'already initialised' : 'no Stripe instance')); return; }
@@ -2083,10 +2110,15 @@
           style: { paymentRequestButton: { type: 'buy', theme: 'dark', height: '46px' } },
         });
         prButton.mount('#paymentRequestButton');
-        var appleTab = el('appleTab');
-        if (appleTab) { appleTab.dataset.walletReady = '1'; appleTab.style.display = 'flex'; }
-        var appleLbl = el('appleTabLabel');
-        if (appleLbl && result && result.googlePay && !result.applePay) appleLbl.textContent = 'Google Pay';
+        // Reveal a separate, correctly-branded row for each wallet the device supports
+        // (Apple Pay in Safari, Google Pay in Chrome) — only the usable one(s) appear.
+        var showApple = !!(result && result.applePay);
+        var showGpay  = !!(result && result.googlePay);
+        if (!showApple && !showGpay) showApple = true;   // older Stripe: no per-wallet flags → default to the Apple row
+        if (showApple) revealWalletTab('apple');
+        if (showGpay)  revealWalletTab('gpay');
+        // Park the shared button in the first available wallet's panel.
+        moveWalletButton(showGpay && !showApple ? 'gpay' : 'apple');
       });
     }
 
@@ -2149,7 +2181,7 @@
     function selectPayMethod(method) {
       activePayMethod = method;
       document.querySelectorAll('.pay-method').forEach(function(l) { l.classList.toggle('active', l.dataset.method === method); });
-      var bodies = { klarna: 'klarnaPanel', carta: 'cardForm', apple: 'applePanel', paypal: 'paypalPanel' };
+      var bodies = { klarna: 'klarnaPanel', carta: 'cardForm', apple: 'applePanel', gpay: 'gpayPanel', paypal: 'paypalPanel' };
       Object.keys(bodies).forEach(function(m) {
         var body = el(bodies[m]);
         // Always 'block' when shown. The card tab must NOT be display:flex: .pay-method-body has
@@ -2160,6 +2192,8 @@
       if (el('paymentError')) el('paymentError').style.display = 'none';
       if (el('paymentError3')) el('paymentError3').style.display = 'none';
       if (method === 'klarna') ensureKlarnaElement();
+      // Wallet rows share one Payment Request Button — move it into the selected wallet's panel.
+      if (method === 'apple' || method === 'gpay') moveWalletButton(method);
 
       // SumUp card pays in-widget on THIS step: mount it and hide "Rivedi e conferma".
       // Every other method reviews on the Conferma step, so restore that button.
@@ -2184,7 +2218,7 @@
       var area = el('providerPayArea');
       var genericBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
       var cents = currentAmountCents();
-      var useApple  = activePayMethod === 'apple' && cents > 0;
+      var useWallet = (activePayMethod === 'apple' || activePayMethod === 'gpay') && cents > 0;
       var usePaypal = activePayMethod === 'paypal' && cents > 0 &&
                       window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers.paypal;
 
@@ -2194,7 +2228,7 @@
         moveInto(el('paypalButtons'));
         if (area) area.style.display = 'block';
         if (genericBtn) genericBtn.style.display = 'none';
-      } else if (useApple) {
+      } else if (useWallet) {
         moveInto(el('paymentRequestButton'));
         if (area) area.style.display = 'block';
         if (genericBtn) genericBtn.style.display = 'none';
@@ -2220,8 +2254,13 @@
     function restorePaymentWidgets() {
       var pp = el('paypalButtons'), ppPanel = el('paypalPanel');
       if (pp && ppPanel && pp.parentNode !== ppPanel) ppPanel.appendChild(pp);
-      var prb = el('paymentRequestButton'), applePanel = el('applePanel');
-      if (prb && applePanel && prb.parentNode !== applePanel) applePanel.appendChild(prb);
+      var prb = el('paymentRequestButton');
+      if (prb) {
+        var gReady = el('gpayTab') && el('gpayTab').dataset.walletReady === '1';
+        var aReady = el('appleTab') && el('appleTab').dataset.walletReady === '1';
+        var wp = el((activePayMethod === 'gpay' || (gReady && !aReady)) ? 'gpayPanel' : 'applePanel');
+        if (wp && prb.parentNode !== wp) wp.appendChild(prb);
+      }
     }
 
     // Payment errors surface on whichever step the customer is on: #paymentError3 lives on
@@ -2382,7 +2421,7 @@
     }
 
     function confirmOrder() {
-      var payMethodApi = { carta: 'carta', klarna: 'klarna', apple: 'carta', paypal: 'paypal' }[activePayMethod] || 'carta';
+      var payMethodApi = { carta: 'carta', klarna: 'klarna', apple: 'carta', gpay: 'carta', paypal: 'paypal' }[activePayMethod] || 'carta';
       var isLocalDev = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
 
       if (!cartItems.length) { showPaymentError('Il carrello è vuoto.'); return; }
@@ -2482,7 +2521,7 @@
             try { sessionStorage.removeItem('memi_pending_order'); } catch (_) {}
           }
         });
-      } else if (activePayMethod === 'apple') {
+      } else if (activePayMethod === 'apple' || activePayMethod === 'gpay') {
         setLoading(false);
         showPaymentError('Usa il pulsante Apple Pay / Google Pay qui sopra per completare il pagamento.');
       } else {
@@ -2864,11 +2903,19 @@
     // into view once Stripe confirms it's usable; if no wallet exists on this device,
     // fall back to the card form with a clear note (PayPal stays one tab away).
     function revealWalletIntent() {
-      var appleTab = el('appleTab');
-      if (appleTab && appleTab.dataset.walletReady === '1') {
-        var aInput = document.querySelector('input[name=payMethod][value=apple]');
-        if (aInput) { aInput.checked = true; selectPayMethod('apple'); }
-        appleTab.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Prefer the wallet the buyer picked from the cart (?pay=applepay|gpay); otherwise use
+      // whichever wallet this device actually supports. Each wallet is its own row now.
+      var want = (window.__walletIntent === 'gpay') ? 'gpay' : 'apple';
+      var wantTab = el(want === 'gpay' ? 'gpayTab' : 'appleTab');
+      if (!(wantTab && wantTab.dataset.walletReady === '1')) {
+        var alt = (want === 'gpay') ? 'apple' : 'gpay';
+        var altTab = el(alt === 'gpay' ? 'gpayTab' : 'appleTab');
+        if (altTab && altTab.dataset.walletReady === '1') { want = alt; wantTab = altTab; }
+      }
+      if (wantTab && wantTab.dataset.walletReady === '1') {
+        var wInput = document.querySelector('input[name=payMethod][value=' + want + ']');
+        if (wInput) { wInput.checked = true; selectPayMethod(want); }
+        wantTab.scrollIntoView({ behavior: 'smooth', block: 'center' });
       } else if (!el('walletFallbackHint')) {
         var hint = document.createElement('p');
         hint.id = 'walletFallbackHint';
