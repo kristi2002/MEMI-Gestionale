@@ -89,7 +89,12 @@ router.post('/paypal/create-order', validateBody(createIntentSchema), async (req
   if (!amount_cents || typeof amount_cents !== 'number' || amount_cents < 50)
     return res.status(400).json({ error: 'Importo non valido (minimo €0.50).' });
   try {
-    const order = await providers.createPaypalOrder(amount_cents);
+    // Express (accelerated) checkout carries a shipping breakdown so the client can patch
+    // shipping per country in onShippingChange; standard flow just sends the total.
+    const opts = req.body.express
+      ? { express: true, itemTotalCents: req.body.item_total_cents, shippingCents: req.body.shipping_cents }
+      : undefined;
+    const order = await providers.createPaypalOrder(amount_cents, opts);
     return res.json(order);   // { id, status }
   } catch (err) {
     (req.log || console).error({ err }, '[PayPal] create-order error');
