@@ -110,7 +110,7 @@
         ' style="--i:' + (idx % 4) + '"' +
         dataAcc + '>' +
         '<div class="product-img-wrap">' +
-          '<img class="product-img-main" src="' + img1 + '" alt="' + esc(p.name) + '" loading="lazy" onerror="this.onerror=null;this.src=window.MEMI_NO_IMAGE">' +
+          '<img class="product-img-main" src="' + img1 + '" alt="' + esc(p.name) + '" loading="' + (idx < 8 ? 'eager' : 'lazy') + '"' + (idx < 4 ? ' fetchpriority="high"' : '') + ' onerror="this.onerror=null;this.src=window.MEMI_NO_IMAGE">' +
           '<img class="product-img-alt" src="' + img2 + '" alt="' + esc(p.name) + ' alt" loading="lazy" onerror="this.onerror=null;this.src=window.MEMI_NO_IMAGE">' +
           badges +
           (flagBadges ? '<div class="product-badges">' + flagBadges + '</div>' : '') +
@@ -202,6 +202,19 @@
       .catch(function () {});
   }
 
+  // Native loading="lazy" can silently fail to trigger in some environments (images injected
+  // via innerHTML, certain embedded/automation browsers), leaving the grid photo-less. Force
+  // each product image to load as it nears the viewport, so photos never depend on native lazy.
+  function hydrateImages(root) {
+    var imgs = Array.prototype.slice.call((root || document).querySelectorAll('img.product-img-main, img.product-img-alt'));
+    function force(im) { if (!im.complete || im.naturalWidth === 0) { im.loading = 'eager'; var s = im.getAttribute('src'); if (s) im.setAttribute('src', s); } }
+    if (!('IntersectionObserver' in window)) { imgs.forEach(force); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { force(e.target); io.unobserve(e.target); } });
+    }, { rootMargin: '600px 0px' });
+    imgs.forEach(function (im) { io.observe(im); });
+  }
+
   function init() {
     var cfg  = resolveConfig();
     var grid = pickGrid(cfg);
@@ -250,6 +263,7 @@
         grid.innerHTML = restProducts.map(function (p, i) { return buildCard(p, i); }).join('');
         setCounts(products.length);
         updateFilterCounts(products);
+        hydrateImages(document);   // reliably load photos even where native lazy-loading fails
 
         // Wire the wishlist hearts on the freshly-rendered cards. app.js already ran
         // wireProductCards() on DOMContentLoaded — before this async render — so the new
