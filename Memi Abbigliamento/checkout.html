@@ -939,7 +939,7 @@
             </span>
           </label>
 
-          <label class="pay-method" data-method="gpay" id="gpayTab" style="display:none;">
+          <label class="pay-method" data-method="gpay" id="gpayTab">
             <input type="radio" name="payMethod" value="gpay" onchange="selectPayMethod('gpay')">
             <span class="pay-method-label">Google Pay</span>
             <span class="pay-method-icon">
@@ -1911,25 +1911,15 @@
 
       // Create PaymentIntent as soon as Elements mounts (deferred)
       fetchPaymentIntent();
-
-      // Wallet express checkout (Apple Pay / Google Pay) — rendered only if available.
-      initPaymentRequestButton(elements);
     }
 
-    // Apple Pay / Google Pay ride on Stripe even when SumUp owns the "Carta" tab, so the
-    // wallet express button must be able to initialise WITHOUT the Stripe card Element.
-    // Coupling it to initStripeElements() meant the wallet went dark whenever SumUp was the
-    // configured card processor — the Apple/Google Pay tab never appeared. This path sets up
-    // just the Stripe instance + Payment Request Button (no card field). Idempotent.
+    // Apple Pay / Google Pay ride on Stripe even when SumUp owns the "Carta" tab. This just
+    // ensures the Stripe instance exists; the wallet UI (Express Checkout Element) is mounted
+    // lazily per wallet on the Confermare step — see mountExpressCheckout(). Idempotent.
     function initStripeWallet() {
-      if (walletPaymentRequest) return;            // wallet already initialised
       var pk = getStripePK();
-      if (!pk || !window.Stripe) return;           // Stripe.js or key not available yet
+      if (!pk || !window.Stripe) return;
       if (!stripeInstance) stripeInstance = window.Stripe(pk);
-      // A bare Elements group is enough to create the Payment Request Button; the card
-      // Element is intentionally NOT mounted here (SumUp renders the card field).
-      var elements = stripeInstance.elements({ locale: 'it' });
-      initPaymentRequestButton(elements);
     }
 
     // Current order total in cents, mirroring updateTotals()'s math exactly.
@@ -2049,22 +2039,21 @@
       });
     }
 
-    // ── Wallet express checkout — Apple Pay / Google Pay via Stripe Payment Request ──
-    // One integration covers both wallets: Safari offers Apple Pay (only on domains
-    // verified in the Stripe dashboard, HTTPS required), Chrome offers Google Pay.
-    // canMakePayment() decides whether the button appears, so devices without a wallet
-    // (and keyless dev environments) silently fall back to the card form below.
-    var walletPaymentRequest = null;
+    // ── Wallet express checkout — Apple Pay / Google Pay via Stripe EXPRESS CHECKOUT ELEMENT ──
+    // Unlike the legacy Payment Request Button (Apple Pay = Safari only), the Express Checkout
+    // Element renders Apple Pay in NON-Safari browsers too: on Chrome / Edge / Firefox it shows
+    // the iOS-18 "Scan with iPhone" QR (paymentMethods.applePay:'always'); on Apple devices it's
+    // the native sheet. REQUIRES the domain registered under Stripe → Payment method domains
+    // (test + live) and HTTPS — otherwise the button won't render. One element is mounted per
+    // active wallet into #paymentRequestButton (kept as the shared container).
+    var expressElements = null, expressElement = null, expressWallet = null, expressAmount = null;
 
     function syncExpressCheckoutTotal(amountCents) {
-      if (!walletPaymentRequest) return;
-      try {
-        if (amountCents > 0) walletPaymentRequest.update({ total: { label: 'Memi Abbigliamento', amount: amountCents } });
-      } catch (_) { /* update() throws while the wallet sheet is open — safe to ignore */ }
+      if (!expressElements || !amountCents || amountCents === expressAmount) return;
+      try { expressElements.update({ amount: amountCents }); expressAmount = amountCents; } catch (_) {}
     }
 
-    // Opt-in diagnostic: /checkout.html?walletdebug=1 paints wallet-detection status
-    // into the payment panel so availability problems can be read without DevTools.
+    // Opt-in diagnostic: /checkout.html?walletdebug=1 paints wallet status into the payment panel.
     function walletDebug(msg) {
       if (!/[?&]walletdebug/.test(location.search)) return;
       var box = el('walletDebugBox');
@@ -2072,128 +2061,101 @@
         box = document.createElement('div');
         box.id = 'walletDebugBox';
         box.style.cssText = 'margin-bottom:12px;padding:10px 14px;background:#f3f0ea;border:1px dashed #b8a99a;border-radius:8px;font-size:12px;color:#5a4a3a;font-family:monospace;white-space:pre-wrap;';
-        var panel = el('panel3');
+        var panel = el('panel4') || el('panel3');
         if (panel) panel.insertBefore(box, panel.children[1] || null);
       }
       box.textContent += msg + '\n';
     }
 
-    // Apple Pay and Google Pay are two separate rows sharing ONE Stripe Payment Request Button
-    // element. These helpers reveal the correct row per device and keep the single button in
-    // whichever wallet panel is currently shown.
     function walletPanelId(method) { return method === 'gpay' ? 'gpayPanel' : 'applePanel'; }
-    function revealWalletTab(method) {
-      var tab = el(method === 'gpay' ? 'gpayTab' : 'appleTab');
-      if (tab) { tab.dataset.walletReady = '1'; tab.style.display = 'flex'; }
-    }
     function moveWalletButton(method) {
-      var prb = el('paymentRequestButton'), panel = el(walletPanelId(method));
-      if (prb && panel && prb.parentNode !== panel) panel.appendChild(prb);
+      var host = el('paymentRequestButton'), panel = el(walletPanelId(method));
+      if (host && panel && host.parentNode !== panel) panel.appendChild(host);
     }
-    // Apple Pay is ALWAYS shown as a row (owner's choice), but it only works in Safari on Apple
-    // devices. walletReady is set on the tab only when canMakePayment() confirms Apple Pay is
-    // usable here — otherwise the row shows an explanatory note instead of a dead pay button.
-    function appleAvailable() {
-      var t = el('appleTab');
-      return !!(t && t.dataset && t.dataset.walletReady === '1');
-    }
+    // With the Express Checkout Element, Apple Pay works on every browser (QR on non-Safari), so
+    // it's always offered — the old "Safari only" note only appears if the element fails to load.
+    function appleAvailable() { return true; }
     function syncAppleUnavailableNote() {
       var note = el('appleUnavailableNote');
-      if (note) note.style.display = appleAvailable() ? 'none' : 'block';
+      if (note) note.style.display = 'none';
     }
 
-    function initPaymentRequestButton(elements) {
-      walletDebug('wallet init — Stripe.js: ' + !!window.Stripe + ' · key: ' + (getStripePK() ? 'ok' : 'MISSING') + ' · total cents: ' + currentAmountCents() + ' · secure context: ' + window.isSecureContext);
-      if (walletPaymentRequest || !stripeInstance) { walletDebug('stopped: ' + (walletPaymentRequest ? 'already initialised' : 'no Stripe instance')); return; }
+    // Mount (or re-mount) the Express Checkout Element for a wallet ('apple'|'gpay') at the current
+    // total, into #paymentRequestButton moved to that wallet's panel. Recreated if wallet/amount drifts.
+    function mountExpressCheckout(wallet) {
+      moveWalletButton(wallet);
+      var pk = getStripePK();
+      if (!pk || !window.Stripe) { walletDebug('ECE: Stripe key MISSING'); return; }
+      if (!stripeInstance) stripeInstance = window.Stripe(pk);
       var amount = currentAmountCents();
-      if (!amount) { walletDebug('stopped: cart total is 0 — nothing to charge'); return; } // wallet button stays hidden
-      var pr = stripeInstance.paymentRequest({
-        country: 'IT',
-        currency: 'eur',
-        total: { label: 'Memi Abbigliamento', amount: amount },
-        requestPayerName: true,
-        requestPayerEmail: true,
-        // The button shows ONE wallet; without this, Stripe's Link can win over
-        // Google Pay on mobile. Boss wants Apple Pay / Google Pay — keep those first.
-        disableWallets: ['link', 'browserCard'],
+      if (!amount) { walletDebug('ECE: total is 0'); return; }
+      if (expressElement && expressWallet === wallet && expressAmount === amount) return;   // already current
+      if (expressElement && expressElement.unmount) { try { expressElement.unmount(); } catch (_) {} }
+      expressElement = null; expressElements = null;
+      var host = el('paymentRequestButton'); if (host) host.innerHTML = '';
+      expressElements = stripeInstance.elements({ mode: 'payment', amount: amount, currency: 'eur', locale: 'it' });
+      var pm = (wallet === 'gpay')
+        ? { googlePay: 'always', applePay: 'never',  link: 'never', paypal: 'never', amazonPay: 'never' }
+        : { applePay:  'always', googlePay: 'never', link: 'never', paypal: 'never', amazonPay: 'never' };
+      expressElement = expressElements.create('expressCheckout', {
+        paymentMethods: pm,
+        buttonHeight: 46,
+        buttonType: { applePay: 'buy', googlePay: 'buy' },
       });
-
-      pr.on('paymentmethod', function(ev) { handleWalletPayment(ev); });
-
-      pr.canMakePayment().then(function(result) {
-        walletDebug('canMakePayment: ' + JSON.stringify(result) + (result ? ' → SHOWING wallet button' : ' → Chrome/Safari reports NO usable wallet (no card in Google Pay / Apple Wallet) — button stays hidden'));
-        if (!result) return; // no Apple Pay / Google Pay available here — keep hidden
-        walletPaymentRequest = pr;
-        var prButton = elements.create('paymentRequestButton', {
-          paymentRequest: pr,
-          style: { paymentRequestButton: { type: 'buy', theme: 'dark', height: '46px' } },
-        });
-        prButton.mount('#paymentRequestButton');
-        // Mark each wallet the device actually supports as usable (Apple Pay in Safari, Google
-        // Pay in Chrome). The Apple Pay row is always shown (see HTML); Google Pay appears only
-        // when usable. walletReady on the tab drives whether the pay button or a note is shown.
-        var showApple = !!(result && result.applePay);
-        var showGpay  = !!(result && result.googlePay);
-        if (!showApple && !showGpay) showApple = true;   // older Stripe: no per-wallet flags → assume Apple row
-        if (showApple) revealWalletTab('apple');
-        if (showGpay)  revealWalletTab('gpay');
-        // Park the shared button in the first available wallet's panel.
-        moveWalletButton(showGpay && !showApple ? 'gpay' : 'apple');
-        syncAppleUnavailableNote();   // if the buyer is already on the Apple Pay row, refresh its note
+      expressElement.on('confirm', function (ev) { handleExpressConfirm(ev, expressElements); });
+      expressElement.on('ready', function (e) { walletDebug('ECE ready (' + wallet + '): ' + JSON.stringify((e && e.availablePaymentMethods) || {})); });
+      expressElement.on('loaderror', function (e) {
+        walletDebug('ECE loaderror: ' + ((e && e.error && e.error.message) || '?'));
+        var note = el('appleUnavailableNote');
+        if (wallet === 'apple' && note) {
+          note.textContent = 'Apple Pay non è al momento disponibile (verifica che il dominio sia registrato in Stripe → Payment method domains). Scegli un altro metodo.';
+          note.style.display = 'block';
+        }
       });
+      expressElement.mount('#paymentRequestButton');
+      expressWallet = wallet; expressAmount = amount;
     }
 
-    function handleWalletPayment(ev) {
+    // The buyer authorised in the wallet sheet (Face ID, or QR + iPhone) — submit the element,
+    // ensure a Stripe PaymentIntent for the current total, confirm, then place the order.
+    function handleExpressConfirm(ev, elementsGroup) {
       var orderData = collectOrderData('carta');
-      // The wallet sheet supplies name/email — use them for anything the form is missing.
-      if (!orderData.email && ev.payerEmail) orderData.email = ev.payerEmail.trim();
-      if ((!orderData.nome || !orderData.cognome) && ev.payerName) {
-        var parts = ev.payerName.trim().split(/\s+/);
-        if (!orderData.nome)    orderData.nome    = parts[0] || '';
-        if (!orderData.cognome) orderData.cognome = parts.slice(1).join(' ') || parts[0] || '';
+      var bd = ev && ev.billingDetails;
+      if (bd) {
+        if (!orderData.email && bd.email) orderData.email = String(bd.email).trim();
+        if ((!orderData.nome || !orderData.cognome) && bd.name) {
+          var parts = String(bd.name).trim().split(/\s+/);
+          if (!orderData.nome)    orderData.nome    = parts[0] || '';
+          if (!orderData.cognome) orderData.cognome = parts.slice(1).join(' ') || parts[0] || '';
+        }
       }
-      if (!shippingFilled(orderData)) {
-        ev.complete('fail');
-        showPaymentError('Completa i dati di spedizione prima di pagare con il wallet.');
-        return;
-      }
-      if (!privacyOk()) {
-        ev.complete('fail');
-        showPrivacyWarning();
-        return;
-      }
+      if (!shippingFilled(orderData)) { showPaymentError('Completa i dati di spedizione prima di pagare con il wallet.'); return; }
+      if (!privacyOk()) { showPrivacyWarning(); return; }
 
-      var wantCents = currentAmountCents();
-      var ensureSecret = (stripeClientSecret && stripeIntentAmount === wantCents)
-        ? Promise.resolve(stripeClientSecret)
-        : fetchPaymentIntent();
-
-      ensureSecret.then(function(secret) {
-        if (!secret) { ev.complete('fail'); showPaymentError('Pagamento non disponibile al momento. Riprova tra poco.'); return; }
-        // handleActions:false → close the wallet sheet immediately; run 3DS after, if the bank asks.
-        stripeInstance.confirmCardPayment(secret, { payment_method: ev.paymentMethod.id }, { handleActions: false })
-          .then(function(result) {
-            if (result.error) { ev.complete('fail'); showPaymentError(result.error.message || 'Pagamento non riuscito.'); return; }
-            ev.complete('success');
-            var pi = result.paymentIntent;
-            if (pi && pi.status === 'requires_action') {
-              stripeInstance.confirmCardPayment(secret).then(function(r2) {
-                if (r2.error) { showPaymentError(r2.error.message || 'Autenticazione non riuscita.'); }
-                else if (r2.paymentIntent && r2.paymentIntent.status === 'succeeded') { finishWalletOrder(orderData, r2.paymentIntent.id); }
-                else { showPaymentError('Pagamento non completato. Riprova.'); }
-              });
-            } else if (pi && pi.status === 'succeeded') {
-              finishWalletOrder(orderData, pi.id);
-            } else {
-              showPaymentError('Pagamento non completato. Riprova.');
-            }
+      elementsGroup.submit().then(function (subRes) {
+        if (subRes && subRes.error) { showPaymentError(subRes.error.message || 'Pagamento non riuscito.'); return; }
+        var wantCents = currentAmountCents();
+        var ensureSecret = (stripeClientSecret && stripeIntentAmount === wantCents) ? Promise.resolve(stripeClientSecret) : fetchPaymentIntent();
+        ensureSecret.then(function (secret) {
+          if (!secret) { showPaymentError('Pagamento non disponibile al momento. Riprova tra poco.'); return; }
+          stripeInstance.confirmPayment({
+            elements: elementsGroup,
+            clientSecret: secret,
+            confirmParams: { return_url: window.location.origin + window.location.pathname + '?wallet_return=1' },
+            redirect: 'if_required',
+          }).then(function (res) {
+            if (res.error) { showPaymentError(res.error.message || 'Pagamento non riuscito.'); return; }
+            var pi = res.paymentIntent;
+            if (pi && (pi.status === 'succeeded' || pi.status === 'processing')) { finishWalletOrder(orderData, pi.id); }
+            else { showPaymentError('Pagamento non completato. Riprova.'); }
           });
+        });
       });
     }
 
     function finishWalletOrder(orderData, paymentIntentId) {
       orderData.payment_intent_id = paymentIntentId;
-      submitOrder(orderData, function(msg) { showPaymentError(msg); });
+      submitOrder(orderData, function (msg) { showPaymentError(msg); });
     }
 
     // ── Payment ───────────────────────────────────────────────────────────────
@@ -2218,21 +2180,18 @@
       if (currentStep !== 4) return;
 
       if (method === 'klarna') ensureKlarnaElement();
-      if (method === 'gpay' || (method === 'apple' && appleAvailable())) moveWalletButton(method);
-      if (method === 'apple') syncAppleUnavailableNote();
+      // Wallets render via the Express Checkout Element (Apple Pay shows the QR on non-Safari
+      // browsers). Mount it for the chosen wallet.
+      if (method === 'apple' || method === 'gpay') mountExpressCheckout(method);
 
       // SumUp pays via its own embedded widget; mount it for the card method.
       if (method === 'carta' && sumupAvailable()) prepareSumupPaymentStep();
 
-      // Methods with their OWN pay control (SumUp widget, usable wallet, PayPal buttons) hide the
-      // generic "Effettua ordine" button; Klarna, the Stripe-card fallback, and an unusable Apple
-      // Pay row keep it (the latter so confirmOrder can explain Apple Pay needs Safari).
+      // Methods with their OWN pay control (SumUp widget, wallet button, PayPal buttons) hide the
+      // generic "Effettua ordine" button; Klarna and the Stripe-card fallback keep it.
       var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
       var paypalActive = method === 'paypal' && window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers.paypal;
-      var ownControl = paypalActive
-        || (method === 'apple' && appleAvailable())
-        || method === 'gpay'
-        || (method === 'carta' && sumupAvailable());
+      var ownControl = paypalActive || method === 'apple' || method === 'gpay' || (method === 'carta' && sumupAvailable());
       if (confirmBtn) confirmBtn.style.display = ownControl ? 'none' : '';
     }
 
@@ -2280,12 +2239,10 @@
     function restorePaymentWidgets() {
       var pp = el('paypalButtons'), ppPanel = el('paypalPanel');
       if (pp && ppPanel && pp.parentNode !== ppPanel) ppPanel.appendChild(pp);
-      var prb = el('paymentRequestButton');
-      if (prb) {
-        var gReady = el('gpayTab') && el('gpayTab').dataset.walletReady === '1';
-        var aReady = el('appleTab') && el('appleTab').dataset.walletReady === '1';
-        var wp = el((activePayMethod === 'gpay' || (gReady && !aReady)) ? 'gpayPanel' : 'applePanel');
-        if (wp && prb.parentNode !== wp) wp.appendChild(prb);
+      var host = el('paymentRequestButton');
+      if (host) {
+        var wp = el(activePayMethod === 'gpay' ? 'gpayPanel' : 'applePanel');
+        if (wp && host.parentNode !== wp) wp.appendChild(host);
       }
     }
 
@@ -2927,31 +2884,15 @@
       }, 400);
     }
 
-    // When Apple Pay / Google Pay was chosen from the cart, bring the wallet button
-    // into view once Stripe confirms it's usable; if no wallet exists on this device,
-    // fall back to the card form with a clear note (PayPal stays one tab away).
+    // The buyer chose a wallet from the cart (?pay=applepay|gpay). Both wallet rows are always
+    // available now (Express Checkout Element — Apple Pay works even on Chrome via the QR), so
+    // just select the chosen wallet; the Confermare step mounts its button.
     function revealWalletIntent() {
-      // Prefer the wallet the buyer picked from the cart (?pay=applepay|gpay); otherwise use
-      // whichever wallet this device actually supports. Each wallet is its own row now.
       var want = (window.__walletIntent === 'gpay') ? 'gpay' : 'apple';
+      var wInput = document.querySelector('input[name=payMethod][value=' + want + ']');
+      if (wInput) { wInput.checked = true; selectPayMethod(want); }
       var wantTab = el(want === 'gpay' ? 'gpayTab' : 'appleTab');
-      if (!(wantTab && wantTab.dataset.walletReady === '1')) {
-        var alt = (want === 'gpay') ? 'apple' : 'gpay';
-        var altTab = el(alt === 'gpay' ? 'gpayTab' : 'appleTab');
-        if (altTab && altTab.dataset.walletReady === '1') { want = alt; wantTab = altTab; }
-      }
-      if (wantTab && wantTab.dataset.walletReady === '1') {
-        var wInput = document.querySelector('input[name=payMethod][value=' + want + ']');
-        if (wInput) { wInput.checked = true; selectPayMethod(want); }
-        wantTab.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      } else if (!el('walletFallbackHint')) {
-        var hint = document.createElement('p');
-        hint.id = 'walletFallbackHint';
-        hint.style.cssText = 'font-size:var(--text-xs);color:var(--brown-mid);background:var(--bg-soft);border-radius:var(--radius-md);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-4);';
-        hint.textContent = 'Apple Pay / Google Pay non risulta disponibile su questo dispositivo o browser. Puoi completare con carta qui sotto oppure passare a PayPal.';
-        var panel = el('panel3'), listEl = panel && panel.querySelector('.pay-method-list');
-        if (panel && listEl) panel.insertBefore(hint, listEl);
-      }
+      if (wantTab) wantTab.scrollIntoView({ behavior: 'smooth', block: 'center' });
       window.__walletIntent = null;
     }
 
