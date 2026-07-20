@@ -146,10 +146,14 @@ Implementato (client + server ora concordano su ogni caso):
 
 > **Verifica**: offline completa — `node --check` su tutti i file; unit test (mapping stati aggregatore, config-gating, fallback `fetchTrackingStatus`); admin `tsc` + build; DDL `shipment_events` valida (tabella creata); dedup provato a livello SQL (INSERT IGNORE → 2 non 3). **L'integrazione HTTP end-to-end (refresh→persist sul server in esecuzione, webhook 503/401/200, timeline live nel dialog) NON è stata testata live**: il daemon Docker era degradato (port-mapping host↕container giù, `restart`/`exec node` in timeout). Da eseguire quando Docker si riprende / al prossimo deploy. Rischio deploy basso: aggregatore e webhook sono **inerti senza chiave/segreto** (comportamento prod invariato finché non configurati); la persistenza eventi è additiva/best-effort.
 
-### Fase 5 — Rifiniture spedizioni
-- Pulsante "Crea spedizione" + editor ETA nella pagina Spedizioni in corso.
-- Audit sul CRUD corrieri/zone/punti.
-- Corriere di default e mappatura metodo→corriere per auto-assegnazione.
+### ✅ Fase 5 — Rifiniture spedizioni (fatto 2026-07-20 — build-verified)
+- **Dialog ordine per il ritiro** (`order-tracking-dialog.tsx`): un ordine con punto di ritiro non mostra più il form "assegna corriere/tracking" (senza senso per il ritiro) ma una scheda "Ritiro in negozio" con il punto scelto e il pulsante **"Segna ritirato"** (→ consegnato). Header/descrizione adattati.
+- **ETA modificabile** nella pagina Spedizioni in corso (`shipments.tsx`): la colonna ETA è ora un date-picker inline che salva via `PUT /shipping/shipments/:id` (l'API accettava già `eta`, mancava la UI).
+- **Audit** su `DELETE` corrieri/zone/punti (`shipping.js`, `logAdminAction`, best-effort).
+
+> **Verifica**: frontend `tsc` + build verdi; backend `node --check` + export `logAdminAction` confermato. **Non testato live** (Docker ancora degradato: host↔container giù, dev server :5174 irraggiungibile) — da smoke-testare col resto quando Docker si riprende.
+
+**Follow-up ancora aperti** (non fatti): audit su create/update di zone/punti; corriere di default + mappatura metodo→corriere per auto-assegnazione; punto di ritiro nell'email di conferma; pulsante "Crea spedizione" dalla pagina Spedizioni (oggi le spedizioni nascono dall'azione "Spedisci" sull'ordine); obbligare la selezione esplicita del punto di ritiro (oggi il primo è preselezionato).
 
 ---
 

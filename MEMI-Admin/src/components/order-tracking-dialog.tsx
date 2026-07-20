@@ -161,46 +161,66 @@ export function OrderTrackingDialog({ order, trigger }: { order: OrderRow; trigg
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Truck className="h-5 w-5 text-muted-foreground" /> Prepara spedizione — {order.order_number}
+                  {pickup ? <MapPin className="h-5 w-5 text-muted-foreground" /> : <Truck className="h-5 w-5 text-muted-foreground" />}
+                  {pickup ? 'Ritiro in negozio' : 'Prepara spedizione'} — {order.order_number}
                 </DialogTitle>
                 <DialogDescription>
-                  Stato attuale: <StatusBadge code={order.order_status} />. Assegna corriere e tracking; il cliente riceve l'email e l'ordine passa a "spedito".
+                  Stato attuale: <StatusBadge code={order.order_status} />.{' '}
+                  {pickup
+                    ? 'Nessuna spedizione: il cliente ritira in sede. Segnalo come ritirato quando lo ritira.'
+                    : 'Assegna corriere e tracking; il cliente riceve l’email e l’ordine passa a "spedito".'}
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-3">
-                {pickupBanner}
-                <div className="space-y-1.5">
-                  <Label htmlFor="track-courier">Corriere</Label>
-                  <select
-                    id="track-courier"
-                    value={courier}
-                    onChange={(e) => setCourier(e.target.value)}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                  >
-                    <option value="">Seleziona corriere…</option>
-                    {couriers.map((c) => (
-                      <option key={c.code} value={c.code}>{c.nome}</option>
-                    ))}
-                  </select>
-                  {!couriersQ.isLoading && couriers.length === 0 && (
-                    <p className="text-xs text-muted-foreground">Nessun corriere attivo — creane uno in Spedizioni → Corrieri.</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="track-number">Numero di tracking</Label>
-                  <Input id="track-number" value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="es. 1Z999…" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="track-eta">Consegna stimata (facoltativa)</Label>
-                  <Input id="track-eta" type="date" value={eta} onChange={(e) => setEta(e.target.value)} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Annulla</Button>
-                <Button onClick={ship} disabled={busy}>
-                  {busy && <Loader2 className="animate-spin" />} Conferma spedizione
-                </Button>
-              </DialogFooter>
+              {pickup ? (
+                <>
+                  <div className="space-y-3">
+                    {pickupBanner}
+                    <p className="text-sm text-muted-foreground">Ordine con ritiro in negozio — non serve assegnare un corriere.</p>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Chiudi</Button>
+                    <Button onClick={markDelivered} disabled={busy}>
+                      {busy ? <Loader2 className="animate-spin" /> : <PackageCheck />} Segna ritirato
+                    </Button>
+                  </DialogFooter>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="track-courier">Corriere</Label>
+                      <select
+                        id="track-courier"
+                        value={courier}
+                        onChange={(e) => setCourier(e.target.value)}
+                        className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      >
+                        <option value="">Seleziona corriere…</option>
+                        {couriers.map((c) => (
+                          <option key={c.code} value={c.code}>{c.nome}</option>
+                        ))}
+                      </select>
+                      {!couriersQ.isLoading && couriers.length === 0 && (
+                        <p className="text-xs text-muted-foreground">Nessun corriere attivo — creane uno in Spedizioni → Corrieri.</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="track-number">Numero di tracking</Label>
+                      <Input id="track-number" value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="es. 1Z999…" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="track-eta">Consegna stimata (facoltativa)</Label>
+                      <Input id="track-eta" type="date" value={eta} onChange={(e) => setEta(e.target.value)} />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>Annulla</Button>
+                    <Button onClick={ship} disabled={busy}>
+                      {busy && <Loader2 className="animate-spin" />} Conferma spedizione
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
             </>
           )}
 

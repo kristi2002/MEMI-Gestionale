@@ -61,7 +61,20 @@ export function ShipmentsPage({ title = 'Spedizioni in corso' }: { title?: strin
       { id: 'cliente', header: 'Cliente', accessorFn: (s) => `${s.customer_nome ?? ''} ${s.customer_cognome ?? ''}`, cell: ({ row }) => <span className="truncate">{`${row.original.customer_nome ?? ''} ${row.original.customer_cognome ?? ''}`.trim() || '—'}</span> },
       { accessorKey: 'courier_code', header: 'Corriere', cell: ({ getValue }) => <span className="font-medium uppercase">{(getValue() as string) || '—'}</span> },
       { accessorKey: 'destinazione', header: 'Destinazione', cell: ({ getValue }) => <span className="text-muted-foreground">{(getValue() as string) || '—'}</span> },
-      { accessorKey: 'eta', header: 'ETA', cell: ({ getValue }) => <span className="text-muted-foreground">{getValue() ? date(getValue() as string) : '—'}</span> },
+      {
+        accessorKey: 'eta',
+        header: 'ETA',
+        cell: ({ row }) => (
+          <input
+            type="date"
+            className={STATO_SELECT + ' w-[140px]'}
+            value={row.original.eta ? String(row.original.eta).slice(0, 10) : ''}
+            onChange={(e) => { const v = e.target.value; if (v) update.mutate({ id: row.original.id, data: { eta: v } }); }}
+            onClick={(e) => e.stopPropagation()}
+            title="Modifica consegna stimata (ETA)"
+          />
+        ),
+      },
       { accessorKey: 'stato', header: 'Stato', cell: ({ getValue }) => <StatusBadge code={getValue() as string} /> },
       {
         id: 'actions',

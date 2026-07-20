@@ -20,6 +20,7 @@ const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin, requirePermission } = require('../middleware/auth');
 const { sendShippingConfirmation, sendOrderStatusUpdate } = require('../email');
+const { logAdminAction } = require('../audit');
 
 // Build a courier deep-link from its template ({tracking} → the number).
 function buildTrackingUrl(template, trackingNumber) {
@@ -91,6 +92,7 @@ router.put('/zones/:id', requireAdmin, requirePermission('shipping-zones'), asyn
 router.delete('/zones/:id', requireAdmin, requirePermission('shipping-zones'), async (req, res) => {
   try {
     await pool.execute('DELETE FROM shipping_zones WHERE id = ?', [req.params.id]);
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'zone.delete', entityType: 'shipping_zone', entityId: req.params.id }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });
@@ -139,6 +141,7 @@ router.delete('/couriers/:code', requireAdmin, requirePermission('couriers'), as
     }
     const [result] = await pool.execute('DELETE FROM couriers WHERE code = ?', [code]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Corriere non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'courier.delete', entityType: 'courier', entityId: code }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });
@@ -263,6 +266,7 @@ router.delete('/pickup/:id', requireAdmin, requirePermission('pickup'), async (r
   try {
     const [result] = await pool.execute('DELETE FROM pickup_points WHERE id = ?', [req.params.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Punto non trovato' });
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'pickup.delete', entityType: 'pickup_point', entityId: req.params.id }).catch(() => {});
     return res.json({ ok: true });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });
