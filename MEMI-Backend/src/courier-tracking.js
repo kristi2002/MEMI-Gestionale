@@ -112,7 +112,80 @@ function simulateStatus(courierCode, trackingNumber) {
   return { configured: true, ok: true, simulated: true, courier: String(courierCode || '').toLowerCase(), status, events };
 }
 
-/* ── Adapter registry — ONE carrier for the prototype ─────────────────────────*/
+/* ── Generic tracking aggregator (AfterShip-style) ────────────────────────────
+   ONE API + key covers every courier, so "Aggiorna" works for GLS/DHL/Poste/SDA…
+   not just BRT. Config-gated exactly like the BRT adapter: no key → {configured:false}
+   and the caller degrades to the manually-set status. Maps our courier codes to the
+   aggregator's carrier slugs (falls back to the raw code). Env:
+     TRACKING_AGGREGATOR_KEY (or AFTERSHIP_API_KEY), TRACKING_AGGREGATOR_URL (optional). */
+const AGGREGATOR_CARRIER = {
+  brt: 'brt', bartolini: 'brt',
+  gls: 'gls-italy', dhl: 'dhl',
+  poste: 'poste-italiane', pi: 'poste-italiane',
+  sda: 'sda-it', ups: 'ups', fedex: 'fedex', tnt: 'tnt',
+};
+
+/* AfterShip tag → internal status vocabulary. */
+function mapAggregatorStatus(tag) {
+  const s = String(tag || '').toLowerCase();
+  if (/delivered/.test(s))                       return 'consegnato';
+  if (/outfordelivery|out_for_delivery/.test(s)) return 'in_consegna';
+  if (/intransit|in_transit/.test(s))            return 'in_transito';
+  if (/inforeceived|info_received|pending/.test(s)) return 'preso_in_carico';
+  if (/exception|attemptfail|failedattempt|expired/.test(s)) return 'problema';
+  return 'in_transito';
+}
+
+async function fetchAggregator(courierCode, trackingNumber) {
+  const key = process.env.TRACKING_AGGREGATOR_KEY || process.env.AFTERSHIP_API_KEY;
+  if (!key) return { configured: false, reason: 'no_aggregator_key', courier: courierCode };
+  if (typeof fetch !== 'function') return { configured: false, reason: 'fetch_unavailable', courier: courierCode };
+  const code = String(courierCode || '').toLowerCase();
+  const slug = AGGREGATOR_CARRIER[code] || code;
+  const base = process.env.TRACKING_AGGREGATOR_URL || 'https://api.aftership.com/v4';
+  try {
+    const res = await fetch(`${base}/trackings/${encodeURIComponent(slug)}/${encodeURIComponent(trackingNumber)}`, {
+      headers: { 'aftership-api-key': key, 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) return { configured: true, ok: false, reason: 'http_' + res.status, courier: slug };
+    const data = await res.json();
+    const t = (data && data.data && data.data.tracking) || {};
+    const checkpoints = Array.isArray(t.checkpoints) ? t.checkpoints : [];
+    const events = checkpoints.map((c) => ({
+      label: String(c.message || c.subtag_message || c.tag || ''),
+      at: c.checkpoint_time || c.created_at || null,
+    }));
+    return { configured: true, ok: true, aggregator: true, courier: slug, status: mapAggregatorStatus(t.tag), events };
+  } catch (err) {
+    return { configured: true, ok: false, reason: err.message, courier: slug };
+  }
+}
+
+/* ── Persist a courier's event timeline (deduped by tracking+label+time). Best-effort:
+   swallows its own errors so a tracking refresh/webhook never fails on logging. ── */
+async function persistTrackingEvents(pool, opts) {
+  const { orderId, trackingNumber, events, source, status } = opts || {};
+  if (!pool || !orderId || !trackingNumber || !Array.isArray(events) || !events.length) return 0;
+  let inserted = 0;
+  for (const ev of events) {
+    const label = String((ev && ev.label) || '').slice(0, 255);
+    if (!label) continue;
+    const at = ev && ev.at ? new Date(ev.at) : null;
+    const atStr = at && !isNaN(at.getTime()) ? at.toISOString().slice(0, 19).replace('T', ' ') : null;
+    const dedup = `${trackingNumber}|${label}|${atStr || ''}`.slice(0, 200);
+    try {
+      const [r] = await pool.execute(
+        `INSERT IGNORE INTO shipment_events (order_id, tracking_number, status, label, event_at, source, dedup_key)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [orderId, trackingNumber, status || null, label, atStr, source || 'refresh', dedup]
+      );
+      if (r && r.affectedRows) inserted += r.affectedRows;
+    } catch (_) { /* best-effort */ }
+  }
+  return inserted;
+}
+
+/* ── Adapter registry — dedicated adapters take precedence over the aggregator ──*/
 const ADAPTERS = { brt: fetchBrt };
 
 /**
@@ -129,14 +202,22 @@ async function fetchTrackingStatus(courierCode, trackingNumber) {
   // SIMULATE takes precedence so a demo/local box works without any adapter creds.
   if (process.env.COURIER_TRACKING_SIMULATE === '1') return simulateStatus(code, trackingNumber);
 
+  // A dedicated adapter (e.g. BRT) wins when its credentials are set; otherwise the
+  // generic aggregator covers every courier with one key. Both are config-gated.
   const adapter = ADAPTERS[code];
-  if (!adapter) return { configured: false, reason: 'no_adapter', courier: code };
-  return adapter(trackingNumber);
+  if (adapter) {
+    const r = await adapter(trackingNumber);
+    if (r && r.configured !== false) return r;
+  }
+  return fetchAggregator(code, trackingNumber);
 }
 
 module.exports = {
   fetchTrackingStatus,
+  fetchAggregator,
   mapBrtStatus,
+  mapAggregatorStatus,
+  persistTrackingEvents,
   simulateStatus,
   INTERNAL_STATUSES,
   STATUS_LABEL,

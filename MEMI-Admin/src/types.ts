@@ -124,10 +124,17 @@ export interface OrderPickupPoint {
   corriere: string | null;
   orari: string | null;
 }
+export interface TrackingEvent {
+  status: string | null;
+  label: string;
+  event_at: string | null;
+  source: string | null;
+}
 export interface OrderDetail extends OrderRow {
   items: OrderItem[];
   shipment: Shipment | null;
   pickup_point?: OrderPickupPoint | null;
+  tracking_events?: TrackingEvent[];
 }
 
 export interface ProductImage {

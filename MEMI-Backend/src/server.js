@@ -177,6 +177,10 @@ app.use(cors({
 // be parsed/consumed by the time it reaches the handler and signature checks would fail.
 app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), paymentsRoutes.stripeWebhookHandler);
 
+// ── Tracking webhook (also needs the RAW body for HMAC signature verification) ──
+const trackingWebhook = require('./routes/tracking-webhook');
+app.post('/api/shipping/tracking/webhook', express.raw({ type: 'application/json' }), trackingWebhook.handler);
+
 // ── Body parsing ───────────────────────────────────────────────
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));

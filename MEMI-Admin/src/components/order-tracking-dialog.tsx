@@ -67,6 +67,10 @@ export function OrderTrackingDialog({ order, trigger }: { order: OrderRow; trigg
     </div>
   ) : null;
 
+  // Timeline: the persisted event history shows on open; a live "Aggiorna" overrides it.
+  const persistedEvents = (detailQ.data?.tracking_events ?? []).map((e) => ({ label: e.label, at: e.event_at }));
+  const timeline: TrackEvent[] = events ?? persistedEvents;
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['orders'] });
     qc.invalidateQueries({ queryKey: ['shipments'] });
@@ -214,19 +218,18 @@ export function OrderTrackingDialog({ order, trigger }: { order: OrderRow; trigg
               <div className="space-y-3">
                 {pickupBanner}
                 {shipInfo}
-                {events && (
+                {timeline.length > 0 && (
                   <div className="rounded-md border">
-                    {events.length === 0 ? (
-                      <p className="px-3 py-3 text-sm text-muted-foreground">Nessun evento di tracciamento disponibile.</p>
-                    ) : (
-                      events.map((ev, i) => (
-                        <div key={i} className="flex items-center justify-between border-b px-3 py-2 text-sm last:border-b-0">
-                          <span className="font-medium">{ev.label}</span>
-                          <span className="text-xs text-muted-foreground">{ev.at ? dateTime(ev.at) : '—'}</span>
-                        </div>
-                      ))
-                    )}
+                    {timeline.map((ev, i) => (
+                      <div key={i} className="flex items-center justify-between border-b px-3 py-2 text-sm last:border-b-0">
+                        <span className="font-medium">{ev.label}</span>
+                        <span className="text-xs text-muted-foreground">{ev.at ? dateTime(ev.at) : '—'}</span>
+                      </div>
+                    ))}
                   </div>
+                )}
+                {events && events.length === 0 && (
+                  <p className="rounded-md border px-3 py-3 text-sm text-muted-foreground">Nessun evento di tracciamento disponibile.</p>
                 )}
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={refresh} disabled={busy}>

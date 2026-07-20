@@ -25,7 +25,7 @@ const { issueProviderRefund, canRefund } = require('../refunds');
 const { ensureInvoiceForOrder } = require('../invoicing');
 const { validateBody, createOrderSchema } = require('../validation');
 const { logAdminAction } = require('../audit');
-const { fetchTrackingStatus, INTERNAL_STATUSES } = require('../courier-tracking');
+const { fetchTrackingStatus, INTERNAL_STATUSES, persistTrackingEvents } = require('../courier-tracking');
 const providers = require('../payment-providers');
 const { resolveShipping, matchZone } = require('../shipping-rates');
 
@@ -647,7 +647,15 @@ router.get('/track', async (req, res) => {
       }
     }
 
-    return res.json({ ...order, tracking_url });
+    let tracking_events = [];
+    if (order.tracking_number) {
+      const [ev] = await pool.execute(
+        'SELECT status, label, event_at, source FROM shipment_events WHERE tracking_number = ? ORDER BY (event_at IS NULL), event_at ASC, id ASC',
+        [order.tracking_number]
+      );
+      tracking_events = ev;
+    }
+    return res.json({ ...order, tracking_url, tracking_events });
   } catch (err) {
     console.error('track order error', err);
     return res.status(500).json({ error: 'Errore server' });
@@ -806,7 +814,11 @@ router.get('/admin/:id', requireAdmin, requirePermission('orders'), async (req, 
       );
       pickup_point = pp || null;
     }
-    return res.json({ ...order, items, shipment: shipment || null, pickup_point });
+    const [tracking_events] = await pool.execute(
+      'SELECT status, label, event_at, source FROM shipment_events WHERE order_id = ? ORDER BY (event_at IS NULL), event_at ASC, id ASC',
+      [order.id]
+    );
+    return res.json({ ...order, items, shipment: shipment || null, pickup_point, tracking_events });
   } catch (err) {
     return res.status(500).json({ error: 'Errore server' });
   }
@@ -1070,6 +1082,15 @@ router.post('/admin/:id/refresh-tracking', requireAdmin, requirePermission('orde
         [o.id]
       );
       orderPromoted = true;
+    }
+
+    // Persist the courier's event timeline (deduped) so history survives across refreshes
+    // and can power the admin dialog + public guest tracking.
+    if (Array.isArray(result.events) && result.events.length) {
+      await persistTrackingEvents(pool, {
+        orderId: o.id, trackingNumber: o.tracking_number, events: result.events,
+        source: result.simulated ? 'simulate' : (result.aggregator ? 'aggregator' : 'refresh'), status,
+      });
     }
 
     logAdminAction({

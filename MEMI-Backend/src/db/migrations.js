@@ -67,6 +67,21 @@ const STATEMENTS = [
      updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
+  // ── Shipment tracking events (courier timeline; deduped, survives refreshes) ──
+  `CREATE TABLE IF NOT EXISTS shipment_events (
+     id              INT AUTO_INCREMENT PRIMARY KEY,
+     order_id        INT NOT NULL,
+     tracking_number VARCHAR(100) NOT NULL,
+     status          VARCHAR(40) NULL,
+     label           VARCHAR(255) NOT NULL,
+     event_at        DATETIME NULL,
+     source          VARCHAR(20) DEFAULT 'refresh',
+     dedup_key       VARCHAR(200) NOT NULL,
+     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     UNIQUE KEY uq_shipment_event (dedup_key),
+     KEY idx_shipment_event_order (order_id)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
   // ── Pickup points ───────────────────────────────────────────
   `CREATE TABLE IF NOT EXISTS pickup_points (
      id         INT AUTO_INCREMENT PRIMARY KEY,

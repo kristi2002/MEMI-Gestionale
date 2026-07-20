@@ -138,11 +138,13 @@ Implementato (client + server ora concordano su ogni caso):
 
 **Follow-up opzionali**: obbligare la selezione lato UI (oggi il primo punto è preselezionato); arricchire `pickup_points` con `citta`/`cap`/`telefono`/`lat`/`lng`; includere il punto di ritiro nell'email di conferma; dare agli ordini `ritiro` un flusso dedicato nel dialog (oggi mostra "assegna corriere", non pertinente).
 
-### Fase 4 — Tracking multi-corriere (integrazioni)
-1. **Aggiungere adapter** (GLS, Poste, DHL, InPost) o **un aggregatore** (AfterShip/TrackingMore/Ship24) con un adapter generico in `courier-tracking.js`.
-2. **Persistere la timeline eventi** in una tabella (`shipment_events`) per storico e per l'email/tracking pubblico.
-3. **Webhook corriere** (dove disponibile) per aggiornare lo stato senza polling.
-4. Allineare la copy storefront ("Tracciata con BRT / GLS") ai corrieri realmente supportati.
+### ✅ Fase 4 — Tracking multi-corriere (fatto 2026-07-20)
+1. **Aggregatore generico** (`fetchAggregator`, AfterShip-style) in `courier-tracking.js`: UNA chiave copre tutti i corrieri (mappa `code→carrier slug`), quindi "Aggiorna" funziona per GLS/DHL/Poste/SDA e non solo BRT. Config-gated (`TRACKING_AGGREGATOR_KEY`/`AFTERSHIP_API_KEY`); senza chiave → `{configured:false}` e si degrada allo stato manuale. Un adapter dedicato (BRT) ha precedenza se ha le credenziali; SIMULATE resta per demo offline.
+2. **Timeline eventi persistita**: tabella `shipment_events` (migrazione additiva, dedup su `tracking+label+ora`); `persistTrackingEvents()` salva gli eventi ad ogni refresh/webhook (INSERT IGNORE). Il dettaglio ordine admin e il tracking guest (`GET /orders/track`) ora ritornano `tracking_events`; il dialog ordine React mostra la timeline (storico all'apertura, eventi freschi dopo "Aggiorna").
+3. **Webhook** `POST /api/shipping/tracking/webhook` (`routes/tracking-webhook.js`, montato in `server.js` con `express.raw` prima di `express.json`): config-gated (`TRACKING_WEBHOOK_SECRET` assente → 503), verifica HMAC-SHA256 del body grezzo (mismatch → 401), poi aggiorna spedizione+ordine (promozione a consegnato + email) e persiste gli eventi. Aggiorna lo stato senza polling.
+4. **Copy storefront** allineata: "Tracciata con BRT / GLS" → "Tracciata (BRT, GLS, DHL, Poste…)".
+
+> **Verifica**: offline completa — `node --check` su tutti i file; unit test (mapping stati aggregatore, config-gating, fallback `fetchTrackingStatus`); admin `tsc` + build; DDL `shipment_events` valida (tabella creata); dedup provato a livello SQL (INSERT IGNORE → 2 non 3). **L'integrazione HTTP end-to-end (refresh→persist sul server in esecuzione, webhook 503/401/200, timeline live nel dialog) NON è stata testata live**: il daemon Docker era degradato (port-mapping host↕container giù, `restart`/`exec node` in timeout). Da eseguire quando Docker si riprende / al prossimo deploy. Rischio deploy basso: aggregatore e webhook sono **inerti senza chiave/segreto** (comportamento prod invariato finché non configurati); la persistenza eventi è additiva/best-effort.
 
 ### Fase 5 — Rifiniture spedizioni
 - Pulsante "Crea spedizione" + editor ETA nella pagina Spedizioni in corso.
