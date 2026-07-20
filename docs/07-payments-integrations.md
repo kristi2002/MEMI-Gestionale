@@ -163,6 +163,23 @@ APPROVED   → paypalCaptureAfterCommit = true           // capture ONLY after t
 
 **Env:** `PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_ENV=sandbox|live`, `PAYPAL_WEBHOOK_ID` (required to trust webhooks).
 
+### Enabling PayPal — go-live checklist
+
+Unlike Klarna, PayPal is its **own** provider with **its own REST credentials** (separate from Stripe). The code is fully wired and verified: the checkout renders the official PayPal Buttons, `createOrder` uses the live cart total, `onApprove` places the order while PayPal keeps its own processing spinner, and `POST /api/orders` re-verifies the amount then **captures after the order commits** (a buyer is never charged without an order). PayPal stays hidden until credentials exist.
+
+1. **Create a REST app** — developer.paypal.com → Apps & Credentials. Make a **Sandbox** app to test and a **Live** app for production; copy each app's **Client ID** and **Secret**.
+2. **Backend env** (Coolify → backend service; `docker-compose.yml` forwards these):
+   ```
+   PAYPAL_CLIENT_ID=...
+   PAYPAL_SECRET=...
+   PAYPAL_ENV=sandbox        # set to 'live' with the LIVE app's credentials
+   PAYPAL_WEBHOOK_ID=...      # from the webhook created in step 3
+   ```
+   ⚠️ `PAYPAL_ENV` **must match the credential type** — sandbox creds with `PAYPAL_ENV=live` (or vice-versa) fails auth on every call (wrong API host).
+3. **Webhook** — in the same app add a webhook for `https://api.memi.testdemo.it/api/payments/paypal/webhook`, subscribe to `CHECKOUT.ORDER.APPROVED` + `PAYMENT.CAPTURE.COMPLETED`, and copy its **Webhook ID** into `PAYPAL_WEBHOOK_ID`. Without it, PayPal webhooks are acknowledged but **never** trusted to change order state (a forged event can't flip an order to paid).
+4. **Redeploy** the backend.
+5. **Verify** — `GET https://api.memi.testdemo.it/api/payments/config` returns `providers.paypal:true` and a `paypal.clientId`; the storefront PayPal tab then renders the live Buttons. Complete a full pay with a **sandbox buyer** (developer.paypal.com → Testing Tools → Sandbox Accounts) → order lands `pagato`. Live PayPal needs the PayPal **business** account approved for the store's country/currency (EUR).
+
 ---
 
 ## Invoicing (automatic)

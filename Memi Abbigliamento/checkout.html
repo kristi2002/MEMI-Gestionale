@@ -2330,9 +2330,12 @@
     }
 
     // Send an order payload to the API and route to confirmation. onErr(msg) shows the error.
+    // Returns the placement promise so callers with their own hosted control (PayPal Buttons)
+    // can keep their processing spinner up until the order actually lands. Always resolves
+    // (errors are surfaced via onErr), never rejects.
     function submitOrder(orderData, onErr) {
       if (window.MemiAPI) {
-        window.MemiAPI.orders.place(orderData)
+        return window.MemiAPI.orders.place(orderData)
           .then(function(data) {
             try { sessionStorage.setItem('memi_last_order', JSON.stringify({ order_number: data.order_number, total: data.total, email: orderData.email })); } catch(_) {}
             try { sessionStorage.setItem('memi_confirm_cart', JSON.stringify(cartItems)); } catch(_) {}
@@ -2345,6 +2348,7 @@
         try { sessionStorage.setItem('memi_last_order', JSON.stringify({ order_number: '#DEMO', total: subtotal })); } catch(_) {}
         goToStep(5, { internal: true });
         setTimeout(function() { window.location.href = 'order-confirm.html'; }, 900);
+        return Promise.resolve();
       }
     }
 
@@ -2516,16 +2520,19 @@
               .then(function(d) { if (!d || !d.id) throw new Error('create-order failed'); return d.id; });
           },
           onApprove: function(data) {
-            // The backend re-captures + verifies the amount in POST /orders (verifyPaypalOrder),
-            // so we just place the order with the PayPal order id as the transaction reference.
+            // Keep PayPal's own processing spinner up until the order actually lands: return
+            // the submitOrder promise. The backend captures + re-verifies the amount in
+            // POST /orders (capture-AFTER-commit), so we place the order with the PayPal order
+            // id as the transaction reference and let the server be the source of truth.
             var orderData = collectOrderData('paypal');
             orderData.payment_reference = data.orderID;
-            submitOrder(orderData, function(msg) { showPaymentError(msg); });
+            return submitOrder(orderData, function(msg) { showPaymentError(msg); });
           },
+          onCancel: function() { showPaymentError('Pagamento PayPal annullato. Puoi riprovare o scegliere un altro metodo.'); },
           onError: function() { showPaymentError('Errore PayPal. Riprova o usa un altro metodo.'); },
         }).render('#paypalButtons');
       };
-      s.onerror = function() { showPaymentError('Impossibile caricare PayPal. Riprova più tardi.'); };
+      s.onerror = function() { window.__paypalLoaded = false; showPaymentError('Impossibile caricare PayPal. Riprova più tardi.'); };
       document.head.appendChild(s);
     }
 

@@ -41,6 +41,7 @@ const mockPool = {
   },
 };
 let stripeBehavior = null;
+let paypalBehavior = null;   // { configured, inspect(id), capture(id) } — set per PayPal test
 const origLoad = Module._load;
 Module._load = function (request) {
   if (request === '../db')      return { pool: mockPool, testConnection: async () => {} };
@@ -51,6 +52,17 @@ Module._load = function (request) {
   // to a REAL, unmocked mysql2 pool. Mock the whole module, same as email/loyalty.
   if (request === '../audit')   return { logAdminAction: async () => {} };
   if (request === 'stripe')     return function(){ return { paymentIntents: { retrieve: async(id)=> stripeBehavior(id) } }; };
+  // Partial mock: keep the REAL provider module (sumup/refund helpers etc.) but override
+  // the three PayPal calls the order handler makes, so a PayPal order can be simulated
+  // without hitting PayPal's live API. paypalBehavior is set per PayPal test.
+  if (request === '../payment-providers') {
+    const real = origLoad.apply(this, arguments);
+    return Object.assign({}, real, {
+      paypalConfigured:   () => !!(paypalBehavior && paypalBehavior.configured),
+      inspectPaypalOrder: async (id) => paypalBehavior.inspect(id),
+      capturePaypalOrder: async (id) => paypalBehavior.capture(id),
+    });
+  }
   return origLoad.apply(this, arguments);
 };
 const router = require('../src/routes/orders');
@@ -218,6 +230,62 @@ function mockRes(){ return { code:200, body:null, status(c){this.code=c;return t
   assert.ok(!sqlLog.some(e=>/INSERT INTO orders/i.test(e.sql)), 'T8 no order written on reuse');
   n++; console.log('  ✓ T8 same email reusing a discount code -> 400, no order written');
   DISCOUNT_ROW = null; usedByEmail = new Set();
+
+  // ── PayPal (Orders v2: inspect, then capture-AFTER-commit). qty:2 -> 178 goods >= 100 ->
+  //    free shipping -> total 178.00 -> 17800 cents. ──
+  delete process.env.STRIPE_SECRET_KEY;
+
+  // PP1: APPROVED -> order persists in_attesa, capture-after-commit flips it to pagato.
+  paypalBehavior = { configured:true,
+    inspect: async () => ({ status:'APPROVED',  amountCents:17800, currency:'EUR' }),
+    capture: async () => ({ status:'COMPLETED', amountCents:17800, currency:'EUR' }) };
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:2 }], payment_method:'paypal', payment_reference:'PP-APPROVED' }}, res);
+  assert.strictEqual(res.code, 201, 'PP1 code '+res.code+' '+JSON.stringify(res.body));
+  assert.ok(sqlLog.find(e=>/INSERT INTO orders/i.test(e.sql)).params.includes('PP-APPROVED'), 'PP1 PayPal ref stored');
+  assert.ok(sqlLog.some(e=>/UPDATE orders SET payment_status = 'pagato'/i.test(e.sql)), 'PP1 captured after commit -> pagato');
+  n++; console.log('  ✓ PP1 PayPal APPROVED -> persisted, captured after commit -> pagato');
+
+  // PP2: COMPLETED on inspect (idempotent retry, already captured) -> pagato at insert, no re-capture.
+  paypalBehavior = { configured:true,
+    inspect: async () => ({ status:'COMPLETED', amountCents:17800, currency:'EUR' }),
+    capture: async () => { throw new Error('PP2 must NOT re-capture a COMPLETED order'); } };
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:2 }], payment_method:'paypal', payment_reference:'PP-DONE' }}, res);
+  assert.strictEqual(res.code, 201, 'PP2 code '+res.code+' '+JSON.stringify(res.body));
+  assert.ok(sqlLog.find(e=>/INSERT INTO orders/i.test(e.sql)).params.includes('pagato'), 'PP2 COMPLETED -> pagato at insert');
+  n++; console.log('  ✓ PP2 PayPal COMPLETED (idempotent) -> pagato, no re-capture');
+
+  // PP3: amount mismatch on inspect -> 402, no order (anti-tampering).
+  paypalBehavior = { configured:true,
+    inspect: async () => ({ status:'APPROVED', amountCents:100, currency:'EUR' }),
+    capture: async () => ({ status:'COMPLETED', amountCents:100, currency:'EUR' }) };
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:2 }], payment_method:'paypal', payment_reference:'PP-BAD' }}, res);
+  assert.strictEqual(res.code, 402, 'PP3 amount mismatch -> 402');
+  assert.ok(!sqlLog.some(e=>/INSERT INTO orders/i.test(e.sql)), 'PP3 no order on mismatch');
+  n++; console.log('  ✓ PP3 PayPal amount mismatch -> 402, no order (anti-tampering)');
+
+  // PP4: PayPal not configured -> 503, no order.
+  paypalBehavior = { configured:false, inspect: async()=>({}), capture: async()=>({}) };
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:2 }], payment_method:'paypal', payment_reference:'PP-X' }}, res);
+  assert.strictEqual(res.code, 503, 'PP4 not configured -> 503');
+  assert.ok(!sqlLog.some(e=>/INSERT INTO orders/i.test(e.sql)), 'PP4 no order when unconfigured');
+  n++; console.log('  ✓ PP4 PayPal not configured -> 503, no order');
+
+  // PP5: PayPal selected but no payment_reference -> 402.
+  paypalBehavior = { configured:true, inspect: async()=>({ status:'APPROVED', amountCents:17800, currency:'EUR' }), capture: async()=>({}) };
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:2 }], payment_method:'paypal' }}, res);
+  assert.strictEqual(res.code, 402, 'PP5 missing reference -> 402');
+  n++; console.log('  ✓ PP5 PayPal without payment_reference -> 402');
+  paypalBehavior = null;
 
   console.log(`\nALL ${n} order-logic tests passed.`);
 })().catch(e => { console.error('TEST FAILED:', e.stack || e.message); process.exit(1); });
