@@ -182,12 +182,6 @@ const createIntentSchema = z.object({
   return_url: z.string().url().max(500).optional(),
   // SumUp only: opt into Hosted Checkout (card entry on SumUp's page) instead of the widget.
   hosted: z.boolean().optional(),
-  // PayPal Express (accelerated checkout): the button carries a shipping breakdown so
-  // onShippingChange can patch shipping per country. validateBody strips undeclared keys,
-  // so these MUST be declared or they never reach the /paypal/create-order handler.
-  express: z.boolean().optional(),
-  item_total_cents: z.coerce.number().int().min(0).optional(),
-  shipping_cents: z.coerce.number().int().min(0).optional(),
 });
 
 /**

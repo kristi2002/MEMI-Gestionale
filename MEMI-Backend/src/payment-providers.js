@@ -53,43 +53,17 @@ async function paypalAccessToken() {
   return body.access_token;
 }
 
-/**
- * Create a PayPal order for `amountCents` EUR. Returns { id, status }.
- * Standard flow: just the total. Express flow (opts.express): adds an item_total+shipping
- * breakdown and `shipping_preference:'GET_FROM_FILE'` so PayPal shows/returns the buyer's
- * saved address and the client can patch shipping per country via onShippingChange.
- * opts.itemTotalCents + opts.shippingCents must sum to amountCents (the value PayPal charges).
- */
-async function createPaypalOrder(amountCents, opts) {
-  opts = opts || {};
+/** Create a PayPal order for `amountCents` EUR. Returns { id, status }. */
+async function createPaypalOrder(amountCents) {
   const token = await paypalAccessToken();
   const value = (Math.round(amountCents) / 100).toFixed(2);
-  let payload;
-  if (opts.express) {
-    const item = (Math.round(opts.itemTotalCents != null ? opts.itemTotalCents : amountCents) / 100).toFixed(2);
-    const ship = (Math.round(opts.shippingCents || 0) / 100).toFixed(2);
-    payload = {
-      intent: 'CAPTURE',
-      purchase_units: [{
-        reference_id: 'default',
-        amount: {
-          currency_code: 'EUR',
-          value,
-          breakdown: {
-            item_total: { currency_code: 'EUR', value: item },
-            shipping:   { currency_code: 'EUR', value: ship },
-          },
-        },
-      }],
-      application_context: { shipping_preference: 'GET_FROM_FILE', user_action: 'PAY_NOW' },
-    };
-  } else {
-    payload = { intent: 'CAPTURE', purchase_units: [{ amount: { currency_code: 'EUR', value } }] };
-  }
   const body = await httpJson(`${paypalBase()}/v2/checkout/orders`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      intent: 'CAPTURE',
+      purchase_units: [{ amount: { currency_code: 'EUR', value } }],
+    }),
   });
   return { id: body.id, status: body.status };
 }

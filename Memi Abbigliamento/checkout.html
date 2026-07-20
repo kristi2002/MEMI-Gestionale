@@ -507,21 +507,6 @@
         <h2 class="panel-title">Accedi</h2>
         <p class="panel-sub">Accedi per ritrovare i tuoi indirizzi salvati e i punti fedeltà, oppure continua come ospite.</p>
 
-        <!-- PayPal Express (accelerated checkout) — shown only when PayPal is configured
-             server-side. Tap to pay with the address saved in the PayPal account, skipping
-             the whole form. Wired in initPaypalExpressButtons(). -->
-        <div id="expressCheckoutBlock" style="display:none;margin:var(--space-2) 0 var(--space-5);">
-          <p style="font-size:var(--text-sm);font-weight:600;color:var(--espresso);margin-bottom:var(--space-3);">Checkout espresso</p>
-          <div id="paypalExpressButtons"></div>
-          <div id="expressCheckoutError" style="display:none;margin-top:var(--space-2);font-size:var(--text-xs);color:var(--blush-dark);"></div>
-          <p style="font-size:var(--text-xs);color:var(--brown-light);margin-top:var(--space-3);line-height:1.5;">
-            Usa l'indirizzo salvato nel tuo conto PayPal e salta il modulo. Procedendo accetti la
-            <a href="privacy.html" target="_blank" style="color:inherit;text-decoration:underline;">Privacy Policy</a> e i
-            <a href="termini.html" target="_blank" style="color:inherit;text-decoration:underline;">Termini</a>.
-          </p>
-          <div class="or-divider"><span>oppure inserisci i dati manualmente</span></div>
-        </div>
-
         <div id="loggedOutAuth">
           <div class="field-row">
             <div class="field">
@@ -2507,9 +2492,6 @@
       window.MEMI_PAY = { providers: prov, paypal: (cfg && cfg.paypal) || null };
       markProviderTab('paypalPanel', prov.paypal);
       if (prov.paypal) initPaypalButtons();
-      // PayPal Express (accelerated) at the top of checkout — only when PayPal is configured.
-      var expressBlock = el('expressCheckoutBlock');
-      if (prov.paypal && expressBlock) { expressBlock.style.display = 'block'; initPaypalExpressButtons(); }
       var fastBadge = el('paypalFastBadge');
       if (fastBadge) fastBadge.style.display = prov.paypal ? '' : 'none';
       // SumUp replaces Stripe Elements on the card tab. If the customer is already on the
@@ -2581,117 +2563,6 @@
           onError: function() { showPaymentError('Errore PayPal. Riprova o usa un altro metodo.'); },
         }).render('#paypalButtons');
       }).catch(function() { showPaymentError('Impossibile caricare PayPal. Riprova più tardi.'); });
-    }
-
-    // ── PayPal Express (accelerated) — pull the address from PayPal, skip the form ──────────
-    // ISO country code -> Italian name so the shipping mirror (matchZone) can resolve zones by
-    // name OR code. Unknown codes pass through (matchZone still matches by the code token).
-    var COUNTRY_NAMES_BY_CODE = { IT: 'Italia', DE: 'Germania', FR: 'Francia', ES: 'Spagna', NL: 'Paesi Bassi' };
-    function countryNameFromCode(cc) {
-      var k = String(cc == null ? '' : cc).trim().toUpperCase();
-      return COUNTRY_NAMES_BY_CODE[k] || k;
-    }
-    // Shipping cost (EUR) for a country CODE using the same parity-checked resolver the rest of
-    // checkout uses. Express only ships 'standard'.
-    function expressShippingFor(countryCode, goods) {
-      return resolveShippingCost('standard', goods, matchZone(SHIPPING_ZONES, countryNameFromCode(countryCode), 'standard'));
-    }
-    // True when we can ship 'standard' here: always if no zones are configured (flat built-in
-    // rate covers everyone), else only if a zone matches — mirrors what the server will accept.
-    function expressShipsTo(countryCode) {
-      if (!Array.isArray(SHIPPING_ZONES) || SHIPPING_ZONES.length === 0) return true;
-      return !!matchZone(SHIPPING_ZONES, countryNameFromCode(countryCode), 'standard');
-    }
-
-    function initPaypalExpressButtons() {
-      if (window.__paypalExpressRendered) return;
-      var host = el('paypalExpressButtons');
-      var cfg = window.MEMI_PAY && window.MEMI_PAY.paypal;
-      if (!host || !cfg || !cfg.clientId) return;
-      var apiBase = (window.MemiAPI && window.MemiAPI._base) || '/api';
-      var errEl = el('expressCheckoutError');
-      function showExpressError(m) { if (errEl) { errEl.textContent = m; errEl.style.display = 'block'; } }
-      // Goods = full price (express skips the discount / gift-card UI, so it matches what the
-      // server recomputes when no code is attached).
-      function goodsEUR() { return Math.max(0, Number(subtotal) || 0); }
-      ensurePaypalSdk().then(function() {
-        if (window.__paypalExpressRendered || !window.paypal || !window.paypal.Buttons) return;
-        window.__paypalExpressRendered = true;
-        window.paypal.Buttons({
-          style: { layout: 'vertical', color: 'gold', shape: 'pill', label: 'paypal', height: 44 },
-          createOrder: function() {
-            if (errEl) errEl.style.display = 'none';
-            if (!cartItems.length) { showExpressError('Il carrello è vuoto.'); return Promise.reject(new Error('empty-cart')); }
-            var goods = goodsEUR();
-            var ship = expressShippingFor('IT', goods);   // Italy estimate; onShippingChange re-quotes
-            return fetch(apiBase + '/payments/paypal/create-order', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
-              body: JSON.stringify({
-                express: true,
-                amount_cents: Math.round((goods + ship) * 100),
-                item_total_cents: Math.round(goods * 100),
-                shipping_cents: Math.round(ship * 100),
-              }),
-            }).then(function(r) { return r.json(); })
-              .then(function(d) { if (!d || !d.id) throw new Error('create-order failed'); return d.id; });
-          },
-          onShippingChange: function(data, actions) {
-            // Buyer picked/changed the address in PayPal: re-quote shipping for that country and
-            // patch the order so PayPal charges what the server will recompute (total parity).
-            var cc = data.shipping_address && data.shipping_address.country_code;
-            if (!expressShipsTo(cc)) return actions.reject();   // we don't ship there
-            var goods = goodsEUR();
-            var ship = expressShippingFor(cc, goods);
-            return actions.order.patch([{
-              op: 'replace',
-              path: "/purchase_units/@reference_id=='default'/amount",
-              value: {
-                currency_code: 'EUR',
-                value: (goods + ship).toFixed(2),
-                breakdown: {
-                  item_total: { currency_code: 'EUR', value: goods.toFixed(2) },
-                  shipping:   { currency_code: 'EUR', value: ship.toFixed(2) },
-                },
-              },
-            }]);
-          },
-          onApprove: function(data, actions) {
-            if (!actions || !actions.order || !actions.order.get) {
-              showExpressError('Impossibile leggere l\'indirizzo da PayPal. Usa il checkout manuale qui sotto.');
-              return;
-            }
-            // Build the order from the address the buyer chose in PayPal — no form needed.
-            return actions.order.get().then(function(order) {
-              var pu = (order.purchase_units && order.purchase_units[0]) || {};
-              var shp = pu.shipping || {};
-              var addr = shp.address || {};
-              var payer = order.payer || {};
-              var pname = payer.name || {};
-              var fullName = (shp.name && shp.name.full_name) || ((pname.given_name || '') + ' ' + (pname.surname || ''));
-              var parts = String(fullName).trim().split(/\s+/);
-              var orderData = collectOrderData('paypal');   // carries cart items + defaults
-              orderData.nome      = pname.given_name || parts[0] || 'Cliente';
-              orderData.cognome   = pname.surname || parts.slice(1).join(' ') || '-';
-              orderData.email     = payer.email_address || orderData.email;
-              orderData.indirizzo = addr.address_line_1 || '';
-              orderData.citta     = addr.admin_area_2 || '';
-              orderData.cap       = addr.postal_code || '';
-              orderData.paese     = countryNameFromCode(addr.country_code);
-              orderData.shipping_method = 'standard';
-              orderData.pickup_point_id = undefined;
-              orderData.payment_method = 'paypal';
-              orderData.payment_reference = data.orderID;
-              delete orderData.discount_code; delete orderData.gift_card_code;  // express = full price
-              orderData.privacy_consent = true;   // implied by the express consent notice above
-              return submitOrder(orderData, function(msg) {
-                showExpressError((msg || 'Pagamento non riuscito.') + ' Per questo indirizzo usa il checkout manuale qui sotto.');
-              });
-            });
-          },
-          onCancel: function() { showExpressError('Pagamento PayPal annullato. Puoi riprovare o continuare qui sotto.'); },
-          onError: function() { showExpressError('Errore PayPal. Riprova o continua qui sotto.'); },
-        }).render('#paypalExpressButtons');
-      }).catch(function() { showExpressError('Impossibile caricare PayPal.'); });
     }
 
     // ── SumUp card widget (replaces Stripe Elements when SumUp is configured) ──
