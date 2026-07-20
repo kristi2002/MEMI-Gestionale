@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Filter, X, ChevronDown, Check, Calendar, SlidersHorizontal, Bookmark, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { cn } from '@/lib/utils';
 
 /**
@@ -196,12 +197,14 @@ function DateRangeControl<T>({ def, value, onChange }: { def: Extract<FilterDef<
     <Popover active={isActive(value)} label={<span className="inline-flex items-center gap-1"><Calendar className="h-3.5 w-3.5" />{def.label}<span className="font-medium">{summary}</span></span>}>
       {() => (
         <div className="space-y-2">
-          <label className="block text-xs text-muted-foreground">Da
-            <Input type="date" value={v?.from ?? ''} onChange={(e) => set({ from: e.target.value || undefined })} className="mt-1" />
-          </label>
-          <label className="block text-xs text-muted-foreground">A
-            <Input type="date" value={v?.to ?? ''} onChange={(e) => set({ to: e.target.value || undefined })} className="mt-1" />
-          </label>
+          <div className="space-y-1">
+            <span className="block text-xs text-muted-foreground">Da</span>
+            <DatePicker withPortal={false} value={v?.from ?? ''} onChange={(d) => set({ from: d || undefined })} ariaLabel={`${def.label} da`} />
+          </div>
+          <div className="space-y-1">
+            <span className="block text-xs text-muted-foreground">A</span>
+            <DatePicker withPortal={false} value={v?.to ?? ''} onChange={(d) => set({ to: d || undefined })} ariaLabel={`${def.label} a`} />
+          </div>
         </div>
       )}
     </Popover>

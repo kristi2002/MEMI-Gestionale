@@ -8,6 +8,7 @@ import { DataTable } from '@/components/data-table/data-table';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
 import { useShipments, useUpdateOne } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { date } from '@/lib/format';
@@ -65,13 +66,12 @@ export function ShipmentsPage({ title = 'Spedizioni in corso' }: { title?: strin
         accessorKey: 'eta',
         header: 'ETA',
         cell: ({ row }) => (
-          <input
-            type="date"
-            className={STATO_SELECT + ' w-[140px]'}
+          <DatePicker
+            className="h-8 w-[150px] bg-background text-xs"
+            clearable={false}
             value={row.original.eta ? String(row.original.eta).slice(0, 10) : ''}
-            onChange={(e) => { const v = e.target.value; if (v) update.mutate({ id: row.original.id, data: { eta: v } }); }}
-            onClick={(e) => e.stopPropagation()}
-            title="Modifica consegna stimata (ETA)"
+            onChange={(v) => { if (v) update.mutate({ id: row.original.id, data: { eta: v } }); }}
+            ariaLabel="Modifica consegna stimata (ETA)"
           />
         ),
       },

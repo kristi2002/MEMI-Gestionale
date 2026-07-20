@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { StatusBadge } from '@/components/common/status-badge';
 import { useCouriers } from '@/hooks/queries';
@@ -210,7 +211,7 @@ export function OrderTrackingDialog({ order, trigger }: { order: OrderRow; trigg
                     </div>
                     <div className="space-y-1.5">
                       <Label htmlFor="track-eta">Consegna stimata (facoltativa)</Label>
-                      <Input id="track-eta" type="date" value={eta} onChange={(e) => setEta(e.target.value)} />
+                      <DatePicker id="track-eta" value={eta} onChange={setEta} />
                     </div>
                   </div>
                   <DialogFooter>

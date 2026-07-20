@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Loader2, Upload, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -115,10 +116,17 @@ export function EntityFormFields({
                 <Checkbox checked={!!val} onCheckedChange={(v) => set(f.name, !!v)} />
                 <span className="text-sm font-medium">{f.label}</span>
               </label>
+            ) : t === 'date' ? (
+              <DatePicker
+                id={f.name}
+                value={(val as string) ?? ''}
+                placeholder={f.placeholder ?? 'gg/mm/aaaa'}
+                onChange={(v) => set(f.name, v)}
+              />
             ) : (
               <Input
                 id={f.name}
-                type={t === 'number' ? 'number' : t === 'date' ? 'date' : t === 'email' ? 'email' : 'text'}
+                type={t === 'number' ? 'number' : t === 'email' ? 'email' : 'text'}
                 value={(val as string | number) ?? ''}
                 placeholder={f.placeholder}
                 required={f.required}

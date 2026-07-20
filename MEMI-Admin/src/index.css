@@ -10,6 +10,10 @@
    ============================================================ */
 @layer base {
   :root {
+    /* Make the few remaining native controls (color picker, number spinners,
+       any stray date/time input) follow the theme instead of rendering the
+       light OS default. Themed calendars use the <DatePicker> component. */
+    color-scheme: light;
     --background: 228 27% 96%; /* page canvas #F4F5F8 */
     --foreground: 218 20% 11%; /* text #171B22 */
 
@@ -51,6 +55,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 222 22% 9%;
     --foreground: 220 14% 92%;
 
