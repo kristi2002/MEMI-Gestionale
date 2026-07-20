@@ -479,13 +479,13 @@
       <!-- Step 3 -->
       <button class="step" id="stepBtn3" onclick="goToStep(3)">
         <span class="step-num" id="stepNum3">3</span>
-        <span class="step-label">Riepilogo</span>
+        <span class="step-label">Pagamento</span>
       </button>
       <div class="step-divider"></div>
       <!-- Step 4 -->
       <button class="step" id="stepBtn4" onclick="goToStep(4)">
         <span class="step-num" id="stepNum4">4</span>
-        <span class="step-label">Pagamento</span>
+        <span class="step-label">Confermare</span>
       </button>
       <div class="step-divider"></div>
       <!-- Step 5 -->
@@ -793,19 +793,44 @@
       <!-- FLOW STEP 4: Pagamento — pick method + pay (the final action). Physically the first of
            the two payment-area panels in the DOM, but shown at step 4; only .active is visible. -->
       <div class="form-panel step-panel" id="panel4">
-        <h2 class="panel-title">Pagamento</h2>
+        <h2 class="panel-title">Confermare</h2>
 
-        <!-- Payment methods — stacked list (Zalando-style). Every entry here is wired to a
-             real provider: Klarna via Stripe, Carta via the embedded SumUp widget (Stripe
-             Elements fallback), Apple/Google Pay via Stripe Payment Request Button, PayPal
-             via PayPal Buttons. No unintegrated placeholders. -->
-        <div class="pay-method-list">
+        <!-- Order review (moved here from the old Riepilogo). The buyer confirms address,
+             shipping and the payment method chosen on the Pagamento step, then pays here. -->
+        <div class="review-block">
+          <div class="review-row">
+            <div>
+              <p class="review-label">Indirizzo di consegna</p>
+              <p class="review-value" id="reviewAddress">—</p>
+            </div>
+            <button class="review-edit" onclick="goToStep(2)">Modifica</button>
+          </div>
+          <div class="review-row">
+            <div>
+              <p class="review-label">Indirizzo di fatturazione</p>
+              <p class="review-value" id="reviewBilling">—</p>
+            </div>
+            <button class="review-edit" onclick="goToStep(2)">Modifica</button>
+          </div>
+          <div class="review-row">
+            <div>
+              <p class="review-label">Metodo di spedizione</p>
+              <p class="review-value" id="reviewShipping">—</p>
+            </div>
+            <button class="review-edit" onclick="goToStep(2)">Modifica</button>
+          </div>
+          <div class="review-row">
+            <div>
+              <p class="review-label">Metodo di pagamento</p>
+              <p class="review-value" id="reviewPayment">—</p>
+            </div>
+            <button class="review-edit" onclick="goToStep(3)">Modifica</button>
+          </div>
+        </div>
 
-          <label class="pay-method" data-method="klarna" id="klarnaTab">
-            <input type="radio" name="payMethod" value="klarna" onchange="selectPayMethod('klarna')">
-            <span class="pay-method-label">Paga in 3 rate</span>
-            <span class="pay-badge-klarna">Klarna.</span>
-          </label>
+        <!-- Pay control for the method chosen on the Pagamento step — only the active one shows
+             (selectPayMethod): SumUp/Stripe card, Klarna element, wallet button, PayPal buttons. -->
+        <div class="pay-controls" id="payControls">
           <div class="pay-method-body" id="klarnaPanel" style="display:none;">
             <div id="stripeKlarnaElement" style="min-height:46px;"></div>
             <div id="klarnaError" style="display:none;font-size:var(--text-xs);color:var(--blush-dark);margin-top:var(--space-2);"></div>
@@ -813,24 +838,11 @@
               Sarai reindirizzata a Klarna per completare il pagamento in 3 rate senza interessi.
             </p>
           </div>
-
-          <label class="pay-method active" data-method="carta" id="cartaTab">
-            <input type="radio" name="payMethod" value="carta" checked onchange="selectPayMethod('carta')">
-            <span class="pay-method-label">Carta di credito/debito</span>
-            <span class="pay-method-icons">
-              <svg viewBox="0 0 48 32"><rect width="48" height="32" rx="4" fill="#fff" stroke="#E4E4E4"/><text x="24" y="21" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" font-style="italic" fill="#1A1F71">VISA</text></svg>
-              <svg viewBox="0 0 48 32"><rect width="48" height="32" rx="4" fill="#fff" stroke="#E4E4E4"/><circle cx="20" cy="16" r="9" fill="#EB001B"/><circle cx="28" cy="16" r="9" fill="#F79E1B" fill-opacity=".9"/></svg>
-              <svg viewBox="0 0 48 32"><rect width="48" height="32" rx="4" fill="#1F72CD"/><text x="24" y="20" text-anchor="middle" font-family="Arial,sans-serif" font-size="9.5" font-weight="800" fill="#fff">AMEX</text></svg>
-            </span>
-          </label>
           <div class="pay-method-body" id="cardForm">
             <div id="stripeCardElement" style="padding:var(--space-3) var(--space-4);border:1.5px solid var(--beige);border-radius:var(--radius-md);background:var(--white);min-height:46px;transition:border-color var(--dur-fast),box-shadow var(--dur-fast);"></div>
             <div id="stripeCardError" style="display:none;font-size:var(--text-xs);color:var(--blush-dark);margin-top:var(--space-2);"></div>
-            <!-- SumUp card widget mounts here instead of Stripe Elements when SumUp is
-                 configured server-side (GET /api/payments/config). The transparent gate
-                 captures clicks until the privacy checkbox below the methods list (under
-                 PayPal) is ticked — the widget's pay button lives inside SumUp's iframe,
-                 so it can't be disabled directly. -->
+            <!-- SumUp card widget mounts here instead of Stripe Elements when SumUp is configured.
+                 The transparent gate captures clicks until the consent checkbox below is ticked. -->
             <div id="sumupCardWrap" style="display:none;position:relative;">
               <div id="sumupCard"></div>
               <div id="sumupTermsGate" style="display:none;position:absolute;inset:0;z-index:5;cursor:pointer;background:transparent;"></div>
@@ -839,52 +851,21 @@
               Pagamento crittografato &amp; elaborato da <strong style="color:var(--espresso);">Stripe</strong>. I dati della carta non passano per i nostri server.
             </p>
           </div>
-
-          <!-- Apple Pay and Google Pay are two SEPARATE rows but ONE Stripe Payment Request
-               Button. Each tab is revealed only when canMakePayment() reports that wallet is
-               usable on THIS device (Apple Pay → Safari, Google Pay → Chrome), so only the
-               wallet that actually works appears, correctly branded. The single
-               #paymentRequestButton is moved into whichever wallet tab is active. -->
-          <label class="pay-method" data-method="apple" id="appleTab">
-            <input type="radio" name="payMethod" value="apple" onchange="selectPayMethod('apple')">
-            <span class="pay-method-label">Apple Pay</span>
-            <span class="pay-method-icon">
-              <svg viewBox="0 0 24 24" style="width:26px;height:26px;fill:#000;"><path d="M16.36 1.43c0 1.14-.47 2.16-1.24 2.9-.83.8-2 .19-1.24-.24C13.9 3.5 14.36 2.3 14.36 1.14c0-.15-.01-.3-.03-.14C15.44.2 16.36-.02 16.36 1.43zM19.7 17.1c-.35.8-.77 1.55-1.26 2.24-.67.94-1.22 1.6-1.65 1.96-.66.6-1.37.9-2.13.92-.55.01-1.2-.15-1.97-.48-.77-.33-1.48-.49-2.12-.49-.67 0-1.4.16-2.18.49-.79.33-1.42.5-1.9.51-.72.03-1.45-.28-2.18-.94-.46-.4-1.04-1.09-1.74-2.08-.75-1.06-1.37-2.3-1.85-3.71-.52-1.53-.78-3.02-.78-4.45 0-1.64.35-3.05 1.06-4.24.56-.95 1.3-1.7 2.23-2.25.93-.55 1.93-.83 3.02-.85.58 0 1.35.18 2.3.53.95.35 1.56.53 1.82.53.2 0 .87-.21 2.02-.62 1.09-.38 2-.54 2.75-.48 2.03.16 3.55.96 4.57 2.4-1.82 1.1-2.72 2.64-2.7 4.62.01 1.54.56 2.83 1.65 3.85.49.47 1.04.83 1.65 1.09-.13.39-.27.76-.43 1.13z"/></svg>
-            </span>
-          </label>
           <div class="pay-method-body" id="applePanel" style="display:none;">
             <div id="paymentRequestButton"></div>
             <p id="appleUnavailableNote" style="display:none;font-size:var(--text-xs);color:var(--brown-mid);line-height:var(--leading-normal);">
-              Apple Pay funziona solo con <strong>Safari</strong> su iPhone, iPad o Mac (con una carta in Apple Wallet). Apri questo sito con Safari su un dispositivo Apple per pagare con Apple Pay, oppure scegli un altro metodo qui sopra.
+              Apple Pay funziona solo con <strong>Safari</strong> su iPhone, iPad o Mac (con una carta in Apple Wallet). Apri questo sito con Safari su un dispositivo Apple per pagare con Apple Pay, oppure scegli un altro metodo.
             </p>
           </div>
-
-          <label class="pay-method" data-method="gpay" id="gpayTab" style="display:none;">
-            <input type="radio" name="payMethod" value="gpay" onchange="selectPayMethod('gpay')">
-            <span class="pay-method-label">Google Pay</span>
-            <span class="pay-method-icon">
-              <svg viewBox="0 0 48 48" style="width:24px;height:24px;" aria-hidden="true"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"/><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg>
-            </span>
-          </label>
           <div class="pay-method-body" id="gpayPanel" style="display:none;"></div>
-
-          <label class="pay-method" data-method="paypal" id="paypalTab">
-            <input type="radio" name="payMethod" value="paypal" onchange="selectPayMethod('paypal')">
-            <span class="pay-method-label">PayPal</span>
-            <span class="pay-badge-fast" id="paypalFastBadge" style="display:none;">Ora piu veloce!</span>
-            <span class="pay-method-icon">
-              <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:#003087;"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"/></svg>
-            </span>
-          </label>
           <div class="pay-method-body" id="paypalPanel" style="display:none;">
             <p style="font-size:var(--text-sm);color:var(--brown-mid);line-height:var(--leading-normal);">
               Sarai reindirizzata al sito di PayPal per completare il pagamento in modo sicuro.<br>
               <span style="font-size:var(--text-xs);color:var(--brown-light);">Puoi usare il tuo conto PayPal o una carta di credito/debito.</span>
             </p>
-            <!-- PayPal Buttons render here when PayPal is configured server-side (GET /api/payments/config). -->
+            <!-- PayPal Buttons render here when PayPal is configured server-side. -->
             <div id="paypalButtons" style="margin-top:var(--space-4);"></div>
           </div>
-
         </div>
 
         <!-- GDPR consent for ALL payment methods — deliberately OUTSIDE the card section,
@@ -913,10 +894,10 @@
         <div class="form-actions">
           <button class="btn-back" onclick="goToStep(3)">
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-            Torna al riepilogo
+            Torna al pagamento
           </button>
           <button class="btn-next" style="background:var(--blush-dark);" onclick="confirmOrder()">
-            Paga ora
+            Effettua ordine
             <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
           </button>
         </div>
@@ -928,30 +909,52 @@
       <!-- FLOW STEP 3: Riepilogo — review address / fatturazione / spedizione, edit-back, then
            proceed to payment. Physically the second of the two in the DOM, but shown at step 3. -->
       <div class="form-panel step-panel" id="panel3">
-        <h2 class="panel-title">Riepilogo ordine</h2>
+        <h2 class="panel-title">Pagamento</h2>
+        <p style="font-size:var(--text-sm);color:var(--brown-mid);margin-bottom:var(--space-4);line-height:var(--leading-normal);">
+          Scegli come vuoi pagare. Rivedrai l'ordine e completerai il pagamento al passaggio successivo.
+        </p>
 
-        <div class="review-block">
-          <div class="review-row">
-            <div>
-              <p class="review-label">Indirizzo di consegna</p>
-              <p class="review-value" id="reviewAddress">—</p>
-            </div>
-            <button class="review-edit" onclick="goToStep(2)">Modifica</button>
-          </div>
-          <div class="review-row">
-            <div>
-              <p class="review-label">Indirizzo di fatturazione</p>
-              <p class="review-value" id="reviewBilling">—</p>
-            </div>
-            <button class="review-edit" onclick="goToStep(2)">Modifica</button>
-          </div>
-          <div class="review-row">
-            <div>
-              <p class="review-label">Metodo di spedizione</p>
-              <p class="review-value" id="reviewShipping">—</p>
-            </div>
-            <button class="review-edit" onclick="goToStep(2)">Modifica</button>
-          </div>
+        <div class="pay-method-list">
+          <label class="pay-method" data-method="klarna" id="klarnaTab">
+            <input type="radio" name="payMethod" value="klarna" onchange="selectPayMethod('klarna')">
+            <span class="pay-method-label">Paga in 3 rate</span>
+            <span class="pay-badge-klarna">Klarna.</span>
+          </label>
+
+          <label class="pay-method active" data-method="carta" id="cartaTab">
+            <input type="radio" name="payMethod" value="carta" checked onchange="selectPayMethod('carta')">
+            <span class="pay-method-label">Carta di credito/debito</span>
+            <span class="pay-method-icons">
+              <svg viewBox="0 0 48 32"><rect width="48" height="32" rx="4" fill="#fff" stroke="#E4E4E4"/><text x="24" y="21" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" font-weight="800" font-style="italic" fill="#1A1F71">VISA</text></svg>
+              <svg viewBox="0 0 48 32"><rect width="48" height="32" rx="4" fill="#fff" stroke="#E4E4E4"/><circle cx="20" cy="16" r="9" fill="#EB001B"/><circle cx="28" cy="16" r="9" fill="#F79E1B" fill-opacity=".9"/></svg>
+              <svg viewBox="0 0 48 32"><rect width="48" height="32" rx="4" fill="#1F72CD"/><text x="24" y="20" text-anchor="middle" font-family="Arial,sans-serif" font-size="9.5" font-weight="800" fill="#fff">AMEX</text></svg>
+            </span>
+          </label>
+
+          <label class="pay-method" data-method="apple" id="appleTab">
+            <input type="radio" name="payMethod" value="apple" onchange="selectPayMethod('apple')">
+            <span class="pay-method-label">Apple Pay</span>
+            <span class="pay-method-icon">
+              <svg viewBox="0 0 24 24" style="width:26px;height:26px;fill:#000;"><path d="M16.36 1.43c0 1.14-.47 2.16-1.24 2.9-.83.8-2 .19-1.24-.24C13.9 3.5 14.36 2.3 14.36 1.14c0-.15-.01-.3-.03-.14C15.44.2 16.36-.02 16.36 1.43zM19.7 17.1c-.35.8-.77 1.55-1.26 2.24-.67.94-1.22 1.6-1.65 1.96-.66.6-1.37.9-2.13.92-.55.01-1.2-.15-1.97-.48-.77-.33-1.48-.49-2.12-.49-.67 0-1.4.16-2.18.49-.79.33-1.42.5-1.9.51-.72.03-1.45-.28-2.18-.94-.46-.4-1.04-1.09-1.74-2.08-.75-1.06-1.37-2.3-1.85-3.71-.52-1.53-.78-3.02-.78-4.45 0-1.64.35-3.05 1.06-4.24.56-.95 1.3-1.7 2.23-2.25.93-.55 1.93-.83 3.02-.85.58 0 1.35.18 2.3.53.95.35 1.56.53 1.82.53.2 0 .87-.21 2.02-.62 1.09-.38 2-.54 2.75-.48 2.03.16 3.55.96 4.57 2.4-1.82 1.1-2.72 2.64-2.7 4.62.01 1.54.56 2.83 1.65 3.85.49.47 1.04.83 1.65 1.09-.13.39-.27.76-.43 1.13z"/></svg>
+            </span>
+          </label>
+
+          <label class="pay-method" data-method="gpay" id="gpayTab" style="display:none;">
+            <input type="radio" name="payMethod" value="gpay" onchange="selectPayMethod('gpay')">
+            <span class="pay-method-label">Google Pay</span>
+            <span class="pay-method-icon">
+              <svg viewBox="0 0 48 48" style="width:24px;height:24px;" aria-hidden="true"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"/><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg>
+            </span>
+          </label>
+
+          <label class="pay-method" data-method="paypal" id="paypalTab">
+            <input type="radio" name="payMethod" value="paypal" onchange="selectPayMethod('paypal')">
+            <span class="pay-method-label">PayPal</span>
+            <span class="pay-badge-fast" id="paypalFastBadge" style="display:none;">Ora piu veloce!</span>
+            <span class="pay-method-icon">
+              <svg viewBox="0 0 24 24" style="width:24px;height:24px;fill:#003087;"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106z"/></svg>
+            </span>
+          </label>
         </div>
 
         <div class="inline-secure">
@@ -965,8 +968,8 @@
             <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
             Torna all'indirizzo
           </button>
-          <button class="btn-next" onclick="goToStep(4)">
-            Procedi al pagamento
+          <button class="btn-next" onclick="continueToConfirm()">
+            Rivedi e conferma
             <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
@@ -1379,7 +1382,7 @@
       if (n === 5 && !opts.internal) return;      // step 5 is a result screen, not a destination
       if (n > currentStep + 1) return;             // the stepper never skips ahead more than one step
       if (n > currentStep && currentStep === 2 && !validateAddressStep()) return;
-      if (n === 3) updateReviewSummary();   // Riepilogo (review) is now step 3, before payment
+      // Review + pay controls now live on the Confermare step (4) — see the n === 4 block below.
 
       document.querySelectorAll('.step-panel').forEach(function(p) { p.classList.remove('active'); });
       el('panel' + n).classList.add('active');
@@ -1402,15 +1405,16 @@
       }
       currentStep = n;
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      // Mount the card UI when reaching the Pagamento step (now step 4, the final action) —
-      // SumUp widget when the server has SumUp credentials, Stripe Elements otherwise. The
-      // provider pay controls (PayPal/wallet) live inline in the method list, so no move needed.
+      // Confermare step (4): fill the review, then mount the pay control for the CHOSEN method
+      // (SumUp/Stripe card, Klarna element, wallet button, PayPal buttons) and set the pay button.
       if (n === 4) {
+        updateReviewSummary();
         restorePaymentWidgets();
         setTimeout(function() {
-          if (sumupAvailable()) { initStripeWallet(); if (activePayMethod === 'carta') prepareSumupPaymentStep(); }
+          if (sumupAvailable()) initStripeWallet();   // wallets ride on Stripe even under SumUp
           else initStripeElements();
-          refreshKlarnaElement();   // rebuild Klarna if the total drifted (e.g. shipping changed via back-nav)
+          refreshKlarnaElement();                     // rebuild Klarna if the total drifted
+          selectPayMethod(activePayMethod);           // show the chosen method's control + pay button
         }, 80);
         if (window.__walletIntent) setTimeout(revealWalletIntent, 750);
       }
@@ -1465,7 +1469,8 @@
     }
 
     function continueToConfirm() {
-      if (!validatePaymentStep()) return;
+      // Step 3 only chooses a method (one is always selected) — consent + the charge are
+      // validated on the Confermare step by confirmOrder(). Just advance to review + pay.
       goToStep(4);
     }
 
@@ -2207,24 +2212,28 @@
       });
       if (el('paymentError')) el('paymentError').style.display = 'none';
       if (el('paymentError3')) el('paymentError3').style.display = 'none';
+
+      // The pay CONTROLS live on the Confermare step (4). On the Pagamento step (3) the buyer
+      // only picks a method — don't mount widgets or touch the pay button until they reach step 4.
+      if (currentStep !== 4) return;
+
       if (method === 'klarna') ensureKlarnaElement();
-      // Wallet rows share one Payment Request Button — move it into the selected wallet's panel.
-      if (method === 'apple' || method === 'gpay') moveWalletButton(method);
+      if (method === 'gpay' || (method === 'apple' && appleAvailable())) moveWalletButton(method);
       if (method === 'apple') syncAppleUnavailableNote();
 
-      // SumUp card pays in-widget on THIS step: mount it and hide "Rivedi e conferma".
-      // Every other method reviews on the Conferma step, so restore that button.
-      var stepNext = document.querySelector('.btn-next[onclick="continueToConfirm()"]');
-      if (method === 'carta' && sumupAvailable()) {
-        prepareSumupPaymentStep();
-      } else if (stepNext) {
-        stepNext.style.display = '';
-      }
+      // SumUp pays via its own embedded widget; mount it for the card method.
+      if (method === 'carta' && sumupAvailable()) prepareSumupPaymentStep();
 
-      // PayPal drives its own button — hide the generic Conferma button on that tab.
+      // Methods with their OWN pay control (SumUp widget, usable wallet, PayPal buttons) hide the
+      // generic "Effettua ordine" button; Klarna, the Stripe-card fallback, and an unusable Apple
+      // Pay row keep it (the latter so confirmOrder can explain Apple Pay needs Safari).
       var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
       var paypalActive = method === 'paypal' && window.MEMI_PAY && window.MEMI_PAY.providers && window.MEMI_PAY.providers.paypal;
-      if (confirmBtn) confirmBtn.style.display = paypalActive ? 'none' : '';
+      var ownControl = paypalActive
+        || (method === 'apple' && appleAvailable())
+        || method === 'gpay'
+        || (method === 'carta' && sumupAvailable());
+      if (confirmBtn) confirmBtn.style.display = ownControl ? 'none' : '';
     }
 
     // The Confermare step is where the customer pays. Providers with their own hosted pay
@@ -2733,13 +2742,11 @@
           });
           window.__sumupMounted = true;
           wireSumupConsentGate();
-          // Whatever path mounted the widget (payment step or a late config resolve), make sure
-          // the card tab drives SumUp — never a stray Stripe field / "Rivedi e conferma". The
-          // consent checkbox lives under PayPal in the methods list and is always visible here.
+          // On the Confermare step the SumUp widget owns the card field — hide the Stripe card
+          // element so there's no stray input. The "Rivedi e conferma" button lives on the
+          // previous Pagamento step and must stay visible for back-navigation, so don't touch it.
           if (activePayMethod === 'carta') {
             var stripeElNow = el('stripeCardElement'); if (stripeElNow) stripeElNow.style.display = 'none';
-            var stepNextNow = document.querySelector('.btn-next[onclick="continueToConfirm()"]');
-            if (stepNextNow) stepNextNow.style.display = 'none';
           }
           // The widget has its own pay button — hide the generic Conferma on the card tab.
           var confirmBtn = document.querySelector('.btn-next[onclick="confirmOrder()"]');
