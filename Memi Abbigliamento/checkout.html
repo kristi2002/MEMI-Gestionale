@@ -1983,13 +1983,18 @@
         if (!pi) return;
         var raw = null;
         try { raw = sessionStorage.getItem('memi_pending_order'); } catch (_) {}
-        if (pi.status === 'succeeded' && raw) {
+        // Accept BOTH 'succeeded' and 'processing': Klarna authorises the buyer, then Stripe
+        // settles a moment later, so the return trip often carries a still-'processing' intent.
+        // Place the order in either case — the server verifies the amount and records it ('pagato'
+        // when succeeded, 'in_attesa' when processing) and the Stripe webhook promotes a processing
+        // intent to 'pagato' once it settles. Only a genuinely failed/incomplete intent is rejected.
+        if ((pi.status === 'succeeded' || pi.status === 'processing') && raw) {
           var orderData = JSON.parse(raw);
           orderData.payment_intent_id = pi.id;
           try { sessionStorage.removeItem('memi_pending_order'); } catch (_) {}
           currentStep = 4;
           submitOrder(orderData, function(msg) { currentStep = 2; goToStep(3); showPaymentError(msg); });
-        } else if (pi.status !== 'succeeded') {
+        } else if (pi.status !== 'succeeded' && pi.status !== 'processing') {
           try { sessionStorage.removeItem('memi_pending_order'); } catch (_) {}
           currentStep = 2;
           goToStep(3);

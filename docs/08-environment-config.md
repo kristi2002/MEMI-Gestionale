@@ -69,6 +69,8 @@ Grouped by concern. "Required?" is from the backend's perspective; unset optiona
 | `STRIPE_PUBLISHABLE_KEY` | Browser Stripe key | No | card checkout disabled without it |
 | `STRIPE_WEBHOOK_SECRET` | Verifies `/api/payments/webhook` | No | missing → webhook rejects every event (503, fails safe) |
 
+> **Klarna rides on Stripe — no separate key.** Set these three, then enable Klarna in the Stripe Dashboard → Payment methods (test/live are separate). `STRIPE_WEBHOOK_SECRET` matters for Klarna specifically: an intent that returns `processing` is promoted to paid only by the webhook. Full steps: `07-payments-integrations.md` → "Enabling Klarna — go-live checklist".
+
 ### SumUp (card payments — see `07-payments-integrations.md` for sandbox vs live)
 
 | Variable | Purpose | Required? | Default / gating |

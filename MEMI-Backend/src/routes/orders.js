@@ -32,7 +32,7 @@ const { resolveShipping, matchZone } = require('../shipping-rates');
 /* ── enum whitelists (mirror schema.sql ENUM definitions) ── */
 const PAYMENT_STATUSES = ['in_attesa', 'pagato', 'rimborsato', 'fallito'];
 const ORDER_STATUSES   = ['in_attesa', 'in_preparazione', 'spedito', 'consegnato', 'annullato'];
-const PAYMENT_METHODS  = ['carta', 'paypal'];
+const PAYMENT_METHODS  = ['carta', 'paypal', 'klarna'];   // 'klarna' rides on Stripe (schema ENUM allows it)
 
 /* Order statuses that mean "not yet shipped" — the only ones a full cancellation
    (with automatic refund) is allowed for. */
@@ -324,6 +324,40 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
         paymentStatus = 'pagato';
       } catch (stripeErr) {
         (req.log || console).error({ err: stripeErr, paymentIntentId: payment_intent_id }, 'Stripe verify error');
+        return res.status(402).json({ error: 'Impossibile verificare il pagamento. Riprova.' });
+      }
+    } else if (payment_method === 'klarna') {
+      // Klarna rides on Stripe as a redirect-based method (the checkout mints a PaymentIntent
+      // restricted to payment_method_types:['klarna']). Verify it EXACTLY like a card — amount
+      // and currency must equal the server total (anti-tampering) — but ALSO accept 'processing',
+      // not only 'succeeded': Klarna authorises the buyer, then Stripe settles a moment later, so
+      // the return trip frequently carries a still-'processing' intent. We record such an order as
+      // 'in_attesa' and let the Stripe webhook (payment_intent.succeeded) promote it to 'pagato'
+      // once it settles — so a slow Klarna settle never drops a paid order. Without Stripe
+      // configured Klarna can't be trusted, so refuse (503) rather than write an unverified order.
+      if (!process.env.STRIPE_SECRET_KEY)
+        return res.status(503).json({ error: 'Klarna non disponibile al momento.' });
+      if (!payment_intent_id)
+        return res.status(402).json({ error: 'Dati di pagamento mancanti. Riprova.' });
+      try {
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        const pi = await stripe.paymentIntents.retrieve(payment_intent_id);
+        if (pi.currency !== 'eur' || Number(pi.amount) !== expectedCents) {
+          (req.log || console).error(
+            { paymentIntentId: payment_intent_id, piAmount: pi.amount, piCurrency: pi.currency, expectedCents },
+            'Klarna amount mismatch — possible tampering attempt'
+          );
+          return res.status(402).json({ error: 'Importo del pagamento non corrisponde. Riprova.' });
+        }
+        if (pi.status === 'succeeded') {
+          paymentStatus = 'pagato';
+        } else if (pi.status === 'processing') {
+          paymentStatus = 'in_attesa';   // webhook payment_intent.succeeded reconciles → 'pagato'
+        } else {
+          return res.status(402).json({ error: 'Pagamento Klarna non completato. Riprova.' });
+        }
+      } catch (klErr) {
+        (req.log || console).error({ err: klErr, paymentIntentId: payment_intent_id }, 'Klarna verify error');
         return res.status(402).json({ error: 'Impossibile verificare il pagamento. Riprova.' });
       }
     } else if (payment_method === 'paypal') {

@@ -31,7 +31,7 @@ Publishable keys and the PayPal client-id are designed to be public; **secrets n
 | Provider | Method / API | Where the buyer pays | Create endpoint | Server-side verify (in `orders.js`) | Enabled by |
 |---|---|---|---|---|---|
 | **Stripe** (card) | PaymentIntent, `automatic_payment_methods` | Stripe Elements, in-page | `POST /api/payments/create-intent` | `paymentIntents.retrieve` → `status==='succeeded'` + `amount`/`currency` match | `STRIPE_SECRET_KEY` |
-| **Klarna** | Stripe PaymentIntent restricted to `payment_method_types:['klarna']` | Stripe Payment Element, redirect to Klarna | `POST /api/payments/create-intent` (klarna-only) | same Stripe branch (`payment_method:'carta'` + `payment_intent_id`) | `STRIPE_SECRET_KEY` |
+| **Klarna** | Stripe PaymentIntent restricted to `payment_method_types:['klarna']` | Stripe Payment Element, redirect to Klarna | `POST /api/payments/create-intent` (klarna-only) | dedicated `payment_method:'klarna'` branch — `paymentIntents.retrieve` + amount/currency match; `succeeded`→`pagato`, `processing`→`in_attesa` (webhook settles) | `STRIPE_SECRET_KEY` |
 | **SumUp** (card) | Online Payments Checkouts v0.1 | **Embedded SumUp widget, in-page** on the Pagamento step | `POST /api/payments/sumup/create-checkout` | `getSumupCheckout` → `status==='PAID'` + `amount`/`currency` match | `SUMUP_API_KEY` + `SUMUP_MERCHANT_CODE` |
 | **PayPal** | Orders v2 (create → approve → capture-after-commit) | PayPal JS SDK popup | `POST /api/payments/paypal/create-order` → `/paypal/capture` | `inspectPaypalOrder` → `APPROVED`/`COMPLETED` + amount match, then capture | `PAYPAL_CLIENT_ID` + `PAYPAL_SECRET` |
 
@@ -66,13 +66,43 @@ pi.status !== 'succeeded'                         → 402 "Pagamento non complet
 pi.currency !== 'eur' || pi.amount !== expected   → 402 "Importo del pagamento non corrisponde" (logged as possible tampering)
 ```
 
-**Klarna** is a Stripe product here: the checkout mints a **dedicated klarna-only PaymentIntent** (`payment_method_types:['klarna']`), mounts a Stripe Payment Element, and redirects the buyer to Klarna. Because a Klarna intent is bound to a fixed amount, `refreshKlarnaElement()` **rebuilds it whenever the total drifts** (shipping change via back-nav, promo, gift card) — otherwise Klarna would authorise a stale total the server then rejects with 402. On return, `handleKlarnaReturn()` reads the redirect params and finalizes.
+**Klarna** is a Stripe product here: the checkout mints a **dedicated klarna-only PaymentIntent** (`payment_method_types:['klarna']`), mounts a Stripe Payment Element, and redirects the buyer to Klarna. Because a Klarna intent is bound to a fixed amount, `refreshKlarnaElement()` **rebuilds it whenever the total drifts** (shipping change via back-nav, promo, gift card) — otherwise Klarna would authorise a stale total the server then rejects with 402. On return, `handleKlarnaReturn()` reads the redirect params and places the staged order on a `succeeded` **or** `processing` intent.
+
+Klarna sends `payment_method:'klarna'` (not `'carta'`), so it has its **own** order-time verification branch (`routes/orders.js`) — separate from the card branch and, crucially, tolerant of `processing`:
+```
+pi = stripe.paymentIntents.retrieve(payment_intent_id)
+pi.currency !== 'eur' || pi.amount !== expected   → 402 "Importo del pagamento non corrisponde" (logged as possible tampering)
+pi.status === 'succeeded'                          → paymentStatus = 'pagato'
+pi.status === 'processing'                         → paymentStatus = 'in_attesa'   // webhook payment_intent.succeeded promotes → 'pagato' when Klarna settles
+otherwise (requires_action / canceled / …)         → 402 "Pagamento Klarna non completato"
+```
+Klarna authorises the buyer, then Stripe settles a moment later, so the return trip often carries a still-`processing` intent. Accepting `processing` (client and server) is what stops a slow Klarna settle from **dropping a paid order** — the order is created and tracked, and the webhook finalizes it. `STRIPE_SECRET_KEY` unset → the branch refuses Klarna with 503 rather than writing an unverified order.
 
 **Webhook** — `POST /api/payments/webhook` (`stripeWebhookHandler`, mounted on `app` **before** `express.json()` so it gets the **raw body** for signature verification):
 - `503` if `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` unset; `400` on bad signature.
 - It is a **safety net, not the order-creation path** (orders are created by `POST /api/orders` after client-side confirm).
 - `payment_intent.succeeded` **with a matching `in_attesa` order** → reconciled to `pagato` + `ensureInvoiceForOrder`. With **no** matching order → loud warning (customer charged, no order — manual follow-up; the handler will not guess an order from a bare PI).
 - `charge.dispute.created` → logged for admin visibility, no automated action.
+
+### Enabling Klarna — go-live checklist
+
+Klarna has **no separate account, API key, or SDK** in MEMI — it is a Stripe payment method. "Turn on Klarna" = configure Stripe + flip Klarna on in the Stripe Dashboard. The code is fully wired (checkout "Paga in 3 rate" tab, klarna-only PaymentIntent, redirect return, dedicated server verify).
+
+1. **Stripe keys** — Dashboard → Developers → API keys. Do it in **test** first (`sk_test_…` / `pk_test_…`), then **live** (`sk_live_…` / `pk_live_…`).
+2. **Enable Klarna** — Dashboard → Settings → **Payment methods** → *Buy now, pay later* → **Klarna → On**. ⚠️ **Test and Live are separate toggles.** Until this is on, `create-intent` with `['klarna']` errors and the storefront tab shows *"Klarna non disponibile."*
+3. **Backend env** (Coolify → backend service, or the root `.env` — `docker-compose.yml` forwards all three to the container):
+   ```
+   STRIPE_SECRET_KEY=sk_live_...
+   STRIPE_PUBLISHABLE_KEY=pk_live_...
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+4. **Webhook** — Dashboard → Developers → Webhooks → add endpoint `https://api.memi.testdemo.it/api/payments/webhook`, subscribe to `payment_intent.succeeded` + `charge.dispute.created`, copy its signing secret into `STRIPE_WEBHOOK_SECRET`. **Required for Klarna specifically**: a Klarna intent that returns `processing` is only promoted `in_attesa → pagato` by this webhook.
+5. **Redeploy** the backend so it reads the new env.
+6. **Verify** — `GET https://api.memi.testdemo.it/api/payments/config` returns your `publishableKey` and `providers.stripe:true`. Then on the live site pick "Paga in 3 rate", complete Klarna's flow, and confirm the order lands `pagato` (or `in_attesa` → `pagato` within seconds via the webhook).
+
+**Eligibility caveats:** Klarna via Stripe needs the account activated in a Klarna-supported country (**Italy ✓**) and EUR (**✓**); a brand-new *live* account can hit a short Klarna review — **test mode works instantly**. Test only on the **HTTPS domain** — the Klarna redirect can't complete on `localhost` (the checkout says so explicitly).
+
+**Residual edge (by design):** the order is created when the buyer returns from Klarna. If the buyer is charged but never returns (tab closed mid-redirect), no order is created and the webhook logs a loud *"charged, no order"* warning for manual follow-up — the handler will not fabricate an order from a bare PaymentIntent. Fully closing this would require creating a pending order *before* the redirect (a larger change, deferred).
 
 ---
 

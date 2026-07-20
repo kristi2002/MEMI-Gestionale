@@ -121,6 +121,66 @@ function mockRes(){ return { code:200, body:null, status(c){this.code=c;return t
   assert.ok(!sqlLog.some(e=>/INSERT INTO orders/i.test(e.sql)), 'T3 no order on mismatch');
   n++; console.log('  ✓ T3 Stripe amount mismatch -> 402, no order written');
 
+  // ── Klarna: rides on Stripe, but its OWN verification branch (payment_method:'klarna'),
+  //    tolerant of 'processing'. 89 goods + 5.90 standard shipping = 94.90 -> 9490 cents. ──
+  process.env.STRIPE_SECRET_KEY = 'sk_test_x';
+
+  // KL1: succeeded -> pagato, PI stored.
+  stripeBehavior = async () => ({ status:'succeeded', amount:9490, currency:'eur' });
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:1 }], payment_method:'klarna',
+    payment_intent_id:'pi_kl_ok', shipping_method:'standard' }}, res);
+  assert.strictEqual(res.code, 201, 'KL1 code '+res.code+' '+JSON.stringify(res.body));
+  let ooK = sqlLog.find(e=>/INSERT INTO orders/i.test(e.sql));
+  assert.ok(ooK.params.includes('pagato'), 'KL1 succeeded -> pagato');
+  assert.ok(ooK.params.includes('pi_kl_ok'), 'KL1 payment_intent_id stored');
+  n++; console.log('  ✓ KL1 Klarna succeeded -> pagato, PI stored');
+
+  // KL2: processing -> in_attesa. The order IS created and the PI stored, so the Stripe webhook
+  //      (payment_intent.succeeded) can promote it to pagato — a slow Klarna settle never drops it.
+  stripeBehavior = async () => ({ status:'processing', amount:9490, currency:'eur' });
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:1 }], payment_method:'klarna',
+    payment_intent_id:'pi_kl_proc', shipping_method:'standard' }}, res);
+  assert.strictEqual(res.code, 201, 'KL2 code '+res.code+' '+JSON.stringify(res.body));
+  ooK = sqlLog.find(e=>/INSERT INTO orders/i.test(e.sql));
+  assert.ok(ooK.params.includes('in_attesa'), 'KL2 processing -> in_attesa (webhook settles later)');
+  assert.ok(ooK.params.includes('pi_kl_proc'), 'KL2 PI stored so the webhook can reconcile');
+  n++; console.log('  ✓ KL2 Klarna processing -> in_attesa + PI stored (no dropped order)');
+
+  // KL3: amount mismatch -> 402, no order. This is the anti-tampering gap the branch closed
+  //      (before, a Klarna order fell through with NO server-side amount check).
+  stripeBehavior = async () => ({ status:'succeeded', amount:100, currency:'eur' });
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:1 }], payment_method:'klarna',
+    payment_intent_id:'pi_kl_bad', shipping_method:'standard' }}, res);
+  assert.strictEqual(res.code, 402, 'KL3 amount mismatch -> 402');
+  assert.ok(!sqlLog.some(e=>/INSERT INTO orders/i.test(e.sql)), 'KL3 no order on mismatch');
+  n++; console.log('  ✓ KL3 Klarna amount mismatch -> 402, no order (anti-tampering)');
+
+  // KL4: any status that is neither succeeded nor processing -> 402, no order.
+  stripeBehavior = async () => ({ status:'requires_action', amount:9490, currency:'eur' });
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:1 }], payment_method:'klarna',
+    payment_intent_id:'pi_kl_ra', shipping_method:'standard' }}, res);
+  assert.strictEqual(res.code, 402, 'KL4 requires_action -> 402');
+  assert.ok(!sqlLog.some(e=>/INSERT INTO orders/i.test(e.sql)), 'KL4 no order on incomplete');
+  n++; console.log('  ✓ KL4 Klarna incomplete (requires_action) -> 402, no order');
+
+  // KL5: Klarna selected but Stripe not configured -> 503, never an unverified in_attesa order.
+  delete process.env.STRIPE_SECRET_KEY;
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:1 }], payment_method:'klarna',
+    payment_intent_id:'pi_kl_nostripe', shipping_method:'standard' }}, res);
+  assert.strictEqual(res.code, 503, 'KL5 Klarna without Stripe -> 503');
+  assert.ok(!sqlLog.some(e=>/INSERT INTO orders/i.test(e.sql)), 'KL5 no unverified order written');
+  n++; console.log('  ✓ KL5 Klarna without Stripe configured -> 503, no order');
+
   delete process.env.STRIPE_SECRET_KEY;
   res = mockRes();
   await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'1',

@@ -35,8 +35,8 @@ const EXTENDED = new Set([
   'conversations', 'customer_segments', 'email_events', 'gift_cards',
   'loyalty_transactions', 'messages', 'page_views', 'pickup_points', 'po_items',
   'popups', 'product_categories', 'product_collections', 'product_colors',
-  'product_variants', 'purchase_orders', 'stock_transfers', 'store_expenses',
-  'suppliers', 'supplier_invoices',
+  'product_variants', 'purchase_orders', 'shipment_events', 'stock_transfers',
+  'store_expenses', 'suppliers', 'supplier_invoices',
 ]);
 
 let pass = 0;
