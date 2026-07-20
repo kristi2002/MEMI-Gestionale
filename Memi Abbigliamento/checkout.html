@@ -1391,7 +1391,7 @@
       if (n === 4) {
         restorePaymentWidgets();
         setTimeout(function() {
-          if (sumupAvailable()) { if (activePayMethod === 'carta') prepareSumupPaymentStep(); }
+          if (sumupAvailable()) { initStripeWallet(); if (activePayMethod === 'carta') prepareSumupPaymentStep(); }
           else initStripeElements();
           refreshKlarnaElement();   // rebuild Klarna if the total drifted (e.g. shipping changed via back-nav)
         }, 80);
@@ -1891,6 +1891,22 @@
       fetchPaymentIntent();
 
       // Wallet express checkout (Apple Pay / Google Pay) — rendered only if available.
+      initPaymentRequestButton(elements);
+    }
+
+    // Apple Pay / Google Pay ride on Stripe even when SumUp owns the "Carta" tab, so the
+    // wallet express button must be able to initialise WITHOUT the Stripe card Element.
+    // Coupling it to initStripeElements() meant the wallet went dark whenever SumUp was the
+    // configured card processor — the Apple/Google Pay tab never appeared. This path sets up
+    // just the Stripe instance + Payment Request Button (no card field). Idempotent.
+    function initStripeWallet() {
+      if (walletPaymentRequest) return;            // wallet already initialised
+      var pk = getStripePK();
+      if (!pk || !window.Stripe) return;           // Stripe.js or key not available yet
+      if (!stripeInstance) stripeInstance = window.Stripe(pk);
+      // A bare Elements group is enough to create the Payment Request Button; the card
+      // Element is intentionally NOT mounted here (SumUp renders the card field).
+      var elements = stripeInstance.elements({ locale: 'it' });
       initPaymentRequestButton(elements);
     }
 
@@ -2960,10 +2976,15 @@
               // element in the DOM, so this is safe even on step 1 — and it closes the
               // race where the user reaches the payment step before this fetch resolves
               // (the step-3 setTimeout would otherwise find no key and silently bail).
-              // Skipped when SumUp is configured: the SumUp widget owns the card tab
-              // (Stripe stays loaded for the Apple/Google Pay express button only).
+              // When SumUp owns the card tab we skip the Stripe card Element, but Apple Pay /
+              // Google Pay still ride on Stripe — initialise the wallet button on its own so the
+              // express tab can appear. Otherwise mount full Stripe Elements (card + wallet).
               var sumupCfg = data.providers && data.providers.sumup;
-              if (typeof initStripeElements === 'function' && !sumupCfg) initStripeElements();
+              if (sumupCfg) {
+                if (typeof initStripeWallet === 'function') initStripeWallet();
+              } else if (typeof initStripeElements === 'function') {
+                initStripeElements();
+              }
             }
             // Show/hide PayPal based on whether the server has its credentials.
             if (typeof applyPaymentProviders === 'function') applyPaymentProviders(data || {});

@@ -1,6 +1,6 @@
 # 07. Payments & Integrations
 
-> How money moves through MEMI: three card/wallet providers (Stripe, SumUp, PayPal) plus Klarna, all **config-gated**, all **re-verified server-side** against a total the browser cannot influence. Payments are where a one-cent drift breaks *every* order — read the total-parity rule first.
+> How money moves through MEMI: three card/wallet providers (Stripe, SumUp, PayPal) plus Klarna and Apple Pay / Google Pay (both on Stripe), all **config-gated**, all **re-verified server-side** against a total the browser cannot influence. Payments are where a one-cent drift breaks *every* order — read the total-parity rule first.
 
 This is the highest-risk surface in the codebase. Every claim here is checked against `MEMI-Backend/src/routes/payments.js`, `src/payment-providers.js`, `src/routes/orders.js`, `src/routes/resi.js`, `src/invoicing.js`, `src/order-compensation.js`, and `Memi Abbigliamento/checkout.html`. When docs and code disagree, the code wins.
 
@@ -32,6 +32,7 @@ Publishable keys and the PayPal client-id are designed to be public; **secrets n
 |---|---|---|---|---|---|
 | **Stripe** (card) | PaymentIntent, `automatic_payment_methods` | Stripe Elements, in-page | `POST /api/payments/create-intent` | `paymentIntents.retrieve` → `status==='succeeded'` + `amount`/`currency` match | `STRIPE_SECRET_KEY` |
 | **Klarna** | Stripe PaymentIntent restricted to `payment_method_types:['klarna']` | Stripe Payment Element, redirect to Klarna | `POST /api/payments/create-intent` (klarna-only) | dedicated `payment_method:'klarna'` branch — `paymentIntents.retrieve` + amount/currency match; `succeeded`→`pagato`, `processing`→`in_attesa` (webhook settles) | `STRIPE_SECRET_KEY` |
+| **Apple Pay / Google Pay** | Stripe **Payment Request Button** (both wallets, one integration) | Native wallet sheet, in-page (no redirect) | `POST /api/payments/create-intent` (card-capable) | submits as `carta` → Stripe **card branch**: client `confirmCardPayment`, server `paymentIntents.retrieve` → `succeeded` + amount/currency match | `STRIPE_SECRET_KEY` + Apple Pay domain |
 | **SumUp** (card) | Online Payments Checkouts v0.1 | **Embedded SumUp widget, in-page** on the Pagamento step | `POST /api/payments/sumup/create-checkout` | `getSumupCheckout` → `status==='PAID'` + `amount`/`currency` match | `SUMUP_API_KEY` + `SUMUP_MERCHANT_CODE` |
 | **PayPal** | Orders v2 (create → approve → capture-after-commit) | PayPal JS SDK popup | `POST /api/payments/paypal/create-order` → `/paypal/capture` | `inspectPaypalOrder` → `APPROVED`/`COMPLETED` + amount match, then capture | `PAYPAL_CLIENT_ID` + `PAYPAL_SECRET` |
 
@@ -135,6 +136,31 @@ The `sumup_` prefix on `payment_intent_id` is how the refund path (`resi.js`) te
 **Hosted Checkout** (card entry + 3DS entirely on SumUp's page, returning `hosted_checkout_url`) is **retained only as a rollback** — the code path exists (`hosted:true` opt-in in `createSumupCheckout`, a commented block in `checkout.html`) but the storefront uses the embedded widget.
 
 **Env:** `SUMUP_API_KEY` (secret Bearer), `SUMUP_MERCHANT_CODE`.
+
+---
+
+## Apple Pay / Google Pay (wallets)
+
+One integration covers **both** wallets: Stripe's **Payment Request Button** (`stripeInstance.paymentRequest(...)` → `elements.create('paymentRequestButton')`). Safari with a card in Apple Wallet offers **Apple Pay**; Chrome / Android with a saved card offers **Google Pay**. There is **no redirect** — the buyer confirms in the native wallet sheet in-page. The `#appleTab` method is **hidden by default** and only revealed when Stripe's `pr.canMakePayment()` returns truthy on the device (the tab auto-relabels to *"Google Pay"* when only Google Pay is available). `disableWallets:['link','browserCard']` keeps Stripe Link from winning the button.
+
+**Wallets ride on Stripe, not SumUp.** The sheet confirms against a **Stripe** PaymentIntent: `handleWalletPayment()` runs `confirmCardPayment(secret, { payment_method: ev.paymentMethod.id }, { handleActions:false })` (closes the sheet immediately, then runs 3DS only if the bank asks) and on `succeeded` places the order with the `payment_intent_id` attached. The order submits as `payment_method:'carta'`, so **server-side it takes the same Stripe card branch** as a typed card (`paymentIntents.retrieve` → `succeeded` + amount/currency match). The intent is the default card-capable one (`create-intent` with **no** `payment_method_types`).
+
+> ### ⚠️ The wallet initialises independently of the Stripe card Element
+> When **SumUp** is the card processor it owns the "Carta" tab and the Stripe card Element is never mounted — so the wallet button, which was initialised *inside* `initStripeElements()`, went dark and the Apple/Google Pay tab **never appeared** (bug fixed Jul 2026). The fix: **`initStripeWallet()`** sets up the Stripe instance + Payment Request Button **without** the card field, and is called in the SumUp branch of both the page-load config bootstrap (`fetchStripeConfig`) and the Pagamento-step entry. Wallets now work whether the card tab is Stripe **or** SumUp — they only need `STRIPE_SECRET_KEY` + `STRIPE_PUBLISHABLE_KEY`.
+
+**No webhook needed:** wallet payments confirm synchronously in-page (the intent is `succeeded` before the order is placed), so — unlike Klarna — there is no `processing` state to reconcile. The Stripe webhook stays a safety net only.
+
+**Diagnostic:** append **`?walletdebug=1`** to the checkout URL to paint Stripe-loaded / key-present / secure-context / `canMakePayment` result into the payment panel — the fastest way to see *why* a wallet is (or isn't) offered on a given device, no DevTools required.
+
+### Enabling Apple Pay / Google Pay — go-live checklist
+
+Both wallets are the **same Stripe integration** — no separate account, key, or SDK (like Klarna, they ride on Stripe). The code is fully wired; what remains is Stripe config, Apple's domain check, and testing on a wallet-capable device.
+
+1. **Stripe keys** — the same `STRIPE_SECRET_KEY` + `STRIPE_PUBLISHABLE_KEY` the Stripe-card / Klarna flows already use. If cards work, the keys are done; `GET /api/payments/config` must return your `publishableKey`.
+2. **HTTPS is mandatory** — Apple Pay only appears in a secure context. It will **never** show on `http://` or plain `localhost` — test on the real HTTPS domain. (Google Pay in Chrome *does* work on `localhost` in test mode.)
+3. **Register the domain for Apple Pay** — Stripe Dashboard → Settings → **Payment method domains** → *Add a domain* → `memi.testdemo.it`. Stripe.js auto-hosts the association in most setups; if verification fails, serve the file Stripe provides at `/.well-known/apple-developer-merchantid-domain-association`. **Google Pay needs no domain step.**
+4. **Confirm the methods are on** — Dashboard → Settings → **Payment methods** → *Apple Pay* and *Google Pay* **On** (they default on with cards; **test and live are separate toggles**).
+5. **Test on the right surface** — Apple Pay: **Safari** on a Mac (Touch ID / paired iPhone) or a real iPhone / iPad with a card in Wallet. Google Pay: **Chrome** (desktop / Android) with a saved card. The tab stays hidden on Firefox and on Chrome-for-Windows without a Google Pay card — **that's correct, not a bug.** Use `?walletdebug=1` to confirm detection.
 
 ---
 
