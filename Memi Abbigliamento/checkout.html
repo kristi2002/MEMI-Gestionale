@@ -2206,6 +2206,15 @@
     // checkout carries redirect_url) and returns to ?checkout_id=… — see handleSumupReturn.
     function prepareSumupPaymentStep() {
       if (activePayMethod !== 'carta') return;   // SumUp only backs the card tab
+      // The SumUp widget is an iframe: when its container is hidden (display:none, while another
+      // method is open) and later re-shown, the iframe keeps a stale/broken layout — so re-opening
+      // the card tab renders a broken widget. Drop the current widget so refreshSumupCheckout mounts
+      // a CLEAN one in the now-visible container (skip if a mount is already in flight).
+      if (sumupWidget && !sumupCreating) {
+        try { if (sumupWidget.unmount) sumupWidget.unmount(); } catch (_) {}
+        sumupWidget = null; sumupCheckoutAmount = null; window.__sumupMounted = false;
+        var host = el('sumupCard'); if (host) host.innerHTML = '';
+      }
       refreshSumupCheckout();
     }
 
