@@ -2094,9 +2094,12 @@
       expressElement = null; expressElements = null;
       var host = el('paymentRequestButton'); if (host) host.innerHTML = '';
       expressElements = stripeInstance.elements({ mode: 'payment', amount: amount, currency: 'eur', locale: 'it' });
+      // Every method NOT listed defaults to 'auto' (shows if eligible) — so Klarna, Link, PayPal,
+      // Amazon Pay must be explicitly 'never', otherwise the wallet panel renders THEM instead of
+      // the wallet (e.g. a "Paga con Klarna" button in the Apple Pay row).
       var pm = (wallet === 'gpay')
-        ? { googlePay: 'always', applePay: 'never',  link: 'never', paypal: 'never', amazonPay: 'never' }
-        : { applePay:  'always', googlePay: 'never', link: 'never', paypal: 'never', amazonPay: 'never' };
+        ? { googlePay: 'always', applePay: 'never',  klarna: 'never', link: 'never', paypal: 'never', amazonPay: 'never' }
+        : { applePay:  'always', googlePay: 'never', klarna: 'never', link: 'never', paypal: 'never', amazonPay: 'never' };
       expressElement = expressElements.create('expressCheckout', {
         paymentMethods: pm,
         buttonHeight: 46,
