@@ -2151,7 +2151,10 @@
       var bodies = { klarna: 'klarnaPanel', carta: 'cardForm', apple: 'applePanel', paypal: 'paypalPanel' };
       Object.keys(bodies).forEach(function(m) {
         var body = el(bodies[m]);
-        if (body) body.style.display = (m === method) ? (m === 'carta' ? 'flex' : 'block') : 'none';
+        // Always 'block' when shown. The card tab must NOT be display:flex: .pay-method-body has
+        // no flex-direction, so flex defaults to row and lays the SumUp widget and the "elaborato
+        // da SumUp" note side-by-side instead of stacked (the re-open layout break).
+        if (body) body.style.display = (m === method) ? 'block' : 'none';
       });
       if (el('paymentError')) el('paymentError').style.display = 'none';
       if (el('paymentError3')) el('paymentError3').style.display = 'none';
@@ -2206,15 +2209,8 @@
     // checkout carries redirect_url) and returns to ?checkout_id=… — see handleSumupReturn.
     function prepareSumupPaymentStep() {
       if (activePayMethod !== 'carta') return;   // SumUp only backs the card tab
-      // The SumUp widget is an iframe: when its container is hidden (display:none, while another
-      // method is open) and later re-shown, the iframe keeps a stale/broken layout — so re-opening
-      // the card tab renders a broken widget. Drop the current widget so refreshSumupCheckout mounts
-      // a CLEAN one in the now-visible container (skip if a mount is already in flight).
-      if (sumupWidget && !sumupCreating) {
-        try { if (sumupWidget.unmount) sumupWidget.unmount(); } catch (_) {}
-        sumupWidget = null; sumupCheckoutAmount = null; window.__sumupMounted = false;
-        var host = el('sumupCard'); if (host) host.innerHTML = '';
-      }
+      // Keep the mounted widget on re-open (preserves any card data the buyer typed) — the
+      // real re-open layout break was #cardForm being display:flex, fixed in selectPayMethod.
       refreshSumupCheckout();
     }
 
