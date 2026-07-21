@@ -391,6 +391,12 @@ const STATEMENTS = [
      created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // ── Atomic sequences (race-free order/invoice numbering) ────
+  `CREATE TABLE IF NOT EXISTS counters (
+     name   VARCHAR(40) PRIMARY KEY,
+     value  BIGINT NOT NULL
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 const fs    = require('fs');
@@ -757,6 +763,19 @@ async function runMigrations(pool) {
     try {
       await ensureUniqueIndex(pool, 'invoices', 'uq_invoices_order', 'order_id');
     } catch (e) { console.error('   ! uq_invoices_order skipped (existing duplicates?):', e.message); }
+    // Seed the race-free order-number counter from the historical max, once.
+    // GREATEST() keeps it monotonic on re-runs and never drops below the #10254 floor.
+    try {
+      const [[mx]] = await pool.query(
+        'SELECT COALESCE(MAX(CAST(SUBSTRING(order_number, 2) AS UNSIGNED)), 0) AS max_n FROM orders'
+      );
+      const seed = Math.max(10254, Number(mx.max_n) || 0);
+      await pool.query(
+        "INSERT INTO counters (name, value) VALUES ('order_number', ?) " +
+        'ON DUPLICATE KEY UPDATE value = GREATEST(value, VALUES(value))',
+        [seed]
+      );
+    } catch (e) { console.error('   ! order_number counter seed skipped:', e.message); }
     const TRACK_TEMPLATES = {
       sda:   'https://www.sda.it/wps/portal/Servizi_online/dettaglio-spedizione?tracing.letteraVettura={tracking}',
       brt:   'https://vas.brt.it/vas/sps_ricerca_spedizione_par.htm?nspediz={tracking}',

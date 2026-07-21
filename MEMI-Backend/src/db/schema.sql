@@ -135,6 +135,17 @@ CREATE TABLE IF NOT EXISTS product_sizes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- -------------------------------------------------------------
+-- Atomic sequences — race-free order/invoice numbering.
+-- Incremented in-statement (LAST_INSERT_ID(value+1)); seeded from the
+-- historical MAX(order_number) in db/migrations.js. Replaces the old
+-- MAX()+1 pattern that collided under concurrent checkouts.
+-- -------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS counters (
+  name   VARCHAR(40) PRIMARY KEY,
+  value  BIGINT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- -------------------------------------------------------------
 -- Orders
 -- -------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS orders (

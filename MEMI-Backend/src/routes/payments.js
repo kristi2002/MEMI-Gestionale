@@ -55,7 +55,8 @@ router.post('/create-intent', validateBody(createIntentSchema), async (req, res)
     });
   } catch (err) {
     (req.log || console).error({ err }, '[Stripe] create-intent error');
-    res.status(502).json({ error: 'Errore Stripe: ' + (err.message || 'sconosciuto') });
+    // Don't leak the provider's raw error text to the client — log it, return a generic message.
+    res.status(502).json({ error: 'Errore nel gestore di pagamento. Riprova tra poco.' });
   }
 });
 

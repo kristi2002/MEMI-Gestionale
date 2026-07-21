@@ -57,11 +57,20 @@ function discountBase(scope, items, subtotal) {
 
 /* ── helpers ── */
 async function nextOrderNumber(conn) {
-  const [[row]] = await conn.execute(
-    'SELECT MAX(CAST(SUBSTRING(order_number, 2) AS UNSIGNED)) AS max_n FROM orders'
+  // Atomic, race-free sequence. The old `MAX(order_number)+1` collided under
+  // concurrent checkouts (two orders read the same max, one hit the UNIQUE index
+  // and was wrongly rejected as a "payment replay"). MySQL's REPEATABLE READ
+  // snapshot means a retry would re-read the same stale max, so a retry loop
+  // wouldn't fix it — a dedicated counter row incremented in-statement does.
+  // The `counters.order_number` row is seeded from the historical max in
+  // migrations.js, so in practice the UPDATE branch always runs.
+  const [r] = await conn.execute(
+    "INSERT INTO counters (name, value) VALUES ('order_number', 10255) " +
+    'ON DUPLICATE KEY UPDATE value = LAST_INSERT_ID(value + 1)'
   );
-  const next = (row.max_n || 10254) + 1;
-  return `#${next}`;
+  if (r.affectedRows === 1) return '#10255'; // row was absent → we just seeded it
+  const [[row]] = await conn.execute('SELECT LAST_INSERT_ID() AS n');
+  return `#${row.n}`;
 }
 
 /**
@@ -528,8 +537,13 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
       conn.release();
     }
   } catch (err) {
-    if (err && err.code === 'ER_DUP_ENTRY')
-      return res.status(409).json({ error: 'Pagamento già registrato per un altro ordine.' });
+    if (err && err.code === 'ER_DUP_ENTRY') {
+      // With the atomic order-number counter, the only UNIQUE that can fire here
+      // is orders.payment_intent_id — a genuine cross-order payment replay.
+      if (/payment_intent/i.test(err.sqlMessage || ''))
+        return res.status(409).json({ error: 'Pagamento già registrato per un altro ordine.' });
+      return res.status(409).json({ error: 'Ordine duplicato, riprova.' });
+    }
     (req.log || console).error({ err }, 'place order error');
     return res.status(500).json({ error: 'Errore nel processare l\'ordine' });
   }

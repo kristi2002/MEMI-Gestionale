@@ -314,6 +314,7 @@ api methods in `src/lib/api.ts`. Still TODO in the UI: manual order creation, PO
   and refuses to reconcile unverified events otherwise.
 
 **Tests:** `smoke-test.sh` + `test/catalog.test.mjs` read `ADMIN_PASSWORD` from env (were hardcoded
-to the default). New smoke section `[8c] Admin entity CRUD`. NOTE: smoke `[9] Colors` tests a
-`/api/colors` feature that **does not exist** in the code (pre-existing drift — build it or delete
-the block). Full plan + gap analysis: `docs/DEPLOYMENT-READINESS-PLAN-2026-07-15.md`.
+to the default). New smoke section `[8c] Admin entity CRUD`. (UPDATE: the `/api/colors` feature is now **real** —
+`routes/colors.js`, mounted public `/api/colors` + admin `/api/admin/colors` — so smoke `[9] Colors`
+exercises a live endpoint; the earlier "does not exist" drift note is retired.)
+Full plan + gap analysis: `docs/DEPLOYMENT-READINESS-PLAN-2026-07-15.md`.

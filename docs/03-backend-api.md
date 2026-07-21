@@ -335,6 +335,8 @@ in_attesa|in_preparazione|spedito|consegnato|annullato`.
 | GET | `/api/admin/social` | Admin+perm `social` | Social/marketplace channel state (derived) |
 | GET | `/api/admin/pos` | Admin+perm `pos` | POS channel status (derived) |
 | GET | `/api/admin/apps` | Admin+perm `apps` | External-apps catalog with real install state |
+| GET/POST/PUT/DELETE | `/api/admin/supplier-invoices[/:id]` | Admin+perm `bills` | Supplier-invoice (fatture fornitori) CRUD |
+| POST | `/api/shipping/tracking/webhook` | Public (raw body) | Courier tracking-status webhook (`tracking-webhook.js`, `server.js:182`); updates the matching shipment |
 
 ---
 

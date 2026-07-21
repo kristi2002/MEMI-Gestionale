@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vestito Lino Cannes — Memi Abbigliamento</title>
+  <!-- Generic default; product.js injectSeo() sets the real per-product title/canonical/OG
+       after the product loads. A hardcoded product name here was shown for EVERY PDP to
+       no-JS crawlers and social scrapers. -->
+  <title>Prodotto — Memi Abbigliamento</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -343,7 +346,7 @@
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
     <a href="collections/vestiti/index.html">Vestiti</a>
     <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-    <span style="color:var(--espresso);">Vestito Lino Cannes</span>
+    <span style="color:var(--espresso);" id="breadcrumbName">Prodotto</span>
   </div>
 
   <!-- ── PDP ── -->
@@ -371,7 +374,7 @@
       <div class="pdp-info">
 
         <p class="product-brand">Memi Abbigliamento</p>
-        <h1 class="product-title">Vestito Lino Cannes</h1>
+        <h1 class="product-title">&nbsp;</h1>
 
         <!-- Rating (synced with real reviews by renderReviews) -->
         <div class="product-rating" id="pdpRating">

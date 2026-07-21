@@ -115,10 +115,14 @@ router.post('/login', validateBody(loginSchema), async (req, res) => {
       'SELECT id, email, nome, password_hash FROM customers WHERE email = ?',
       [email.toLowerCase().trim()]
     );
-    if (!user) return res.status(401).json({ error: 'Account non trovato' });
+    // Single generic message for both "no such account" and "wrong password" so
+    // an attacker can't enumerate which emails are registered. (Admin login already
+    // does this; the customer login was the outlier.)
+    const GENERIC = 'Email o password non corretti';
+    if (!user) return res.status(401).json({ error: GENERIC });
 
     const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) return res.status(401).json({ error: 'Password errata' });
+    if (!match) return res.status(401).json({ error: GENERIC });
 
     // Update last_login
     await pool.execute('UPDATE customers SET last_login = NOW() WHERE id = ?', [user.id]);

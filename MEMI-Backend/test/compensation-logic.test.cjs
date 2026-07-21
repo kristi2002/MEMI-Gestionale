@@ -197,6 +197,8 @@ async function exec(sql, params) {
 
   /* checkout misc */
   if (/FROM products WHERE id/i.test(S)) { const p = db.products[params[0]]; return [p ? [{ ...p }] : []]; }
+  if (/INSERT INTO counters/i.test(S)) return [{ affectedRows: 2 }]; // atomic order-number counter (update branch)
+  if (/LAST_INSERT_ID/i.test(S))       return [[{ n: 10255 }]];
   if (/SELECT MAX/i.test(S)) return [[{ max_n: 10254 }]];
   if (/^INSERT INTO orders/i.test(S)) {
     // store the row so post-commit hooks (auto-invoice) can read it back

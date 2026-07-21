@@ -196,7 +196,7 @@ async function createSumupCheckout(amountCents, reference, redirectUrl, hosted) 
   // SumUp's own page and the response carries hosted_checkout_url. The storefront now uses
   // the embedded widget and does not request this.
   if (hosted && redirectUrl) payload.hosted_checkout = { enabled: true };
-  console.log('[SumUp DEBUG] create-checkout →', { merchant_code: payload.merchant_code, amount: payload.amount, hasRedirect: Boolean(payload.redirect_url), hosted: Boolean(payload.hosted_checkout) });
+  if (process.env.SUMUP_DEBUG === '1') console.log('[SumUp DEBUG] create-checkout →', { merchant_code: payload.merchant_code, amount: payload.amount, hasRedirect: Boolean(payload.redirect_url), hosted: Boolean(payload.hosted_checkout) });
   const body = await httpJson(`${SUMUP_BASE}/v0.1/checkouts`, {
     method: 'POST',
     headers: sumupHeaders(),
@@ -204,7 +204,7 @@ async function createSumupCheckout(amountCents, reference, redirectUrl, hosted) 
   });
   // merchant_sandbox === true means a SANDBOX account (test cards work). Absent/false = LIVE
   // (test cards are declined — the usual cause of a "bounces back to the form" test payment).
-  console.log('[SumUp DEBUG] create-checkout ←', { id: body.id, status: body.status, merchant_sandbox: body.merchant_sandbox === true });
+  if (process.env.SUMUP_DEBUG === '1') console.log('[SumUp DEBUG] create-checkout ←', { id: body.id, status: body.status, merchant_sandbox: body.merchant_sandbox === true });
   return { id: body.id, status: body.status, hosted_checkout_url: body.hosted_checkout_url || null };
 }
 

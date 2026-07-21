@@ -30,6 +30,8 @@ function makeConn() {
         card.balance = Number(card.balance) - amount;
         return [{ affectedRows: 1 }];
       }
+      if (/INSERT INTO counters/i.test(sql)) return [{ affectedRows: 2 }]; // atomic order-number counter (update branch)
+      if (/LAST_INSERT_ID/i.test(sql))       return [[{ n: 10255 }]];
       if (/SELECT MAX/i.test(sql))            return [[{ max_n: 10254 }]];
       if (/INSERT INTO orders/i.test(sql))     return [{ insertId: 42 }];
       return [{}];

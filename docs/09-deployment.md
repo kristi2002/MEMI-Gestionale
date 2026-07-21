@@ -317,9 +317,9 @@ list:
 - **Security backlog:** CSRF token on the admin cookie, JWT revocation, nginx CSP, moving
   the customer token off localStorage, and hardening the `NODE_ENV`-gated CORS fail-open.
 - **Test coverage:** ~25 routers still lack unit tests; add a smoke assertion as each admin
-  CRUD page lands (repo "definition of done"). Note the pre-existing `smoke-test.sh [9]
-  Colors` block tests a `/api/colors` feature that does not exist — build it or delete the
-  block.
+  CRUD page lands (repo "definition of done"). (The `/api/colors` feature is now real —
+  `routes/colors.js`, mounted at `server.js` public `/api/colors` + admin `/api/admin/colors` —
+  so `smoke-test.sh [9] Colors` tests a live endpoint; the older "does not exist" note is retired.)
 - **Backlog needing contracts:** real courier label/tracking APIs (SDA/BRT/GLS), SDI
   e-invoicing, GA4 analytics, file-upload virus scanning, multi-rate/line-item VAT.
 - **Execution:** actual Coolify/DNS/secrets provisioning happens on the client's Hetzner

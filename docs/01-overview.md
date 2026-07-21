@@ -24,7 +24,7 @@ Notes for a new maintainer:
 ```
 MEMI Gestionale/
 ├─ MEMI-Backend/          Node/Express + MySQL API (CURRENT)
-│  ├─ src/routes/         REST route files (~47, ≈150 endpoints — see docs/api.md)
+│  ├─ src/routes/         REST route files (49, ≈150 endpoints — see docs/03-backend-api.md)
 │  ├─ src/db/             pool (index.js), schema.sql, migrations.js, init.js
 │  ├─ src/email.js        nodemailer (silent no-op without SMTP)
 │  ├─ src/validation.js   zod schemas for high-risk routes
@@ -60,7 +60,7 @@ MEMI Gestionale/
 | Legacy admin | jQuery SPA (single `dashboard.html`) |
 | Reverse proxy / TLS | nginx (per static app) behind Traefik (Coolify labels, Let's Encrypt) |
 | Containerization | Docker + Docker Compose |
-| Payments | Stripe (live), SumUp + PayPal (config-gated), Klarna (scaffolding) |
+| Payments | Stripe (live), SumUp + PayPal + Klarna (fully wired, config-gated), Apple/Google Pay (via Stripe) |
 | Email | SMTP via nodemailer (silent no-op when `SMTP_USER` unset) |
 
 ## Production domains
