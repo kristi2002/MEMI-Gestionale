@@ -22,7 +22,10 @@ export interface AuthMe {
   nome?: string;
   ruolo?: string;
   role?: string;
-  permissions?: string[];
+  // Resolved server-side by permissions.js: an array of granted views, or `null`
+  // for a full admin. The `null` is the authoritative full-access signal — do not
+  // collapse it to `[]` before deciding isAdmin.
+  permissions?: string[] | null;
 }
 
 export interface KpiCard {

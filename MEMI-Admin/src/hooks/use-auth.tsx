@@ -21,16 +21,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // The legacy admin hides ADMIN_ONLY sections from the 'staff' role only;
-  // owners/admins (and the default single-admin, which reports no explicit
-  // role) see everything. Mirror that: anyone who isn't 'staff' is an admin.
+  // Mirror the backend's resolvePermissions() exactly (MEMI-Backend/src/permissions.js):
+  // a FULL admin is signalled by `permissions === null`; any array (even empty) is a
+  // scoped account. The old `role !== 'staff'` check granted full access on a missing/
+  // unknown role — an auth-bypass. We now trust the resolved permissions the server sent.
   const role = (data?.ruolo || data?.role || '').toLowerCase();
+  const rawPerms = data?.permissions;                 // string[] | null (null = full admin) | undefined (loading)
+  const isFullAdmin = !!data && (rawPerms === null || role === 'admin');
   const value: AuthState = {
     me: data ?? null,
     isLoading,
     isError,
-    isAdmin: role !== 'staff',
-    permissions: data?.permissions ?? [],
+    isAdmin: isFullAdmin,
+    permissions: Array.isArray(rawPerms) ? rawPerms : [],
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

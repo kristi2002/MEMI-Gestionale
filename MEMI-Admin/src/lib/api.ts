@@ -165,6 +165,8 @@ export const api = {
         {},
       ),
     delete: (id: number) => del<{ ok: boolean }>('/orders/admin/' + id),
+    create: (data: unknown) =>
+      post<{ ok: boolean; id: number; order_number: string; total: number }>('/orders/admin', data),
   },
   products: {
     listPaged: (params?: Query) =>

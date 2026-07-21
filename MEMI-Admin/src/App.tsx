@@ -29,6 +29,7 @@ import { NewsletterCampaignsPage } from '@/pages/newsletter-campaigns';
 import { LoyaltyRedemptionsPage } from '@/pages/loyalty-redemptions';
 import { LifecycleCampaignFormPage } from '@/pages/lifecycle';
 import { PurchaseOrderFormPage } from '@/pages/purchase-order-form';
+import { OrderFormPage } from '@/pages/order-form';
 import { AppFormPage } from '@/pages/apps';
 
 function FullScreenSpinner() {
@@ -56,6 +57,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route element={<RequireAuth />}>
+          <Route path="/orders/new" element={<OrderFormPage />} />
           <Route path="/products/new" element={<ProductFormPage />} />
           <Route path="/products/:id/edit" element={<ProductFormPage />} />
           <Route path="/products/:id/scheda" element={<ProductSchedaPage />} />

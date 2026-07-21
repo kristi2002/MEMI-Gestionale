@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Trash2, CheckCircle2, Ban, ShoppingBag, Truck, MapPin, PackageCheck } from 'lucide-react';
+import { Trash2, CheckCircle2, Ban, ShoppingBag, Truck, MapPin, PackageCheck, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable } from '@/components/data-table/data-table';
 import { OrderTrackingDialog } from '@/components/order-tracking-dialog';
@@ -44,6 +45,7 @@ const exportColumns: ExportColumn<OrderRow>[] = [
 
 export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'Gestisci tutti gli ordini ricevuti dallo store.' }: { initialTab?: (typeof TABS)[number]['key']; title?: string; subtitle?: string } = {}) {
   const [tab, setTab] = useState<(typeof TABS)[number]['key']>(initialTab);
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 300);
   // Tabs map to SERVER-side filters so tabs + search cover the whole dataset, not
@@ -134,7 +136,15 @@ export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'G
 
   return (
     <div>
-      <PageHeader title={title} subtitle={subtitle} />
+      <PageHeader
+        title={title}
+        subtitle={subtitle}
+        actions={
+          <Button onClick={() => navigate('/orders/new')}>
+            <Plus /> Nuovo ordine
+          </Button>
+        }
+      />
 
       <div className="mb-3">
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)}>

@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { ChevronDown } from 'lucide-react';
 import { NAV, NAV_TOOLS, type NavGroup } from '@/nav';
 import { useAuth } from '@/hooks/use-auth';
+import { canViewPath } from '@/lib/rbac';
 import { cn } from '@/lib/utils';
 
 function isGroupActive(group: NavGroup, pathname: string): boolean {
@@ -82,8 +83,20 @@ function GroupBlock({ group, onNavigate }: { group: NavGroup; onNavigate?: () =>
 }
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
-  const { isAdmin } = useAuth();
-  const visible = (g: NavGroup) => !g.adminOnly || isAdmin;
+  const { isAdmin, permissions } = useAuth();
+  // Gate by the user's granted permission views (full admins see everything). A group with
+  // children is shown only if at least one child is permitted, and its children are filtered
+  // to the permitted set — mirroring the backend requirePermission() checks per route.
+  const filterGroups = (groups: NavGroup[]): NavGroup[] =>
+    groups.flatMap((g) => {
+      if (g.children) {
+        const children = g.children.filter((c) => canViewPath(c.to, isAdmin, permissions));
+        return children.length ? [{ ...g, children }] : [];
+      }
+      return canViewPath(g.to, isAdmin, permissions) ? [g] : [];
+    });
+  const mainNav = filterGroups(NAV);
+  const toolsNav = filterGroups(NAV_TOOLS);
 
   return (
     <div className="flex h-full flex-col bg-sidebar">
@@ -100,17 +113,21 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
-        {NAV.filter(visible).map((g) => (
+        {mainNav.map((g) => (
           <GroupBlock key={g.label} group={g} onNavigate={onNavigate} />
         ))}
 
-        <div className="my-3 border-t border-border" />
-        <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-          Strumenti
-        </div>
-        {NAV_TOOLS.filter(visible).map((g) => (
-          <GroupBlock key={g.label} group={g} onNavigate={onNavigate} />
-        ))}
+        {toolsNav.length > 0 && (
+          <>
+            <div className="my-3 border-t border-border" />
+            <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Strumenti
+            </div>
+            {toolsNav.map((g) => (
+              <GroupBlock key={g.label} group={g} onNavigate={onNavigate} />
+            ))}
+          </>
+        )}
       </nav>
     </div>
   );
