@@ -103,7 +103,7 @@ async function exec(sql, params) {
     if ((db.stock[k] || 0) >= Number(params[3])) { db.stock[k] -= Number(params[0]); return [{ affectedRows: 1 }]; }
     return [{ affectedRows: 0 }];
   }
-  if (/FROM product_sizes/i.test(S) && /^SELECT/i.test(S)) return [[{ stock: 100 }]]; // pre-check passes; the atomic UPDATE is authoritative
+  if (/FROM product_sizes/i.test(S) && /^SELECT/i.test(S)) return [[{ taglia:'s', stock:100 }, { taglia:'m', stock:100 }, { taglia:'l', stock:100 }]]; // pre-check passes; the atomic UPDATE is authoritative
 
   /* gift cards */
   if (/UPDATE gift_cards SET balance = balance \+ \?/i.test(S)) {

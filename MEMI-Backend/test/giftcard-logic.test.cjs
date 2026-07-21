@@ -44,7 +44,7 @@ const mockPool = {
   execute: async (sql, params) => {
     sqlLog.push({ sql, params });
     if (/FROM products WHERE id/i.test(sql)) { const p = PRODUCTS[params[0]]; return [ p ? [p] : [] ]; }
-    if (/FROM product_sizes/i.test(sql)) return [[{ stock: 100 }]];
+    if (/FROM product_sizes/i.test(sql)) return [[{ taglia:'s', stock:100 }, { taglia:'m', stock:100 }, { taglia:'l', stock:100 }]];
     if (/FROM discount_codes/i.test(sql)) return [[]];
     if (/FROM gift_cards WHERE code/i.test(sql)) {
       const card = giftCardsTable.find(c => c.code === params[0]);

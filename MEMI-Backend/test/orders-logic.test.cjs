@@ -24,7 +24,11 @@ function makeConn() {
     },
   };
 }
-const PRODUCTS = { 'vestito-lino-cannes': { id:'vestito-lino-cannes', name:'Vestito Lino Cannes', price:89, status:'attivo' } };
+const PRODUCTS = {
+  'vestito-lino-cannes': { id:'vestito-lino-cannes', name:'Vestito Lino Cannes', price:89, status:'attivo' },
+  // Size-less product (borsa) — stock tracked under the single 'unica' row.
+  'borsa-unica':        { id:'borsa-unica', name:'Borsa Test', price:100, status:'attivo' },
+};
 // Controllable per-test: a discount code row (or null) and which emails already used it.
 let DISCOUNT_ROW = null;
 let usedByEmail = new Set();
@@ -33,7 +37,11 @@ const mockPool = {
   execute: async (sql, params) => {
     sqlLog.push({ sql, params });
     if (/FROM products WHERE id/i.test(sql)) { const p = PRODUCTS[params[0]]; return [ p ? [p] : [] ]; }
-    if (/FROM product_sizes/i.test(sql)) return [[{ stock: 100 }]];
+    if (/FROM product_sizes/i.test(sql)) {
+      // Size-less product (borse/gioielli): a single canonical 'unica' row, low stock.
+      if (params && params[0] === 'borsa-unica') return [[{ taglia:'unica', stock:3 }]];
+      return [[{ taglia:'s', stock:100 }, { taglia:'m', stock:100 }, { taglia:'l', stock:100 }]];
+    }
     if (/FROM discount_usage WHERE code_id/i.test(sql)) {
       const [, email] = params;
       return [ usedByEmail.has(email) ? [{ id: 1 }] : [] ];
@@ -288,6 +296,22 @@ function mockRes(){ return { code:200, body:null, status(c){this.code=c;return t
   assert.strictEqual(res.code, 402, 'PP5 missing reference -> 402');
   n++; console.log('  ✓ PP5 PayPal without payment_reference -> 402');
   paypalBehavior = null;
+
+  // SL1: size-less product (no taglia) is accepted — resolves to its 'unica' row.
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'borsa-unica', qty:1 }], payment_method:'carta' }}, res);
+  assert.strictEqual(res.code, 201, 'SL1 size-less order accepted (code '+res.code+' '+JSON.stringify(res.body)+')');
+  assert.ok(sqlLog.find(e=>/INSERT INTO order_items/i.test(e.sql)).params.includes('unica'), 'SL1 line item stored with taglia=unica');
+  n++; console.log('  ✓ SL1 size-less product resolves to its unica row and decrements stock');
+
+  // SL2: size-less order exceeding the unica stock (3) is rejected 400 (no oversell).
+  sqlLog = []; res = mockRes();
+  await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
+    items:[{ product_id:'borsa-unica', qty:5 }], payment_method:'carta' }}, res);
+  assert.strictEqual(res.code, 400, 'SL2 size-less oversell rejected');
+  assert.ok(!sqlLog.some(e=>/INSERT INTO orders/i.test(e.sql)), 'SL2 no order written on oversell');
+  n++; console.log('  ✓ SL2 size-less oversell rejected (no order written)');
 
   console.log(`\nALL ${n} order-logic tests passed.`);
 })().catch(e => { console.error('TEST FAILED:', e.stack || e.message); process.exit(1); });

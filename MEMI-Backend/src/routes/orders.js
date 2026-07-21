@@ -182,16 +182,32 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
 
       const qty = parseInt(it.qty, 10);
 
-      /* 1a. Stock check — reject if insufficient stock for the requested size */
-      if (it.taglia) {
-        const [[sizeRow]] = await pool.execute(
-          'SELECT stock FROM product_sizes WHERE product_id = ? AND taglia = ?',
-          [it.product_id, it.taglia]
+      /* 1a. Resolve the effective size, then stock-check. Size-less products
+         (borse, gioielli, cinture, …) carry a single canonical stock row
+         (taglia 'unica') and the storefront sends no taglia for them. The old
+         code guarded stock only `if (it.taglia)` — so those products were
+         untracked and oversellable. Now: fall back to the product's only size
+         when none was sent, and reject a *sized* product that arrived without a
+         selection. The taglia we resolve here flows into the atomic decrement
+         below, so 'unica' stock is guarded too. */
+      const [sizeRows] = await pool.execute(
+        'SELECT taglia, stock FROM product_sizes WHERE product_id = ?', [it.product_id]
+      );
+      let effTaglia = it.taglia || null;
+      if (!effTaglia) {
+        if (sizeRows.length === 1) effTaglia = sizeRows[0].taglia;       // size-less → its only row
+        else if (sizeRows.length > 1)
+          return res.status(400).json({ error: `Seleziona una taglia per "${prod.name}".` });
+        // 0 rows → legacy product with no stock tracking; nothing to guard
+      }
+      if (effTaglia) {
+        const sizeRow = sizeRows.find(
+          (r) => String(r.taglia).toLowerCase() === String(effTaglia).toLowerCase()
         );
         if (!sizeRow || Number(sizeRow.stock) < qty) {
           const available = sizeRow ? Number(sizeRow.stock) : 0;
           return res.status(400).json({
-            error: `Taglia ${it.taglia} di "${prod.name}" non disponibile (disponibili: ${available}).`,
+            error: `"${prod.name}"${it.taglia ? ` taglia ${it.taglia}` : ''} non disponibile (disponibili: ${available}).`,
           });
         }
       }
@@ -201,7 +217,7 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
         product_name: prod.name,
         price:        Number(prod.price) || 0,
         qty,
-        taglia:       it.taglia || null,
+        taglia:       effTaglia,
         colore:       it.colore || null,
       });
     }
