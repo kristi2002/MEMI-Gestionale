@@ -90,6 +90,12 @@ services:
       PAYPAL_CLIENT_ID:      ${PAYPAL_CLIENT_ID:-}
       PAYPAL_SECRET:         ${PAYPAL_SECRET:-}
       PAYPAL_ENV:            ${PAYPAL_ENV:-sandbox}
+      # Webhook id from the PayPal dashboard. REQUIRED before going live: without it
+      # /api/payments/paypal/webhook acknowledges events but REFUSES to reconcile any of
+      # them (a forged event could otherwise flip an order to 'pagato'). Documented in
+      # .env.example and docs/07 — but it was never forwarded to the container, so setting
+      # it in Coolify had no effect at all.
+      PAYPAL_WEBHOOK_ID:     ${PAYPAL_WEBHOOK_ID:-}
       # SumUp (scaffolding — leave unset until a merchant account exists;
       # the checkout hides Carta/SumUp and falls back to Stripe, or 503s if Stripe is
       # also unset). API key from me.sumup.com > Settings > API Keys, merchant code
