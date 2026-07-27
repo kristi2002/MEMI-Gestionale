@@ -253,7 +253,9 @@ function mockRes(){ return { code:200, body:null, status(c){this.code=c;return t
   await postOrder({ customer:null, body:{ nome:'A',cognome:'B',email:'a@b.it',indirizzo:'x',citta:'y',cap:'00100',
     items:[{ product_id:'vestito-lino-cannes', taglia:'m', qty:2 }], payment_method:'paypal', payment_reference:'PP-APPROVED' }}, res);
   assert.strictEqual(res.code, 201, 'PP1 code '+res.code+' '+JSON.stringify(res.body));
-  assert.ok(sqlLog.find(e=>/INSERT INTO orders/i.test(e.sql)).params.includes('PP-APPROVED'), 'PP1 PayPal ref stored');
+  // Stored WITH the 'paypal_' prefix so refunds.js can route a refund to PayPal instead of
+  // handing a PayPal order id to Stripe (which always fails and used to block cancellation).
+  assert.ok(sqlLog.find(e=>/INSERT INTO orders/i.test(e.sql)).params.includes('paypal_PP-APPROVED'), 'PP1 PayPal ref stored with paypal_ prefix');
   assert.ok(sqlLog.some(e=>/UPDATE orders SET payment_status = 'pagato'/i.test(e.sql)), 'PP1 captured after commit -> pagato');
   n++; console.log('  ✓ PP1 PayPal APPROVED -> persisted, captured after commit -> pagato');
 

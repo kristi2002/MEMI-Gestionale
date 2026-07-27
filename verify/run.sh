@@ -59,6 +59,9 @@ NODE_PATH="$NP" node MEMI-Backend/test/giftcard-logic.test.cjs || FAIL=1
 sec "6b. Cancel/refund compensation simulation"
 NODE_PATH="$NP" node MEMI-Backend/test/compensation-logic.test.cjs || FAIL=1
 
+sec "6i. Refund provider routing (sumup_/paypal_/pi_ dispatch)"
+NODE_PATH="$NP" node MEMI-Backend/test/refund-routing.test.cjs || FAIL=1
+
 sec "6f. Order-status transactional email"
 NODE_PATH="$NP" node MEMI-Backend/test/order-status-email.test.cjs || FAIL=1
 

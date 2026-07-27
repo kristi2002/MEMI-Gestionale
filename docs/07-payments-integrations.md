@@ -235,8 +235,14 @@ Unlike Klarna, PayPal is its **own** provider with **its own REST credentials** 
 ## Refunds
 
 `POST /api/admin/resi/:id/refund` (`routes/resi.js`, `requireAdmin`):
-- **Provider auto-detected** from `payment_intent_id`: `sumup_…` → `refundSumupCheckout`; otherwise a real `stripe.refunds.create`.
-- **`{ manual: true }`** = money returned **outside** Stripe/SumUp (PayPal / Klarna / bonifico): skips the provider call but runs the **exact same bookkeeping**. A non-Stripe order with no `payment_intent_id` **requires** the manual path (400 otherwise).
+- **Provider dispatched by prefix** on `payment_intent_id` (`src/refunds.js` → `providerFor()`):
+  `sumup_…` → `refundSumupCheckout`, `paypal_…` → `refundPaypalOrder` (resolves the capture id, then `POST /v2/payments/captures/:id/refund`), `pi_…` → `stripe.refunds.create`.
+  Anything else is **`unknown`** and throws `NO_PROVIDER` rather than guessing — handing a PayPal
+  order id to Stripe is a guaranteed failure, and it used to abort the whole cancellation (502)
+  instead of degrading to a manual refund. Klarna rides on Stripe, so its refunds are `pi_…`.
+- **`{ manual: true }`** = money returned **outside** the provider APIs (bonifico, or a rail with no
+  automatic refund): skips the provider call but runs the **exact same bookkeeping**. An order with no
+  `payment_intent_id` **requires** the manual path (400 otherwise).
 - **Full** refund → order marked `rimborsato` + `compensateOrder` (stock/gift-card/loyalty restored). **Partial** refund → order stays a paid order (net of the slice); only the customer's `speso` is reduced, inventory adjusted manually.
 - Every refund fires `sendRefundNotification` and writes an admin audit-log row.
 

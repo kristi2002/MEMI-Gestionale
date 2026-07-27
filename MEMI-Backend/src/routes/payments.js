@@ -166,8 +166,11 @@ router.post('/sumup/create-checkout', validateBody(createIntentSchema), async (r
  * the provider doesn't retry. They never create orders. */
 async function reconcileByReference(reference, res) {
   try {
+    // PayPal order references are stored with a 'paypal_' prefix (see routes/orders.js), but a
+    // webhook carries the bare id — match either form so reconciliation still finds the order.
     const [[order]] = await pool.execute(
-      'SELECT id, order_number, payment_status FROM orders WHERE payment_intent_id = ?', [reference]
+      'SELECT id, order_number, payment_status FROM orders WHERE payment_intent_id IN (?, ?)',
+      ['paypal_' + reference, reference]
     );
     if (order && order.payment_status === 'in_attesa') {
       await pool.execute("UPDATE orders SET payment_status = 'pagato' WHERE id = ?", [order.id]);

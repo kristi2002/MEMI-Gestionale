@@ -399,7 +399,9 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
           throw new Error('PayPal order not payable (status ' + info.status + ')');
         if (info.currency !== 'EUR' || Number(info.amountCents) !== expectedCents)
           throw new Error('PayPal amount/currency mismatch');
-        paymentRef = String(payment_reference);
+        // 'paypal_' prefix mirrors the SumUp convention so refunds.js can route a refund to
+        // PayPal instead of handing a PayPal order id to Stripe (which always fails).
+        paymentRef = 'paypal_' + String(payment_reference);
         if (info.status === 'COMPLETED') paymentStatus = 'pagato';   // already captured (idempotent retry)
         else paypalCaptureAfterCommit = true;                        // APPROVED → capture post-commit
       } catch (ppErr) {
@@ -507,7 +509,7 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
       // so the invoice fires below.
       if (paypalCaptureAfterCommit) {
         try {
-          const cap = await providers.capturePaypalOrder(paymentRef);
+          const cap = await providers.capturePaypalOrder(String(payment_reference));
           if (cap.status === 'COMPLETED' && cap.currency === 'EUR' && Number(cap.amountCents) === expectedCents) {
             await pool.execute("UPDATE orders SET payment_status = 'pagato' WHERE id = ?", [orderId]);
             paymentStatus = 'pagato';
@@ -515,7 +517,7 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
             (req.log || console).error({ orderId, cap }, 'PayPal capture after order returned an unexpected result — order left in_attesa');
           }
         } catch (capErr) {
-          (req.log || console).error({ err: capErr, orderId, ref: paymentRef },
+          (req.log || console).error({ err: capErr, orderId, ref: String(payment_reference) },
             'CRITICAL: PayPal order persisted but capture failed — order in_attesa, follow up manually');
         }
       }

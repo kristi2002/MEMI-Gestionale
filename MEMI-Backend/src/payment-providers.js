@@ -238,9 +238,36 @@ async function refundSumupCheckout(checkoutId, amountCents) {
   return { ok: true, transactionId: info.transactionId };
 }
 
+/**
+ * Refund a captured PayPal order for `amountCents` (full or partial).
+ * PayPal refunds a CAPTURE, not an order — so resolve the capture id from the order first.
+ * Returns { refundId, status }. Throws when the order has no capture to refund.
+ */
+async function refundPaypalOrder(orderId, amountCents) {
+  const token = await paypalAccessToken();
+  const info = await httpJson(`${paypalBase()}/v2/checkout/orders/${encodeURIComponent(orderId)}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const cap = info && info.purchase_units && info.purchase_units[0]
+    && info.purchase_units[0].payments && info.purchase_units[0].payments.captures
+    && info.purchase_units[0].payments.captures[0];
+  if (!cap || !cap.id)
+    throw new Error(`PayPal order ${orderId} has no capture to refund (status ${info && info.status})`);
+  const body = await httpJson(`${paypalBase()}/v2/payments/captures/${encodeURIComponent(cap.id)}/refund`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ amount: { value: (Math.round(amountCents) / 100).toFixed(2), currency_code: 'EUR' } }),
+  });
+  // PENDING is a legitimate terminal-ish state for a PayPal refund (it settles asynchronously);
+  // anything else means the money did not start moving.
+  if (body && body.status && body.status !== 'COMPLETED' && body.status !== 'PENDING')
+    throw new Error(`PayPal refund not completed (status ${body.status})`);
+  return { refundId: (body && body.id) || null, status: (body && body.status) || null };
+}
+
 module.exports = {
   paypalConfigured, paypalEnv,
   sumupConfigured, createSumupCheckout, getSumupCheckout, refundSumupCheckout,
-  createPaypalOrder, capturePaypalOrder, inspectPaypalOrder, verifyPaypalOrder,
+  createPaypalOrder, capturePaypalOrder, inspectPaypalOrder, verifyPaypalOrder, refundPaypalOrder,
   verifyPaypalWebhook,
 };
