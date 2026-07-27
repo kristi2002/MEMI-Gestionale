@@ -29,7 +29,7 @@
 const { sendGenericEmail } = require('./email');
 const loyalty = require('./loyalty');
 
-const BASE_URL = () => (process.env.FRONTEND_URL || 'https://memiabbigliamento.it').replace(/\/+$/, '');
+const BASE_URL = () => (process.env.FRONTEND_URL || 'https://memi.testdemo.it').replace(/\/+$/, '');
 
 /* ── tunables (store_settings, key LIKE 'lifecycle_%') ── */
 const SETTINGS_DEFAULTS = {

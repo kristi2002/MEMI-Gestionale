@@ -16,6 +16,7 @@
   <url><loc>https://memi.testdemo.it/collections/saldi/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://memi.testdemo.it/collections/vestiti/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://memi.testdemo.it/collections/top/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://memi.testdemo.it/collections/blusa/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://memi.testdemo.it/collections/gonne/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://memi.testdemo.it/collections/pantaloni/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
   <url><loc>https://memi.testdemo.it/collections/blazer/</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
@@ -58,8 +59,15 @@
   <url><loc>https://memi.testdemo.it/about</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://memi.testdemo.it/valori</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>
   <url><loc>https://memi.testdemo.it/blog</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://memi.testdemo.it/editoriali</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://memi.testdemo.it/estate-2025</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>https://memi.testdemo.it/size-guide.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://memi.testdemo.it/returns</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>https://memi.testdemo.it/privacy</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
+
+  <!-- Legal -->
+  <url><loc>https://memi.testdemo.it/termini</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
+  <url><loc>https://memi.testdemo.it/cookie-policy</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
+  <url><loc>https://memi.testdemo.it/diritto-recesso</loc><changefreq>yearly</changefreq><priority>0.2</priority></url>
 
 </urlset>

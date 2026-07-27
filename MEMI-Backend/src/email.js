@@ -28,6 +28,16 @@ function isEmailConfigured() {
   return !!(process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
+/**
+ * Canonical public site URL for links in outbound mail. FRONTEND_URL is set in
+ * docker-compose; the fallback is the live host, NOT the retired memiabbigliamento.it
+ * placeholder that used to sit here — a wrong default silently points every customer
+ * at a domain we do not control.
+ */
+function SITE_URL() {
+  return (process.env.FRONTEND_URL || 'https://memi.testdemo.it').replace(/\/+$/, '');
+}
+
 function getTransporter() {
   if (_transporter) return _transporter;
   if (!isEmailConfigured()) return null;
@@ -243,7 +253,7 @@ async function sendWelcomeEmail(user) {
     <div style="padding:36px 40px;">
       <p style="font-size:22px;font-weight:300;font-family:Georgia,serif;margin:0 0 16px;">Benvenuta, ${nome}!</p>
       <p style="color:#7a6060;font-size:15px;line-height:1.7;margin:0 0 20px;">Siamo felici di averti nel mondo Memi. Qui troverai capi selezionati con cura, pensati per ogni momento della giornata.</p>
-      <a href="${process.env.FRONTEND_URL || 'https://memiabbigliamento.it'}/shop" style="display:inline-block;padding:14px 32px;background:#3B2B2B;color:#fff;text-decoration:none;font-size:13px;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-bottom:24px;">Scopri la nuova collezione</a>
+      <a href="${SITE_URL()}/shop" style="display:inline-block;padding:14px 32px;background:#3B2B2B;color:#fff;text-decoration:none;font-size:13px;letter-spacing:.1em;text-transform:uppercase;border-radius:4px;margin-bottom:24px;">Scopri la nuova collezione</a>
       <p style="color:#a89090;font-size:12px;line-height:1.6;">Il tuo account ti permette di tracciare gli ordini, salvare i preferiti e velocizzare il checkout.</p>
     </div>
     <div style="background:#faf7f4;padding:20px 40px;text-align:center;font-size:12px;color:#a89090;">
@@ -253,7 +263,7 @@ async function sendWelcomeEmail(user) {
 </body>
 </html>`;
 
-  const text = `Benvenuta, ${nome}!\n\nGrazie per esserti registrata su Memi Abbigliamento.\nScopri la nostra collezione su ${process.env.FRONTEND_URL || 'https://memiabbigliamento.it'}/shop\n\nCordiali saluti,\nMemi Abbigliamento`;
+  const text = `Benvenuta, ${nome}!\n\nGrazie per esserti registrata su Memi Abbigliamento.\nScopri la nostra collezione su ${SITE_URL()}/shop\n\nCordiali saluti,\nMemi Abbigliamento`;
 
   try {
     await t.sendMail({ from, to: email, subject: `Benvenuta da Memi, ${nome}!`, text, html });
@@ -276,7 +286,7 @@ async function sendPasswordReset(user, resetToken) {
 
   const { nome, email } = user;
   const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
-  const baseUrl  = (process.env.FRONTEND_URL || 'https://memiabbigliamento.it').replace(/\/+$/, '');
+  const baseUrl  = SITE_URL();
   const resetUrl  = `${baseUrl}/reset-password.html?token=${resetToken}`;
 
   const html = `
@@ -324,6 +334,7 @@ async function sendGiftCardDelivery(card) {
   if (!t) return;
 
   const { code, initial_amount, recipient_email, note } = card;
+  const baseUrl = SITE_URL();
   const from = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
   const amount = parseFloat(initial_amount || 0).toFixed(2);
   const noteBlock = note
@@ -349,7 +360,7 @@ async function sendGiftCardDelivery(card) {
         <p style="font-size:20px;font-family:'Courier New',monospace;font-weight:600;margin:0 0 8px;color:#3B2B2B;">${code}</p>
         <p style="font-size:24px;font-family:Georgia,serif;margin:0;color:#3B2B2B;">€ ${amount}</p>
       </div>
-      <p style="color:#7a6060;font-size:14px;line-height:1.6;">Inseriscilo nel campo "Gift card" al checkout su memiabbigliamento.it per usarlo sul tuo prossimo ordine.</p>
+      <p style="color:#7a6060;font-size:14px;line-height:1.6;">Inseriscilo nel campo "Gift card" al checkout su ${baseUrl} per usarlo sul tuo prossimo ordine.</p>
     </div>
     <div style="background:#faf7f4;padding:20px 40px;text-align:center;font-size:12px;color:#a89090;">
       © 2026 Memi Abbigliamento · Milano, Italia
@@ -358,7 +369,7 @@ async function sendGiftCardDelivery(card) {
 </body>
 </html>`;
 
-  const text = `Hai ricevuto una gift card Memi!\n${noteText}\nCodice: ${code}\nValore: €${amount}\n\nUsalo nel campo "Gift card" al checkout su memiabbigliamento.it.\n\nCordiali saluti,\nMemi Abbigliamento`;
+  const text = `Hai ricevuto una gift card Memi!\n${noteText}\nCodice: ${code}\nValore: €${amount}\n\nUsalo nel campo "Gift card" al checkout su ${baseUrl}.\n\nCordiali saluti,\nMemi Abbigliamento`;
 
   try {
     await t.sendMail({ from, to: recipient_email, subject: 'Hai ricevuto una gift card Memi! 🎁', text, html });
@@ -541,7 +552,7 @@ async function sendNewsletterWelcome(email) {
   if (!t || !email) return;
 
   const from    = `"Memi Abbigliamento" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`;
-  const baseUrl = (process.env.FRONTEND_URL || 'https://memiabbigliamento.it').replace(/\/+$/, '');
+  const baseUrl = SITE_URL();
 
   const html = `
 <!DOCTYPE html>
