@@ -2027,14 +2027,16 @@
         if ((pi.status === 'succeeded' || pi.status === 'processing') && raw) {
           var orderData = JSON.parse(raw);
           orderData.payment_intent_id = pi.id;
-          try { sessionStorage.removeItem('memi_pending_order'); } catch (_) {}
+          try { sessionStorage.removeItem('memi_pending_order'); sessionStorage.removeItem('memi_pending_method'); } catch (_) {}
           currentStep = 4;
           submitOrder(orderData, function(msg) { currentStep = 3; goToStep(4); showPaymentError(msg); });
         } else if (pi.status !== 'succeeded' && pi.status !== 'processing') {
-          try { sessionStorage.removeItem('memi_pending_order'); } catch (_) {}
+          var wasWallet = false;
+          try { wasWallet = sessionStorage.getItem('memi_pending_method') === 'wallet'; } catch (_) {}
+          try { sessionStorage.removeItem('memi_pending_order'); sessionStorage.removeItem('memi_pending_method'); } catch (_) {}
           currentStep = 3;
           goToStep(4);
-          showPaymentError('Il pagamento Klarna non è stato completato (' + pi.status + ').');
+          showPaymentError((wasWallet ? 'Il pagamento non è stato completato (' : 'Il pagamento Klarna non è stato completato (') + pi.status + ').');
         }
       });
     }
@@ -2072,12 +2074,60 @@
       var host = el('paymentRequestButton'), panel = el(walletPanelId(method));
       if (host && panel && host.parentNode !== panel) panel.appendChild(host);
     }
-    // With the Express Checkout Element, Apple Pay works on every browser (QR on non-Safari), so
-    // it's always offered — the old "Safari only" note only appears if the element fails to load.
-    function appleAvailable() { return true; }
+    // Where each wallet can actually run (Stripe's supported-browser matrix):
+    //   Apple Pay — Safari (macOS/iOS) and Chrome/Firefox/Edge on iOS 16+ open the NATIVE sheet;
+    //     Chrome/Edge/Firefox/Opera on DESKTOP show the "Scan with iPhone" QR, but only because we
+    //     pass paymentMethods.applePay:'always' below. Chrome on ANDROID is not supported at all —
+    //     Apple has no Android surface for Apple Pay on the web, QR included.
+    //   Google Pay — everywhere except iOS-family browsers without a saved card.
+    // Nothing renders anywhere until the storefront domain is registered under
+    // Stripe → Payment method domains (test AND live) and the page is served over HTTPS.
+    // 'ready' tells us the truth per device; until it fires the state is null (unknown).
+    var walletAvailability = { apple: null, gpay: null };
+    function isAndroidDevice() { return /Android/i.test(navigator.userAgent); }
+    function isAppleDevice()   { return /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+                                        (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints >= 0); }
+    function appleAvailable() { return walletAvailability.apple !== false; }
+
+    // The Apple Pay row ships with a note element; the Google Pay row gets one on demand.
+    function walletNoteEl(wallet) {
+      if (wallet !== 'gpay') return el('appleUnavailableNote');
+      var panel = el('gpayPanel');
+      if (!panel) return null;
+      var note = el('gpayUnavailableNote');
+      if (!note) {
+        note = document.createElement('p');
+        note.id = 'gpayUnavailableNote';
+        note.style.cssText = 'display:none;font-size:var(--text-xs);color:var(--brown-mid);line-height:var(--leading-normal);';
+        panel.appendChild(note);
+      }
+      return note;
+    }
+
+    // Customer-facing reason a wallet button didn't render. Keep it actionable — the buyer can't
+    // fix domain registration, they just need to know which method to pick instead.
+    function walletUnavailableMessage(wallet) {
+      if (wallet === 'gpay')
+        return 'Google Pay non è disponibile su questo dispositivo (serve una carta salvata in Google Wallet). Scegli un altro metodo di pagamento.';
+      if (isAndroidDevice())
+        return 'Apple Pay non è disponibile su Android — è supportato su iPhone, iPad e Mac, oppure da computer inquadrando un codice QR con l\'iPhone. Su questo dispositivo usa Google Pay o la carta.';
+      if (isAppleDevice())
+        return 'Apple Pay non è attivo su questo dispositivo. Aggiungi una carta all\'app Wallet e riprova, oppure scegli un altro metodo di pagamento.';
+      return 'Apple Pay non è al momento disponibile in questo browser. Scegli un altro metodo di pagamento.';
+    }
+
+    // Show/hide the "non disponibile" note for a wallet once we know whether it rendered.
+    function syncWalletNote(wallet, available) {
+      var note = walletNoteEl(wallet);
+      if (!note) return;
+      if (available) { note.style.display = 'none'; return; }
+      note.textContent = walletUnavailableMessage(wallet);
+      note.style.display = 'block';
+    }
+    // Back-compat shim — older call sites just wanted the Apple note re-synced.
     function syncAppleUnavailableNote() {
-      var note = el('appleUnavailableNote');
-      if (note) note.style.display = 'none';
+      if (walletAvailability.apple !== null) syncWalletNote('apple', walletAvailability.apple);
+      else { var n = el('appleUnavailableNote'); if (n) n.style.display = 'none'; }
     }
 
     // Mount (or re-mount) the Express Checkout Element for a wallet ('apple'|'gpay') at the current
@@ -2106,17 +2156,28 @@
         buttonType: { applePay: 'buy', googlePay: 'buy' },
       });
       expressElement.on('confirm', function (ev) { handleExpressConfirm(ev, expressElements); });
-      expressElement.on('ready', function (e) { walletDebug('ECE ready (' + wallet + '): ' + JSON.stringify((e && e.availablePaymentMethods) || {})); });
+      // 'ready' is the ONLY honest signal: an element with no eligible wallet renders nothing and
+      // still fires 'ready' (no 'loaderror'), which used to leave the buyer staring at an empty
+      // panel with no pay control and no explanation.
+      expressElement.on('ready', function (e) {
+        var avail = (e && e.availablePaymentMethods) || {};
+        var ok = wallet === 'gpay' ? !!avail.googlePay : !!avail.applePay;
+        walletAvailability[wallet] = ok;
+        syncWalletNote(wallet, ok);
+        walletDebug('ECE ready (' + wallet + '): ' + JSON.stringify(avail) + ' -> ' + (ok ? 'RENDERED' : 'NOT AVAILABLE'));
+        if (!ok && wallet === 'apple' && !isAndroidDevice())
+          walletDebug('hint: register this domain under Stripe > Payment method domains (test AND live) and serve over HTTPS');
+      });
       expressElement.on('loaderror', function (e) {
+        walletAvailability[wallet] = false;
+        syncWalletNote(wallet, false);
         walletDebug('ECE loaderror: ' + ((e && e.error && e.error.message) || '?'));
-        var note = el('appleUnavailableNote');
-        if (wallet === 'apple' && note) {
-          note.textContent = 'Apple Pay non è al momento disponibile (verifica che il dominio sia registrato in Stripe → Payment method domains). Scegli un altro metodo.';
-          note.style.display = 'block';
-        }
       });
       expressElement.mount('#paymentRequestButton');
       expressWallet = wallet; expressAmount = amount;
+      // Pre-warm the PaymentIntent for this exact total. Apple Pay keeps its sheet open waiting
+      // for confirmation, so the 'confirm' handler must not spend that budget on a round-trip.
+      if (!stripeClientSecret || stripeIntentAmount !== amount) fetchPaymentIntent();
     }
 
     // The buyer authorised in the wallet sheet (Face ID, or QR + iPhone) — submit the element,
@@ -2141,12 +2202,21 @@
         var ensureSecret = (stripeClientSecret && stripeIntentAmount === wantCents) ? Promise.resolve(stripeClientSecret) : fetchPaymentIntent();
         ensureSecret.then(function (secret) {
           if (!secret) { showPaymentError('Pagamento non disponibile al momento. Riprova tra poco.'); return; }
+          // A wallet payment that needs 3-D Secure leaves the page. Stage the order first (same
+          // contract as Klarna) so the return trip — ?wallet_return=1 carries Stripe's
+          // payment_intent_client_secret — can still place it instead of dropping a paid order.
+          try {
+            sessionStorage.setItem('memi_pending_order', JSON.stringify(orderData));
+            sessionStorage.setItem('memi_pending_method', 'wallet');
+          } catch (_) {}
           stripeInstance.confirmPayment({
             elements: elementsGroup,
             clientSecret: secret,
             confirmParams: { return_url: window.location.origin + window.location.pathname + '?wallet_return=1' },
             redirect: 'if_required',
           }).then(function (res) {
+            // No redirect happened — this tab owns the outcome, so drop the staged copy.
+            try { sessionStorage.removeItem('memi_pending_order'); sessionStorage.removeItem('memi_pending_method'); } catch (_) {}
             if (res.error) { showPaymentError(res.error.message || 'Pagamento non riuscito.'); return; }
             var pi = res.paymentIntent;
             if (pi && (pi.status === 'succeeded' || pi.status === 'processing')) { finishWalletOrder(orderData, pi.id); }
@@ -2509,8 +2579,10 @@
         });
       } else if (activePayMethod === 'apple' || activePayMethod === 'gpay') {
         setLoading(false);
-        if (activePayMethod === 'apple' && !appleAvailable()) {
-          showPaymentError('Apple Pay è disponibile solo su Safari (iPhone, iPad o Mac con Apple Wallet). Apri il sito con Safari su un dispositivo Apple, oppure scegli un altro metodo di pagamento.');
+        if (!appleAvailable() && activePayMethod === 'apple') {
+          showPaymentError(walletUnavailableMessage('apple'));
+        } else if (walletAvailability.gpay === false && activePayMethod === 'gpay') {
+          showPaymentError(walletUnavailableMessage('gpay'));
         } else {
           showPaymentError('Usa il pulsante Apple Pay / Google Pay qui sopra per completare il pagamento.');
         }
