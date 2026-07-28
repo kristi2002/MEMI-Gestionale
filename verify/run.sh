@@ -37,6 +37,9 @@ echo "  storefront api-client.js versions: ${cv//$'\n'/ }"
 [ "$(echo "$cv" | wc -l)" -eq 1 ] || { echo "  FAIL: api-client.js version drift"; FAIL=1; }
 [ "$FAIL" -eq 0 ] && echo "  ok  single version each"
 
+sec "2b. Env passthrough (.env.example <-> docker-compose.yml)"
+node verify/env-passthrough.cjs || FAIL=1
+
 sec "3. Route contract + lifecycle invariants"
 node verify/contract.cjs || FAIL=1
 
