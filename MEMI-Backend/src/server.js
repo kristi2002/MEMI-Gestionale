@@ -132,6 +132,47 @@ if (process.env.NODE_ENV === 'production') {
   if ((process.env.STRIPE_SECRET_KEY || '').startsWith('sk_test_')) {
     console.error('🔴  WARNING: STRIPE_SECRET_KEY is a TEST key — checkout cannot take real payments.');
   }
+  if ((process.env.STRIPE_PUBLISHABLE_KEY || '').startsWith('pk_test_')) {
+    console.error('🔴  WARNING: STRIPE_PUBLISHABLE_KEY is a TEST key — Apple Pay / Google Pay / Klarna run against Stripe TEST mode.');
+  }
+  // A live/test MIX is worse than either key being wrong consistently: the server mints a LIVE
+  // PaymentIntent whose client_secret a TEST-mode Stripe.js refuses to confirm. Wallets break
+  // first — Apple Pay / Google Pay eligibility is resolved per MODE from the publishable key.
+  {
+    const skSet  = Boolean(process.env.STRIPE_SECRET_KEY);
+    const pkSet  = Boolean(process.env.STRIPE_PUBLISHABLE_KEY);
+    const skLive = (process.env.STRIPE_SECRET_KEY || '').startsWith('sk_live_');
+    const pkLive = (process.env.STRIPE_PUBLISHABLE_KEY || '').startsWith('pk_live_');
+    if (skSet && pkSet && skLive !== pkLive) {
+      console.error('🔴  WARNING: Stripe key MODE MISMATCH — STRIPE_SECRET_KEY is ' + (skLive ? 'LIVE' : 'TEST') +
+        ' but STRIPE_PUBLISHABLE_KEY is ' + (pkLive ? 'LIVE' : 'TEST') +
+        '. Card and wallet payments WILL fail. Both keys must come from the same Stripe mode.');
+    }
+    // Apple Pay / Google Pay only render on a domain registered for the CURRENT Stripe mode —
+    // the test and live registries are SEPARATE, so flipping to live keys silently un-registers
+    // the domain until it is added again in live mode.
+    if (skLive && process.env.FRONTEND_URL) {
+      console.log('ℹ️   Stripe LIVE mode — confirm ' + process.env.FRONTEND_URL + ' is registered under');
+      console.log('    Stripe > Settings > Payments > Payment method domains in LIVE mode, or Apple Pay');
+      console.log('    and Google Pay will not appear. Check: node MEMI-Backend/scripts/payments-preflight.js');
+    }
+  }
+  // PayPal pointed at sandbox takes no real money while looking completely healthy.
+  if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET && process.env.PAYPAL_ENV !== 'live') {
+    console.error("🔴  WARNING: PAYPAL_ENV is '" + (process.env.PAYPAL_ENV || 'sandbox') +
+      "' — PayPal orders are SANDBOX and move no real money. Set PAYPAL_ENV=live with LIVE app credentials.");
+  }
+  if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_SECRET && !process.env.PAYPAL_WEBHOOK_ID) {
+    console.error('🔴  WARNING: PAYPAL_WEBHOOK_ID not set — PayPal webhooks are acknowledged but never reconcile an order to pagato.');
+  }
+  // SumUp has NO key prefix distinguishing sandbox from live: one personal API key can address
+  // both a sandbox and a live merchant profile, and the mode is decided by SUMUP_MERCHANT_CODE
+  // alone. It is only observable in an API response, so the hard guard lives in
+  // payment-providers.createSumupCheckout (first checkout) and scripts/payments-preflight.js.
+  if (process.env.SUMUP_API_KEY && process.env.SUMUP_MERCHANT_CODE) {
+    console.log('ℹ️   SumUp merchant ' + process.env.SUMUP_MERCHANT_CODE + ' — sandbox vs live cannot be');
+    console.log('    inferred from the key. Verify: node MEMI-Backend/scripts/payments-preflight.js');
+  }
   if (process.env.DB_PASSWORD && (PLACEHOLDER_RE.test(process.env.DB_PASSWORD) || process.env.DB_PASSWORD.length < 12)) {
     console.error('🔴  WARNING: DB_PASSWORD is weak or still a placeholder — rotate it (see docs/GO-LIVE-PLAN-2026-07.md).');
   }

@@ -444,7 +444,7 @@
       padding:var(--space-4);border:1.5px solid var(--beige);border-radius:var(--radius-md);background:var(--bg-soft);}
 
   </style>
-  <link rel="stylesheet" href="app.css?v=ece23419" />
+  <link rel="stylesheet" href="app.css?v=0db3d26a" />
   <!-- Stripe.js — loads asynchronously, must be loaded from Stripe CDN -->
   <script src="https://js.stripe.com/v3/"></script>
 </head>
@@ -2614,6 +2614,22 @@
       // SumUp replaces Stripe Elements on the card tab. If the customer is already on the
       // payment step when the config arrives, mount immediately; otherwise goToStep(3) does it.
       if (prov.sumup && currentStep === 4 && activePayMethod === 'carta') prepareSumupPaymentStep();
+      // Apple Pay, Google Pay and Klarna ALL ride on Stripe — there is no separate account for
+      // any of them. With no Stripe credentials the Express Checkout Element and the Klarna
+      // element can never render, and their tabs became empty panels with no pay control and no
+      // explanation. Hide them instead and leave the card tab (SumUp) as the way to pay.
+      if (!prov.stripe) {
+        ['apple', 'gpay', 'klarna'].forEach(function (m) {
+          var tab = document.querySelector('.pay-method[data-method="' + m + '"]');
+          if (tab) tab.style.display = 'none';
+        });
+        // A ?pay= param or an express hand-off may already have selected a now-hidden tab.
+        if (activePayMethod !== 'carta' && activePayMethod !== 'paypal') {
+          var cardRadio = document.querySelector('.pay-method[data-method="carta"] input[type="radio"]');
+          if (cardRadio) cardRadio.checked = true;
+          selectPayMethod('carta');
+        }
+      }
     }
     function markProviderTab(panelId, available) {
       if (available) return;
@@ -3086,7 +3102,7 @@
       })();
     });
   </script>
-  <script src="api-client.js?v=9"></script>
-  <script src="app.js?v=35"></script>
-  <script src="checkout-autofill.js?v=1"></script></body>
+  <script src="api-client.js?v=b2c1de12"></script>
+  <script src="app.js?v=820bd157"></script>
+  <script src="checkout-autofill.js?v=e656b768"></script></body>
 </html>

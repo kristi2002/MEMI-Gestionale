@@ -205,6 +205,17 @@ async function createSumupCheckout(amountCents, reference, redirectUrl, hosted) 
   // merchant_sandbox === true means a SANDBOX account (test cards work). Absent/false = LIVE
   // (test cards are declined — the usual cause of a "bounces back to the form" test payment).
   if (process.env.SUMUP_DEBUG === '1') console.log('[SumUp DEBUG] create-checkout ←', { id: body.id, status: body.status, merchant_sandbox: body.merchant_sandbox === true });
+  // Sandbox detection is NOT a debug nicety — it is the one signal that separates "taking real
+  // money" from "looks identical and takes none". The API key gives no hint (the same personal
+  // key addresses both profiles); only this response field does. Warn ONCE per process, always,
+  // so a sandbox merchant code in production is visible in the logs instead of being discovered
+  // when the client asks where their payouts are.
+  if (body.merchant_sandbox === true && !createSumupCheckout.__sumupSandboxWarned) {
+    createSumupCheckout.__sumupSandboxWarned = true;
+    console.error('🔴  SumUp merchant ' + payload.merchant_code + ' is a SANDBOX account — card payments take NO real money.');
+    console.error('    Real cards are declined; test cards succeed and the order is still marked pagato.');
+    console.error('    Set SUMUP_MERCHANT_CODE to the LIVE merchant code (me.sumup.com > Settings > Account).');
+  }
   return { id: body.id, status: body.status, hosted_checkout_url: body.hosted_checkout_url || null };
 }
 
