@@ -426,22 +426,46 @@ html { overflow-x: clip; }
 .express-btns { display: flex; gap: 0.5rem; }
 .express-btn {
   flex: 1;
-  height: 40px;
-  border-radius: 8px;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  border: 1.5px solid var(--beige, #DBDBEE);
+  gap: 5px;
+  border: 1px solid transparent;
   cursor: pointer;
   background: var(--white, #FFFFFF);
-  transition: border-color 180ms;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
 }
-.express-btn:hover { border-color: var(--beige-dark, #BEBEDD); }
-.express-btn.apple { letter-spacing: -0.01em; color: var(--espresso, #3B2B2B); }
-.express-btn.gpay { letter-spacing: -0.01em; color: #3c4043; }
-.express-btn.paypal { color: #003087; }
+.express-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59, 43, 43, 0.14); }
+.express-btn:active { transform: translateY(0); box-shadow: none; }
+.express-btn:focus-visible { outline: 2px solid var(--espresso, #3B2B2B); outline-offset: 2px; }
+.express-btn .pay-logo { height: 18px; width: auto; display: block; flex-shrink: 0; }
+.express-btn .pay-word { font-size: 0.8125rem; font-weight: 500; letter-spacing: -0.01em; }
+
+/* Apple Pay — black pill,  Pay in white */
+.express-btn.apple { background: #000; color: #fff; }
+.express-btn.apple .pay-logo { height: 17px; margin-top: -2px; }
+
+/* Google Pay — white with hairline border, coloured G + grey "Pay" */
+.express-btn.gpay { background: #fff; border-color: #dadce0; color: #5f6368; }
+
+/* PayPal — brand yellow with the two-tone italic wordmark */
+.express-btn.paypal { background: #FFC439; }
+.express-btn.paypal:hover { filter: brightness(1.02); }
+.pp-wordmark {
+  font-family: Verdana, Arial, sans-serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 0.9375rem;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.pp-wordmark .pp-1 { color: #003087; }
+.pp-wordmark .pp-2 { color: #009cde; }
 
 /* ============================================================
    SEARCH DRAWER

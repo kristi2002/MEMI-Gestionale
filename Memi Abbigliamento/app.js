@@ -1487,9 +1487,15 @@
       <div class="express-checkout">
         <p class="express-label">Checkout rapido</p>
         <div class="express-btns">
-          <button class="express-btn apple"  onclick="appExpressCheckout('applepay')">Apple Pay</button>
-          <button class="express-btn gpay"   onclick="appExpressCheckout('gpay')">Google Pay</button>
-          <button class="express-btn paypal" onclick="appExpressCheckout('paypal')">PayPal</button>
+          <button class="express-btn apple" onclick="appExpressCheckout('applepay')" aria-label="Paga con Apple Pay">
+            <svg class="pay-logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17.05 12.04c-.03-2.86 2.34-4.23 2.44-4.3-1.33-1.95-3.4-2.22-4.14-2.25-1.76-.18-3.44 1.04-4.34 1.04-.9 0-2.28-1.02-3.75-.99-1.93.03-3.71 1.12-4.7 2.85-2 3.47-.51 8.6 1.44 11.42.95 1.38 2.09 2.93 3.58 2.87 1.44-.06 1.98-.93 3.72-.93s2.23.93 3.75.9c1.55-.03 2.53-1.41 3.48-2.8 1.09-1.6 1.54-3.15 1.57-3.23-.03-.02-3.01-1.16-3.04-4.58zM14.38 4.16c.8-.97 1.33-2.31 1.18-3.66-1.15.05-2.54.77-3.36 1.73-.74.86-1.38 2.24-1.21 3.56 1.28.1 2.59-.65 3.39-1.63z"/></svg><span class="pay-word">Pay</span>
+          </button>
+          <button class="express-btn gpay" onclick="appExpressCheckout('gpay')" aria-label="Paga con Google Pay">
+            <svg class="pay-logo" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/><path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.69 28.18C11.25 26.86 11 25.45 11 24s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"/><path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/></svg><span class="pay-word">Pay</span>
+          </button>
+          <button class="express-btn paypal" onclick="appExpressCheckout('paypal')" aria-label="Paga con PayPal">
+            <span class="pp-wordmark"><span class="pp-1">Pay</span><span class="pp-2">Pal</span></span>
+          </button>
         </div>
       </div>
       <div class="cart-subtotal">
