@@ -109,6 +109,10 @@ services:
       SMTP_USER:             ${SMTP_USER:-}
       SMTP_PASS:             ${SMTP_PASS:-}
       SMTP_FROM:             ${SMTP_FROM:-}
+      # Error reporting — any incoming-webhook URL (Slack, Discord, or a generic JSON
+      # endpoint). Unset means server errors are logged to stdout only, with nobody
+      # watching: the backend prints a loud boot warning in production when it is missing.
+      ERROR_WEBHOOK_URL:     ${ERROR_WEBHOOK_URL:-}
       # Product image uploads
       UPLOADS_DIR:           /app/uploads
       MAX_UPLOAD_MB:         ${MAX_UPLOAD_MB:-8}

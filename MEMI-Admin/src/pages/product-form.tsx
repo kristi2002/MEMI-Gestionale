@@ -8,6 +8,7 @@ import type { FieldConfig, FormValues } from '@/components/common/entity-form-fi
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SizeStockEditor, type SizeStock } from '@/components/common/size-stock-editor';
+import { ProductImagesCard } from '@/components/common/product-images';
 import { useCategories, useCollections, useColors } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
@@ -27,6 +28,7 @@ type ProductDetail = {
   description?: string | null;
   collections?: string[];
   taglie?: (string | { taglia: string; stock?: number })[];
+  images?: (import('@/types').ProductImage | string)[];
 };
 
 /** A titled card wrapping a subset of the config-driven fields. */
@@ -71,6 +73,7 @@ export function ProductFormPage() {
 
   const [values, setValues] = useState<FormValues>({ status: 'attivo', discount_pct: 0 });
   const [sizes, setSizes] = useState<SizeStock[]>([]);
+  const [images, setImages] = useState<(import('@/types').ProductImage | string)[]>([]);
   const [loading, setLoading] = useState<boolean>(editing);
   const [busy, setBusy] = useState(false);
 
@@ -82,6 +85,7 @@ export function ProductFormPage() {
       try {
         const d = (await api.products.get(id!)) as unknown as ProductDetail;
         if (!alive) return;
+        setImages(Array.isArray(d.images) ? d.images : []);
         setSizes(
           Array.isArray(d.taglie)
             ? d.taglie.map((s) => (typeof s === 'string' ? { taglia: s, stock: 0 } : { taglia: s.taglia, stock: Number(s.stock) || 0 }))
@@ -225,13 +229,17 @@ export function ProductFormPage() {
       if (editing) {
         await api.products.update(id!, data);
         toast.success('Prodotto aggiornato');
+        qc.invalidateQueries({ queryKey: ['products'] });
+        navigate('/products');
       } else {
         data.id = values.id;
         await api.products.create(data);
-        toast.success('Prodotto creato');
+        toast.success('Prodotto creato — ora puoi caricare le immagini');
+        qc.invalidateQueries({ queryKey: ['products'] });
+        // Straight to edit: image upload needs a persisted id, and a product without
+        // photos is invisible on the storefront, so this is the next step every time.
+        navigate(`/products/${encodeURIComponent(String(values.id))}/edit`, { replace: true });
       }
-      qc.invalidateQueries({ queryKey: ['products'] });
-      navigate('/products');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Salvataggio non riuscito');
     } finally {
@@ -248,8 +256,8 @@ export function ProductFormPage() {
         title={editing ? 'Modifica prodotto' : 'Nuovo prodotto'}
         subtitle={
           editing
-            ? 'Aggiorna dettagli, prezzi, organizzazione e stock per taglia.'
-            : 'Crea un prodotto nel catalogo. Le immagini si caricano dopo, via importazione CSV.'
+            ? 'Aggiorna dettagli, prezzi, immagini, organizzazione e stock per taglia.'
+            : 'Crea un prodotto nel catalogo. Le immagini si caricano subito dopo il salvataggio.'
         }
       />
 
@@ -268,13 +276,16 @@ export function ProductFormPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base">Taglie e magazzino</CardTitle>
                   <CardDescription>
-                    Seleziona le taglie disponibili e imposta lo stock per ciascuna. Le immagini si caricano via importazione CSV.
+                    Seleziona le taglie disponibili e imposta lo stock per ciascuna.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <SizeStockEditor value={sizes} onChange={setSizes} />
                 </CardContent>
               </Card>
+              {/* Upload needs a persisted product id, so this only renders when editing.
+                  Creating a product redirects straight here so photos are one click away. */}
+              {editing && <ProductImagesCard productId={id!} images={images} onChange={setImages} />}
             </div>
             {/* Side column */}
             <div className="space-y-6">

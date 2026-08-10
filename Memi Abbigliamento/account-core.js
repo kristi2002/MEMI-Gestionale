@@ -21,7 +21,12 @@
       'nav.taglie':'Le mie taglie','nav.preferenze':'Le mie preferenze',
       'nav.ordini':'I miei ordini','nav.reso':'Effettua un reso',
       'nav.loyalty':'Punti fedeltà','nav.carta':'Carta fedeltà','nav.wishlist':'Lista desideri',
-      'nav.newsletter':'Newsletter','nav.aiuto':'Aiuto e contatti',
+      'nav.newsletter':'Newsletter','nav.aiuto':'Aiuto e contatti','nav.privacy':'Privacy e dati',
+      'head.privacy.t':'Privacy e <em>dati</em>','head.privacy.p':'Scarica o elimina i dati che trattiamo su di te.',
+      'priv.intro':'Ai sensi del Regolamento (UE) 2016/679 (GDPR) puoi ottenere una copia dei tuoi dati personali ed eliminare il tuo account in qualsiasi momento.',
+      'priv.export.t':'Scarica i tuoi dati','priv.export.p':'Ricevi un file JSON con profilo, indirizzi, ordini, recensioni, punti fedeltà e conversazioni.','priv.export.btn':'Scarica i miei dati','priv.export.wait':'Preparazione del file…','priv.export.ok':'Download avviato.','priv.export.err':'Esportazione non riuscita. Riprova più tardi.',
+      'priv.del.t':'Elimina il tuo account','priv.del.p':'Elimina definitivamente account, indirizzi, preferenze, wishlist, punti fedeltà e conversazioni. Gli ordini già emessi restano registrati in forma anonima per i 10 anni previsti dagli obblighi fiscali italiani, e le tue recensioni restano pubblicate in forma anonima.','priv.del.btn':'Elimina account','priv.del.confirm':'Questa operazione è irreversibile. Inserisci la tua password per confermare.','priv.del.pwd':'Password','priv.del.yes':'Sì, elimina definitivamente','priv.del.no':'Annulla','priv.del.working':'Eliminazione in corso…','priv.del.err':'Eliminazione non riuscita.','priv.del.needpwd':'Inserisci la password per confermare.',
+      'priv.policy':'Leggi l’informativa privacy completa',
       'logout':'Esci','esc':'Esci',
       'head.overview.p':'Ecco un riepilogo della tua area personale.',
       'head.profilo.t':'I miei <em>dati</em>','head.profilo.p':'I tuoi dati personali e di accesso.',
@@ -85,7 +90,12 @@
       'nav.taglie':'My sizes','nav.preferenze':'My preferences',
       'nav.ordini':'My orders','nav.reso':'Start a return',
       'nav.loyalty':'Loyalty points','nav.carta':'Loyalty card','nav.wishlist':'Wishlist',
-      'nav.newsletter':'Newsletter','nav.aiuto':'Help & contact',
+      'nav.newsletter':'Newsletter','nav.aiuto':'Help & contact','nav.privacy':'Privacy & data',
+      'head.privacy.t':'Privacy & <em>data</em>','head.privacy.p':'Download or delete the data we hold about you.',
+      'priv.intro':'Under Regulation (EU) 2016/679 (GDPR) you can obtain a copy of your personal data and delete your account at any time.',
+      'priv.export.t':'Download your data','priv.export.p':'Get a JSON file with your profile, addresses, orders, reviews, loyalty points and conversations.','priv.export.btn':'Download my data','priv.export.wait':'Preparing your file…','priv.export.ok':'Download started.','priv.export.err':'Export failed. Please try again later.',
+      'priv.del.t':'Delete your account','priv.del.p':'Permanently deletes your account, addresses, preferences, wishlist, loyalty points and conversations. Orders already placed are kept in anonymised form for the 10 years required by Italian tax law, and your reviews stay published anonymously.','priv.del.btn':'Delete account','priv.del.confirm':'This cannot be undone. Enter your password to confirm.','priv.del.pwd':'Password','priv.del.yes':'Yes, delete permanently','priv.del.no':'Cancel','priv.del.working':'Deleting…','priv.del.err':'Deletion failed.','priv.del.needpwd':'Enter your password to confirm.',
+      'priv.policy':'Read the full privacy policy',
       'logout':'Log out','esc':'Log out',
       'head.overview.p':'Here is an overview of your account.',
       'head.profilo.t':'My <em>details</em>','head.profilo.p':'Your personal and login details.',
@@ -744,6 +754,76 @@
       '</div>';
   }
 
+  /* ══════════════════ PRIVACY & DATI (GDPR) ══════════════════ */
+  /* Export is artt. 15+20; deletion is art. 17. The copy states plainly what deletion
+     does NOT remove (fiscal order records, anonymised reviews) — the backend keeps
+     exactly that, and a promise wider than the implementation would be the real bug. */
+  var privDeleting = false;
+  function renderPrivacy(){
+    return '<p class="ap-intro">' + t('priv.intro') + '</p>' +
+      '<div class="ap-block">' +
+        '<h3>' + t('priv.export.t') + '</h3>' +
+        '<p style="font-size:.86rem;color:var(--brown-mid);margin-bottom:1rem">' + t('priv.export.p') + '</p>' +
+        '<button type="button" class="btn-primary-solid" id="privExportBtn">' + t('priv.export.btn') + '</button>' +
+        '<span id="privExportMsg" class="ap-msg" style="margin-left:.75rem"></span>' +
+      '</div>' +
+      '<div class="ap-block" style="margin-top:1.25rem">' +
+        '<h3>' + t('priv.del.t') + '</h3>' +
+        '<p style="font-size:.86rem;color:var(--brown-mid);margin-bottom:1rem">' + t('priv.del.p') + '</p>' +
+        (privDeleting
+          ? '<div style="border:1px solid var(--beige,#DBDBEE);border-radius:10px;padding:1rem;background:var(--cream-warm,#FBF8F4)">' +
+              '<p style="font-size:.86rem;margin-bottom:.75rem">' + t('priv.del.confirm') + '</p>' +
+              '<label class="field-label" for="privPwd">' + t('priv.del.pwd') + '</label>' +
+              '<input type="password" class="field-input" id="privPwd" autocomplete="current-password" style="max-width:320px;margin-bottom:1rem">' +
+              '<div class="profile-form-footer">' +
+                '<button type="button" class="btn-primary-solid" id="privDelConfirmBtn">' + t('priv.del.yes') + '</button>' +
+                '<button type="button" class="btn-outline" id="privDelCancelBtn">' + t('priv.del.no') + '</button>' +
+                '<span id="privDelMsg" class="ap-msg"></span>' +
+              '</div>' +
+            '</div>'
+          : '<button type="button" class="btn-outline" id="privDelBtn">' + t('priv.del.btn') + '</button>') +
+      '</div>' +
+      '<p style="margin-top:1.25rem;font-size:.82rem"><a href="/privacy">' + t('priv.policy') + '</a></p>';
+  }
+
+  async function doExportData(){
+    var btn = el('privExportBtn'), msg = el('privExportMsg');
+    if (btn) btn.disabled = true;
+    if (msg) msg.textContent = t('priv.export.wait');
+    try {
+      var blob = await window.MemiAPI.auth.privacy.exportData();
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'memi-i-miei-dati-' + new Date().toISOString().slice(0,10) + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      // Revoke on the next tick so the download has actually started.
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+      if (msg) msg.textContent = t('priv.export.ok');
+    } catch (err) {
+      if (msg) msg.textContent = (err && err.error) || t('priv.export.err');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  async function doDeleteAccount(){
+    var pwdEl = el('privPwd'), msg = el('privDelMsg'), btn = el('privDelConfirmBtn');
+    var pwd = pwdEl ? pwdEl.value : '';
+    if (!pwd){ if (msg) msg.textContent = t('priv.del.needpwd'); return; }
+    if (btn) btn.disabled = true;
+    if (msg) msg.textContent = t('priv.del.working');
+    try {
+      await window.MemiAPI.auth.privacy.deleteAccount(pwd);
+      window.MemiAPI.auth.logout();
+      try { localStorage.removeItem('memi_sizes'); localStorage.removeItem('memi_prefs'); localStorage.removeItem('memi_news'); } catch(_){}
+      window.location.href = '/?account=deleted';
+    } catch (err) {
+      if (msg) msg.textContent = (err && err.error) || t('priv.del.err');
+      if (btn) btn.disabled = false;
+    }
+  }
+
   /* ══════════════════ HELP ══════════════════ */
   function renderAiuto(){
     function faq(icon, label, href){
@@ -778,13 +858,14 @@
     wishlist:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>',
     newsletter:'<path d="M4 4h16v16H4z"/><polyline points="22 6 12 13 2 6"/>',
     fatturazione:'<path d="M4 2h11l5 5v15H4z"/><polyline points="15 2 15 7 20 7"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/>',
-    aiuto:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>'
+    aiuto:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    privacy:'<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
   };
   var NAV_SECTIONS = [
     { title:'sec.account', items:['overview','profilo','indirizzi','fatturazione','taglie','preferenze'] },
     { title:'sec.orders',  items:['ordini','reso'] },
     { title:'sec.loyalty', items:['loyalty','carta','wishlist'] },
-    { title:'sec.support', items:['newsletter','aiuto'] }
+    { title:'sec.support', items:['newsletter','privacy','aiuto'] }
   ];
   function navMarkup(activeKey, counts){
     var side = NAV_SECTIONS.map(function(sec){
@@ -820,6 +901,7 @@
       carta:['<h1>' + t('head.carta.t') + '</h1>', t('head.carta.p')],
       wishlist:['<h1>' + t('head.wishlist.t') + '</h1>', t('head.wishlist.p')],
       newsletter:['<h1>' + t('head.newsletter.t') + '</h1>', t('head.newsletter.p')],
+      privacy:['<h1>' + t('head.privacy.t') + '</h1>', t('head.privacy.p')],
       aiuto:['<h1>' + t('head.aiuto.t') + '</h1>', t('head.aiuto.p')]
     };
     var h = titles[k] || ['<h1></h1>',''];
@@ -842,6 +924,7 @@
       case 'carta':      return renderCardPanel(u, points);
       case 'wishlist':   return '<div id="wishlistMount">' + renderWishlistPanel() + '</div>';
       case 'newsletter': return renderNewsletter(u);
+      case 'privacy':    return renderPrivacy();
       case 'aiuto':      return renderAiuto();
       default:           return '';
     }
@@ -982,6 +1065,10 @@
     var pc = e.target.closest('[data-pref-cat]'); if (pc){ togglePref('categories', pc.getAttribute('data-pref-cat'), pc); return; }
     var pcol = e.target.closest('[data-pref-color]'); if (pcol){ togglePref('colors', pcol.getAttribute('data-pref-color'), pcol); return; }
     var ntp = e.target.closest('[data-news-topic]'); if (ntp){ ntp.classList.toggle('on'); return; }
+    if (e.target.closest('#privExportBtn')){ doExportData(); return; }
+    if (e.target.closest('#privDelBtn')){ privDeleting = true; rerenderPanel(); return; }
+    if (e.target.closest('#privDelCancelBtn')){ privDeleting = false; rerenderPanel(); return; }
+    if (e.target.closest('#privDelConfirmBtn')){ doDeleteAccount(); return; }
   }
 
   /* ══════════════════ BIRTHDAY DATE PICKER (custom, branded) ══════════════════ */

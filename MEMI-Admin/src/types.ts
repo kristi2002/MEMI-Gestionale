@@ -138,6 +138,52 @@ export interface OrderDetail extends OrderRow {
   shipment: Shipment | null;
   pickup_point?: OrderPickupPoint | null;
   tracking_events?: TrackingEvent[];
+  /* Billing snapshot — present on orders placed after the fatturazione fields shipped. */
+  billing_same_as_shipping?: number;
+  billing_nome?: string | null;
+  billing_address?: string | null;
+  billing_citta?: string | null;
+  billing_cap?: string | null;
+  billing_provincia?: string | null;
+  billing_paese?: string | null;
+  billing_piva?: string | null;
+  billing_cf?: string | null;
+  billing_sdi?: string | null;
+  billing_pec?: string | null;
+  payment_intent_id?: string | null;
+  delivered_at?: string | null;
+}
+
+/* ── Customer chat (widget storefront ↔ inbox admin) ─────────── */
+export interface ChatConversationRow {
+  id: number;
+  status: 'aperta' | 'chiusa';
+  unread_admin: number;
+  last_message_at: string | null;
+  created_at: string;
+  customer_id: number | null;
+  name: string | null;
+  email: string | null;
+  last_message: string | null;
+}
+export interface ChatListResponse {
+  conversations: ChatConversationRow[];
+  unread_total: number;
+}
+export interface ChatMessage {
+  id: number;
+  sender: 'cliente' | 'admin' | string;
+  body: string;
+  created_at: string;
+}
+export interface ChatConversationDetail extends ChatConversationRow {
+  subject: string | null;
+  total_orders?: number | null;
+  total_spent?: string | number | null;
+}
+export interface ChatDetailResponse {
+  conversation: ChatConversationDetail;
+  messages: ChatMessage[];
 }
 
 export interface ProductImage {

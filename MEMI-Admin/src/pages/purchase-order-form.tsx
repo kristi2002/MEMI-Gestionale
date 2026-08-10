@@ -36,8 +36,10 @@ const newRow = (): ItemRow => ({ prodotto: '', taglia: '', quantita: 1, costo_un
  *
  * Create: pick a supplier + add product line-items (product, size, qty, unit cost)
  *         → POST /admin/purchase-orders (auto-numbered PO-YYYY-NNNN, stato 'bozza').
- * Edit:   the backend PUT only accepts { stato, note }, so line-items are shown
- *         read-only and only stato + note are editable (received orders are locked).
+ * Edit:   supplier, line-items, stato and note are all editable while the order is
+ *         still open. Once it is 'ricevuto' the quantities are already in stock, so the
+ *         lines lock (the backend enforces the same rule with a 409) — same for
+ *         'annullato'. Editing a received order would silently desync the warehouse.
  */
 export function PurchaseOrderFormPage() {
   const { id } = useParams<{ id: string }>();
@@ -79,6 +81,8 @@ export function PurchaseOrderFormPage() {
   }, [editing, detailQ.data]);
 
   const received = editing && stato === 'ricevuto';
+  // Lines are frozen once the PO leaves the open states — mirrors the backend guard.
+  const locked = editing && (detailQ.data?.purchase_order.stato === 'ricevuto' || detailQ.data?.purchase_order.stato === 'annullato');
   const total = items.reduce((n, it) => n + (Number(it.quantita) || 0) * (Number(it.costo_unitario) || 0), 0);
   const productName = (pid: string) => products.find((p) => String(p.id) === String(pid))?.name ?? pid;
 
@@ -92,7 +96,24 @@ export function PurchaseOrderFormPage() {
     setBusy(true);
     try {
       if (editing) {
-        await api.purchaseOrders.update(Number(id), { stato, note: note || null });
+        const payload: Record<string, unknown> = { stato, note: note || null };
+        if (!locked) {
+          payload.supplier_id = supplierId ? Number(supplierId) : null;
+          payload.items = items
+            .filter((it) => it.prodotto && (Number(it.quantita) || 0) > 0)
+            .map((it) => ({
+              prodotto: it.prodotto,
+              taglia: it.taglia.trim() || null,
+              quantita: Number(it.quantita) || 0,
+              costo_unitario: Number(it.costo_unitario) || 0,
+            }));
+          if (!(payload.items as unknown[]).length) {
+            toast.error('Aggiungi almeno una riga con prodotto e quantità');
+            setBusy(false);
+            return;
+          }
+        }
+        await api.purchaseOrders.update(Number(id), payload);
         toast.success('Ordine fornitore aggiornato');
       } else {
         const rows = items
@@ -132,7 +153,9 @@ export function PurchaseOrderFormPage() {
         title={editing ? `Ordine ${detailQ.data?.purchase_order.numero ?? ''}`.trim() : 'Nuovo ordine fornitore'}
         subtitle={
           editing
-            ? 'Aggiorna stato e note. Le righe non sono modificabili dopo la creazione.'
+            ? locked
+              ? 'Ordine chiuso: righe e dettagli sono in sola lettura.'
+              : 'Aggiorna fornitore, righe, stato e note.'
             : 'Seleziona il fornitore e aggiungi le righe prodotto.'
         }
       />
@@ -151,9 +174,11 @@ export function PurchaseOrderFormPage() {
                   <CardTitle className="text-base">Righe prodotto</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {editing && (
+                  {locked && (
                     <p className="mb-3 rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                      Le righe di un ordine esistente non sono modificabili. Per cambiarle, elimina l'ordine e creane uno nuovo.
+                      {received
+                        ? 'Ordine già ricevuto: le quantità sono state sommate allo stock, quindi le righe non sono più modificabili.'
+                        : 'Ordine annullato: le righe non sono più modificabili.'}
                     </p>
                   )}
                   <div className="hidden gap-2 border-b px-1 pb-2 text-xs font-medium text-muted-foreground sm:flex">
@@ -170,7 +195,7 @@ export function PurchaseOrderFormPage() {
                         key={i}
                         className="flex flex-col gap-2 border-b pb-2 sm:flex-row sm:items-center sm:border-0 sm:pb-0"
                       >
-                        {editing ? (
+                        {locked ? (
                           <span className="flex-1 text-sm font-medium">{productName(it.prodotto)}</span>
                         ) : (
                           <select
@@ -186,7 +211,7 @@ export function PurchaseOrderFormPage() {
                             ))}
                           </select>
                         )}
-                        {editing ? (
+                        {locked ? (
                           <span className="w-20 text-sm text-muted-foreground">{it.taglia || '—'}</span>
                         ) : (
                           <Input
@@ -196,7 +221,7 @@ export function PurchaseOrderFormPage() {
                             onChange={(e) => patchItem(i, { taglia: e.target.value })}
                           />
                         )}
-                        {editing ? (
+                        {locked ? (
                           <span className="w-16 text-right text-sm">{it.quantita}</span>
                         ) : (
                           <Input
@@ -207,7 +232,7 @@ export function PurchaseOrderFormPage() {
                             onChange={(e) => patchItem(i, { quantita: Math.max(0, Number(e.target.value) || 0) })}
                           />
                         )}
-                        {editing ? (
+                        {locked ? (
                           <span className="w-24 text-right text-sm">{eur(it.costo_unitario)}</span>
                         ) : (
                           <Input
@@ -222,7 +247,7 @@ export function PurchaseOrderFormPage() {
                         <span className="w-24 text-right text-sm font-semibold">
                           {eur((Number(it.quantita) || 0) * (Number(it.costo_unitario) || 0))}
                         </span>
-                        {editing ? (
+                        {locked ? (
                           <span className="w-8" />
                         ) : (
                           <button
@@ -237,7 +262,7 @@ export function PurchaseOrderFormPage() {
                       </div>
                     ))}
                   </div>
-                  {!editing && (
+                  {!locked && (
                     <Button type="button" variant="outline" size="sm" className="mt-3" onClick={addRow}>
                       <Plus /> Aggiungi riga
                     </Button>
@@ -262,7 +287,7 @@ export function PurchaseOrderFormPage() {
                     <select
                       className={FIELD}
                       value={supplierId}
-                      disabled={editing}
+                      disabled={locked}
                       onChange={(e) => setSupplierId(e.target.value)}
                     >
                       <option value="">— Nessuno —</option>

@@ -102,20 +102,63 @@ router.post('/purchase-orders', requireAdmin, async (req, res) => {
   } catch (err) { await conn.rollback(); console.error('po create', err); return res.status(500).json({ error: 'Errore server' }); }
   finally { conn.release(); }
 });
+/* Accepts { stato, note, supplier_id, items }. Line items are replaced wholesale when
+ * `items` is present — but ONLY while the order is still open: once it is 'ricevuto'
+ * its quantities have already been added to stock, so editing the lines afterwards
+ * would silently desync the warehouse. Same reasoning for 'annullato'. */
 router.put('/purchase-orders/:id', requireAdmin, async (req, res) => {
-  const { stato, note } = req.body || {};
+  const { stato, note, supplier_id, items } = req.body || {};
   if (stato !== undefined && !PO_STATI.includes(stato)) return res.status(400).json({ error: 'Stato non valido' });
+  if (items !== undefined && !Array.isArray(items)) return res.status(400).json({ error: 'Campo items non valido' });
+
+  const conn = await pool.getConnection();
   try {
+    await conn.beginTransaction();
+    const [[po]] = await conn.execute('SELECT * FROM purchase_orders WHERE id = ? FOR UPDATE', [req.params.id]);
+    if (!po) { await conn.rollback(); return res.status(404).json({ error: 'Ordine fornitore non trovato' }); }
+
+    if (items !== undefined && (po.stato === 'ricevuto' || po.stato === 'annullato')) {
+      await conn.rollback();
+      return res.status(409).json({
+        error: po.stato === 'ricevuto'
+          ? 'Ordine già ricevuto: le righe non sono più modificabili (lo stock è stato aggiornato)'
+          : 'Ordine annullato: le righe non sono più modificabili',
+      });
+    }
+
     const fields = [], vals = [];
-    if (stato !== undefined) { fields.push('stato = ?'); vals.push(stato); }
-    if (note  !== undefined) { fields.push('note = ?');  vals.push(note); }
-    if (!fields.length) return res.status(400).json({ error: 'Nessun campo da aggiornare' });
+    if (stato       !== undefined) { fields.push('stato = ?');       vals.push(stato); }
+    if (note        !== undefined) { fields.push('note = ?');        vals.push(note); }
+    if (supplier_id !== undefined) { fields.push('supplier_id = ?');  vals.push(supplier_id || null); }
+
+    if (items !== undefined) {
+      const rows = items.filter(it => it && it.prodotto && (parseInt(it.quantita, 10) || 0) > 0);
+      if (!rows.length) { await conn.rollback(); return res.status(400).json({ error: 'Aggiungi almeno una riga prodotto' }); }
+      await conn.execute('DELETE FROM po_items WHERE po_id = ?', [req.params.id]);
+      let totale = 0;
+      for (const it of rows) {
+        const qty  = parseInt(it.quantita, 10) || 0;
+        const cost = Number(it.costo_unitario) || 0;
+        totale += qty * cost;
+        await conn.execute(
+          'INSERT INTO po_items (po_id, prodotto, taglia, quantita, costo_unitario) VALUES (?, ?, ?, ?, ?)',
+          [req.params.id, String(it.prodotto), it.taglia || null, qty, cost]);
+      }
+      fields.push('totale = ?'); vals.push(totale);
+    }
+
+    if (!fields.length) { await conn.rollback(); return res.status(400).json({ error: 'Nessun campo da aggiornare' }); }
     vals.push(req.params.id);
-    const [r] = await pool.execute(`UPDATE purchase_orders SET ${fields.join(', ')} WHERE id = ?`, vals);
-    if (!r.affectedRows) return res.status(404).json({ error: 'Ordine fornitore non trovato' });
-    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'po.update', entityType: 'purchase_order', entityId: String(req.params.id), details: { stato, note } }).catch(() => {});
+    await conn.execute(`UPDATE purchase_orders SET ${fields.join(', ')} WHERE id = ?`, vals);
+    await conn.commit();
+
+    logAdminAction({ adminId: req.admin.id, adminEmail: req.admin.email, action: 'po.update', entityType: 'purchase_order', entityId: String(req.params.id), details: { stato, note, items: items ? items.length : undefined } }).catch(() => {});
     return res.json({ ok: true });
-  } catch (err) { console.error('po update', err); return res.status(500).json({ error: 'Errore server' }); }
+  } catch (err) {
+    await conn.rollback();
+    console.error('po update', err);
+    return res.status(500).json({ error: 'Errore server' });
+  } finally { conn.release(); }
 });
 router.delete('/purchase-orders/:id', requireAdmin, async (req, res) => {
   const conn = await pool.getConnection();

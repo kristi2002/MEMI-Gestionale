@@ -156,6 +156,28 @@
       save: function(data) { return put('/auth/newsletter', data); },
     },
 
+    /** GDPR (artt. 15/17/20) — data portability + right to erasure. */
+    privacy: {
+      /**
+       * Downloads the full data export as a Blob. Uses fetch directly rather than
+       * the JSON helper because the response is a file attachment, and a plain
+       * <a download> can't carry the Authorization header.
+       */
+      exportData: async function() {
+        var headers = {};
+        var token = getToken();
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        var res = await fetch(API_BASE + '/auth/me/export', { headers: headers });
+        if (!res.ok) {
+          var j = await res.json().catch(function() { return { error: 'Esportazione non riuscita' }; });
+          throw j;
+        }
+        return res.blob();
+      },
+      /** Irreversible. Password re-confirmation is enforced server-side too. */
+      deleteAccount: function(password) { return request('DELETE', '/auth/me', { password: password }); },
+    },
+
     /** True if a token exists in localStorage (doesn't verify it). */
     isLoggedIn: function() { return !!getToken(); },
   };

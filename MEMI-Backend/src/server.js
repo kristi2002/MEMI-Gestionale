@@ -30,6 +30,7 @@ const { pool, testConnection } = require('./db');
 // ── Route modules ──────────────────────────────────────────────
 const authRoutes       = require('./routes/auth');
 const accountRoutes    = require('./routes/account');
+const privacyRoutes    = require('./routes/privacy');
 const adminAuthRoutes  = require('./routes/admin-auth');
 const productsRoutes   = require('./routes/products');
 const productsImportRoutes = require('./routes/products-import');
@@ -49,6 +50,7 @@ const resiRoutes          = require('./routes/resi');
 const resiPublicRoutes    = require('./routes/resi-public');
 const reviewsRoutes       = require('./routes/reviews');
 const settingsRoutes      = require('./routes/settings');
+const storeInfoRoutes     = require('./routes/store-info');
 const staffRoutes         = require('./routes/staff');
 const giftcardsRoutes     = require('./routes/giftcards');
 const giftcardsPublicRoutes = require('./routes/giftcards-public');
@@ -78,6 +80,7 @@ const posRoutes           = require('./routes/pos');
 const appsRoutes          = require('./routes/apps');
 const { ensureDir: ensureUploadsDir, UPLOADS_DIR } = require('./images');
 const { requestLogger }  = require('./logger');
+const { errorHandler, installProcessHandlers, isConfigured: errorReportingConfigured } = require('./error-reporter');
 const { requireAdmin, requirePermission } = require('./middleware/auth');
 
 const app  = express();
@@ -178,6 +181,10 @@ if (process.env.NODE_ENV === 'production') {
   }
   if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.length < 12) {
     console.error('🔴  WARNING: ADMIN_PASSWORD is shorter than 12 chars — the admin panel is internet-facing.');
+  }
+  // Without this, a 500 in production exists only as a line in stdout that nobody reads.
+  if (!errorReportingConfigured()) {
+    console.error('🔴  WARNING: ERROR_WEBHOOK_URL not set — server errors are logged to stdout only, with no alert.');
   }
 }
 
@@ -294,6 +301,15 @@ app.post('/api/reviews', publicWriteLimiter);
 app.post('/api/newsletter/subscribe', publicWriteLimiter);
 app.post('/api/resi/request', publicWriteLimiter);
 app.use('/api/giftcards/validate', codeProbeLimiter);
+// GDPR export walks every table that holds the customer's data — cheap per call but
+// trivially abusable as an amplification vector, so it gets its own small budget.
+app.use('/api/auth/me/export', rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Troppe esportazioni richieste, riprova tra un\'ora' },
+}));
 
 // ── Health check ───────────────────────────────────────────────
 // Checks DB connectivity, not just "the process is alive" — a Docker/Coolify healthcheck
@@ -320,6 +336,7 @@ app.get('/health', async (req, res) => {
 // and their admin-only sub-routes are gated internally where needed (e.g. liveview below).
 app.use('/api/auth',              authRoutes);
 app.use('/api/auth',              accountRoutes);   // wishlist, addresses, newsletter (customer)
+app.use('/api/auth',              privacyRoutes);   // GDPR: data export + account erasure
 app.use('/api/admin/auth',        adminAuthRoutes);
 app.use('/api/products',          productVariantsRoutes);   // /:id/variants* (before flat products router)
 app.use('/api/products',          productsRoutes);
@@ -340,6 +357,7 @@ app.use('/api/admin/invoices',    requireAdmin, requirePermission('invoices'), i
 app.use('/api/admin/resi',        requireAdmin, requirePermission('returns'), resiRoutes);   // gates the Stripe refund endpoint to returns-permitted staff
 app.use('/api/resi',              resiPublicRoutes);
 app.use('/api/reviews',           reviewsRoutes);
+app.use('/api/store-info',        storeInfoRoutes);   // public company/legal identity (footer + legal pages)
 app.use('/api/admin/settings',    requireAdmin, requirePermission('settings'), settingsRoutes);
 app.use('/api/admin/staff',       requireAdmin, requirePermission('staff'), staffRoutes);
 app.use('/api/admin/giftcards',   requireAdmin, requirePermission('giftcards'), giftcardsRoutes);
@@ -374,10 +392,9 @@ app.use('/api/admin/apps',         requireAdmin, requirePermission('apps'), apps
 app.use((req, res) => res.status(404).json({ error: 'Endpoint non trovato' }));
 
 // ── Global error handler ───────────────────────────────────────
-app.use((err, req, res, _next) => {
-  console.error('Unhandled error:', err);
-  res.status(500).json({ error: 'Errore interno del server' });
-});
+// Structured capture + optional ERROR_WEBHOOK_URL alert, and the request id is
+// returned to the client so a support ticket can be tied to a log line.
+app.use(errorHandler);
 
 // ── Startup ───────────────────────────────────────────────────
 // Wait for MySQL instead of dying on the first refused connection. On a FRESH
@@ -399,6 +416,9 @@ async function connectWithRetry(maxAttempts = 30, delayMs = 2000) {
     }
   }
 }
+
+// Catch throws outside the request cycle (timers, streams, un-awaited promises).
+installProcessHandlers();
 
 (async () => {
   try {

@@ -297,7 +297,11 @@ NCOL="$(curl -fsS "$BASE/api/colors" 2>/dev/null | node -e 'let d="";process.std
 C="$(code -X POST -H 'Content-Type: application/json' -d '{"name":"x","hex":"#112233"}' "$BASE/api/admin/colors")"
 [ "$C" = "401" ] && ok "POST /api/admin/colors without token -> 401" || ko "colors create unauth -> HTTP $C"
 if [ -n "${ADMIN_TOKEN:-}" ]; then
-  CSLUG="smoke-color-$"
+  # Must survive the backend's slugify(): it strips every non-alphanumeric, so a slug
+  # containing punctuation is stored DIFFERENT from what the product's `colore` references,
+  # the join silently misses, and the in-use guard below passes for the wrong reason.
+  # (This read `smoke-color-$` — a mangled `$(date +%s)` — which failed exactly that way.)
+  CSLUG="smoke-color-$(date +%s)"
   CID="$(curl -fsS -X POST "$BASE/api/admin/colors" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
     -d "{\"name\":\"Smoke Oliva\",\"hex\":\"#556B2F\",\"slug\":\"$CSLUG\"}" 2>/dev/null | jget id)"
   [ -n "$CID" ] && ok "color created (id $CID)" || ko "color create failed"
@@ -310,7 +314,7 @@ if [ -n "${ADMIN_TOKEN:-}" ]; then
   [ "$CHEX" = "#556B2F" ] && ok "product detail exposes color_hex ($CHEX)" || ko "color_hex = '$CHEX' (expected #556B2F)"
   C="$(code -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/colors/$CID")"
   [ "$C" = "409" ] && ok "delete color in use -> 409" || ko "delete in-use color -> HTTP $C (expected 409)"
-  PNG9="smoke-color-$.png"
+  PNG9="smoke-color-$(date +%s).png"
   printf 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' | base64 -d > "$PNG9" 2>/dev/null
   SUG="$(curl -fsS -X POST "$BASE/api/admin/colors/suggest-from-image" -H "Authorization: Bearer $ADMIN_TOKEN" -F "image=@$PNG9;type=image/png" 2>/dev/null)"
   rm -f "$PNG9" 2>/dev/null
@@ -351,6 +355,116 @@ CS="$(code -X POST -H 'Content-Type: application/json' -d '{"amount_cents":5000}
 if [ "$CS" = "503" ]; then ok "POST /sumup/create-checkout unconfigured -> 503"
 elif [ "$CS" = "200" ]; then ok "POST /sumup/create-checkout configured -> 200"
 else ko "sumup/create-checkout -> HTTP $CS (expected 503 unconfigured / 200 configured)"; fi
+
+echo
+# 11 — Public company/legal identity (the storefront footer + legal pages read this)
+echo "[11] Store info (dati aziendali pubblici)"
+SI="$(curl -fsS "$BASE/api/store-info" 2>/dev/null)"
+if echo "$SI" | grep -q '"configured"'; then
+  ok "GET /api/store-info -> responds with a configured flag"
+else
+  ko "GET /api/store-info missing 'configured' flag"
+fi
+# This endpoint is public and reads from store_settings, which also holds secrets-adjacent
+# keys. The whitelist is the only thing stopping a leak, so assert it directly.
+if echo "$SI" | grep -qiE 'password|secret|stripe|smtp|jwt|api_key'; then
+  ko "GET /api/store-info leaked a non-public settings key"
+else
+  ok "GET /api/store-info exposes only whitelisted keys"
+fi
+
+echo
+# 12 — GDPR data-subject rights (artt. 15/17/20)
+echo "[12] GDPR export + erasure"
+if [ -n "$CUST_TOKEN" ]; then
+  EXP="$(curl -fsS -H "Authorization: Bearer $CUST_TOKEN" "$BASE/api/auth/me/export" 2>/dev/null)"
+  echo "$EXP" | grep -q '"profilo"' \
+    && ok "GET /api/auth/me/export -> data export produced" \
+    || ko "GET /api/auth/me/export did not return a profile section"
+  if echo "$EXP" | grep -q 'password_hash'; then
+    ko "GDPR export leaked password_hash"
+  else
+    ok "GDPR export omits password_hash"
+  fi
+  # Erasure is irreversible, so a wrong/missing password must be refused.
+  C="$(code -X DELETE -H "Authorization: Bearer $CUST_TOKEN" -H 'Content-Type: application/json' \
+        -d '{"password":"definitely-not-the-password"}' "$BASE/api/auth/me")"
+  [ "$C" = "401" ] && ok "DELETE /api/auth/me wrong password -> 401" || ko "DELETE /api/auth/me wrong password -> HTTP $C (expected 401)"
+  C="$(code -X DELETE -H "Authorization: Bearer $CUST_TOKEN" -H 'Content-Type: application/json' -d '{}' "$BASE/api/auth/me")"
+  [ "$C" = "400" ] && ok "DELETE /api/auth/me without password -> 400" || ko "DELETE /api/auth/me without password -> HTTP $C (expected 400)"
+  # Real erasure, on the throwaway account section [6] registered.
+  C="$(code -X DELETE -H "Authorization: Bearer $CUST_TOKEN" -H 'Content-Type: application/json' \
+        -d '{"password":"Test1234!"}' "$BASE/api/auth/me")"
+  [ "$C" = "200" ] && ok "DELETE /api/auth/me correct password -> 200 (account erased)" || ko "DELETE /api/auth/me -> HTTP $C (expected 200)"
+  # The JWT is still cryptographically valid; the account behind it is gone.
+  C="$(code -H "Authorization: Bearer $CUST_TOKEN" "$BASE/api/auth/me")"
+  if [ "$C" = "401" ] || [ "$C" = "404" ]; then ok "erased account: /api/auth/me -> $C"
+  else ko "erased account still resolves -> HTTP $C"; fi
+else
+  ko "skipping GDPR checks — no customer token from [6]"
+fi
+
+echo
+# 13 — Order internal note (admin). Self-contained: [8] deletes its own orders.
+echo "[13] Order note"
+if [ -n "$ADMIN_TOKEN" ]; then
+  P13="smoke-note-$(date +%s)"
+  curl -s -o /dev/null -X POST "$BASE/api/products" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$P13\",\"name\":\"Smoke Note\",\"categoria\":\"vestiti\",\"price\":25,\"taglie\":[{\"taglia\":\"M\",\"stock\":2}]}"
+  NOID="$(curl -fsS -X POST "$BASE/api/orders/admin" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"nome\":\"Smoke\",\"email\":\"smoke-note@example.com\",\"items\":[{\"product_id\":\"$P13\",\"taglia\":\"M\",\"qty\":1}]}" 2>/dev/null | jget id)"
+  if [ -n "$NOID" ]; then
+    C="$(code -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+          -d '{"notes":"nota smoke test"}' "$BASE/api/orders/admin/$NOID/notes")"
+    [ "$C" = "200" ] && ok "PUT /api/orders/admin/:id/notes -> 200" || ko "order notes -> HTTP $C"
+    NOTE="$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/orders/admin/$NOID" 2>/dev/null | jget notes)"
+    [ "$NOTE" = "nota smoke test" ] && ok "note persisted and read back" || ko "note not persisted (got '$NOTE')"
+    # Notes must stay editable on a cancelled order — that is why it is not part of /status.
+    curl -s -o /dev/null -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+      -d '{"order_status":"annullato"}' "$BASE/api/orders/admin/$NOID/status"
+    C="$(code -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+          -d '{"notes":"nota dopo annullamento"}' "$BASE/api/orders/admin/$NOID/notes")"
+    [ "$C" = "200" ] && ok "note editable on a cancelled order -> 200" || ko "note on cancelled order -> HTTP $C"
+    curl -s -o /dev/null -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/orders/admin/$NOID"
+  else
+    ko "order create for note check failed"
+  fi
+  curl -s -o /dev/null -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/products/$P13"
+else
+  ko "skipping order-note check — no admin token"
+fi
+
+echo
+# 14 — Purchase-order line editing (open PO editable, received PO locked)
+echo "[14] Purchase order line editing"
+if [ -n "$ADMIN_TOKEN" ]; then
+  P14="smoke-po-$(date +%s)"
+  curl -s -o /dev/null -X POST "$BASE/api/products" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$P14\",\"name\":\"Smoke PO\",\"categoria\":\"vestiti\",\"price\":30,\"taglie\":[{\"taglia\":\"M\",\"stock\":0}]}"
+  POID="$(curl -fsS -X POST "$BASE/api/admin/purchase-orders" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"items\":[{\"prodotto\":\"$P14\",\"taglia\":\"M\",\"quantita\":2,\"costo_unitario\":10}]}" 2>/dev/null | jget id)"
+  if [ -n "$POID" ]; then
+    ok "purchase order created (id $POID)"
+    C="$(code -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+          -d "{\"items\":[{\"prodotto\":\"$P14\",\"taglia\":\"M\",\"quantita\":5,\"costo_unitario\":12}]}" \
+          "$BASE/api/admin/purchase-orders/$POID")"
+    [ "$C" = "200" ] && ok "open PO: line items editable -> 200" || ko "open PO line edit -> HTTP $C (expected 200)"
+    QTY="$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/purchase-orders/$POID" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{console.log(JSON.parse(d).items[0].quantita)}catch(e){console.log("")}})')"
+    [ "$QTY" = "5" ] && ok "edited quantity persisted (2 -> 5)" || ko "PO quantity after edit = '$QTY' (expected 5)"
+    curl -s -o /dev/null -X POST -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/purchase-orders/$POID/receive"
+    # Once received, the quantities are already in stock: editing lines would desync it.
+    C="$(code -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+          -d "{\"items\":[{\"prodotto\":\"$P14\",\"taglia\":\"M\",\"quantita\":99,\"costo_unitario\":1}]}" \
+          "$BASE/api/admin/purchase-orders/$POID")"
+    [ "$C" = "409" ] && ok "received PO: line edit rejected -> 409" || ko "received PO line edit -> HTTP $C (expected 409)"
+    curl -s -o /dev/null -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/purchase-orders/$POID"
+  else
+    ko "purchase order create failed"
+  fi
+  curl -s -o /dev/null -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/products/$P14"
+else
+  ko "skipping PO check — no admin token"
+fi
 
 echo
 echo "------------------------------"

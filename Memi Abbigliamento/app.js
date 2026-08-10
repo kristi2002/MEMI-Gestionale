@@ -568,7 +568,8 @@
     </div>
   </div>
   <div class="sf2-bottom">
-    <p>© 2025 Memi Abbigliamento · Tutti i diritti riservati</p>
+    <p class="sf2-legalinfo" id="sf2LegalInfo" hidden></p>
+    <p>© ${new Date().getFullYear()} Memi Abbigliamento · Tutti i diritti riservati</p>
     <nav class="sf2-legal" aria-label="Link legali">
       <a href="/privacy">Privacy</a>
       <a href="cookie-policy.html">Cookie</a>
@@ -621,6 +622,7 @@
         .sf2-legal-link-btn{background:none;border:none;padding:0;margin:0;font:inherit;font-size:.7rem;color:var(--brown-light,#9e8a8a);text-decoration:none;transition:color .2s;cursor:pointer;}
         .sf2-legal-link-btn:hover{color:var(--espresso,#3B2B2B);}
         .sf2-made{color:var(--brown-light,#9e8a8a);letter-spacing:.04em;}
+        .sf2-legalinfo{flex-basis:100%;order:-1;margin-bottom:.35rem;color:var(--brown-light,#9e8a8a);font-size:.68rem;line-height:1.5;}
         .sf2-newsletter{margin-top:1.75rem;}
         .sf2-nl-label{font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;color:var(--brown-light,#9e8a8a);margin-bottom:.65rem;}
         .sf2-nl-form{display:flex;border:1px solid var(--beige-dark,#BEBEDD);border-radius:4px;overflow:hidden;max-width:260px;}
@@ -666,6 +668,12 @@
       document.body.insertAdjacentHTML('beforeend', footerHtml);
     }
 
+    // Company/legal identity (ragione sociale, sede legale, P. IVA) must be published on
+    // an Italian e-commerce site — D.Lgs 70/2003 art. 7, DPR 633/72 art. 35. It lives in
+    // store_settings and is served by GET /api/store-info, so the owner edits it from the
+    // admin rather than it being hardcoded here.
+    paintLegalInfo();
+
     // "Preferenze cookie" footer link — re-opens the consent preferences panel
     var cookiePrefsBtn = document.getElementById('sf2CookiePrefsBtn');
     if (cookiePrefsBtn) {
@@ -676,6 +684,49 @@
       });
     }
   }
+
+  /* ── Company legal line (footer + legal pages) ──────────────────────────
+     Fetched once per page load and cached on window so the footer and any legal
+     page on the same document share a single request. Nothing is rendered when
+     the data isn't configured yet: printing a placeholder where a P. IVA belongs
+     is what the audit flagged, so the element simply stays hidden. */
+  var _storeInfoPromise = null;
+  function fetchStoreInfo() {
+    if (_storeInfoPromise) return _storeInfoPromise;
+    var base = (window.MemiAPI && window.MemiAPI._base) || '/api';
+    _storeInfoPromise = fetch(base + '/store-info')
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+    return _storeInfoPromise;
+  }
+  window.memiStoreInfo = fetchStoreInfo;
+
+  function paintLegalInfo() {
+    var el = document.getElementById('sf2LegalInfo');
+    if (!el) return;
+    fetchStoreInfo().then(function (info) {
+      if (!info || !info.configured || !info.legal_line) return;
+      el.textContent = info.legal_line;
+      el.hidden = false;
+    });
+  }
+
+  /* Legal pages carry <span data-store-info="legal_line"> (or any other public key)
+     where the company data belongs. Filled from the same cached response; left as
+     the page's own fallback text when nothing is configured. */
+  function paintStoreInfoSlots() {
+    var slots = document.querySelectorAll('[data-store-info]');
+    if (!slots.length) return;
+    fetchStoreInfo().then(function (info) {
+      if (!info || !info.configured) return;
+      slots.forEach(function (node) {
+        var key = node.getAttribute('data-store-info');
+        var val = info[key];
+        if (val) { node.textContent = val; node.removeAttribute('data-store-info-missing'); }
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', paintStoreInfoSlots);
 
   /* ── 5. INJECT MARKUP ──────────────────────────────────── */
 

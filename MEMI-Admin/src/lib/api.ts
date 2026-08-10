@@ -91,6 +91,7 @@ import type {
   CustomerListResponse,
   Discount,
   ResiResponse,
+  Invoice,
   InvoicesResponse,
   ReviewsResponse,
   NewsletterResponse,
@@ -164,6 +165,8 @@ export const api = {
         '/orders/admin/' + id + '/refresh-tracking',
         {},
       ),
+    updateNotes: (id: number, notes: string | null) =>
+      put<{ ok: boolean }>('/orders/admin/' + id + '/notes', { notes }),
     delete: (id: number) => del<{ ok: boolean }>('/orders/admin/' + id),
     create: (data: unknown) =>
       post<{ ok: boolean; id: number; order_number: string; total: number }>('/orders/admin', data),
@@ -177,6 +180,18 @@ export const api = {
     updateStock: (id: string, taglia: string, stock: number) =>
       put('/products/' + encodeURIComponent(id) + '/stock', { taglia, stock }),
     delete: (id: string) => del('/products/' + encodeURIComponent(id)),
+    /** Multipart upload → sharp converts each file into WebP variants server-side. */
+    uploadImages: (id: string, files: FileList | File[]) => {
+      const fd = new FormData();
+      for (const f of Array.from(files)) fd.append('images', f);
+      return upload<{ ok: boolean; images: import('@/types').ProductImage[] }>(
+        '/products/' + encodeURIComponent(id) + '/images', fd,
+      );
+    },
+    deleteImage: (id: string, url: string) =>
+      del<{ ok: boolean; images: import('@/types').ProductImage[] }>(
+        '/products/' + encodeURIComponent(id) + '/images', { url },
+      ),
     importCsv: (file: File, dryRun?: boolean) => {
       const fd = new FormData();
       fd.append('file', file);
@@ -242,6 +257,11 @@ export const api = {
   },
   invoices: {
     list: (params?: Query) => get<InvoicesResponse>('/admin/invoices' + qs(params)),
+    /** Issues F-YYYY-NNNN from an existing order (409 if the order already has one). */
+    create: (data: { order_id: number; tax_rate?: number; note?: string; due_date?: string }) =>
+      post<{ invoice: Invoice }>('/admin/invoices', data),
+    update: (id: number, data: { stato?: string; note?: string; due_date?: string | null }) =>
+      put<{ invoice: Invoice }>('/admin/invoices/' + id, data),
     delete: (id: number) => del('/admin/invoices/' + id),
     pdfUrl: (id: number) => API_BASE + '/admin/invoices/' + id + '/pdf',
   },
@@ -420,6 +440,13 @@ export const api = {
       return upload<{ added: number; media: import('@/types').MediaItem[] }>('/admin/settings/media', fd);
     },
     deleteMedia: (url: string) => del<{ removed: number; media: import('@/types').MediaItem[] }>('/admin/settings/media', { url }),
+  },
+  chat: {
+    list: () => get<import('@/types').ChatListResponse>('/admin/chat'),
+    get: (id: number) => get<import('@/types').ChatDetailResponse>('/admin/chat/' + id),
+    reply: (id: number, body: string) => post<{ ok: boolean }>('/admin/chat/' + id + '/reply', { body }),
+    setStatus: (id: number, status: 'aperta' | 'chiusa') => put<{ ok: boolean }>('/admin/chat/' + id, { status }),
+    remove: (id: number) => del<{ ok: boolean }>('/admin/chat/' + id),
   },
   reports: { get: () => get<ReportsData>('/admin/reports') },
   onlineStore: { get: () => get<OnlineStoreData>('/admin/online-store') },

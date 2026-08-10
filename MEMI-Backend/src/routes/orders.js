@@ -890,6 +890,30 @@ router.get('/admin/:id', requireAdmin, requirePermission('orders'), async (req, 
   }
 });
 
+/* ── PUT /api/orders/admin/:id/notes ── internal note on an order ──
+ * Separate from /status because a note is free text with no state machine: it must be
+ * editable on a cancelled or delivered order too, where /status rightly refuses changes. */
+router.put('/admin/:id/notes', requireAdmin, requirePermission('orders'), async (req, res) => {
+  const { notes } = req.body || {};
+  if (notes !== null && typeof notes !== 'string')
+    return res.status(400).json({ error: 'Campo notes non valido' });
+  // TEXT column — bound so an oversized paste is rejected rather than silently truncated by MySQL.
+  if (typeof notes === 'string' && notes.length > 5000)
+    return res.status(400).json({ error: 'Nota troppo lunga (max 5000 caratteri)' });
+  try {
+    const [r] = await pool.execute('UPDATE orders SET notes = ? WHERE id = ?', [notes || null, req.params.id]);
+    if (!r.affectedRows) return res.status(404).json({ error: 'Ordine non trovato' });
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'order.notes',
+      entityType: 'order', entityId: String(req.params.id), details: {},
+    }).catch(() => {});
+    return res.json({ ok: true });
+  } catch (err) {
+    (req.log || console).error({ err }, 'order notes update');
+    return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
 /* ── PUT /api/admin/orders/:id/status ── */
 router.put('/admin/:id/status', requireAdmin, requirePermission('orders'), async (req, res) => {
   const { order_status, payment_status } = req.body;

@@ -31,6 +31,10 @@ export const VIEW_BY_PATH: Record<string, string> = {
   '/loyalty': 'loyalty',
   '/segments': 'segments',
   '/reviews': 'reviews',
+  '/chat': 'chat',
+  // Contenuti — the backend gates /api/admin/cms with requirePermission('content','blog')
+  '/content/pages': 'content',
+  '/content/blog': 'blog',
   // Marketing
   '/automations': 'automations',
   '/lifecycle': 'marketing', // backend gates /api/admin/lifecycle under 'marketing'

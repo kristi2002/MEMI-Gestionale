@@ -117,6 +117,8 @@ Every row below corresponds to a route mounted in `src/server.js` and defined in
 | PUT/DELETE | `/api/auth/addresses/:id` | Cust | Update / delete address |
 | PUT | `/api/auth/addresses/:id/default` | Cust | Set default address |
 | GET/PUT | `/api/auth/newsletter` | Cust | Subscription status / update frequenza+topics |
+| GET | `/api/auth/me/export` | Cust | **GDPR artt. 15+20** — full personal-data export as a JSON attachment (profile, addresses, orders+items, reviews, resi, loyalty ledger, newsletter, chat, email log). Never includes `password_hash`. Rate-limited 5/h (`privacy.js`) |
+| DELETE | `/api/auth/me` | Cust | **GDPR art. 17** — erasure. Requires `{password}` re-confirmation (401 on mismatch, 400 if absent). Deletes account data, pseudonymises reviews; **orders/invoices are retained** and detached (`customer_id` → NULL) for the 10-year fiscal obligation — art. 17(3)(b), art. 2220 c.c. (`privacy.js`) |
 
 ### Auth — admin (`admin-auth.js` — mounted `/api/admin/auth`)
 
@@ -159,6 +161,7 @@ Every row below corresponds to a route mounted in `src/server.js` and defined in
 | POST | `/api/admin/collections/hero` | Admin+perm `collections` | Upload hero image → WebP |
 | GET | `/api/collections` | Public | Published collections metadata (storefront hero/title) |
 | GET | `/api/collections/:slug` | Public | One published collection's metadata |
+| GET | `/api/store-info` | Public | Company/legal identity for the storefront footer and legal pages (`store-info.js`). Serves a **whitelisted** subset of `store_settings` plus a preformatted `legal_line` and a `configured` flag; 60s in-process cache, invalidated by the settings PUT. Required by D.Lgs 70/2003 art. 7 and DPR 633/72 art. 35 |
 | GET | `/api/colors` | Public | Colour palette (storefront swatches) |
 | GET/POST | `/api/admin/colors` | Admin+perm `products` | List (live counts) / create colour |
 | PUT/DELETE | `/api/admin/colors/:id` | Admin+perm `products` | Update (slug immutable) / delete (409 if in use) |
@@ -181,6 +184,7 @@ in_attesa|in_preparazione|spedito|consegnato|annullato`.
 | POST | `/api/orders/admin` | Admin+perm `orders` | Manual order (`in_preparazione`) |
 | GET | `/api/orders/admin/:id` | Admin+perm `orders` | Detail + items + shipment |
 | PUT | `/api/orders/admin/:id/status` | Admin+perm `orders` | Update status; cancel compensates **and auto-refunds** a paid order to the card; stamps `delivered_at` on first→`consegnato`; first→`pagato` emits invoice |
+| PUT | `/api/orders/admin/:id/notes` | Admin+perm `orders` | Set the internal note (`{notes}`, max 5000 chars, `null` clears). Separate from `/status` on purpose: a note must stay editable on a cancelled or delivered order, where `/status` rightly refuses changes |
 | PUT | `/api/orders/admin/:id/ship` | Admin+perm `orders` | Assign courier+tracking → `spedito` + email |
 | POST | `/api/orders/admin/:id/send-tracking` | Admin+perm `orders` | Re-send tracking email |
 | POST | `/api/orders/admin/:id/refresh-tracking` | Admin+perm `orders` | Refresh courier tracking status |
@@ -327,7 +331,7 @@ in_attesa|in_preparazione|spedito|consegnato|annullato`.
 | GET | `/api/admin/liveview` | Admin+perm `liveview` | Live traffic snapshot |
 | GET/POST/PUT/DELETE | `/api/admin/transfers[/:id]` | Admin+perm `transfers` | Stock-transfer log CRUD (log only; no stock mutation) |
 | GET/POST/PUT/DELETE | `/api/admin/suppliers[/:id]` | Admin+perm `inventory` | Supplier CRUD |
-| GET/POST/PUT/DELETE | `/api/admin/purchase-orders[/:id]` | Admin+perm `inventory` | PO CRUD (`PO-YYYY-NNNN`) |
+| GET/POST/PUT/DELETE | `/api/admin/purchase-orders[/:id]` | Admin+perm `inventory` | PO CRUD (`PO-YYYY-NNNN`). `PUT` accepts `{stato, note, supplier_id, items}`; passing `items` replaces the lines wholesale and recomputes `totale`, but **only while the PO is open** — a `ricevuto` or `annullato` PO returns **409**, because its quantities are already in stock and editing them would desync the warehouse |
 | POST | `/api/admin/purchase-orders/:id/receive` | Admin+perm `inventory` | Mark received → add qty to stock |
 | GET | `/api/feed/meta.csv` | Public | Meta/Google Shopping CSV feed (`max-age=3600`) |
 | GET | `/api/admin/reports` | Admin+perm `reports` | Aggregate reports (sales by month, by status, top categories, YTD) |

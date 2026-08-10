@@ -1,6 +1,9 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Star, MessageSquare, Check, X } from 'lucide-react';
+import { Star, MessageSquare, Check, X, MessageSquareReply, Loader2 } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
@@ -11,7 +14,7 @@ import { EmptyState } from '@/components/common/empty-state';
 import { Button } from '@/components/ui/button';
 import { useReviews, useDeleteMany, useUpdateOne } from '@/hooks/queries';
 import { api } from '@/lib/api';
-import { date } from '@/lib/format';
+import { date, dateTime } from '@/lib/format';
 import { statusLabel } from '@/lib/status';
 import type { Review } from '@/types';
 import type { ExportColumn } from '@/lib/export';
@@ -42,6 +45,11 @@ export function ReviewsPage() {
   const del = useDeleteMany<number>((id) => api.reviews.delete(id), 'reviews');
   const update = useUpdateOne<number>((id, data) => api.reviews.update(id, data), 'reviews');
   const rows = query.data?.reviews ?? [];
+  // Opening a review is how you reply to it: the backend has always accepted
+  // `risposta_admin`, but the list only exposed publish/reject, so a shop reply
+  // to a bad review was impossible from this app.
+  const [openId, setOpenId] = useState<number | null>(null);
+  const open = openId == null ? null : rows.find((r) => r.id === openId) ?? null;
 
   const filters = useMemo<FilterDef<Review>[]>(
     () => [
@@ -72,6 +80,19 @@ export function ReviewsPage() {
       },
       { accessorKey: 'created_at', header: 'Data', cell: ({ getValue }) => <span className="text-muted-foreground">{date(getValue() as string)}</span> },
       { accessorKey: 'stato', header: 'Stato', cell: ({ getValue }) => <StatusBadge code={getValue() as string} /> },
+      {
+        id: 'risposta',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="sm" onClick={() => setOpenId(row.original.id)}>
+              <MessageSquareReply />
+              {row.original.risposta_admin ? 'Risposta' : 'Rispondi'}
+            </Button>
+          </div>
+        ),
+      },
     ],
     [],
   );
@@ -117,6 +138,96 @@ export function ReviewsPage() {
           );
         }}
       />
+
+      <ReviewReplyDialog
+        review={open}
+        onClose={() => setOpenId(null)}
+        onSave={async (data) => {
+          if (!open) return;
+          await update.mutateAsync({ id: open.id, data });
+        }}
+      />
     </div>
+  );
+}
+
+/** Read the full review, write the public shop reply, and moderate in one place. */
+function ReviewReplyDialog({ review, onClose, onSave }: {
+  review: Review | null;
+  onClose: () => void;
+  onSave: (data: { risposta_admin?: string | null; stato?: string }) => Promise<void>;
+}) {
+  const [reply, setReply] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setReply(review?.risposta_admin ?? '');
+  }, [review]);
+
+  async function save(stato?: string) {
+    setBusy(true);
+    try {
+      // The backend rejects a body with neither field, so always send the reply —
+      // an empty string clears it (stored as NULL).
+      await onSave({ risposta_admin: reply.trim() || null, ...(stato ? { stato } : {}) });
+      toast.success(stato ? 'Recensione aggiornata' : 'Risposta salvata');
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Salvataggio non riuscito');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open={review != null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg">
+        {review && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Stars n={Number(review.rating)} /> {review.titolo || 'Recensione'}
+              </DialogTitle>
+              <DialogDescription>
+                {review.customer_nome || 'Cliente'} · {review.product_name} · {dateTime(review.created_at)}
+              </DialogDescription>
+            </DialogHeader>
+
+            <p className="whitespace-pre-wrap rounded-md bg-muted/50 px-3 py-2 text-sm">
+              {review.testo || <span className="text-muted-foreground">Nessun testo.</span>}
+            </p>
+
+            <div className="space-y-1.5">
+              <label htmlFor="risposta" className="text-sm font-medium">Risposta pubblica</label>
+              <textarea
+                id="risposta"
+                className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                value={reply}
+                placeholder="La tua risposta viene mostrata sotto la recensione sulla scheda prodotto."
+                onChange={(e) => setReply(e.target.value)}
+              />
+            </div>
+
+            <DialogFooter className="gap-2 sm:justify-between">
+              <div className="flex gap-2">
+                {review.stato !== 'pubblicata' && (
+                  <Button variant="outline" size="sm" disabled={busy} onClick={() => save('pubblicata')}>
+                    <Check /> Pubblica
+                  </Button>
+                )}
+                {review.stato !== 'rifiutata' && (
+                  <Button variant="outline" size="sm" disabled={busy} onClick={() => save('rifiutata')}>
+                    <X /> Rifiuta
+                  </Button>
+                )}
+              </div>
+              <Button size="sm" disabled={busy} onClick={() => save()}>
+                {busy && <Loader2 className="animate-spin" />} Salva risposta
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

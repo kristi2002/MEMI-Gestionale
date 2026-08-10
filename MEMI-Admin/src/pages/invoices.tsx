@@ -6,10 +6,13 @@ import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
 import type { FilterDef } from '@/components/data-table/filters';
 import { BulkDelete } from '@/components/data-table/bulk-delete';
+import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/common/status-badge';
 import { EmptyState } from '@/components/common/empty-state';
-import { useInvoices, useDeleteMany } from '@/hooks/queries';
+import { useInvoices, useDeleteMany, useUpdateOne } from '@/hooks/queries';
+import { toast } from 'sonner';
+import { CheckCircle2, Send, Ban } from 'lucide-react';
 import { api } from '@/lib/api';
 import { eur, date } from '@/lib/format';
 import { statusLabel } from '@/lib/status';
@@ -31,7 +34,17 @@ const exportColumns: ExportColumn<Invoice>[] = [
 export function InvoicesPage() {
   const query = useInvoices();
   const del = useDeleteMany<number>((id) => api.invoices.delete(id), 'invoices');
+  const update = useUpdateOne<number>((id, data) => api.invoices.update(id, data as { stato?: string }), 'invoices');
   const rows = query.data?.invoices ?? [];
+
+  /* An invoice is a fiscal document: it is never edited in place, only moved along
+   * its state machine (emessa → inviata → pagata, or annullata). Bulk actions mirror
+   * exactly the transitions the backend accepts. */
+  async function setStato(ids: number[], stato: string, label: string, clear: () => void) {
+    await Promise.all(ids.map((id) => update.mutateAsync({ id, data: { stato } })));
+    toast.success(`${ids.length} fatture ${label}`);
+    clear();
+  }
 
   const filters = useMemo<FilterDef<Invoice>[]>(
     () => [
@@ -105,9 +118,28 @@ export function InvoicesPage() {
         tableId="invoices"
         isLoading={query.isLoading}
         emptyState={<EmptyState icon={FileText} title="Nessuna fattura emessa" />}
-        bulkActions={(selected, clear) => (
-          <BulkDelete count={selected.length} noun="fatture" onDelete={() => del.mutateAsync(selected.map((i) => i.id))} onDone={clear} />
-        )}
+        bulkActions={(selected, clear) => {
+          const ids = selected.map((i) => i.id);
+          return (
+            <>
+              <Button variant="secondary" size="sm" onClick={() => setStato(ids, 'inviata', 'segnate come inviate', clear)}>
+                <Send /> Segna inviata
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setStato(ids, 'pagata', 'segnate come pagate', clear)}>
+                <CheckCircle2 /> Segna pagata
+              </Button>
+              <ConfirmDialog
+                title={`Annullare ${ids.length} fatture?`}
+                description="La fattura resta registrata ma passa allo stato «annullata». Per la nota di credito rivolgiti al commercialista."
+                confirmLabel="Annulla fatture"
+                destructive
+                onConfirm={() => setStato(ids, 'annullata', 'annullate', clear)}
+                trigger={<Button variant="secondary" size="sm"><Ban /> Annulla</Button>}
+              />
+              <BulkDelete count={ids.length} noun="fatture" onDelete={() => del.mutateAsync(ids)} onDone={clear} />
+            </>
+          );
+        }}
       />
     </div>
   );

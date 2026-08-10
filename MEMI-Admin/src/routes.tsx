@@ -39,6 +39,8 @@ import { LiveviewPage } from '@/pages/liveview';
 import { IntegrationsPage } from '@/pages/integrations';
 import { ReportsPage } from '@/pages/reports';
 import { AppsPage } from '@/pages/apps';
+import { ChatPage } from '@/pages/chat';
+import { CmsPagesPage, BlogPage } from '@/pages/content';
 
 /** Concrete React pages ported in this delivery, keyed by route path. */
 const READY_PAGES: Record<string, ReactElement> = {
@@ -82,6 +84,9 @@ const READY_PAGES: Record<string, ReactElement> = {
   '/integrations': <IntegrationsPage />,
   '/reports': <ReportsPage />,
   '/apps': <AppsPage />,
+  '/chat': <ChatPage />,
+  '/content/pages': <CmsPagesPage />,
+  '/content/blog': <BlogPage />,
 };
 
 export interface AppRoute {

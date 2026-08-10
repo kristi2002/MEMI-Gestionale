@@ -318,3 +318,101 @@ to the default). New smoke section `[8c] Admin entity CRUD`. (UPDATE: the `/api/
 `routes/colors.js`, mounted public `/api/colors` + admin `/api/admin/colors` — so smoke `[9] Colors`
 exercises a live endpoint; the earlier "does not exist" drift note is retired.)
 Full plan + gap analysis: `docs/DEPLOYMENT-READINESS-PLAN-2026-07-15.md`.
+
+---
+
+## Update 10 Agosto 2026 — production-gap closure (audit → fix)
+
+Chiusura dei gap trovati nell'audit "cosa manca per andare in produzione". Tutto il
+lavoro è **codice**, non configurazione; i due punti che restano sono operativi e
+richiedono accesso al server / credenziali reali (vedi "Restano da fare" in fondo).
+
+**Gestionale React (`MEMI-Admin/`) — viste che ora *fanno*, non solo mostrano:**
+- **Scheda ordine** (`pages/order-scheda.tsx`, rotta `/orders/:id`) — prima non esisteva
+  alcuna vista di dettaglio: dalla lista si vedeva solo la riga riassuntiva. Ora: righe
+  ordine, indirizzi spedizione/fatturazione (con P.IVA/CF/SDI/PEC), pagamento +
+  `payment_intent_id`, totali con sconti/gift card, timeline tracking, nota interna,
+  link alla fattura o **"Emetti fattura"**, stampa (CSS `print:hidden` → packing slip),
+  segna pagato / annulla / elimina. La riga della lista ci naviga (`onRowClick`).
+- **Immagini prodotto** (`components/common/product-images.tsx`) — l'upload backend
+  (sharp → WebP, `/api/uploads`) esisteva da mesi ma **non era collegato a nulla nella UI**:
+  si potevano caricare foto solo via CSV. Ora upload multiplo, riordino (la prima è la
+  principale) e delete dal form prodotto. Creare un prodotto ora reindirizza alla sua
+  pagina di modifica, perché l'upload richiede un id già persistito.
+- **Chat clienti** (`pages/chat.tsx`, nav "Chat clienti", perm `chat`) — il widget sullo
+  storefront scriveva su `/api/chat/message` e **nessuno poteva leggere i messaggi**.
+  Inbox con polling 20s, risposta, chiudi/riapri, elimina, contatore non letti.
+- **Contenuti → Pagine + Blog** (`pages/content.tsx`, perm `content` / `blog`) — lo
+  storefront rende `/blog`, `/articolo`, `/pagina` da `/api/cms/published/*`, ma non
+  esisteva UI per crearli: il blog restava vuoto per sempre. Ora CRUD completo.
+- **Impostazioni** (`pages/settings.tsx` + `lib/settings-schema.ts`) — era un dump
+  chiave/valore grezzo con la chiave DB come label. Ora gruppi con etichette, tipi, help,
+  e un banner che elenca i **dati aziendali mancanti**. Le chiavi non ancora descritte
+  restano modificabili sotto "Avanzate" (nulla diventa inaccessibile).
+- **Righe ordini fornitore** modificabili finché il PO è aperto; a `ricevuto`/`annullato`
+  si bloccano (il backend risponde **409**) perché le quantità sono già a stock.
+- **Fatture**: transizioni di stato in blocco (inviata / pagata / annullata).
+- **Recensioni**: dialog di risposta pubblica (`risposta_admin`) — il campo esisteva nel
+  DB e nell'API ma la UI esponeva solo pubblica/rifiuta.
+
+**Backend — rotte nuove (tutte in `docs/03-backend-api.md` e in `smoke-test.sh`):**
+- `PUT /api/orders/admin/:id/notes` — nota interna. Separata da `/status` di proposito:
+  una nota deve restare scrivibile su un ordine annullato o consegnato.
+- `GET /api/auth/me/export` — **GDPR artt. 15+20**, export JSON completo (mai
+  `password_hash`), rate-limit 5/h.
+- `DELETE /api/auth/me` — **GDPR art. 17**, richiede la password. Cancella l'account e i
+  dati puramente di account, pseudonimizza le recensioni, **conserva ordini e fatture**
+  scollegati (`customer_id` → NULL): art. 17(3)(b) + art. 2220 c.c. impongono 10 anni.
+  Il testo mostrato al cliente dice esattamente questo. File: `routes/privacy.js`.
+- `GET /api/store-info` — identità legale pubblica (ragione sociale, sede, P. IVA…) letta
+  da `store_settings` con **whitelist**, `legal_line` preformattata, flag `configured`,
+  cache 60s invalidata dal PUT delle impostazioni. File: `routes/store-info.js`.
+
+**Storefront (`Memi Abbigliamento/`):**
+- Footer e pagine legali (privacy, termini, cookie policy) non contengono più
+  `[Ragione sociale e P.IVA da completare]`: leggono `/api/store-info` via
+  `data-store-info="legal_line"`. **Finché la P. IVA non è compilata nel gestionale non
+  viene stampato nulla** — un dato legale falso sarebbe peggio di uno assente.
+  (Obbligo: D.Lgs 70/2003 art. 7, DPR 633/72 art. 35.) Anno di copyright ora dinamico.
+- Area Personale → nuova sezione **"Privacy e dati"**: scarica i tuoi dati / elimina
+  account (con conferma password), IT+EN.
+- Cache-bust: `app.js?v=821`, `api-client.js?v=9`, `account-core.js?v=5`.
+  ⚠️ I `?v=` in questo repo sono **hash di contenuto** riscritti al build: un `grep '?v=[0-9]+'`
+  li tronca e fa sembrare che siano numeri progressivi. Bumpare **ricorsivamente** (anche
+  `collections/`, `products/`, `editoriali/`) o la verify sez. 2 segnala drift.
+
+**Osservabilità:** `src/error-reporter.js` — cattura strutturata + deduplicata (1 alert per
+firma / 5 min) di ogni errore non gestito, handler `uncaughtException`/`unhandledRejection`,
+e webhook opzionale `ERROR_WEBHOOK_URL` (Slack/Discord/JSON). Zero dipendenze nuove. Il 500
+ora restituisce anche `request_id`, correlabile ai log. Warning al boot se non configurato.
+
+**Backup:** `deploy/install-backup-cron.sh` — `backup.sh` era corretto ma **non era mai
+stato installato**. Lo script installa il crontab (idempotente), poi **esegue un backup di
+verifica** e fallisce se l'archivio non compare o è troppo piccolo.
+
+**Verificato (stack live, 10 ago 2026):** `./smoke-test.sh` **96/96, 0 fallimenti**;
+`bash verify/run.sh` verde; `tsc -b --noEmit` e `vite build` puliti; mount delle rotte
+nuove confermato ispezionando lo stack Express (274 rotte).
+Provato a mano nel browser: scheda ordine (nota salvata e riletta dal DB), chat
+(messaggio dal widget storefront → inbox → risposta → visibile al cliente), blog
+(articolo creato in admin → reso su `/blog`), impostazioni (banner rosso → verde →
+`legal_line` pubblicata nel footer e in `privacy.html`). Dati di prova poi rimossi.
+
+**Due bug trovati e corretti durante la verifica live:**
+- `smoke-test.sh` sez. [9] aveva `CSLUG="smoke-color-$"` — un `$(date +%s)` corrotto. Il
+  backend slugifica via il `$`, quindi lo slug salvato (`smoke-color`) non corrispondeva
+  al `colore` del prodotto: 3 check fallivano **e la guardia "colore in uso" passava per
+  il motivo sbagliato**. Non era un bug della feature colori, ma del test.
+- `settings.tsx`: `SettingInput` non emetteva `id`, quindi ogni `<Label htmlFor>` del
+  blocco raggruppato non puntava a nulla (label non cliccabile, nessuna associazione per
+  screen reader). Corretto passando `id={field.key}` a input/select/textarea.
+
+**Restano da fare (operativi, non risolvibili da qui):**
+1. **Compilare i dati aziendali** in Impostazioni → Dati aziendali e fiscali. Finché la
+   P. IVA è vuota lo store non pubblica l'identità legale ed è **non conforme**.
+2. **Passare i pagamenti in live** (account Stripe reale — quello attuale è sandbox e
+   blocca Apple Pay; merchant code SumUp live). Vedi `scripts/payments-preflight.js`.
+3. **Installare il cron di backup** sul box + copia off-site + **prova di restore**.
+4. `ERROR_WEBHOOK_URL` da impostare in Coolify.
+5. ~~Smoke test live~~ — **fatto**: 96/96. Le 4 sezioni nuove ([11] store-info,
+   [12] GDPR, [13] note ordine, [14] righe PO) sono verdi.

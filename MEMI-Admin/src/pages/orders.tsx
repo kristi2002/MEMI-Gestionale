@@ -112,15 +112,18 @@ export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'G
                 : st === 'annullato'
                   ? { icon: <Ban />, label: 'Annullato' }
                   : { icon: <Truck />, label: 'Spedisci' };
+          // stopPropagation: the row itself navigates to the order detail page.
           return (
-            <OrderTrackingDialog
-              order={row.original}
-              trigger={
-                <Button variant="ghost" size="sm">
-                  {btn.icon} {btn.label}
-                </Button>
-              }
-            />
+            <div onClick={(e) => e.stopPropagation()}>
+              <OrderTrackingDialog
+                order={row.original}
+                trigger={
+                  <Button variant="ghost" size="sm">
+                    {btn.icon} {btn.label}
+                  </Button>
+                }
+              />
+            </div>
           );
         },
       },
@@ -162,6 +165,7 @@ export function OrdersPage({ initialTab = 'all', title = 'Ordini', subtitle = 'G
         columns={columns}
         data={rows}
         getRowId={(o) => String(o.id)}
+        onRowClick={(o) => navigate(`/orders/${o.id}`)}
         externalSearch={{ value: search, onChange: setSearch }}
         searchPlaceholder="Cerca ordine o cliente…"
         exportName="ordini"

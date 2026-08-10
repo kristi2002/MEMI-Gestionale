@@ -4,7 +4,9 @@ import {
   ShoppingBag,
   Tag,
   Users,
+  MessageSquare,
   Megaphone,
+  FileText,
   BadgePercent,
   BarChart3,
   Truck,
@@ -73,6 +75,7 @@ export const NAV: NavGroup[] = [
       { label: 'Recensioni', to: '/reviews', ready: true },
     ],
   },
+  { label: 'Chat clienti', icon: MessageSquare, to: '/chat', ready: true },
   {
     label: 'Marketing',
     icon: Megaphone,
@@ -80,6 +83,14 @@ export const NAV: NavGroup[] = [
       { label: 'Automazioni', to: '/automations' , ready: true },
       { label: 'Email automatiche', to: '/lifecycle' , ready: true },
       { label: 'Newsletter', to: '/newsletter', ready: true },
+    ],
+  },
+  {
+    label: 'Contenuti',
+    icon: FileText,
+    children: [
+      { label: 'Pagine', to: '/content/pages', ready: true },
+      { label: 'Blog', to: '/content/blog', ready: true },
     ],
   },
   { label: 'Sconti', icon: BadgePercent, to: '/discounts', ready: true },

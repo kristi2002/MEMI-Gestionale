@@ -30,6 +30,8 @@ import { LoyaltyRedemptionsPage } from '@/pages/loyalty-redemptions';
 import { LifecycleCampaignFormPage } from '@/pages/lifecycle';
 import { PurchaseOrderFormPage } from '@/pages/purchase-order-form';
 import { OrderFormPage } from '@/pages/order-form';
+import { OrderSchedaPage } from '@/pages/order-scheda';
+import { CmsPageFormPage, BlogFormPage } from '@/pages/content';
 import { AppFormPage } from '@/pages/apps';
 
 function FullScreenSpinner() {
@@ -58,6 +60,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route element={<RequireAuth />}>
           <Route path="/orders/new" element={<OrderFormPage />} />
+          <Route path="/orders/:id" element={<OrderSchedaPage />} />
           <Route path="/products/new" element={<ProductFormPage />} />
           <Route path="/products/:id/edit" element={<ProductFormPage />} />
           <Route path="/products/:id/scheda" element={<ProductSchedaPage />} />
@@ -104,6 +107,10 @@ export default function App() {
           <Route path="/newsletter/:id/edit" element={<NewsletterSubscriberFormPage />} />
           <Route path="/newsletter/compose" element={<NewsletterComposePage />} />
           <Route path="/newsletter/campaigns" element={<NewsletterCampaignsPage />} />
+          <Route path="/content/pages/new" element={<CmsPageFormPage />} />
+          <Route path="/content/pages/:id/edit" element={<CmsPageFormPage />} />
+          <Route path="/content/blog/new" element={<BlogFormPage />} />
+          <Route path="/content/blog/:id/edit" element={<BlogFormPage />} />
           <Route path="/loyalty/redemptions" element={<LoyaltyRedemptionsPage />} />
           <Route path="/lifecycle/:type/edit" element={<LifecycleCampaignFormPage />} />
           {routes.map((r) => (

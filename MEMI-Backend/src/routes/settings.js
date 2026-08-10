@@ -42,6 +42,10 @@ router.put('/', requireAdmin, requireRole('admin'), async (req, res) => {
     }
     await conn.commit();
 
+    // The public /api/store-info response is cached for a minute; drop it now so an
+    // edited P. IVA shows on the storefront immediately instead of "eventually".
+    try { require('./store-info').invalidateStoreInfoCache(); } catch (_) { /* not mounted */ }
+
     logAdminAction({
       adminId: req.admin.id, adminEmail: req.admin.email, action: 'settings.update',
       entityType: 'store_settings', entityId: 'store', details: { keys: Object.keys(updates) },
