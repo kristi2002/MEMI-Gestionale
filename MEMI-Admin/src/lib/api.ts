@@ -103,7 +103,6 @@ import type {
   StaffResponse,
   AuditEntry,
   ExpensesResponse,
-  Campaign,
   CmsPage,
   BlogPost,
   SegmentsResponse,
@@ -123,9 +122,6 @@ import type {
   TaxStats,
   IntegrationsResponse,
   ReportsData,
-  OnlineStoreData,
-  SocialData,
-  PosData,
   AppsData,
 } from '@/types';
 
@@ -168,6 +164,14 @@ export const api = {
     updateNotes: (id: number, notes: string | null) =>
       put<{ ok: boolean }>('/orders/admin/' + id + '/notes', { notes }),
     delete: (id: number) => del<{ ok: boolean }>('/orders/admin/' + id),
+    /** Replace an order's lines. Rejected by the server once paid or shipped. */
+    updateItems: (id: number, data: {
+      items: { product_id: string; taglia: string | null; qty: number }[];
+      shipping_cost?: number;
+    }) =>
+      put<{ ok: boolean; subtotal: number; shipping_cost: number; discount_amount: number; total: number }>(
+        '/orders/admin/' + id + '/items', data,
+      ),
     create: (data: unknown) =>
       post<{ ok: boolean; id: number; order_number: string; total: number }>('/orders/admin', data),
   },
@@ -192,6 +196,17 @@ export const api = {
       del<{ ok: boolean; images: import('@/types').ProductImage[] }>(
         '/products/' + encodeURIComponent(id) + '/images', { url },
       ),
+    /** Colour/size combinations with their own SKU, price override and stock. */
+    variants: {
+      list: (id: string) =>
+        get<import('@/types').ProductVariant[]>('/products/' + encodeURIComponent(id) + '/variants'),
+      create: (id: string, data: unknown) =>
+        post<{ ok: boolean; id: number }>('/products/' + encodeURIComponent(id) + '/variants', data),
+      update: (id: string, vid: number, data: unknown) =>
+        put<{ ok: boolean }>('/products/' + encodeURIComponent(id) + '/variants/' + vid, data),
+      delete: (id: string, vid: number) =>
+        del<{ ok: boolean }>('/products/' + encodeURIComponent(id) + '/variants/' + vid),
+    },
     importCsv: (file: File, dryRun?: boolean) => {
       const fd = new FormData();
       fd.append('file', file);
@@ -264,6 +279,8 @@ export const api = {
       put<{ invoice: Invoice }>('/admin/invoices/' + id, data),
     delete: (id: number) => del('/admin/invoices/' + id),
     pdfUrl: (id: number) => API_BASE + '/admin/invoices/' + id + '/pdf',
+    /** FatturaPA XML for SDI — download only; transmission is out of band. */
+    xmlUrl: (id: number) => API_BASE + '/admin/invoices/' + id + '/xml',
   },
   reviews: {
     list: (params?: Query) => get<ReviewsResponse>('/reviews/admin' + qs(params)),
@@ -346,12 +363,6 @@ export const api = {
       fd.append('file', file);
       return upload<{ url: string }>('/admin/supplier-invoices/attachment', fd);
     },
-  },
-  campaigns: {
-    list: () => get<Campaign[]>('/admin/campaigns'),
-    create: (d: unknown) => post('/admin/campaigns', d),
-    update: (id: number, d: unknown) => put('/admin/campaigns/' + id, d),
-    delete: (id: number) => del('/admin/campaigns/' + id),
   },
   pages: {
     list: () => get<CmsPage[]>('/admin/cms/pages'),
@@ -449,9 +460,6 @@ export const api = {
     remove: (id: number) => del<{ ok: boolean }>('/admin/chat/' + id),
   },
   reports: { get: () => get<ReportsData>('/admin/reports') },
-  onlineStore: { get: () => get<OnlineStoreData>('/admin/online-store') },
-  social: { get: () => get<SocialData>('/admin/social') },
-  pos: { get: () => get<PosData>('/admin/pos') },
   apps: {
     get: () => get<AppsData>('/admin/apps'),
     create: (d: unknown) => post('/admin/apps', d),

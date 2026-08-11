@@ -74,6 +74,12 @@ NODE_PATH="$NP" node MEMI-Backend/test/carts-recovery.test.cjs || FAIL=1
 sec "6h. Fattura PDF (render + embedded product image)"
 NODE_PATH="$NP" node MEMI-Backend/test/invoice-pdf.test.cjs || FAIL=1
 
+sec "6k. FatturaPA XML (SDI reconciliation + escaping)"
+NODE_PATH="$NP" node MEMI-Backend/test/fattura-xml.test.cjs || FAIL=1
+
+sec "6l. Low-stock alerts (threshold + daily dedup)"
+NODE_PATH="$NP" node MEMI-Backend/test/stock-alerts.test.cjs || FAIL=1
+
 sec "6d. Per-product discount scoping (preview ≡ order-creation)"
 NODE_PATH="$NP" node MEMI-Backend/test/discount-scope.test.cjs || FAIL=1
 

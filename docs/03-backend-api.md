@@ -185,6 +185,7 @@ in_attesa|in_preparazione|spedito|consegnato|annullato`.
 | GET | `/api/orders/admin/:id` | Admin+perm `orders` | Detail + items + shipment |
 | PUT | `/api/orders/admin/:id/status` | Admin+perm `orders` | Update status; cancel compensates **and auto-refunds** a paid order to the card; stamps `delivered_at` on first→`consegnato`; first→`pagato` emits invoice |
 | PUT | `/api/orders/admin/:id/notes` | Admin+perm `orders` | Set the internal note (`{notes}`, max 5000 chars, `null` clears). Separate from `/status` on purpose: a note must stay editable on a cancelled or delivered order, where `/status` rightly refuses changes |
+| PUT | `/api/orders/admin/:id/items` | Admin+perm `orders` | Replace the order's lines (`{items:[{product_id,taglia,qty}], shipping_cost?}`). Prices/names re-resolved from the catalogue; stock moves by **delta** with the same atomic `stock >= ?` guard as checkout; totals and loyalty points recomputed. **409** once `payment_status` is `pagato`/`rimborsato` or the order is `spedito`/`consegnato`/`annullato` — those go through cancel/reso instead |
 | PUT | `/api/orders/admin/:id/ship` | Admin+perm `orders` | Assign courier+tracking → `spedito` + email |
 | POST | `/api/orders/admin/:id/send-tracking` | Admin+perm `orders` | Re-send tracking email |
 | POST | `/api/orders/admin/:id/refresh-tracking` | Admin+perm `orders` | Refresh courier tracking status |
@@ -266,6 +267,7 @@ in_attesa|in_preparazione|spedito|consegnato|annullato`.
 | GET | `/api/admin/invoices/:id` | Admin+perm `invoices` | Detail + order items |
 | GET | `/api/admin/invoices/:id/pdf` | Admin+perm `invoices` | Receipt PDF (download; also attached to the shipping-confirmation email) |
 | POST | `/api/admin/invoices` | Admin+perm `invoices` | Create `F-YYYY-NNNN` from an order |
+| GET | `/api/admin/invoices/:id/xml` | Admin+perm `invoices` | **FatturaPA XML** (FPR12) for SDI — download only, this app does not transmit or sign. Company identity comes from `store_settings`; **409** when the P. IVA is not filled in |
 | PUT/DELETE | `/api/admin/invoices/:id` | Admin+perm `invoices` | Update `stato/note/due_date` / delete |
 | GET | `/api/admin/dashboard/kpis` | Admin | Revenue/orders/AOV month-over-month (paid) |
 | GET | `/api/admin/dashboard/chart` | Admin | Revenue+orders, last 30d |

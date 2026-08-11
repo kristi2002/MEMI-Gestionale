@@ -2583,6 +2583,15 @@
       ts: new Date().toISOString()
     };
     try { localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(record)); } catch (_) {}
+    // Withdrawing consent must also erase the identifier the beacons were using;
+    // keeping it would let a later re-consent be joined to the earlier browsing.
+    if (!record.statistics && !record.marketing) {
+      try { localStorage.removeItem('memi_vid'); } catch (_) {}
+    }
+    // Let the beacons (and any future script) react without a page reload.
+    try {
+      document.dispatchEvent(new CustomEvent('memi:consent:changed', { detail: record }));
+    } catch (_) {}
     return record;
   }
 
@@ -2782,6 +2791,12 @@
   // and re-open the preferences panel (e.g. footer "Preferenze cookie" link).
   window.MemiConsent = {
     get: getConsent,
+    /* Default-deny: no recorded choice means no consent. GDPR/ePrivacy require an
+       affirmative act, so "not asked yet" must never behave like "accepted". */
+    allows: function (category) {
+      var c = getConsent();
+      return !!(c && c[category]);
+    },
     openPreferences: function () {
       buildCookieConsentMarkup();
       openConsentPreferences();
@@ -2941,21 +2956,164 @@
    Fire-and-forget, never throws, never blocks. One ping per page load with the
    path + an anonymous visitor id (separate from the auth session). */
 (function () {
-  try {
-    var base = (window.MEMI && window.MEMI._base) || window.MEMI_API_URL || '/api';
-    var vid = null;
+  var sent = false;
+  function allowed() {
+    try { return !!(window.MemiConsent && window.MemiConsent.allows('statistics')); } catch (_) { return false; }
+  }
+  function ping() {
+    if (sent || !allowed()) return;
+    sent = true;
     try {
-      vid = localStorage.getItem('memi_vid');
-      if (!vid) { vid = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('memi_vid', vid); }
+      var base = (window.MEMI && window.MEMI._base) || window.MEMI_API_URL || '/api';
+      var vid = null;
+      try {
+        // Minted only once consent exists — never for a visitor who has not opted in.
+        vid = localStorage.getItem('memi_vid');
+        if (!vid) { vid = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('memi_vid', vid); }
+      } catch (_) {}
+      var payload = JSON.stringify({ path: location.pathname, session: vid, referrer: document.referrer || '' });
+      var url = base + '/track';
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
+      } else {
+        fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
+      }
     } catch (_) {}
-    var payload = JSON.stringify({ path: location.pathname, session: vid, referrer: document.referrer || '' });
-    var url = base + '/track';
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(url, new Blob([payload], { type: 'application/json' }));
-    } else {
-      fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
+  }
+  ping();
+  // Accepting from the banner counts this page view; declining leaves it unsent.
+  document.addEventListener('memi:consent:changed', ping);
+})();
+
+/* ── Storefront pop-ups → GET /api/popups/published ──────────────────────────
+   Shows the most recent active pop-up once per visitor per pop-up. Dismissal is
+   kept in localStorage (first-party UI state, no tracking → no consent needed).
+   Never blocks rendering: any failure leaves the page untouched. */
+(function () {
+  if (window.__memiPopupInit) return; window.__memiPopupInit = true;
+
+  var SEEN_KEY = 'memi_popup_seen';
+  var DELAY_MS = 4000;
+
+  function seen() {
+    try { var a = JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'); return Array.isArray(a) ? a : []; }
+    catch (_) { return []; }
+  }
+  function markSeen(id) {
+    try {
+      var a = seen();
+      if (a.indexOf(id) === -1) { a.push(id); localStorage.setItem(SEEN_KEY, JSON.stringify(a.slice(-50))); }
+    } catch (_) {}
+  }
+
+  function injectStyles() {
+    if (document.getElementById('memi-popup-styles')) return;
+    var s = document.createElement('style');
+    s.id = 'memi-popup-styles';
+    s.textContent =
+      '.memi-popup-backdrop{position:fixed;inset:0;background:rgba(59,43,43,.42);z-index:9400;opacity:0;transition:opacity .3s ease;}'
+      + '.memi-popup-backdrop.open{opacity:1;}'
+      + '.memi-popup{position:fixed;z-index:9450;background:var(--white,#FFFFFF);border:1px solid var(--beige,#DBDBEE);'
+      + 'border-radius:10px;box-shadow:0 18px 48px rgba(59,43,43,.22);padding:1.5rem 1.6rem;max-width:420px;'
+      + 'width:calc(100vw - 32px);font-family:var(--font-sans,\'DM Sans\',sans-serif);opacity:0;transition:opacity .3s ease,transform .3s ease;}'
+      + '.memi-popup.pos-center{left:50%;top:50%;transform:translate(-50%,-46%);}'
+      + '.memi-popup.pos-center.open{transform:translate(-50%,-50%);}'
+      + '.memi-popup.pos-bottom-right{right:20px;bottom:20px;transform:translateY(12px);}'
+      + '.memi-popup.pos-bottom-left{left:20px;bottom:20px;transform:translateY(12px);}'
+      + '.memi-popup.pos-top{left:50%;top:20px;transform:translate(-50%,-12px);max-width:640px;}'
+      + '.memi-popup.pos-top.open{transform:translate(-50%,0);}'
+      + '.memi-popup.pos-bottom-right.open,.memi-popup.pos-bottom-left.open{transform:translateY(0);}'
+      + '.memi-popup.open{opacity:1;}'
+      + '.memi-popup h3{margin:0 2rem .5rem 0;font-family:var(--font-serif,\'Cormorant Garamond\',serif);'
+      + 'font-size:1.4rem;line-height:1.25;color:var(--espresso,#3B2B2B);}'
+      + '.memi-popup p{margin:0 0 1rem;font-size:.88rem;line-height:1.55;color:var(--brown-mid,#7A6B6B);}'
+      + '.memi-popup-cta{display:inline-block;background:var(--espresso,#3B2B2B);color:#fff;text-decoration:none;'
+      + 'font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:.7rem 1.2rem;border-radius:4px;}'
+      + '.memi-popup-close{position:absolute;top:.55rem;right:.7rem;background:none;border:none;font-size:1.5rem;line-height:1;'
+      + 'cursor:pointer;color:var(--brown-mid,#7A6B6B);padding:.2rem .4rem;}'
+      + '.memi-popup-close:hover{color:var(--espresso,#3B2B2B);}'
+      + '@media (prefers-reduced-motion:reduce){.memi-popup,.memi-popup-backdrop{transition:none;}}';
+    document.head.appendChild(s);
+  }
+
+  function show(p) {
+    injectStyles();
+    var pos = String(p.posizione || 'center');
+    var modal = pos === 'center';
+
+    var backdrop = null;
+    if (modal) {
+      backdrop = document.createElement('div');
+      backdrop.className = 'memi-popup-backdrop';
+      document.body.appendChild(backdrop);
     }
-  } catch (_) {}
+
+    var box = document.createElement('div');
+    box.className = 'memi-popup pos-' + pos;
+    box.setAttribute('role', modal ? 'dialog' : 'complementary');
+    if (modal) box.setAttribute('aria-modal', 'true');
+    box.setAttribute('aria-label', p.titolo || 'Messaggio');
+
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'memi-popup-close';
+    close.setAttribute('aria-label', 'Chiudi');
+    close.innerHTML = '&times;';
+    box.appendChild(close);
+
+    if (p.titolo) { var h = document.createElement('h3'); h.textContent = p.titolo; box.appendChild(h); }
+    if (p.contenuto) { var t = document.createElement('p'); t.textContent = p.contenuto; box.appendChild(t); }
+    if (p.cta_label && p.cta_url) {
+      var a = document.createElement('a');
+      a.className = 'memi-popup-cta';
+      a.href = p.cta_url;
+      a.textContent = p.cta_label;
+      box.appendChild(a);
+    }
+
+    document.body.appendChild(box);
+    requestAnimationFrame(function () {
+      box.classList.add('open');
+      if (backdrop) backdrop.classList.add('open');
+    });
+
+    function dismiss() {
+      markSeen(p.id);
+      box.classList.remove('open');
+      if (backdrop) backdrop.classList.remove('open');
+      setTimeout(function () {
+        if (box.parentNode) box.parentNode.removeChild(box);
+        if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+      }, 320);
+      document.removeEventListener('keydown', onKey);
+    }
+    function onKey(e) { if (e.key === 'Escape') dismiss(); }
+
+    close.addEventListener('click', dismiss);
+    if (backdrop) backdrop.addEventListener('click', dismiss);
+    // Following the CTA counts as handled — don't nag on the next page.
+    box.querySelectorAll('.memi-popup-cta').forEach(function (el) {
+      el.addEventListener('click', function () { markSeen(p.id); });
+    });
+    document.addEventListener('keydown', onKey);
+    close.focus();
+  }
+
+  function start() {
+    var base = (window.MEMI && window.MEMI._base) || window.MEMI_API_URL || '/api';
+    fetch(base + '/popups/published')
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (list) {
+        if (!Array.isArray(list) || !list.length) return;
+        var already = seen();
+        var next = list.filter(function (p) { return already.indexOf(p.id) === -1; })[0];
+        if (next) setTimeout(function () { show(next); }, DELAY_MS);
+      })
+      .catch(function () {});
+  }
+
+  if (document.readyState !== 'loading') start();
+  else document.addEventListener('DOMContentLoaded', start);
 })();
 
 /* ── Customer chat widget → /api/chat (self-hosted) ──────────────────────────
@@ -3055,6 +3213,9 @@
   if (window.__memiCartBeacon) return; window.__memiCartBeacon = true;
   try {
     var API = (window.MEMI && window.MEMI._base) || window.MEMI_API_URL || '/api';
+    function allowed() {
+      try { return !!(window.MemiConsent && window.MemiConsent.allows('marketing')); } catch (_) { return false; }
+    }
     function vid() {
       try { var v = localStorage.getItem('memi_vid'); if (!v) { v = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); localStorage.setItem('memi_vid', v); } return v; }
       catch (_) { return null; }
@@ -3063,6 +3224,9 @@
     function token() { try { return localStorage.getItem('memi_token'); } catch (_) { return null; } }
     var lastSent = null;
     function send(force) {
+      // Abandoned-cart tracking follows the cart around the site and feeds
+      // recovery email — it needs marketing consent, not just "necessary".
+      if (!allowed()) return;
       var cart = readCart();
       var serial = JSON.stringify(cart);
       if (!force && serial === lastSent) return;
@@ -3078,5 +3242,8 @@
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') send(true); });
     window.addEventListener('pagehide', function () { send(true); });
     setInterval(function () { send(false); }, 8000);
+    // Granting consent later starts tracking from the current cart; revoking
+    // stops the next tick (lastSent is cleared so re-consent resends in full).
+    document.addEventListener('memi:consent:changed', function () { lastSent = null; send(true); });
   } catch (_) {}
 })();

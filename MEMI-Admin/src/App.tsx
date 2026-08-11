@@ -20,6 +20,7 @@ import { CustomerFormPage } from '@/pages/customers';
 import { CustomerSchedaPage } from '@/pages/customer-scheda';
 import { StaffFormPage } from '@/pages/staff';
 import { ColorFormPage } from '@/pages/colors';
+import { PopupFormPage } from '@/pages/popups';
 import { CourierFormPage } from '@/pages/couriers';
 import { AutomationFormPage } from '@/pages/automations';
 import { CategoryFormPage, CollectionFormPage } from '@/pages/taxonomy';
@@ -92,6 +93,8 @@ export default function App() {
           <Route path="/customers/:id" element={<CustomerSchedaPage />} />
           <Route path="/staff/new" element={<StaffFormPage />} />
           <Route path="/staff/:id/edit" element={<StaffFormPage />} />
+          <Route path="/popups/new" element={<PopupFormPage />} />
+          <Route path="/popups/:id/edit" element={<PopupFormPage />} />
           <Route path="/colors/new" element={<ColorFormPage />} />
           <Route path="/colors/:id/edit" element={<ColorFormPage />} />
           <Route path="/couriers/new" element={<CourierFormPage />} />

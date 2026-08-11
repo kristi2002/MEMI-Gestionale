@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { SizeStockEditor, type SizeStock } from '@/components/common/size-stock-editor';
 import { ProductImagesCard } from '@/components/common/product-images';
+import { ProductVariantsCard } from '@/components/common/product-variants';
 import { useCategories, useCollections, useColors } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
@@ -286,6 +287,9 @@ export function ProductFormPage() {
               {/* Upload needs a persisted product id, so this only renders when editing.
                   Creating a product redirects straight here so photos are one click away. */}
               {editing && <ProductImagesCard productId={id!} images={images} onChange={setImages} />}
+
+              {/* Variants need a persisted product id, same as image upload. */}
+              {editing && <ProductVariantsCard productId={id!} />}
             </div>
             {/* Side column */}
             <div className="space-y-6">

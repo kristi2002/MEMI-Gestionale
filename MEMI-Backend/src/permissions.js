@@ -23,9 +23,12 @@ const STAFF_VIEWS = [
   'products', 'inventory', 'transfers', 'collections', 'categories', 'giftcards',
   'customers', 'loyalty', 'segments', 'reviews', 'marketing', 'automations',
   'lifecycle', 'newsletter', 'popups', 'discounts', 'content', 'blog', 'files',
-  'couriers', 'shipments', 'tracking', 'shipping-zones', 'pickup', 'chat',
-  'online-store', 'social', 'pos', 'apps',
+  'couriers', 'shipments', 'tracking', 'shipping-zones', 'pickup', 'chat', 'apps',
 ];
+// NOTE: 'online-store', 'social' and 'pos' are deliberately absent. Their routers
+// are mounted and functional but no admin UI consumes them, so they are reachable
+// only by a full admin — granting them to staff would advertise a view that is not
+// there. Add them back here the day those screens exist.
 
 // Named profiles the staff UI can assign. `null` = full access.
 const PRESETS = {

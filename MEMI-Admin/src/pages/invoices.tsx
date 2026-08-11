@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { FileText, FileDown } from 'lucide-react';
+import { FileText, FileDown, FileCode2 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { KpiCard } from '@/components/common/kpi-card';
 import { DataTable } from '@/components/data-table/data-table';
@@ -78,7 +78,7 @@ export function InvoicesPage() {
         header: '',
         enableSorting: false,
         cell: ({ row }) => (
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-1">
             <Button variant="ghost" size="sm" asChild>
               <a
                 href={api.invoices.pdfUrl(row.original.id)}
@@ -88,6 +88,17 @@ export function InvoicesPage() {
                 aria-label={`Scarica PDF ${row.original.invoice_number}`}
               >
                 <FileDown /> PDF
+              </a>
+            </Button>
+            {/* FatturaPA file for SDI. Download only — this app does not transmit. */}
+            <Button variant="ghost" size="sm" asChild>
+              <a
+                href={api.invoices.xmlUrl(row.original.id)}
+                onClick={(e) => e.stopPropagation()}
+                aria-label={`Scarica XML FatturaPA ${row.original.invoice_number}`}
+                title="XML FatturaPA — da caricare su Fatture e Corrispettivi o inviare all'intermediario"
+              >
+                <FileCode2 /> XML
               </a>
             </Button>
           </div>

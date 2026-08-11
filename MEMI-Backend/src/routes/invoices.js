@@ -5,6 +5,7 @@
  *
  * GET    /api/admin/invoices          List all invoices
  * GET    /api/admin/invoices/:id      Single invoice detail with order items
+ * GET    /api/admin/invoices/:id/xml  FatturaPA XML (electronic invoice, SDI format)
  * POST   /api/admin/invoices          Create invoice from order
  * PUT    /api/admin/invoices/:id      Update invoice (stato, note, due_date)
  * DELETE /api/admin/invoices/:id      Delete invoice
@@ -14,6 +15,7 @@ const router = require('express').Router();
 const { pool }         = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const { generateInvoicePdf } = require('../invoice-pdf');
+const { generateFatturaXml }  = require('../fattura-xml');
 
 /** Load an invoice (+ order_number) and its order line items. */
 async function loadInvoiceWithItems(id) {
@@ -74,6 +76,27 @@ router.get('/:id/pdf', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('invoice pdf error', err);
     return res.status(500).json({ error: 'Errore generazione PDF' });
+  }
+});
+
+/* ── GET /api/admin/invoices/:id/xml ── FatturaPA electronic invoice ──
+ * Returns the SDI-format XML for manual upload to Fatture e Corrispettivi, or for
+ * handing to an accredited intermediary. Nothing here transmits or signs the file —
+ * see the header of src/fattura-xml.js for why that cannot live in app code. */
+router.get('/:id/xml', requireAdmin, async (req, res) => {
+  try {
+    const data = await loadInvoiceWithItems(req.params.id);
+    if (!data) return res.status(404).json({ error: 'Fattura non trovata' });
+    const { xml, filename } = await generateFatturaXml(data.invoice, data.items);
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(xml);
+  } catch (err) {
+    // A missing P. IVA is an operator problem, not a server fault — say so plainly.
+    if (err && err.code === 'COMPANY_NOT_CONFIGURED')
+      return res.status(409).json({ error: err.message });
+    console.error('invoice xml error', err);
+    return res.status(500).json({ error: 'Errore generazione XML' });
   }
 });
 

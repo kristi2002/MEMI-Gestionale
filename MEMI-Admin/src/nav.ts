@@ -83,6 +83,7 @@ export const NAV: NavGroup[] = [
       { label: 'Automazioni', to: '/automations' , ready: true },
       { label: 'Email automatiche', to: '/lifecycle' , ready: true },
       { label: 'Newsletter', to: '/newsletter', ready: true },
+      { label: 'Pop-up', to: '/popups', ready: true },
     ],
   },
   {

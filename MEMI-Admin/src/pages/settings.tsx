@@ -39,6 +39,20 @@ function SettingInput({ field, value, onChange }: {
       </select>
     );
   }
+  if (field.type === 'select') {
+    return (
+      <select
+        id={field.key}
+        className={`${FIELD_CLASS} h-9`}
+        value={value || field.options?.[0]?.value || ''}
+        onChange={(e) => onChange(e.target.value)}
+      >
+        {(field.options ?? []).map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    );
+  }
   if (field.type === 'textarea') {
     return (
       <textarea

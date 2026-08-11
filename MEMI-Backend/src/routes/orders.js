@@ -19,7 +19,7 @@ const router = require('express').Router();
 const { pool }                           = require('../db');
 const { requireCustomer, requireAdmin, requirePermission, optionalCustomer } = require('../middleware/auth');
 const { sendOrderConfirmation, sendShippingConfirmation, sendOrderCancellation, sendOrderStatusUpdate } = require('../email');
-const { awardPurchasePoints } = require('../loyalty');
+const { awardPurchasePoints, reverseOrderPoints } = require('../loyalty');
 const { compensateOrder } = require('../order-compensation');
 const { issueProviderRefund, canRefund } = require('../refunds');
 const { ensureInvoiceForOrder } = require('../invoicing');
@@ -28,6 +28,7 @@ const { logAdminAction } = require('../audit');
 const { fetchTrackingStatus, INTERNAL_STATUSES, persistTrackingEvents } = require('../courier-tracking');
 const providers = require('../payment-providers');
 const { resolveShipping, matchZone } = require('../shipping-rates');
+const { checkLowStockAsync } = require('../stock-alerts');
 
 /* ── enum whitelists (mirror schema.sql ENUM definitions) ── */
 const PAYMENT_STATUSES = ['in_attesa', 'pagato', 'rimborsato', 'fallito'];
@@ -503,6 +504,10 @@ router.post('/', validateBody(createOrderSchema), optionalCustomer, async (req, 
 
       await conn.commit();
 
+      // Stock has actually moved now — tell the shop about anything at the reorder
+      // threshold. Fire-and-forget: an alert must never delay or fail a sale.
+      checkLowStockAsync(pool, resolved.map((i) => ({ product_id: i.product_id, taglia: i.taglia })));
+
       // PayPal: capture NOW that the order + its atomic stock decrement are safely committed.
       // If capture fails, the order stays 'in_attesa' (buyer NOT charged) for admin/webhook
       // follow-up — the buyer is never charged without an order. On success, promote to 'pagato'
@@ -853,6 +858,8 @@ router.post('/admin', requireAdmin, requirePermission('orders'), async (req, res
 
     await conn.commit();
 
+    checkLowStockAsync(pool, resolved.map((i) => ({ product_id: i.product_id, taglia: i.taglia })));
+
     if (payment_status === 'pagato') ensureInvoiceForOrder(pool, orderId).catch(() => {});
 
     return res.status(201).json({ ok: true, id: orderId, order_number: orderNumber, total });
@@ -911,6 +918,187 @@ router.put('/admin/:id/notes', requireAdmin, requirePermission('orders'), async 
   } catch (err) {
     (req.log || console).error({ err }, 'order notes update');
     return res.status(500).json({ error: 'Errore server' });
+  }
+});
+
+/* ── PUT /api/orders/admin/:id/items ── edit an order's contents ──
+ *
+ * Deliberately restricted to orders that have not been paid and have not left the
+ * building. Once money has moved, the charged amount and the order total must keep
+ * matching (the same invariant POST /api/orders enforces with its 402), and once a
+ * parcel is shipped its contents are a physical fact — those cases belong to the
+ * cancel/refund/reso flows, not to a silent edit.
+ *
+ * Stock moves by DELTA, not by restock-then-decrement: reducing a line returns units,
+ * increasing one takes them with the same atomic `WHERE stock >= ?` guard used at
+ * checkout, so an edit can never oversell. Loyalty points are reversed and re-awarded
+ * (reverseOrderPoints nets the ledger, so repeated edits stay correct). */
+router.put('/admin/:id/items', requireAdmin, requirePermission('orders'), async (req, res) => {
+  const items = Array.isArray(req.body && req.body.items) ? req.body.items : null;
+  if (!items || items.length === 0)
+    return res.status(400).json({ error: 'Un ordine deve contenere almeno un articolo' });
+  if (items.length > 100)
+    return res.status(400).json({ error: 'Troppi articoli in un solo ordine (max 100)' });
+
+  const shippingOverride = req.body.shipping_cost;
+  if (shippingOverride !== undefined && (isNaN(Number(shippingOverride)) || Number(shippingOverride) < 0))
+    return res.status(400).json({ error: 'Spese di spedizione non valide' });
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [[order]] = await conn.execute(
+      `SELECT id, order_status, payment_status, shipping_cost, discount_amount,
+              gift_card_amount, customer_email
+         FROM orders WHERE id = ? FOR UPDATE`,
+      [req.params.id]
+    );
+    if (!order) { await conn.rollback(); return res.status(404).json({ error: 'Ordine non trovato' }); }
+
+    if (order.payment_status === 'pagato' || order.payment_status === 'rimborsato') {
+      await conn.rollback();
+      return res.status(409).json({
+        error: 'Un ordine già pagato non può essere modificato. Annullalo (con rimborso) o registra un reso.',
+      });
+    }
+    if (['spedito', 'consegnato', 'annullato'].includes(order.order_status)) {
+      await conn.rollback();
+      return res.status(409).json({
+        error: `Un ordine in stato "${order.order_status}" non può essere modificato.`,
+      });
+    }
+
+    /* Resolve every requested line against the live catalog — the admin picks
+       product + qty, price and name always come from the DB. */
+    const resolved = [];
+    for (const it of items) {
+      if (!it || !it.product_id) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Ogni articolo deve essere un prodotto del catalogo' });
+      }
+      const qty = parseInt(it.qty, 10) || 0;
+      if (qty < 1) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'La quantità di ogni articolo deve essere almeno 1' });
+      }
+      const [[prod]] = await conn.execute('SELECT id, name, price FROM products WHERE id = ?', [it.product_id]);
+      if (!prod) {
+        await conn.rollback();
+        return res.status(400).json({ error: `Prodotto non trovato in catalogo: ${it.product_id}` });
+      }
+
+      /* Same effective-size rule as checkout: a size-less product carries one
+         canonical stock row, a sized product must say which size. */
+      const [sizeRows] = await conn.execute(
+        'SELECT taglia FROM product_sizes WHERE product_id = ?', [it.product_id]
+      );
+      let effTaglia = it.taglia || null;
+      if (!effTaglia) {
+        if (sizeRows.length === 1) effTaglia = sizeRows[0].taglia;
+        else if (sizeRows.length > 1) {
+          await conn.rollback();
+          return res.status(400).json({ error: `Seleziona una taglia per "${prod.name}".` });
+        }
+      }
+
+      resolved.push({
+        product_id:   prod.id,
+        product_name: prod.name,
+        price:        Number(prod.price) || 0,
+        qty,
+        taglia:       effTaglia,
+        colore:       it.colore || null,
+      });
+    }
+
+    /* Stock delta: aggregate old and new by product+size, then move only the difference. */
+    const key = (pid, taglia) => pid + '\u0000' + (taglia || '');
+    const [oldItems] = await conn.execute(
+      'SELECT product_id, taglia, qty FROM order_items WHERE order_id = ?', [order.id]
+    );
+    const before = new Map();
+    for (const it of oldItems) {
+      if (!it.taglia) continue;                       // legacy line with no tracked size
+      before.set(key(it.product_id, it.taglia), (before.get(key(it.product_id, it.taglia)) || 0) + it.qty);
+    }
+    const after = new Map();
+    for (const it of resolved) {
+      if (!it.taglia) continue;
+      after.set(key(it.product_id, it.taglia), (after.get(key(it.product_id, it.taglia)) || 0) + it.qty);
+    }
+
+    // Product ids are opaque to an operator — show the catalogue name in errors.
+    const nameOf = new Map(resolved.map((r) => [r.product_id, r.product_name]));
+    for (const k of new Set([...before.keys(), ...after.keys()])) {
+      const delta = (after.get(k) || 0) - (before.get(k) || 0);
+      if (delta === 0) continue;
+      const [pid, taglia] = k.split('\u0000');
+      if (delta > 0) {
+        const [r] = await conn.execute(
+          'UPDATE product_sizes SET stock = stock - ? WHERE product_id = ? AND taglia = ? AND stock >= ?',
+          [delta, pid, taglia, delta]
+        );
+        if (r.affectedRows === 0) {
+          await conn.rollback();
+          return res.status(409).json({
+            error: `Scorte insufficienti per "${nameOf.get(pid) || pid}" taglia ${taglia}: servono ${delta} unità in più.`,
+          });
+        }
+      } else {
+        await conn.execute(
+          'UPDATE product_sizes SET stock = stock + ? WHERE product_id = ? AND taglia = ?',
+          [-delta, pid, taglia]
+        );
+      }
+    }
+
+    /* Replace the lines and recompute the money. */
+    await conn.execute('DELETE FROM order_items WHERE order_id = ?', [order.id]);
+    for (const item of resolved) {
+      await conn.execute(
+        `INSERT INTO order_items (order_id, product_id, product_name, taglia, colore, price, qty)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [order.id, item.product_id, item.product_name, item.taglia, item.colore, item.price, item.qty]
+      );
+    }
+
+    const subtotal = +resolved.reduce((s, i) => s + i.price * i.qty, 0).toFixed(2);
+    const ship     = shippingOverride === undefined ? (Number(order.shipping_cost) || 0) : Number(shippingOverride);
+    // Credits already granted stay granted, but a discount can never exceed the new
+    // goods total (a shrunk order must not turn into a negative-value one).
+    const discount = Math.min(Number(order.discount_amount) || 0, subtotal);
+    const gift     = Number(order.gift_card_amount) || 0;
+    const total    = +Math.max(0, subtotal + ship - discount - gift).toFixed(2);
+
+    await conn.execute(
+      'UPDATE orders SET subtotal = ?, shipping_cost = ?, discount_amount = ?, total = ? WHERE id = ?',
+      [subtotal, ship, discount, total, order.id]
+    );
+
+    // The points earned were computed from the old total — restate them.
+    try {
+      await reverseOrderPoints(conn, order.id, 'modifica ordine');
+      await awardPurchasePoints(conn, order.customer_email, total, order.id);
+    } catch (_) {}
+
+    await conn.commit();
+
+    checkLowStockAsync(pool, resolved.map((i) => ({ product_id: i.product_id, taglia: i.taglia })));
+
+    logAdminAction({
+      adminId: req.admin.id, adminEmail: req.admin.email, action: 'order.items',
+      entityType: 'order', entityId: String(order.id),
+      details: { lines: resolved.length, subtotal, total },
+    }).catch(() => {});
+
+    return res.json({ ok: true, subtotal, shipping_cost: ship, discount_amount: discount, total });
+  } catch (err) {
+    await conn.rollback();
+    (req.log || console).error({ err }, 'order items edit');
+    return res.status(500).json({ error: 'Errore server' });
+  } finally {
+    conn.release();
   }
 });
 

@@ -467,6 +467,61 @@ else
 fi
 
 echo
+# 15 — Order line-item editing (editable while unpaid, frozen once paid/shipped)
+echo "[15] Order item editing"
+if [ -n "$ADMIN_TOKEN" ]; then
+  P15="smoke-items-$(date +%s)"
+  curl -s -o /dev/null -X POST "$BASE/api/products" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"id\":\"$P15\",\"name\":\"Smoke Items\",\"categoria\":\"vestiti\",\"price\":20,\"taglie\":[{\"taglia\":\"M\",\"stock\":10}]}"
+  EOID="$(curl -fsS -X POST "$BASE/api/orders/admin" -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+    -d "{\"nome\":\"Smoke\",\"email\":\"smoke-items@example.com\",\"items\":[{\"product_id\":\"$P15\",\"taglia\":\"M\",\"qty\":1}]}" 2>/dev/null | jget id)"
+  if [ -n "$EOID" ]; then
+    C="$(code -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+          -d "{\"items\":[{\"product_id\":\"$P15\",\"taglia\":\"M\",\"qty\":3}]}" "$BASE/api/orders/admin/$EOID/items")"
+    [ "$C" = "200" ] && ok "PUT /api/orders/admin/:id/items -> 200" || ko "order items edit -> HTTP $C"
+    NEWTOT="$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/orders/admin/$EOID" 2>/dev/null | jget total)"
+    case "$NEWTOT" in 60|60.00) ok "total recomputed from the new lines (60.00)" ;; *) ko "total after edit = '$NEWTOT' (expected 60)" ;; esac
+    # Stock must follow the DELTA: 10 - 1 (create) - 2 (edit 1->3) = 7.
+    LEFT="$(curl -fsS "$BASE/api/products/$P15" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const p=JSON.parse(d);const t=(p.taglie||p.sizes||[]).find(x=>x.taglia==="M");console.log(t?t.stock:"")}catch(e){console.log("")}})')"
+    [ "$LEFT" = "7" ] && ok "stock moved by delta (10 -> 7)" || ko "stock after edit = '$LEFT' (expected 7)"
+    # Once paid, contents are frozen — that invariant is the whole point of the endpoint.
+    curl -s -o /dev/null -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+      -d '{"payment_status":"pagato"}' "$BASE/api/orders/admin/$EOID/status"
+    C="$(code -X PUT -H "Authorization: Bearer $ADMIN_TOKEN" -H 'Content-Type: application/json' \
+          -d "{\"items\":[{\"product_id\":\"$P15\",\"taglia\":\"M\",\"qty\":1}]}" "$BASE/api/orders/admin/$EOID/items")"
+    [ "$C" = "409" ] && ok "paid order: item edit rejected -> 409" || ko "paid order item edit -> HTTP $C (expected 409)"
+    curl -s -o /dev/null -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/orders/admin/$EOID"
+  else
+    ko "order create for item-edit check failed"
+  fi
+  curl -s -o /dev/null -X DELETE -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/products/$P15"
+else
+  ko "skipping order item-edit check — no admin token"
+fi
+
+echo
+# 16 — FatturaPA XML (electronic invoice for SDI)
+echo "[16] FatturaPA XML"
+if [ -n "$ADMIN_TOKEN" ]; then
+  INVID="$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/invoices?limit=1" 2>/dev/null | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>{try{const j=JSON.parse(d);console.log((j.invoices&&j.invoices[0]&&j.invoices[0].id)||"")}catch(e){console.log("")}})')"
+  if [ -n "$INVID" ]; then
+    C="$(code -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/invoices/$INVID/xml")"
+    # 409 is a legitimate answer: it means the company P. IVA has not been filled in yet.
+    case "$C" in
+      200) XML="$(curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$BASE/api/admin/invoices/$INVID/xml" 2>/dev/null)"
+           echo "$XML" | grep -q 'FatturaElettronica' && ok "GET /api/admin/invoices/:id/xml -> FatturaPA document" || ko "XML body is not a FatturaPA document"
+           echo "$XML" | grep -q '<ImportoTotaleDocumento>' && ok "XML carries ImportoTotaleDocumento" || ko "XML missing ImportoTotaleDocumento" ;;
+      409) ok "invoice XML -> 409 (dati aziendali non compilati — atteso su store non configurato)" ;;
+      *)   ko "invoice XML -> HTTP $C (expected 200 or 409)" ;;
+    esac
+  else
+    ok "no invoices yet — XML endpoint not exercised"
+  fi
+else
+  ko "skipping FatturaPA XML check — no admin token"
+fi
+
+echo
 echo "------------------------------"
 echo "  passed: $pass   failed: $fail"
 echo "------------------------------"

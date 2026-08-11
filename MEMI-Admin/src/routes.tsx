@@ -40,6 +40,7 @@ import { IntegrationsPage } from '@/pages/integrations';
 import { ReportsPage } from '@/pages/reports';
 import { AppsPage } from '@/pages/apps';
 import { ChatPage } from '@/pages/chat';
+import { PopupsPage } from '@/pages/popups';
 import { CmsPagesPage, BlogPage } from '@/pages/content';
 
 /** Concrete React pages ported in this delivery, keyed by route path. */
@@ -64,6 +65,7 @@ const READY_PAGES: Record<string, ReactElement> = {
   '/automations': <AutomationsPage />,
   '/lifecycle': <LifecyclePage />,
   '/newsletter': <NewsletterPage />,
+  '/popups': <PopupsPage />,
   '/discounts': <DiscountsPage />,
   '/couriers': <CouriersPage />,
   '/shipments': <ShipmentsPage />,

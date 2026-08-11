@@ -13,12 +13,14 @@
  * so nothing becomes uneditable just because this file doesn't know about it.
  */
 
-export type SettingType = 'text' | 'textarea' | 'number' | 'email' | 'url' | 'boolean';
+export type SettingType = 'text' | 'textarea' | 'number' | 'email' | 'url' | 'boolean' | 'select';
 
 export interface SettingField {
   key: string;
   label: string;
   type?: SettingType;
+  /** Required for type 'select' — the allowed values, in display order. */
+  options?: { value: string; label: string }[];
   help?: string;
   placeholder?: string;
   /** Shown with a "richiesto per la pubblicazione" marker — legally required to go live. */
@@ -56,6 +58,17 @@ export const SETTING_GROUPS: SettingGroup[] = [
       { key: 'company_pec', label: 'PEC', type: 'email', placeholder: 'memi@pec.it' },
       { key: 'company_phone', label: 'Telefono', placeholder: '+39 0733 000000' },
       { key: 'company_sdi', label: 'Codice destinatario SDI', placeholder: 'Es. ABCDEFG', help: 'Usato sulle fatture elettroniche emesse.' },
+      {
+        key: 'company_regime_fiscale', label: 'Regime fiscale', type: 'select',
+        options: [
+          { value: 'RF01', label: 'RF01 — Ordinario' },
+          { value: 'RF19', label: 'RF19 — Forfettario' },
+          { value: 'RF02', label: 'RF02 — Contribuenti minimi' },
+          { value: 'RF04', label: 'RF04 — Agricoltura e attività connesse' },
+          { value: 'RF18', label: 'RF18 — Altro' },
+        ],
+        help: 'Obbligatorio nella fattura elettronica (XML FatturaPA). In dubbio: RF01.',
+      },
     ],
   },
   {
@@ -77,6 +90,15 @@ export const SETTING_GROUPS: SettingGroup[] = [
       { key: 'auto_invoice', label: 'Fattura automatica', type: 'boolean', help: '1 = emette una fattura alla prima transizione a "pagato". 0 = disattiva.' },
       { key: 'iva_sales_rate', label: 'Aliquota IVA vendite (%)', type: 'number', help: 'Usata per la stima della liquidazione IVA nella vista Tasse.' },
       { key: 'invoice_prefix', label: 'Prefisso numerazione', placeholder: 'F', help: 'Le fatture sono numerate PREFISSO-ANNO-NNNN.' },
+      {
+        key: 'low_stock_threshold', label: 'Soglia scorte basse', type: 'number', placeholder: '3',
+        help: 'Quando una taglia scende a questo valore o sotto, ricevi un avviso via email (una volta al giorno per taglia).',
+      },
+      {
+        key: 'low_stock_alert_email', label: 'Email avvisi scorte', type: 'email',
+        placeholder: 'magazzino@memi.testdemo.it',
+        help: 'Se vuoto vengono usati l’email aziendale o quella dello store.',
+      },
     ],
   },
   {

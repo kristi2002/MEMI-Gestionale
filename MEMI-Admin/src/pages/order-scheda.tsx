@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Printer, Trash2, Ban, CheckCircle2, Truck, MapPin, PackageCheck,
-  Loader2, FileDown, FileText, StickyNote, CreditCard, User, Package,
+  Loader2, FileDown, FileText, StickyNote, CreditCard, User, Package, Pencil,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/common/status-badge';
 import { ConfirmDialog } from '@/components/common/confirm-dialog';
 import { OrderTrackingDialog } from '@/components/order-tracking-dialog';
+import { OrderItemsDialog } from '@/components/common/order-items-dialog';
 import { api } from '@/lib/api';
 import { eur, num, date, dateTime } from '@/lib/format';
 import { statusLabel } from '@/lib/status';
@@ -144,6 +145,10 @@ export function OrderSchedaPage() {
   }
 
   const itemsTotal = o.items.reduce((n, it) => n + num(it.price) * it.qty, 0);
+  const canEditItems =
+    o.payment_status !== 'pagato' &&
+    o.payment_status !== 'rimborsato' &&
+    !['spedito', 'consegnato', 'annullato'].includes(o.order_status);
   const billingSeparate = o.billing_same_as_shipping === 0;
   const shipPhase =
     o.order_status === 'spedito' ? { icon: <MapPin />, label: 'Tracking' } :
@@ -226,8 +231,21 @@ export function OrderSchedaPage() {
         {/* ── Main column ───────────────────────────────── */}
         <div className="space-y-4 lg:col-span-2">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex-row items-center justify-between space-y-0">
               <CardTitle className="flex items-center gap-2"><Package className="h-4 w-4" /> Articoli ({o.items.length})</CardTitle>
+              {/* Mirrors the backend's own rule: contents are frozen once money has
+                  moved or the parcel has left. Those cases go through cancel/reso. */}
+              {canEditItems && (
+                <OrderItemsDialog
+                  order={o}
+                  onSaved={invalidate}
+                  trigger={
+                    <Button variant="outline" size="sm" className="print:hidden">
+                      <Pencil /> Modifica articoli
+                    </Button>
+                  }
+                />
+              )}
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">

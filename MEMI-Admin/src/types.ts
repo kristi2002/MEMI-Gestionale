@@ -191,6 +191,17 @@ export interface ProductImage {
   card?: string;
   thumb?: string;
 }
+export interface ProductVariant {
+  id: number;
+  product_id: string;
+  sku: string | null;
+  /** Free-form attribute bag, e.g. { colore: 'Rosso', taglia: 'M' }. */
+  options: Record<string, string>;
+  price: number | null;
+  stock: number;
+  image_url: string | null;
+  attivo: boolean;
+}
 export interface ProductRow {
   id: string;
   name: string;

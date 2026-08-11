@@ -407,6 +407,72 @@ Provato a mano nel browser: scheda ordine (nota salvata e riletta dal DB), chat
   blocco raggruppato non puntava a nulla (label non cliccabile, nessuna associazione per
   screen reader). Corretto passando `id={field.key}` a input/select/textarea.
 
+---
+
+## Update 11 Agosto 2026 — chiusura dei code gap residui
+
+Audit del codice (non dei doc) dopo lo sprint del 10 ago: sei gap reali, tutti chiusi.
+`bash verify/run.sh` verde (2 sezioni nuove), `tsc -b --noEmit` e `vite build` puliti.
+**Non verificato su stack live** — Docker non era in esecuzione in quella sessione: le
+sezioni smoke [15] e [16] sono scritte ma mai eseguite contro un backend vero.
+
+1. **Il cookie consent era decorativo.** Il banner raccoglieva
+   `{statistics, marketing}` in `memi_cookie_consent`, ma **nessuno leggeva la
+   risposta**: l'unico consumatore di `window.MemiConsent` era il link "Preferenze
+   cookie" nel footer. I due beacon partivano comunque a ogni page load —
+   `POST /api/track` (id visitatore persistente + path + referrer, 30 giorni lato
+   server) e `POST /api/cart` (contenuto carrello, ogni 8 secondi). Ora:
+   `MemiConsent.allows(cat)` con **default-deny** (nessuna scelta ⇒ nessun consenso),
+   track gated su `statistics`, cart beacon su `marketing`, evento
+   `memi:consent:changed` per riarmare i beacon senza reload, e `memi_vid` **creato
+   solo dopo il consenso** ed eliminato quando viene revocato.
+2. **Varianti prodotto: backend completo, zero consumatori.**
+   `/api/products/:id/variants` (CRUD) esisteva da mesi senza client né UI. Ora
+   `ProductVariantsCard` nel form prodotto (attributi liberi, SKU, prezzo, scorte).
+   Richiede un id persistito, come l'upload immagini.
+3. **Permessi per viste inesistenti.** `popups`, `campaigns`, `online-store`,
+   `social`, `pos` avevano router montati e — i primi — checkbox nella schermata
+   Staff, ma nessuna pagina. Ora **Pop-up è reale** (CRUD admin + renderer storefront
+   con dismissal per-visitatore); `campaigns`/`onlineStore`/`social`/`pos` hanno
+   perso i client morti in `api.ts`, e `online-store`/`social`/`pos` sono usciti da
+   `STAFF_VIEWS` (backend) e dalla UI permessi. I router restano montati e
+   raggiungibili da un admin pieno: vedi la nota in `permissions.js`.
+4. **Gli ordini non si potevano correggere.** Nessun endpoint toccava le righe: taglia
+   sbagliata o riga esaurita ⇒ annulla e rifai. Nuovo
+   **`PUT /api/orders/admin/:id/items`**: prezzi/nomi ri-risolti dal catalogo, stock
+   spostato **per delta** con la stessa guardia atomica `stock >= ?` del checkout
+   (una modifica non può causare oversell), totali e punti fedeltà ricalcolati
+   (`reverseOrderPoints` netta il ledger, quindi modifiche ripetute restano corrette).
+   **409** se l'ordine è pagato/rimborsato o spedito/consegnato/annullato — lì valgono
+   cancel/reso, e l'invariante "importo incassato == totale ordine" resta intatta.
+   UI: "Modifica articoli" nella scheda ordine, nascosto esattamente negli stessi casi.
+5. **Nessuna fattura elettronica.** `billing_sdi`/`billing_pec` venivano raccolti e
+   stampati sul PDF, ma un cliente B2B non riceveva nulla di valido.
+   Nuovo `src/fattura-xml.js` (FatturaPA **FPR12**) + `GET /api/admin/invoices/:id/xml`
+   + pulsante XML nella lista fatture. **Genera e basta: non trasmette e non firma** —
+   serve un intermediario accreditato o un canale SDICoop. Il file è valido da solo,
+   quindi è caricabile a mano su Fatture e Corrispettivi da subito.
+   Nuova impostazione **Regime fiscale** (RF01 default) — obbligatoria nell'XML.
+   Il totale documento è `invoice.total` (quanto è stato *incassato*), imponibile e
+   imposta derivano da lì, e lo scarto con le righe a listino diventa una riga di
+   rettifica esplicita: così sconti, gift card e centesimi di arrotondamento
+   riconciliano sempre. Senza P. IVA compilata → **409**, mai un XML non valido.
+6. **Scorte basse mostrate ma mai notificate.** `src/stock-alerts.js`: dopo un ordine
+   (checkout, ordine admin, modifica righe) le taglie a/sotto soglia generano **una**
+   email. Idempotente via `email_events` (`low_stock`, dedup per prodotto:taglia:giorno),
+   best-effort, no-op senza SMTP. Soglia e destinatario in Impostazioni
+   (`low_stock_threshold`, `low_stock_alert_email`).
+
+**Cache-bust:** storefront `app.js?v=822` (era 821) — bumpato ricorsivamente su tutti
+i 44 HTML che lo referenziano.
+
+**Test nuovi:** `test/fattura-xml.test.cjs` (11 check, verify sez. 6k) e
+`test/stock-alerts.test.cjs` (7 check, sez. 6l). Il primo ha **trovato due bug veri**
+durante la scrittura: le righe venivano sommate non arrotondate ma emesse arrotondate
+(Σrighe ≠ imponibile ⇒ SDI scarta il file), e il totale era ricalcolato dai prezzi di
+listino ignorando sconti e gift card. Smoke: `[15] Order item editing`,
+`[16] FatturaPA XML` — **da eseguire contro lo stack live**.
+
 **Restano da fare (operativi, non risolvibili da qui):**
 1. **Compilare i dati aziendali** in Impostazioni → Dati aziendali e fiscali. Finché la
    P. IVA è vuota lo store non pubblica l'identità legale ed è **non conforme**.

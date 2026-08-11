@@ -34,7 +34,7 @@ const exportColumns: ExportColumn<StaffMember>[] = [
 // full access); this is what makes least-privilege reachable from the UI.
 const PERMISSION_PRESETS: Record<string, string[] | null> = {
   admin: null,
-  staff: ['dashboard', 'orders', 'orders-drafts', 'orders-abandoned', 'returns', 'invoices', 'products', 'inventory', 'transfers', 'collections', 'categories', 'giftcards', 'customers', 'loyalty', 'segments', 'reviews', 'marketing', 'automations', 'lifecycle', 'newsletter', 'popups', 'discounts', 'content', 'blog', 'files', 'couriers', 'shipments', 'tracking', 'shipping-zones', 'pickup', 'chat', 'online-store', 'social', 'pos', 'apps'],
+  staff: ['dashboard', 'orders', 'orders-drafts', 'orders-abandoned', 'returns', 'invoices', 'products', 'inventory', 'transfers', 'collections', 'categories', 'giftcards', 'customers', 'loyalty', 'segments', 'reviews', 'marketing', 'automations', 'lifecycle', 'newsletter', 'popups', 'discounts', 'content', 'blog', 'files', 'couriers', 'shipments', 'tracking', 'shipping-zones', 'pickup', 'chat', 'apps'],
   warehouse: ['dashboard', 'products', 'inventory', 'transfers', 'collections', 'categories', 'giftcards', 'couriers', 'shipments', 'tracking', 'shipping-zones', 'pickup', 'orders', 'orders-drafts', 'orders-abandoned'],
   customer_service: ['dashboard', 'orders', 'orders-drafts', 'orders-abandoned', 'returns', 'invoices', 'customers', 'loyalty', 'segments', 'reviews', 'chat', 'newsletter'],
   marketing: ['dashboard', 'marketing', 'automations', 'lifecycle', 'newsletter', 'popups', 'discounts', 'content', 'blog', 'files', 'analytics', 'reports', 'reviews'],
@@ -93,9 +93,6 @@ const VIEW_GROUPS: { label: string; admin?: boolean; views: { key: string; label
   ] },
   { label: 'Canali di vendita', views: [
     { key: 'chat', label: 'Chat' },
-    { key: 'online-store', label: 'Negozio online' },
-    { key: 'social', label: 'Social' },
-    { key: 'pos', label: 'POS' },
     { key: 'apps', label: 'App esterne' },
   ] },
   { label: 'Statistiche', admin: true, views: [
