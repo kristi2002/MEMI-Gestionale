@@ -412,9 +412,19 @@ Provato a mano nel browser: scheda ordine (nota salvata e riletta dal DB), chat
 ## Update 11 Agosto 2026 — chiusura dei code gap residui
 
 Audit del codice (non dei doc) dopo lo sprint del 10 ago: sei gap reali, tutti chiusi.
-`bash verify/run.sh` verde (2 sezioni nuove), `tsc -b --noEmit` e `vite build` puliti.
-**Non verificato su stack live** — Docker non era in esecuzione in quella sessione: le
-sezioni smoke [15] e [16] sono scritte ma mai eseguite contro un backend vero.
+**Verificato su stack live: `./smoke-test.sh` 101/101, 0 fallimenti**; `bash verify/run.sh`
+verde (2 sezioni nuove), `tsc -b --noEmit` e `vite build` puliti.
+
+⚠️ **Il giro live ha trovato un bug che i test mockati non potevano vedere.** Entrambi i
+moduli nuovi leggevano `store_settings` con nomi di colonna inesistenti
+(`setting_key`/`setting_value`) e il `catch` inghiottiva l'errore SQL — quindi
+`/invoices/:id/xml` rispondeva **sempre** 409 e gli avvisi scorte usavano sempre i
+default. I mock restituivano la forma che il codice chiedeva, quindi passavano lo stesso.
+Ora le fixture usano i nomi veri e i catch **loggano** invece di degradare in silenzio.
+
+> **Le colonne di `store_settings` sono `key` e `value`** — nell'SQL vanno citate con i
+> backtick perché `key` è una parola riservata MySQL. Vedi `lifecycle.js`, `loyalty.js`,
+> `reso-config.js` per il pattern corretto.
 
 1. **Il cookie consent era decorativo.** Il banner raccoglieva
    `{statistics, marketing}` in `memi_cookie_consent`, ma **nessuno leggeva la
@@ -452,6 +462,10 @@ sezioni smoke [15] e [16] sono scritte ma mai eseguite contro un backend vero.
    + pulsante XML nella lista fatture. **Genera e basta: non trasmette e non firma** —
    serve un intermediario accreditato o un canale SDICoop. Il file è valido da solo,
    quindi è caricabile a mano su Fatture e Corrispettivi da subito.
+   Indirizzo cliente: snapshot billing → colonne `shipping_*` dell'ordine →
+   `invoice.indirizzo` (mai mescolate fra loro). Senza questo fallback gli ordini privi
+   di dati di fatturazione mettevano tutto l'indirizzo in un campo solo, con `Comune`
+   "-" e `CAP` 00000.
    Nuova impostazione **Regime fiscale** (RF01 default) — obbligatoria nell'XML.
    Il totale documento è `invoice.total` (quanto è stato *incassato*), imponibile e
    imposta derivano da lì, e lo scarto con le righe a listino diventa una riga di
@@ -471,7 +485,11 @@ i 44 HTML che lo referenziano.
 durante la scrittura: le righe venivano sommate non arrotondate ma emesse arrotondate
 (Σrighe ≠ imponibile ⇒ SDI scarta il file), e il totale era ricalcolato dai prezzi di
 listino ignorando sconti e gift card. Smoke: `[15] Order item editing`,
-`[16] FatturaPA XML` — **da eseguire contro lo stack live**.
+`[16] FatturaPA XML` — **eseguite, verdi**. La [16] passa dal ramo 409 perché i dati
+aziendali non sono compilati; il ramo 200 è stato verificato a mano compilando
+temporaneamente P. IVA + ragione sociale (XML valido: righe 22.95 + 4.84 = imponibile
+27.79, + 6.11 IVA = 33.90 totale documento) e poi **ripulendo le impostazioni** —
+lasciare una P. IVA finta l'avrebbe pubblicata nel footer dello storefront.
 
 **Restano da fare (operativi, non risolvibili da qui):**
 1. **Compilare i dati aziendali** in Impostazioni → Dati aziendali e fiscali. Finché la

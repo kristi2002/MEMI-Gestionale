@@ -97,11 +97,15 @@ async function loadCompany() {
   const out = {};
   try {
     const [rows] = await pool.query(
-      'SELECT setting_key, setting_value FROM store_settings WHERE setting_key IN (?)',
+      'SELECT `key`, `value` FROM store_settings WHERE `key` IN (?)',
       [COMPANY_KEYS]
     );
-    for (const r of rows) out[r.setting_key] = s(r.setting_value);
-  } catch (_) { /* fall through to env */ }
+    for (const r of rows) out[r.key] = s(r.value);
+  } catch (err) {
+    // Falling back to env is a legitimate degradation, but a silent fall-through
+    // once hid a wrong column name here — never let it be invisible again.
+    console.error('fattura-xml: store_settings read failed, falling back to env —', err && err.message);
+  }
 
   const vat = out.company_vat || s(process.env.COMPANY_VAT);
   return {
@@ -142,11 +146,14 @@ function resolveRecipient(invoice, order) {
     piva,
     cf,
     name: s(invoice.customer_nome) || s(order && order.billing_nome) || 'Cliente',
-    address:  s(order && order.billing_address)   || s(invoice.indirizzo) || '-',
-    cap:      cap(order && order.billing_cap),
-    city:     s(order && order.billing_citta)     || '-',
+    /* Preference order per field: billing snapshot → shipping columns → the
+       pre-joined invoice.indirizzo. Never mix: a CAP from shipping with a street
+       from billing would be a plausible-looking wrong address. */
+    address:  s(order && order.billing_address)  || s(order && order.shipping_address) || s(invoice.indirizzo) || '-',
+    cap:      cap(s(order && order.billing_cap)  || s(order && order.shipping_cap)),
+    city:     s(order && order.billing_citta)    || s(order && order.shipping_citta)   || '-',
     province: code(order && order.billing_provincia, 2),
-    country:  countryCode(order && order.billing_paese),
+    country:  countryCode(s(order && order.billing_paese) || s(order && order.shipping_paese)),
     // A 7-char code wins; otherwise PEC routing ('0000000' + PECDestinatario);
     // otherwise the no-channel default.
     destCode: sdi.length === 7 ? sdi : '0000000',
@@ -376,6 +383,7 @@ async function generateFatturaXml(invoice, items) {
       const [[o]] = await pool.execute(
         `SELECT shipping_cost, payment_status, discount_code, discount_amount,
                 gift_card_code, gift_card_amount,
+                shipping_address, shipping_citta, shipping_cap, shipping_paese,
                 billing_nome, billing_address, billing_citta,
                 billing_cap, billing_provincia, billing_paese, billing_piva, billing_cf,
                 billing_sdi, billing_pec

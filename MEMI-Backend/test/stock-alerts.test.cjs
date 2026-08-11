@@ -27,7 +27,8 @@ function fakePool({ stock = {}, settings = {} }) {
   return {
     claimed,
     async query() {
-      return [Object.entries(settings).map(([k, v]) => ({ setting_key: k, setting_value: v }))];
+      // `key`/`value` — the real store_settings column names.
+      return [Object.entries(settings).map(([k, v]) => ({ key: k, value: v }))];
     },
     async execute(sql, params) {
       if (/INSERT INTO email_events/i.test(sql)) {

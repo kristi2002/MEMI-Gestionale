@@ -22,15 +22,18 @@ const ok = (label) => { console.log('  ✓ ' + label); pass++; };
 
 /* ── DB mock ──────────────────────────────────────────────────────── */
 
+/* Column names match store_settings exactly (`key`/`value`). They are NOT
+   setting_key/setting_value — getting that wrong shipped a silently-broken
+   endpoint once, because the code's catch swallowed the SQL error. */
 const COMPANY_ROWS = [
-  { setting_key: 'company_legal_name', setting_value: 'Memi Abbigliamento S.r.l.' },
-  { setting_key: 'company_vat',        setting_value: 'IT01234567890' },
-  { setting_key: 'company_address',    setting_value: 'Via della Moda 12' },
-  { setting_key: 'company_cap',        setting_value: '62012' },
-  { setting_key: 'company_city',       setting_value: 'Civitanova Marche' },
-  { setting_key: 'company_province',   setting_value: 'mc' },
-  { setting_key: 'company_country',    setting_value: 'Italia' },
-  { setting_key: 'company_regime_fiscale', setting_value: 'RF01' },
+  { key: 'company_legal_name', value: 'Memi Abbigliamento S.r.l.' },
+  { key: 'company_vat',        value: 'IT01234567890' },
+  { key: 'company_address',    value: 'Via della Moda 12' },
+  { key: 'company_cap',        value: '62012' },
+  { key: 'company_city',       value: 'Civitanova Marche' },
+  { key: 'company_province',   value: 'mc' },
+  { key: 'company_country',    value: 'Italia' },
+  { key: 'company_regime_fiscale', value: 'RF01' },
 ];
 
 function mockDb({ settings = COMPANY_ROWS, order = null } = {}) {
@@ -145,6 +148,31 @@ const ITEMS = [
     ok('unpaid invoice omits the payment block');
   })
 
+/* ── 5b. No billing snapshot → structured shipping columns, not the joined string. */
+  .then(async () => {
+    const restore = mockDb({
+      order: {
+        shipping_cost: 0, payment_status: 'pagato',
+        shipping_address: 'Via Roma 1', shipping_citta: 'Milano',
+        shipping_cap: '20100', shipping_paese: 'Italia',
+        billing_nome: null, billing_address: null, billing_citta: null,
+        billing_cap: null, billing_provincia: null, billing_paese: null,
+        billing_piva: null, billing_cf: null, billing_sdi: null, billing_pec: null,
+      },
+    });
+    const { generateFatturaXml } = fresh();
+    const { xml } = await generateFatturaXml(
+      { ...INVOICE, customer_piva: null, customer_cf: null, indirizzo: 'Via Roma 1, Milano 20100, Italia' },
+      ITEMS,
+    );
+    restore();
+
+    assert.ok(xml.includes('<Indirizzo>Via Roma 1</Indirizzo>'), 'street only, not the joined string');
+    assert.ok(xml.includes('<CAP>20100</CAP>'), 'real CAP, not the 00000 placeholder');
+    assert.ok(xml.includes('<Comune>Milano</Comune>'), 'real comune, not "-"');
+    ok('no billing snapshot → structured shipping address is used');
+  })
+
 /* ── 6. Escaping ──────────────────────────────────────────────────── */
   .then(async () => {
     const restore = mockDb({ order: null });
@@ -162,7 +190,7 @@ const ITEMS = [
 
 /* ── 7. Refuses to emit an invoice with no seller VAT ─────────────── */
   .then(async () => {
-    const restore = mockDb({ settings: [{ setting_key: 'company_name', setting_value: 'Memi' }] });
+    const restore = mockDb({ settings: [{ key: 'company_name', value: 'Memi' }] });
     const { generateFatturaXml } = fresh();
     let threw = null;
     try { await generateFatturaXml(INVOICE, ITEMS); } catch (e) { threw = e; }
